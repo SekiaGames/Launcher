@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 namespace Launcher;
@@ -34,6 +35,7 @@ public sealed partial class World
             {
                 reincarnation.CooldownRemaining = reincarnation.Cooldown;
                 unit.AwaitingRevive = false;
+                if (string.Equals(ability.Id, "AIrc", StringComparison.OrdinalIgnoreCase)) ConsumeReincarnationCharm(unit);
                 _pendingReincarnations.Add(new PendingReincarnation
                 {
                     Hero = unit,
@@ -48,6 +50,19 @@ public sealed partial class World
             }
         }
         return reincarnating;
+    }
+
+    /// <summary>重生十字章（ankh）是一次性的：触发重生时把身上那件吃掉，免得无限复活。</summary>
+    private void ConsumeReincarnationCharm(Unit hero)
+    {
+        foreach (Item item in hero.Inventory)
+        {
+            if (item?.Type == null) continue;
+            if (!item.Type.AbilList.Contains("AIrc", StringComparison.OrdinalIgnoreCase)) continue;
+            RemoveItemBonus(hero, item);
+            ConsumeItem(item);
+            return;
+        }
     }
 
     /// <summary>推进重生倒计时：到点原地满血复活（不走祭坛、不扣金）。</summary>

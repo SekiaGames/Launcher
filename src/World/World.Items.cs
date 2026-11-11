@@ -24,21 +24,56 @@ public sealed partial class World
     public event Action<Unit, Item> ItemUsed;
 
     /// <summary>
-    /// 使用物品：只处理消耗品（回血/回蓝），效果取 abilList 的能力数值，
-    /// 用完从格子里移除并销毁模型。非消耗品返回 false。
+    /// 使用物品：按 <see cref="ItemUseRules"/> 的计划分流——
+    /// 物品专用一次性效果 → 复用技能实现（带目标）→ 回血回蓝兜底。
+    /// 目标型物品（逃脱匕首/沉默权杖/蛛网/保存权杖/偷蓝法杖）由场景层先收目标再传进来。
     /// </summary>
-    public bool UseItem(Unit unit, Item item)
+    public bool UseItem(Unit unit, Item item, Unit target = null, Vector3? point = null)
     {
         if (unit == null || item?.Type == null || !unit.Alive) return false;
-        if (!item.Type.Usable) return false;
 
-        if (ItemUseEffect.TryUse(this, unit, item))
+        ItemUsePlan plan = ItemUseRules.PlanFor(item.Type);
+        if (!plan.Usable) return false;
+        if (item.CooldownRemaining > 0f) return false;
+        if (plan.TargetMode == ItemTargetMode.Unit && (target == null || !target.Alive)) return false;
+
+        Vector3 at = point ?? (target != null ? target.Position : unit.Position);
+        bool used = plan.Kind switch
         {
-            ConsumeItem(item);
-            ItemUsed?.Invoke(unit, item);
-            return true;
-        }
+            ItemUseKind.OneShot => ItemUseEffect.TryUse(this, unit, item, target, at),
+            ItemUseKind.Ability => UseItemAbility(unit, plan, target, at),
+            ItemUseKind.Consumable => UseItemConsumable(unit, item),
+            _ => false,
+        };
+        if (!used) return false;
 
+        item.CooldownRemaining = Mathf.Max(item.CooldownRemaining, plan.Cooldown);
+        if (SpendOneCharge(item)) ConsumeItem(item);
+        ItemUsed?.Invoke(unit, item);
+        return true;
+    }
+
+    /// <summary>
+    /// 复用技能实现的那一类物品（逃脱匕首→闪烁、沉默权杖→沉默、蛛网饰针→蛛网…）。
+    /// 物品不带法力消耗也不看施法状态（被沉默也能用道具），冷却记在物品上而不是技能实例上。
+    /// </summary>
+    private bool UseItemAbility(Unit unit, ItemUsePlan plan, Unit target, Vector3 point)
+    {
+        Ability ability = SkillRegistry.Create(plan.Type);
+        if (ability == null || ability is PassiveAbility) return false;
+
+        ability.Owner = unit;
+        ability.Level = 1;
+
+        if (!ability.CheckTarget(this, target, point)) return false;
+        if (!ability.OnCast(this, target, point)) return false;
+
+        AbilityCast?.Invoke(unit, ability, target);
+        return true;
+    }
+
+    private static bool UseItemConsumable(Unit unit, Item item)
+    {
         ItemConsumable effect = item.Type.Consumable;
         if (effect.IsEmpty) return false;
 
@@ -48,14 +83,56 @@ public sealed partial class World
         if (!needHeal && !needMana) return false;
 
         if (needHeal) unit.Heal(effect.Heal);
-        if (needMana)
-        {
-            unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + effect.Mana);
-        }
-
-        ConsumeItem(item);
-        ItemUsed?.Invoke(unit, item);
+        if (needMana) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + effect.Mana);
         return true;
+    }
+
+    /// <summary>
+    /// 扣一次使用次数（物编 `uses`）：扣到 0 且 perishable 的才销毁；
+    /// `uses` 为空的永久可用物品（沉默权杖/逃脱匕首）不扣也不毁。返回 true 表示该销毁。
+    /// </summary>
+    private static bool SpendOneCharge(Item item)
+    {
+        int uses = item.Type.Uses;
+        if (uses <= 0 && !item.Type.Perishable) return false;
+
+        int remaining = item.Charges > 0 ? item.Charges - 1 : Mathf.Max(0, uses - 1);
+        item.Charges = remaining;
+        return item.Type.Perishable && remaining <= 0;
+    }
+
+    /// <summary>命令卡显示的剩余次数（uses 为空的物品没有次数概念）。</summary>
+    public static int ChargesLeft(Item item)
+    {
+        if (item?.Type == null || item.Type.Uses <= 0) return 0;
+        return item.Charges > 0 ? item.Charges : item.Type.Uses;
+    }
+
+    /// <summary>物品冷却：每 tick 递减（永久可用物品靠它限制节奏）。</summary>
+    public void TickItemCooldowns()
+    {
+        foreach (Unit unit in Units)
+        {
+            if (unit?.Inventory == null) continue;
+            foreach (Item item in unit.Inventory)
+            {
+                if (item == null || item.CooldownRemaining <= 0f) continue;
+                item.CooldownRemaining = Mathf.Max(0f, item.CooldownRemaining - Tick);
+            }
+        }
+    }
+
+    /// <summary>金币/木材道具（金袋、木材堆）：直接进玩家资源，走的是采集同一套事件。</summary>
+    public void GrantGold(int player, int amount)
+    {
+        if (amount <= 0) return;
+        GoldDeposited?.Invoke(player, amount);
+    }
+
+    public void GrantLumber(int player, int amount)
+    {
+        if (amount <= 0) return;
+        LumberDeposited?.Invoke(player, amount);
     }
 
     /// <summary>把物品从格子里拿掉并销毁模型（用掉/被吞）。</summary>

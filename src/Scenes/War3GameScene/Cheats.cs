@@ -912,7 +912,7 @@ public sealed partial class War3GameScene
         foreach (Item picked in hero.Inventory)
         {
             if (picked?.Type == null) continue;
-            if (!picked.Type.Consumable.IsEmpty)
+            if (ItemUseRules.Usable(picked.Type) && ItemUseRules.TargetModeFor(picked.Type) == ItemTargetMode.None)
             {
                 hero.Hp = Mathf.Max(1f, hero.Hp - 300f);
                 float hpBefore = hero.Hp;

@@ -421,7 +421,7 @@ public sealed partial class World
         RefreshHeroAttributes(unit);
     }
 
-    private static readonly string[] ItemAbilityCodes = { "AIba", "AIav", "AIar", "AIae", "AIau", "AIcd", "AIuv", "AIcf", "AIad", "AIgx" };
+    private static readonly string[] ItemAbilityCodes = { "AIba", "AIav", "AIar", "AIae", "AIau", "AIcd", "AIuv", "AIcf", "AIad", "AIgx", "AIrc" };
 
     private void GrantItemAbilities(Unit unit, Item item)
     {

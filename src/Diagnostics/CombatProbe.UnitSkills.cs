@@ -32,6 +32,7 @@ public static partial class CombatProbe
         CheckWarDrums();
         CheckDetection();
         CheckSentinel();
+        CheckCreepAbilities();
         CheckHeroAliases();
     }
 

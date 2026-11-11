@@ -16,6 +16,12 @@ public sealed class Item
     /// <summary>已经加到持有者身上的加成，丢弃时按这份扣除。</summary>
     public ItemBonus Bonus;
 
+    /// <summary>物品自己的技能冷却（沉默权杖 20s、逃脱匕首 30s 这类永久可用物品靠它限制节奏）。</summary>
+    public float CooldownRemaining;
+
+    /// <summary>已用掉的次数（物编 uses>0 的物品有次数，用完才销毁）；0 表示还没用过。</summary>
+    public int Charges;
+
     /// <summary>这件物品授予的被动/光环技能（装备时给，卸下时收回）。</summary>
     public readonly System.Collections.Generic.List<string> GrantedAbilities = new();
 

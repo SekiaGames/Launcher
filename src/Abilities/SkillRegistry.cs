@@ -437,6 +437,31 @@ public static class SkillRegistry
         ["AIgx"] = () => new RegenerationAura(), // 物品版再生光环
         ["AIdv"] = () => new DivineShield(),  // 物品版神圣护甲
         ["AIhl"] = () => new HolyLight(),     // 物品版圣光术
+        // —— 物品主动：直接复用同源技能实现（目标形态跟着别家能力走） ——
+        ["AIbk"] = () => new Blink(),         // 逃脱匕首（点地面，DataA 上限 1000 / DataB 最短 200）
+        ["AIse"] = () => new Silence(),       // 沉默权杖（点地面 AoE）
+        ["AIsi"] = () => new Silence(),       // 沉默杖（同名别名）
+        ["AIps"] = () => new Purge(),         // 萨满图腾（点单位净化）
+        ["AIwb"] = () => new Web(),           // 蜘蛛丝饰针（点空中单位）
+        ["AIrr"] = () => new Roar(),          // 野兽卷轴（周围友军 +攻击）
+        ["AIin"] = () => new Inferno(),       // 恶魔岩石（点地面召地狱火）
+        ["AIrc"] = () => new Reincarnation(),  // 重生十字章（装备后死亡自动复活）
+        ["AIcy"] = () => new Cyclone(),       // 风暴法杖（点敌人上天，Dur 20）
+        ["AIco"] = () => new Charm(),         // 移主权杖（抢 DataA 级以内非英雄单位）
+        ["AIdp"] = () => new DeathPact(),     // 死亡契约（物品版，献祭友军回血）
+        ["AIfz"] = () => new FingerOfDeath(), // 死亡之指（物品版，DataC 直伤）
+        ["AIcl"] = () => new ChainLightning(),// 闪电链（雷蜥钻石）
+        ["AIxk"] = () => new Berserk(),       // 战渴头盔（狂暴）
+        // —— 野怪 / 古树 / 召唤物自带（客户端 Runtime*Ability） ——
+        ["Aeat"] = () => new EatTree(),        // 吃树回血（古树与部分野怪）
+        ["Afzy"] = () => new Frenzy(),         // 狂暴（攻速 + 移速，自动施放）
+        ["Aasl"] = () => new SlowAura(),       // 缓慢光环（龙卷风）
+        ["ANpi"] = () => new PermanentImmolation(), // 永久献祭（地狱火）
+        ["Apig"] = () => new PermanentImmolation(), // 永久献祭（图形版）
+        ["Atdg"] = () => new TornadoDamage(),  // 龙卷风每秒伤害（Atsp/Atwa 仍为占位）
+        ["ANen"] = () => new Ensnare(),        // 诱捕（纳迦）
+        ["Acny"] = () => new Cyclone(),        // 旋风（纳迦）
+        ["ACfu"] = () => new FrostArmor(),     // 霜冻护甲（纳迦自动施法）
     };
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);

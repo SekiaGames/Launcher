@@ -18,6 +18,149 @@ public static partial class CombatProbe
         CheckItemAura();
         CheckUltravision();
         CheckResistantSkin();
+        CheckHealingPotionCodes();
+        CheckTargetedItems();
+        CheckPermanentItemCooldown();
+        CheckItemCharges();
+        CheckReincarnationCharm();
+    }
+
+    /// <summary>重生十字章：装备时授重生，死亡后 7s 原地满血复活，十字章一次性吃掉。</summary>
+    private static void CheckReincarnationCharm()
+    {
+        var world = new World(null, null);
+        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 3, world);
+        world.Units.Add(hero);
+
+        Item ankh = GiveItem(hero, "ankh");
+        if (ankh == null) return;
+        world.ApplyItemBonus(hero, ankh);
+        Verify("十字章装备后授重生", 1f, hero.FindAbility("AIrc") != null ? 1f : 0f, 0f);
+
+        world.KillUnit(hero, null);
+        Verify("重生期间算死亡", 0f, hero.Alive ? 1f : 0f, 0f);
+        Verify("十字章已消耗", 0f, hero.ItemCount, 0f);
+
+        for (int index = 0; index < 200; index++) world.TickReincarnation();
+        Verify("重生到点满血起身", 1f, hero.Alive && hero.Hp >= hero.MaxHp - 0.5f ? 1f : 0f, 0f);
+    }
+
+    /// <summary>物编 uses：盗取权杖 2 次、蜘蛛丝饰针 4 次——用完才销毁。</summary>
+    private static void CheckItemCharges()
+    {
+        var world = new World(null, null);
+        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        world.Units.Add(hero);
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
+        enemy.Mana = 500f;
+
+        Item wand = GiveItem(hero, "woms");
+        int before = World.ChargesLeft(wand);
+        bool first = world.UseItem(hero, wand, enemy, enemy.Position);
+        Verify("充能物品首用后仍在", 1f, hero.ItemCount, 0f);
+        Verify("充能物品次数递减", before - 1, World.ChargesLeft(wand), 0f);
+
+        wand.CooldownRemaining = 0f;
+        bool second = world.UseItem(hero, wand, enemy, enemy.Position);
+        Verify("两次都用出去了", 1f, first && second ? 1f : 0f, 0f);
+        Verify("次数用完才销毁", 0f, hero.ItemCount, 0f);
+    }
+
+    /// <summary>治疗/法力药剂：phea/pman 挂的是 AIh1/AIm1，以前只认 AIhe/AIma 导致喝不动。</summary>
+    private static void CheckHealingPotionCodes()
+    {
+        ItemType potion = ItemCatalog.Get("phea");
+        ItemType mana = ItemCatalog.Get("pman");
+        if (potion == null || mana == null) return;
+
+        var world = new World(null, null);
+        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        world.Units.Add(hero);
+
+        hero.MaxHp = 2000f;
+        hero.Hp = 1000f;
+        float before = hero.Hp;
+        bool used = world.UseItem(hero, GiveItem(hero, "phea"));
+        Verify("治疗药水可用", 1f, used ? 1f : 0f, 0f);
+        Verify("治疗药水回 DataA", 250f, hero.Hp - before, 0.5f);
+
+        hero.Mana = 0f;
+        bool manaUsed = world.UseItem(hero, GiveItem(hero, "pman"));
+        Verify("法力药水可用", 1f, manaUsed ? 1f : 0f, 0f);
+        Verify("法力药水回 DataA", 150f, hero.Mana, 0.5f);
+    }
+
+    /// <summary>目标型物品：逃脱匕首（点地面）、沉默/蛛网/净化/偷蓝（点单位）、保存（点友军）、恶魔岩石。</summary>
+    private static void CheckTargetedItems()
+    {
+        var world = new World(null, null);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        hero.Position = Vector3.Zero;
+        world.Units.Add(hero);
+
+        Verify("逃脱匕首要点落点", (float)ItemTargetMode.Point, (float)ItemUseRules.TargetModeFor(ItemCatalog.Get("desc")), 0f);
+        bool blinked = world.UseItem(hero, GiveItem(hero, "desc"), null, new Vector3(400f, 0f, 0f));
+        Verify("逃脱匕首可用", 1f, blinked ? 1f : 0f, 0f);
+        Verify("逃脱匕首已位移", 400f, hero.Position.X, 4f);
+
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(500f, 0f, 0f));
+        bool silenced = world.UseItem(hero, GiveItem(hero, "ssil"), null, enemy.Position);
+        Verify("沉默权杖可用", 1f, silenced ? 1f : 0f, 0f);
+        Verify("沉默权杖按住敌人", 1f, enemy.State.Silenced ? 1f : 0f, 0f);
+
+        Unit flyer = ProbeUnit(world, "hgry", 1, new Vector3(-500f, 0f, 0f));
+        if (flyer != null)
+        {
+            bool webbed = world.UseItem(hero, GiveItem(hero, "silk"), flyer, flyer.Position);
+            Verify("蜘蛛丝饰针可用", 1f, webbed ? 1f : 0f, 0f);
+            Verify("空中单位被拉下地", 1f, flyer.State.Snared ? 1f : 0f, 0f);
+        }
+
+        enemy.Mana = 200f;
+        bool stolen = world.UseItem(hero, GiveItem(hero, "woms"), enemy, enemy.Position);
+        Verify("偷蓝法杖可用", 1f, stolen ? 1f : 0f, 0f);
+        Verify("偷蓝法杖只抽 DataA", 150f, enemy.Mana, 0.5f);
+
+        bool purged = world.UseItem(hero, GiveItem(hero, "shtm"), enemy, enemy.Position);
+        Verify("萨满图腾可用", 1f, purged ? 1f : 0f, 0f);
+        Verify("萨满图腾减速", 1f, enemy.Slowed ? 1f : 0f, 0f);
+
+        bool roared = world.UseItem(hero, GiveItem(hero, "sror"));
+        Verify("野兽卷轴可用", 1f, roared ? 1f : 0f, 0f);
+        Verify("野兽卷轴加攻击", 0.25f, hero.BonusDamagePct, 0.001f);
+
+        bool inferno = world.UseItem(hero, GiveItem(hero, "infs"), null, new Vector3(300f, 0f, 0f));
+        Unit demon = world.Units.Find(unit => string.Equals(unit.Type?.Id, "ninf", StringComparison.OrdinalIgnoreCase));
+        Verify("恶魔岩石可用", 1f, inferno ? 1f : 0f, 0f);
+        Verify("恶魔岩石召出地狱火", 1f, demon != null ? 1f : 0f, 0f);
+
+        Unit hall = ProbeUnit(world, "htow", 0, new Vector3(6000f, 0f, 4000f));
+        Unit ally = ProbeUnit(world, "hfoo", 0, new Vector3(-800f, 0f, 0f));
+        bool rescued = world.UseItem(hero, GiveItem(hero, "spre"), ally, ally.Position);
+        Verify("保存权杖可用", 1f, rescued ? 1f : 0f, 0f);
+        Verify("保存权杖把友军送回基地", 1f, ally.DistanceTo(hall) < 400f ? 1f : 0f, 0f);
+    }
+
+    /// <summary>永久可用物品：用一次不消失，只进冷却（沉默权杖 20s / 逃脱匕首 30s）。</summary>
+    private static void CheckPermanentItemCooldown()
+    {
+        var world = new World(null, null);
+        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        world.Units.Add(hero);
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
+
+        Item staff = GiveItem(hero, "ssil");
+        bool first = world.UseItem(hero, staff, null, enemy.Position);
+        Verify("沉默权杖首用成功", 1f, first ? 1f : 0f, 0f);
+        Verify("永久物品不消耗", 1f, hero.ItemCount, 0f);
+        Verify("永久物品进冷却", 20f, staff.CooldownRemaining, 0.5f);
+
+        bool second = world.UseItem(hero, staff, null, enemy.Position);
+        Verify("冷却中不能再用", 0f, second ? 1f : 0f, 0f);
+
+        world.TickItemCooldowns();
+        Verify("冷却逐 tick 递减", 20f - World.Tick, staff.CooldownRemaining, 0.01f);
     }
 
     private static Item GiveItem(Unit hero, string itemId)

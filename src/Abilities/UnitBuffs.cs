@@ -32,6 +32,10 @@ public class StatBuff : Buff
     public float Armor;
     public float MoveSpeedFlat;
     public float MissChance;
+    /// <summary>固定攻击力加成（吸血药水这类「+12 伤害」的物品增益）。</summary>
+    public float FlatDamage;
+    /// <summary>普攻吸血比例（吸血药水同款的另一项）。</summary>
+    public float LifestealPct;
     /// <summary>醉酒云雾的火焰易伤（喷火对它额外加伤并点燃）。</summary>
     public float FireDamageIncrease;
 
@@ -44,6 +48,8 @@ public class StatBuff : Buff
         Owner.BonusDamagePct += DamagePct;
         Owner.BonusDamageTakenPct += DamageTakenPct;
         Owner.BonusArmor += Armor;
+        Owner.BonusDamageFlat += FlatDamage;
+        Owner.BonusLifestealPct += LifestealPct;
         Owner.BonusMoveSpeedFlat += MoveSpeedFlat + (Owner.Type != null ? Owner.Type.Speed * MoveSpeedPct : 0f);
         Owner.AttackMissChance = Mathf.Clamp(Owner.AttackMissChance + MissChance, 0f, 0.95f);
     }
@@ -55,6 +61,8 @@ public class StatBuff : Buff
         Owner.BonusDamagePct -= DamagePct;
         Owner.BonusDamageTakenPct -= DamageTakenPct;
         Owner.BonusArmor -= Armor;
+        Owner.BonusDamageFlat -= FlatDamage;
+        Owner.BonusLifestealPct -= LifestealPct;
         Owner.BonusMoveSpeedFlat -= MoveSpeedFlat + (Owner.Type != null ? Owner.Type.Speed * MoveSpeedPct : 0f);
         Owner.AttackMissChance = Mathf.Clamp(Owner.AttackMissChance - MissChance, 0f, 0.95f);
     }

@@ -11,13 +11,17 @@ public sealed partial class War3GameScene
 {
     private Ability _pendingCast;
     private Unit _pendingCaster;
+    private Item _pendingItem;
+    private Unit _pendingItemHero;
+    private int _pendingItemSlot = -1;
 
-    public bool CastPending => _pendingCast != null;
+    public bool CastPending => _pendingCast != null || _pendingItem != null;
 
     /// <summary>命令卡点技能：无目标技能立刻放，有目标的进入待施放。</summary>
     public void BeginCast(Unit caster, Ability ability)
     {
         if (caster == null || ability == null) return;
+        if (_pendingItem != null) CancelCast();
         if (!ability.Learned || !ability.Ready)
         {
             _hud?.SetHint(ability.Learned ? $"{ability.Name} 冷却中（{ability.CooldownRemaining:0.0}s）" : "技能还没学会");
@@ -46,15 +50,19 @@ public sealed partial class War3GameScene
 
     public void CancelCast()
     {
-        if (_pendingCast == null) return;
+        bool had = _pendingCast != null || _pendingItem != null;
         _pendingCast = null;
         _pendingCaster = null;
-        _hud?.SetHint("");
+        _pendingItem = null;
+        _pendingItemHero = null;
+        _pendingItemSlot = -1;
+        if (had) _hud?.SetHint("");
     }
 
-    /// <summary>左键点击时优先走施法；返回 true 表示这次点击已被技能消费掉。</summary>
+    /// <summary>左键点击时优先走施法/物品使用；返回 true 表示这次点击已被消费掉。</summary>
     public bool TryCastAt(Vector2 screenPosition)
     {
+        if (_pendingItem != null) return TryUsePendingItem(screenPosition);
         if (_pendingCast == null) return false;
 
         Ability ability = _pendingCast;
@@ -86,6 +94,88 @@ public sealed partial class War3GameScene
         CastNow(caster, ability, target, point);
         CancelCast();
         return true;
+    }
+
+    /// <summary>待施放的物品：按计划收目标/落点再去用（对标客户端 UseItem 的目标先前置验证）。</summary>
+    private bool TryUsePendingItem(Vector2 screenPosition)
+    {
+        Item item = _pendingItem;
+        Unit hero = _pendingItemHero;
+        int slot = _pendingItemSlot;
+        CancelCast();
+
+        if (hero == null || !hero.Alive || item?.Type == null) return false;
+        if (slot < 0 || slot >= hero.Inventory.Length || hero.Inventory[slot] != item) return true;
+
+        ItemTargetMode mode = ItemUseRules.TargetModeFor(item.Type);
+        Unit target = null;
+        Vector3 point = hero.Position;
+
+        if (mode == ItemTargetMode.Unit)
+        {
+            target = PickUnit(screenPosition, ViewPlayer, true);
+            if (target == null)
+            {
+                _hud?.SetHint($"没点到 {item.Type.Name} 的目标");
+                return true;
+            }
+        }
+        else if (mode == ItemTargetMode.Point && !TryGroundPoint(screenPosition, out point))
+        {
+            return true;
+        }
+
+        UseItemNow(hero, item, slot, target, point);
+        return true;
+    }
+
+    /// <summary>命令卡/小键盘点击物品：需要目标的进待施放，其余立刻用掉。</summary>
+    private void ActivateItem(Unit hero, Item item, int slot)
+    {
+        if (hero == null || item?.Type == null) return;
+
+        ItemUsePlan plan = ItemUseRules.PlanFor(item.Type);
+        if (!plan.Usable)
+        {
+            _hud?.SetHint($"{item.Type.Name} 不能主动使用（左键丢弃）");
+            return;
+        }
+        if (item.CooldownRemaining > 0f)
+        {
+            _hud?.SetHint($"{item.Type.Name} 冷却中（{Mathf.CeilToInt(item.CooldownRemaining)}s）");
+            return;
+        }
+        if (plan.TargetMode == ItemTargetMode.None)
+        {
+            UseItemNow(hero, item, slot, null, hero.Position);
+            return;
+        }
+
+        CancelCast();
+        _pendingItem = item;
+        _pendingItemHero = hero;
+        _pendingItemSlot = slot;
+        _hud?.SetHint(plan.TargetMode == ItemTargetMode.Unit
+            ? $"选择 {item.Type.Name} 的目标（右键取消）"
+            : $"选择 {item.Type.Name} 的落点（右键取消）");
+    }
+
+    private void UseItemNow(Unit hero, Item item, int slot, Unit target, Vector3 point)
+    {
+        if (_world == null || item?.Type == null) return;
+
+        if (_world.UseItem(hero, item, target, point))
+        {
+            string victim = target?.Type?.Name != null ? $" → {target.Type.Name}" : "";
+            _hud?.SetHint($"{hero.Type.Name} 使用了 {item.Type.Name}{victim}");
+        }
+        else
+        {
+            _hud?.SetHint($"{item.Type.Name} 现在用不了");
+        }
+
+        RefreshHud();
+        UpdateCommandCard();
     }
 
     private bool CastNow(Unit caster, Ability ability, Unit target, Vector3 point)
@@ -268,7 +358,7 @@ public sealed partial class War3GameScene
         {
             Item item = picked.Inventory[slot];
             if (item?.Type == null) return false;
-            UseOrDropItem(picked, item, slot, item.Type.Usable && !item.Type.Consumable.IsEmpty);
+            ActivateItem(picked, item, slot);
             return true;
         }
 
@@ -293,7 +383,7 @@ public sealed partial class War3GameScene
 
     /// <summary>
     /// 物品格：原版是英雄面板右下 2×3 的格子，这里先并到命令卡上（一物一格）。
-    /// 可用的（药水/卷轴）点一下就用掉，其余点一下丢到地上。
+    /// 能主动用的点一下就用（或进选目标），用不了的/右键都是丢到地上。
     /// </summary>
     private void AddInventoryCommands(System.Collections.Generic.List<CommandEntry> commands, Unit hero)
     {
@@ -303,52 +393,42 @@ public sealed partial class War3GameScene
             if (item?.Type == null) continue;
 
             int captured = slot;
-            bool usable = item.Type.Usable && !item.Type.Consumable.IsEmpty;
+            ItemUsePlan plan = ItemUseRules.PlanFor(item.Type);
+            bool ready = plan.Usable && item.CooldownRemaining <= 0f;
+            int charges = World.ChargesLeft(item);
+            string cost = item.CooldownRemaining > 0f
+                ? $"{Mathf.CeilToInt(item.CooldownRemaining)}s"
+                : charges > 0 ? charges.ToString() : "";
             commands.Add(new CommandEntry
             {
                 Id = item.Type.Id,
                 Name = item.Type.Name,
-                Cost = "",
+                Cost = cost,
                 SlotIndex = InventorySlotIndices[slot],
                 Hotkey = (slot + 1).ToString(),
-                Tooltip = ItemTooltip(item.Type, usable),
+                Tooltip = ItemTooltip(item, plan),
                 Icon = TechTree.Icon(item.Type.IconArt),
-                Enabled = true,
-                Action = () => UseOrDropItem(hero, item, captured, usable),
+                Enabled = ready,
+                Action = () => ActivateItem(hero, item, captured),
                 RightAction = () => GiveOrDropItem(hero, captured),
             });
         }
     }
 
-    private void UseOrDropItem(Unit hero, Item item, int slot, bool usable)
+    private static string ItemTooltip(Item item, ItemUsePlan plan)
     {
-        if (_world == null || item?.Type == null) return;
-
-        if (usable)
-        {
-            if (_world.UseItem(hero, item))
-            {
-                _hud?.SetHint($"{hero.Type.Name} 使用了 {item.Type.Name}（{item.Type.Consumable}）");
-            }
-            else
-            {
-                _hud?.SetHint($"{item.Type.Name} 现在用不了");
-            }
-        }
-        else if (_world.DropItemFromSlot(hero, slot))
-        {
-            _hud?.SetHint($"{hero.Type.Name} 丢下了 {item.Type.Name}");
-        }
-
-        RefreshHud();
-        UpdateCommandCard();
-    }
-
-    private static string ItemTooltip(ItemType type, bool usable)
-    {
+        ItemType type = item.Type;
         var text = $"{type.Name}（等级 {type.Level} {type.Class}）";
         if (!string.IsNullOrEmpty(type.BonusText) && type.BonusText != "-") text += "\n" + type.BonusText;
-        text += usable ? "\n左键：使用" : "\n左键：丢到地上";
+        text += plan.TargetMode switch
+        {
+            ItemTargetMode.Unit => "\n左键：使用（选目标）",
+            ItemTargetMode.Point => "\n左键：使用（选落点）",
+            _ => plan.Usable ? "\n左键：使用" : "\n左键：丢到地上",
+        };
+        if (item.CooldownRemaining > 0f) text += $"\n冷却 {item.CooldownRemaining:0.0}s";
+        int charges = World.ChargesLeft(item);
+        if (charges > 0) text += $"\n剩余 {charges} 次";
         return text;
     }
 
