@@ -36,6 +36,10 @@ public sealed class UnitType
     public float CollisionRadius = 16f;
     /// <summary>UnitData.movetp=fly，空中单位不吃地面路径阻挡。</summary>
     public bool Flying;
+    /// <summary>UnitData.deathType：0/1 不衰减，2/3 会衰减；1/3 的尸体会被利用（吞尸、召唤骷髅）。</summary>
+    public int DeathType = 3;
+    public bool CorpseDecays => DeathType is 2 or 3;
+    public bool CanBeRaised => DeathType is 1 or 3;
 
     public int Level = 1;
     public int BountyDice = 1;
@@ -241,6 +245,7 @@ public static class UnitCatalog
             type.FootprintCells = FootprintFromPathTexture(data.Get(dataRow, "pathTex"), type.FootprintCells);
             TargetKind kind = CombatCodes.ParseTargets(data.Get(dataRow, "targType"));
             type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
+            type.DeathType = data.GetInt(dataRow, "deathType", 3);
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim();
             type.Flying = string.Equals(moveType, "fly", StringComparison.OrdinalIgnoreCase);
         }

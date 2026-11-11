@@ -46,7 +46,7 @@ public sealed partial class Unit
         ReviveAltar = null;
         AwaitingRevive = IsHero;
         IsCorpse = !IsBuilding;
-        CorpseRemaining = IsCorpse ? CorpseSeconds : 0f;
+        CorpseRemaining = !IsCorpse ? 0f : Type.CorpseDecays ? CorpseSeconds : float.PositiveInfinity;
         View?.Play("Death");
         View?.SetHp(0f, false);
         View?.SetSelected(false);

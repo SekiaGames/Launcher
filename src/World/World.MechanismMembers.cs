@@ -185,6 +185,7 @@ public sealed partial class World
                 mine.Gold -= take;
                 if (unit.Type.EntersMine)
                 {
+                    unit.InMineRemaining = 0.6f;
                     GoldDeposited?.Invoke(unit.Player, take);
                 }
                 else

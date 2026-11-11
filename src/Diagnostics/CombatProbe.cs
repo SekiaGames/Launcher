@@ -107,6 +107,7 @@ public static class CombatProbe
         CheckRegeneration();
         CheckRally();
         CheckSecondWeapon();
+        CheckCorpse();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
@@ -337,6 +338,30 @@ public static class CombatProbe
         Verify("迫击炮第二套射程 1150", 1150f, mortar.Weapon2.Range, 0.01f);
         GD.Print($"[自检] 双武器 圣骑士 主{hero.Weapon.Range:0}/副{hero.Weapon2.Range:0}"
             + $" 迫击炮 主{mortar.Weapon.Range:0}/副{mortar.Weapon2.Range:0}");
+    }
+
+    /// <summary>尸体按 deathType：3/2 会衰减，建筑不留尸。</summary>
+    private static void CheckCorpse()
+    {
+        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType hall = UnitCatalog.Get("htow");
+        if (footman == null || hall == null) return;
+
+        var world = new World(null, null);
+        Unit soldier = MakeUnit(footman, 0);
+        Unit building = MakeUnit(hall, 0);
+        building.IsBuilding = true;
+        world.Units.Add(soldier);
+        world.Units.Add(building);
+
+        soldier.EnterDeath();
+        building.EnterDeath();
+        Verify("单位阵亡留尸", 1f, soldier.IsCorpse ? 1f : 0f, 0f);
+        Verify("建筑阵亡不留尸", 0f, building.IsCorpse ? 1f : 0f, 0f);
+        Verify("会衰减的尸体有倒计时", 1f,
+            soldier.CorpseRemaining > 0f && soldier.CorpseRemaining <= Unit.CorpseSeconds ? 1f : 0f, 0f);
+        GD.Print($"[自检] 尸体 步兵 deathType={footman.DeathType} 衰减={footman.CorpseDecays}"
+            + $" 倒计时={soldier.CorpseRemaining:0}s；建筑 deathType={hall.DeathType} 不留尸");
     }
 
     private static void ReportHit(string attackerId, string victimId, float raw)

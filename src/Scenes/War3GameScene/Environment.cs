@@ -44,7 +44,8 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.View == null) continue;
-            bool visible = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position);
+            bool visible = !unit.InMine
+                && (unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
             unit.View.Root.Visible = visible;
         }
     }

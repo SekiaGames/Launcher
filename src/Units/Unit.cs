@@ -28,6 +28,9 @@ public sealed partial class Unit
     public TreeState RallyTree;
     public int Carry;
     public int CarryLumber;
+    /// <summary>入矿倒计时：侍僧（Aaha）进矿时隐藏模型，出矿再显示。</summary>
+    public float InMineRemaining;
+    public bool InMine => InMineRemaining > 0f;
     public float WorkTimer = 0f;
     public int Gold;
 

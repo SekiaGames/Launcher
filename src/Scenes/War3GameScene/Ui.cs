@@ -31,9 +31,25 @@ public sealed partial class War3GameScene
         }
     }
 
+    private string RallyText(Unit building)
+    {
+        if (building.RallyTarget != null)
+        {
+            if (building.RallyTarget.Gold > 0) return $"采金 {building.RallyTarget.Type.Name}";
+            return AreAllied(building.RallyTarget.Player, building.Player)
+                ? $"跟随 {building.RallyTarget.Type.Name}"
+                : $"攻击 {building.RallyTarget.Type.Name}";
+        }
+        if (building.RallyTree != null) return building.RallyTree.Alive ? "伐木" : "伐木（已倒）";
+        if (building.RallyPoint.HasValue) return $"({building.RallyPoint.Value.X:0}, {building.RallyPoint.Value.Z:0})";
+        return "未设";
+    }
+
     private string DescribeUnit(Unit unit)
     {
         if (unit.IsUnderConstruction) return $"剩余 {Mathf.Max(0f, unit.BuildRemaining):0.0}s";
+
+
 
         if (unit.IsHero)
         {

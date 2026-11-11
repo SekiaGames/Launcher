@@ -38,6 +38,7 @@ public sealed partial class World
 
             if (unit.Backswing > 0f) unit.Backswing -= Tick;
             if (unit.AttackCooldown > 0f) unit.AttackCooldown -= Tick;
+            if (unit.InMineRemaining > 0f) unit.InMineRemaining -= Tick;
         }
 
         for (int index = _pendingHits.Count - 1; index >= 0; index--)
