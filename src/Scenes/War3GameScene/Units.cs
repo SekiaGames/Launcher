@@ -409,6 +409,16 @@ public sealed partial class War3GameScene
             + (unit.Morphed ? $" 剩余变形 {unit.MorphRemaining:0.0}s" : " 已还原"));
     }
 
+    /// <summary>驻军/载具里的单位不能再被选中：进了地洞就从选中列表里摘掉。</summary>
+    private void PruneCargoedSelection()
+    {
+        if (_selected.Count == 0) return;
+        if (_selected.RemoveAll(unit => unit.IsCargoed) == 0) return;
+
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+    }
+
     /// <summary>骑乘合成 / 分离把单位从世界上拿掉：模型与选中列表同步清掉，避免残留空节点。</summary>
     private void OnUnitRemoved(Unit unit)
     {

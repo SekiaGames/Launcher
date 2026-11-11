@@ -499,6 +499,10 @@ public static class SkillRegistry
         ["Amel"] = () => new MeatCargo(),        // 装尸体（自动收半径内最近的尸体）
         ["Amed"] = () => new MeatDrop(),         // 卸尸体（倒回车周围）
         ["Aexh"] = () => new Exhume(),           // 掘尸（定时产一具尸体进货舱）
+        // —— 兽族地洞驻军（客户端 RuntimeBunkerAbility） ——
+        ["Abun"] = () => new BunkerHold(),       // 地洞装/卸苦工
+        ["Abtl"] = () => new Battlestations(),   // 战斗平台（驻军才开火）
+        ["Astd"] = () => new StandDown(),        // 放人出来
     };
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);

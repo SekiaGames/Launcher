@@ -92,4 +92,15 @@ public sealed partial class Unit
 
     public float DistanceTo(Unit other) =>
         new Vector2(Position.X - other.Position.X, Position.Z - other.Position.Z).Length();
+
+    // —— 驻军 / 载具（兽族地洞 Abun） ——
+    /// <summary>自己肚子里装着的单位（地洞里的苦工）。</summary>
+    public readonly List<Unit> Cargo = new();
+    /// <summary>装载容量：&gt; 0 表示这个单位能装人。</summary>
+    public int CargoCapacity;
+    /// <summary>被谁装进去了：非空表示自己在别人肚子里，已经不在世界单位表里。</summary>
+    public Unit CargoHolder;
+    public bool IsCargoed => CargoHolder != null;
+    /// <summary>地洞类驻军建筑：只有装了人才开火。</summary>
+    public bool GarrisonOnly;
 }

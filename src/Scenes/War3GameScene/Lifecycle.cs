@@ -214,6 +214,7 @@ public sealed partial class War3GameScene : Node3D
         if (_hudTimer >= 0.2f)
         {
             _hudTimer = 0f;
+            PruneCargoedSelection();
             _hud?.SetSelection(_selected);
             RefreshConstruction();
             RefreshBars();

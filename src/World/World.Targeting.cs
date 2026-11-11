@@ -173,6 +173,7 @@ public sealed partial class World
     public static bool CanStrike(Unit attacker, Unit target)
     {
         if (attacker?.Type == null || target?.Type == null) return false;
+        if (attacker.GarrisonOnly && attacker.Cargo.Count == 0) return false;
         return attacker.Type.WeaponFor(target.Type.Kind) != null;
     }
 }

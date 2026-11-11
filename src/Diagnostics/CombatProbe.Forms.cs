@@ -14,6 +14,7 @@ public static partial class CombatProbe
         CheckHardenedSkinChance();
         CheckAncestralSpirit();
         CheckMeatCargo();
+        CheckBurrowGarrison();
     }
 
     private static World MakeSummonWorld()
@@ -172,5 +173,34 @@ public static partial class CombatProbe
 
         for (int index = 0; index < 400; index++) world.TickAbilities();
         Verify("掘尸定时补货", 1f, cargo != null ? cargo.CorpseCount : 0f, 0f);
+    }
+
+    /// <summary>兽族地洞：装苦工藏人、驻军才开火、放人出来。</summary>
+    private static void CheckBurrowGarrison()
+    {
+        var world = new World(null, null);
+        Unit burrow = ProbeUnit(world, "otrb", 0, Vector3.Zero, "Abun", "Abtl", "Astd");
+        Unit peonA = ProbeUnit(world, "opeo", 0, new Vector3(60f, 0f, 0f));
+        Unit peonB = ProbeUnit(world, "opeo", 0, new Vector3(90f, 0f, 0f));
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
+        AbilityType holdType = AbilityCatalog.Get("Abun");
+        if (burrow == null || peonA == null || peonB == null || enemy == null || holdType == null) return;
+
+        Verify("地洞容量 =DataA", Mathf.Max(1, (int)holdType.DataAt(1, 'A')), burrow.CargoCapacity, 0f);
+        Verify("空地名洞不开火", 0f, World.CanStrike(burrow, enemy) ? 1f : 0f, 0f);
+
+        bool loaded = world.TryCast(burrow, burrow.FindAbility("Abun"), null, burrow.Position);
+        Verify("装驻军施放成功", 1f, loaded ? 1f : 0f, 0f);
+        Verify("两个苦工都进去了", 2f, burrow.Cargo.Count, 0f);
+        Verify("苦工不再参与世界模拟", 2f, world.Units.Count, 0f);
+        Verify("驻军后开火", 1f, World.CanStrike(burrow, enemy) ? 1f : 0f, 0f);
+
+        Ability toggle = burrow.FindAbility("Abun");
+        if (toggle != null) toggle.CooldownRemaining = 0f;
+        bool unloaded = world.TryCast(burrow, toggle, null, burrow.Position);
+        Verify("放人出来施放成功", 1f, unloaded ? 1f : 0f, 0f);
+        Verify("两个苦工回到场上", 4f, world.Units.Count, 0f);
+        Verify("苦工脱离驻军状态", 0f, peonA.IsCargoed || peonB.IsCargoed ? 1f : 0f, 0f);
+        Verify("人走空后停火", 0f, World.CanStrike(burrow, enemy) ? 1f : 0f, 0f);
     }
 }

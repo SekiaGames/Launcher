@@ -60,8 +60,8 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.View == null) continue;
-            // 进矿的侍僧与装进货舱的尸体都不显示模型
-            if (unit.InMine || unit.CorpseCarrier != null)
+            // 进矿的侍僧、装进货舱的尸体与驻军里的苦工都不显示模型
+            if (unit.InMine || unit.CorpseCarrier != null || unit.IsCargoed)
             {
                 unit.View.Root.Visible = false;
                 continue;

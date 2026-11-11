@@ -303,6 +303,7 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive && !(includeCorpses && unit.IsCorpse)) continue;
+            if (unit.IsCargoed) continue;
             if (!anyPlayer && unit.Player != player) continue;
             // 隐身敌方单位点不到（附近有反隐单位时照常可点）
             if (unit.Alive && unit.State.Invisible && unit.Player != ViewPlayer

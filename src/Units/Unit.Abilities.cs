@@ -193,6 +193,7 @@ public sealed partial class Unit
         ability.Owner = this;
         ability.Level = Mathf.Clamp(level, 0, type.MaxLevel);
         Abilities.Add(ability);
+        if (ability.Learned) ability.OnLearned();
         return ability;
     }
 
