@@ -176,4 +176,57 @@ public sealed partial class World
         }
         return result;
     }
+
+    /// <summary>
+    /// 施法者到落点这条线段上的敌方单位（震荡波 / 腐臭蜂群 / 穿刺共用）。
+    /// 判定用「到线段的垂直距离 ≤ width + 半径」，所以贴边走的目标也算命中。
+    /// </summary>
+    public List<Unit> EnemiesAlongLine(Unit source, Vector3 from, Vector3 to, float width,
+        bool groundOnly = false)
+    {
+        var result = new List<Unit>();
+        if (source == null) return result;
+
+        Vector3 direction = new(to.X - from.X, 0f, to.Z - from.Z);
+        float length = direction.Length();
+        if (length < 1f) return result;
+        direction /= length;
+
+        foreach (Unit other in Units)
+        {
+            if (other == null || !other.Alive || ReferenceEquals(other, source)) continue;
+            if (IsAllied(source.Player, other.Player)) continue;
+            if (groundOnly && other.Type != null && other.Type.Flying) continue;
+            if (other.State.Invulnerable) continue;
+            if (other.State.MagicImmune) continue;
+
+            Vector3 offset = new(other.Position.X - from.X, 0f, other.Position.Z - from.Z);
+            float along = offset.X * direction.X + offset.Z * direction.Z;
+            if (along < -other.Radius || along > length + other.Radius) continue;
+
+            float perpendicular = Mathf.Abs(offset.X * direction.Z - offset.Z * direction.X);
+            if (perpendicular > width + other.Radius) continue;
+            result.Add(other);
+        }
+        return result;
+    }
+
+    /// <summary>范围内的友军（医疗波这类跳跃治疗用）。</summary>
+    public List<Unit> AlliesInRange(Unit source, Vector3 point, float radius)
+    {
+        var result = new List<Unit>();
+        if (source == null) return result;
+
+        foreach (Unit other in Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (!IsAllied(source.Player, other.Player)) continue;
+
+            float dx = other.Position.X - point.X;
+            float dz = other.Position.Z - point.Z;
+            if (Mathf.Sqrt(dx * dx + dz * dz) > radius + other.Radius) continue;
+            result.Add(other);
+        }
+        return result;
+    }
 }

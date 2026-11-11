@@ -28,6 +28,45 @@ public sealed partial class Unit
 
     /// <summary>光环护甲：每 tick 由 World.RefreshAuras 重算，不是累加值。</summary>
     public float AuraArmor;
+    public float AuraThornsPct;
+    public float AuraLifestealPct;
+    public float AuraRangedDamagePct;
+    public float AuraAttackSpeedPct;
+    public float AuraMoveSpeedPct;
+    public float AuraHpRegenPerSecond;
+    public float AuraManaRegenPerSecond;
+
+    /// <summary>清空这一 tick 的光环结果（RefreshAuras 每次重算前调用）。</summary>
+    public void ClearAura()
+    {
+        AuraArmor = 0f;
+        AuraThornsPct = 0f;
+        AuraLifestealPct = 0f;
+        AuraRangedDamagePct = 0f;
+        AuraAttackSpeedPct = 0f;
+        AuraMoveSpeedPct = 0f;
+        AuraHpRegenPerSecond = 0f;
+        AuraManaRegenPerSecond = 0f;
+    }
+
+    public void MergeAura(AuraBonus bonus)
+    {
+        AuraArmor = Mathf.Max(AuraArmor, bonus.Armor);
+        AuraThornsPct = Mathf.Max(AuraThornsPct, bonus.ThornsPct);
+        AuraLifestealPct = Mathf.Max(AuraLifestealPct, bonus.LifestealPct);
+        AuraRangedDamagePct = Mathf.Max(AuraRangedDamagePct, bonus.RangedDamagePct);
+        AuraAttackSpeedPct = Mathf.Max(AuraAttackSpeedPct, bonus.AttackSpeedPct);
+        AuraMoveSpeedPct = Mathf.Max(AuraMoveSpeedPct, bonus.MoveSpeedPct);
+        AuraHpRegenPerSecond = Mathf.Max(AuraHpRegenPerSecond, bonus.HpRegenPerSecond);
+        AuraManaRegenPerSecond = Mathf.Max(AuraManaRegenPerSecond, bonus.ManaRegenPerSecond);
+    }
+
+    /// <summary>开着的开关技能（献祭）：关闭时不占命令卡状态。</summary>
+    public bool HasToggleOn(string id)
+    {
+        Ability ability = FindAbility(id);
+        return ability != null && ability.ToggledOn;
+    }
 
     // —— 减速（雷霆一击、诱捕这类） ——
     public float SlowMovePct;

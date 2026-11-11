@@ -181,12 +181,12 @@ public static class HuffmanDecode
 
         private static void AdjustTree(HuffmanNode newNode)
         {
-            HuffmanNode? current = newNode;
+            HuffmanNode current = newNode;
 
             while (current != null)
             {
                 current.Weight++;
-                HuffmanNode? prev;
+                HuffmanNode prev;
 
                 var insertpoint = current;
                 while (true)

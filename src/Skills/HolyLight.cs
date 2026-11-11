@@ -60,9 +60,4 @@ public sealed class HolyLight : Ability
 
         return best != null && world.TryCast(Owner, this, best, best.Position);
     }
-
-    private static bool IsUndead(Unit target)
-    {
-        return string.Equals(target?.Type?.Race, "undead", System.StringComparison.OrdinalIgnoreCase);
-    }
 }

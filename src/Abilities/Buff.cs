@@ -88,3 +88,33 @@ public sealed class AvatarBuff : Buff
         Owner.View?.SetHp(Owner.Hp / System.Math.Max(1f, Owner.MaxHp), Owner.Alive);
     }
 }
+
+/// <summary>
+/// 周期伤害（纠缠根须 / 暗影突袭的持续伤害）。每 Interval 秒结算一次，
+/// 伤害来源记在 DamageSource 上，所以击杀经验与赏金仍然算给施法者。
+/// </summary>
+public sealed class PeriodicDamageBuff : Buff
+{
+    public Unit DamageSource;
+    public float AmountPerTick;
+    public float Interval = 1f;
+    public AttackType AttackType = AttackType.Spells;
+    public DamageType DamageType = DamageType.Magic;
+
+    private float _accumulator;
+
+    public override bool OnTick(World world, float delta)
+    {
+        bool alive = base.OnTick(world, delta);
+        if (world == null || Owner == null || !Owner.Alive) return false;
+        if (Interval <= 0f) return alive;
+
+        _accumulator += delta;
+        while (_accumulator >= Interval && Owner.Alive)
+        {
+            _accumulator -= Interval;
+            world.DealDamage(World.MakeAbilityDamage(DamageSource, Owner, AmountPerTick, AttackType, DamageType));
+        }
+        return alive && Owner.Alive;
+    }
+}

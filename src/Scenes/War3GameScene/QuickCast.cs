@@ -23,7 +23,9 @@ public sealed partial class War3GameScene
             _hud?.SetHint(ability.Learned ? $"{ability.Name} 冷却中（{ability.CooldownRemaining:0.0}s）" : "技能还没学会");
             return;
         }
-        if (caster.Mana < ability.ManaCost)
+        // 开关型技能「关掉」不花法力，所以此时不校验法力
+        bool turningOff = ability.IsToggle && ability.ToggledOn;
+        if (!turningOff && caster.Mana < ability.ManaCost)
         {
             _hud?.SetHint($"{ability.Name}：法力不足（需要 {ability.ManaCost:0}）");
             return;
@@ -136,9 +138,13 @@ public sealed partial class War3GameScene
                 continue;
             }
 
-            string cost = ability.Ready
-                ? $"{ability.ManaCost:0} 法力"
-                : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
+            // 开关型技能开着时角标显示「开启」，关掉不花法力所以法力不足也能点
+            bool toggledOn = ability.IsToggle && ability.ToggledOn;
+            string cost = toggledOn
+                ? "开启"
+                : ability.Ready
+                    ? $"{ability.ManaCost:0} 法力"
+                    : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
 
             commands.Add(new CommandEntry
             {
@@ -148,7 +154,7 @@ public sealed partial class War3GameScene
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level),
                 Icon = TechTree.Icon(ability.IconArt),
-                Enabled = ability.Ready && hero.Mana >= ability.ManaCost,
+                Enabled = ability.Ready && (toggledOn || hero.Mana >= ability.ManaCost),
                 Action = () => BeginCast(hero, ability),
             });
         }

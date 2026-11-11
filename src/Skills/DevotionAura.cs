@@ -13,5 +13,9 @@ public sealed class DevotionAura : Ability
     public override bool IsAura => true;
 
     public float ArmorBonus => Data('A');
-    public float AuraArea => Area > 0f ? Area : 900f;
+
+    public override void CollectAura(ref AuraBonus bonus)
+    {
+        bonus.Armor = Mathf.Max(bonus.Armor, ArmorBonus);
+    }
 }

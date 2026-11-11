@@ -37,8 +37,12 @@ public sealed class AbilityType
     public readonly float[] CastRange = new float[MaxLevels];
     public readonly float[] Area = new float[MaxLevels];
     public readonly float[] Duration = new float[MaxLevels];
+    /// <summary>物编 Cast 列：暗影突袭的持续伤害间隔就写在这里。</summary>
+    public readonly float[] Cast = new float[MaxLevels];
     /// <summary>DataA..DataI，每级 9 个。</summary>
     public readonly float[,] Data = new float[MaxLevels, 9];
+    /// <summary>DataA..DataI 的原始文本：DataC 存单位 id 这类非数字值时用它。</summary>
+    public readonly string[,] DataText = new string[MaxLevels, 9];
     public readonly string[] SummonId = new string[MaxLevels];
     public readonly string[] BuffId = new string[MaxLevels];
 
@@ -52,6 +56,7 @@ public sealed class AbilityType
     public float RangeAt(int level) => Pick(CastRange, level);
     public float AreaAt(int level) => Pick(Area, level);
     public float DurationAt(int level) => Pick(Duration, level);
+    public float CastAt(int level) => Pick(Cast, level);
 
     /// <summary>Data 槽：'A'..'I'。</summary>
     public float DataAt(int level, char slot)
@@ -66,6 +71,15 @@ public sealed class AbilityType
     {
         int index = Mathf.Clamp(level, 1, MaxLevels) - 1;
         return SummonId[index];
+    }
+
+    /// <summary>Data 槽的原始文本（'A'..'I'）。</summary>
+    public string DataTextAt(int level, char slot)
+    {
+        int index = char.ToUpperInvariant(slot) - 'A';
+        if (index < 0 || index >= 9) return "";
+        int row = Mathf.Clamp(level, 1, MaxLevels) - 1;
+        return DataText[row, index] ?? "";
     }
 
     private static float Pick(float[] values, int level)
@@ -113,6 +127,36 @@ public static class AbilityCatalog
         ["ANsi"] = @"ReplaceableTextures\CommandButtons\BTNSilence",
         ["AEev"] = @"ReplaceableTextures\CommandButtons\BTNEvasion",
         ["AUfa"] = @"ReplaceableTextures\CommandButtons\BTNFrostArmor",
+        ["AUdc"] = @"ReplaceableTextures\CommandButtons\BTNDeathCoil",
+        ["AUdp"] = @"ReplaceableTextures\CommandButtons\BTNDeathPact",
+        ["AUdr"] = @"ReplaceableTextures\CommandButtons\BTNDarkRitual",
+        ["AUau"] = @"ReplaceableTextures\CommandButtons\BTNUnholyAura",
+        ["AUan"] = @"ReplaceableTextures\CommandButtons\BTNAnimateDead",
+        ["AUfn"] = @"ReplaceableTextures\CommandButtons\BTNFrostBolt",
+        ["AUcs"] = @"ReplaceableTextures\CommandButtons\BTNCarrionSwarm",
+        ["AUsl"] = @"ReplaceableTextures\CommandButtons\BTNSleep",
+        ["AUav"] = @"ReplaceableTextures\CommandButtons\BTNVampiricAura",
+        ["AUin"] = @"ReplaceableTextures\CommandButtons\BTNInfernal",
+        ["AUim"] = @"ReplaceableTextures\CommandButtons\BTNImpale",
+        ["AUts"] = @"ReplaceableTextures\CommandButtons\BTNCreatureCarapace",
+        ["AUcb"] = @"ReplaceableTextures\CommandButtons\BTNCarrionScarabs",
+        ["AOsh"] = @"ReplaceableTextures\CommandButtons\BTNShockwave",
+        ["AOws"] = @"ReplaceableTextures\CommandButtons\BTNWarStomp",
+        ["AOae"] = @"ReplaceableTextures\CommandButtons\BTNGnollCommandAura",
+        ["AOhw"] = @"ReplaceableTextures\CommandButtons\BTNHealingWave",
+        ["AOsw"] = @"ReplaceableTextures\CommandButtons\BTNSerpentWard",
+        ["AEer"] = @"ReplaceableTextures\CommandButtons\BTNEntanglingRoots",
+        ["AEah"] = @"ReplaceableTextures\CommandButtons\BTNThorns",
+        ["AEar"] = @"ReplaceableTextures\CommandButtons\BTNTrueShot",
+        ["AEmb"] = @"ReplaceableTextures\CommandButtons\BTNManaBurn",
+        ["AEim"] = @"ReplaceableTextures\CommandButtons\BTNImmolationOn",
+        ["AEfk"] = @"ReplaceableTextures\CommandButtons\BTNFanOfKnives",
+        ["AEsh"] = @"ReplaceableTextures\CommandButtons\BTNShadowStrike",
+        ["AHab"] = @"ReplaceableTextures\CommandButtons\BTNBrilliance",
+        ["AHwe"] = @"ReplaceableTextures\CommandButtons\BTNSummonWaterElemental",
+        ["AEfn"] = @"ReplaceableTextures\CommandButtons\BTNForceOfNature",
+        ["AEst"] = @"ReplaceableTextures\CommandButtons\BTNScout",
+        ["AOsf"] = @"ReplaceableTextures\CommandButtons\BTNSpiritWolf",
     };
 
     private static readonly Dictionary<string, AbilityType> Cache = new(StringComparer.OrdinalIgnoreCase);
@@ -185,13 +229,16 @@ public static class AbilityCatalog
             type.CastRange[index] = Number(table.Get(row, "Rng" + level), 0f);
             type.Area[index] = Number(table.Get(row, "Area" + level), 0f);
             type.Duration[index] = Number(table.Get(row, "Dur" + level), 0f);
+            type.Cast[index] = Number(table.Get(row, "Cast" + level), 0f);
             type.SummonId[index] = (table.Get(row, "UnitID" + level) ?? "").Trim();
             type.BuffId[index] = (table.Get(row, "BuffID" + level) ?? "").Trim();
 
             for (int slot = 0; slot < 9; slot++)
             {
                 char letter = (char)('A' + slot);
-                type.Data[index, slot] = Number(table.Get(row, "Data" + letter + level), 0f);
+                string raw = table.Get(row, "Data" + letter + level) ?? "";
+                type.Data[index, slot] = Number(raw, 0f);
+                type.DataText[index, slot] = raw.Trim();
             }
         }
 

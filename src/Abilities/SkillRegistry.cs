@@ -25,6 +25,37 @@ public static class SkillRegistry
         // —— 剑圣 ——
         ["AOcr"] = () => new CriticalStrike(),// 致命一击
         ["AOcl"] = () => new ChainLightning(),// 闪电链（先知/暗影猎手/纳迦）
+        // —— 死亡骑士 / 巫妖 / 恐惧魔王 / 地穴领主 ——
+        ["AUdc"] = () => new DeathCoil(),     // 死亡缠绕
+        ["AUdp"] = () => new DeathPact(),     // 死亡契约
+        ["AUdr"] = () => new DarkRitual(),    // 黑暗仪式
+        ["AUau"] = () => new UnholyAura(),    // 邪恶光环
+        ["AUan"] = () => new AnimateDead(),   // 操纵死尸
+        ["AUfn"] = () => new FrostNova(),     // 霜冻新星
+        ["AUcs"] = () => new CarrionSwarm(),  // 腐臭蜂群
+        ["AUsl"] = () => new Sleep(),         // 睡眠
+        ["AUav"] = () => new VampiricAura(),  // 吸血光环
+        ["AUin"] = () => new Inferno(),       // 地狱火
+        ["AUim"] = () => new Impale(),        // 穿刺
+        ["AUts"] = () => new SpikedCarapace(),// 尖刺甲壳
+        ["AUcb"] = () => new CarrionScarabs(),// 腐尸甲虫
+        // —— 牛头人酋长 / 暗影猎手 ——
+        ["AOsh"] = () => new ShockWave(),     // 震荡波
+        ["AOws"] = () => new WarStomp(),      // 战争践踏
+        ["AOae"] = () => new EnduranceAura(), // 耐久光环（凯恩 AOr2 同实现）
+        ["AOr2"] = () => new EnduranceAura(),
+        ["AOhw"] = () => new HealingWave(),   // 医疗波
+        ["AOsw"] = () => new SerpentWard(),   // 毒蛇守卫（基类码 AOwd）
+        // —— 丛林守护者 / 恶魔猎手 / 守望者 ——
+        ["AEer"] = () => new EntanglingRoots(),// 纠缠根须
+        ["AEah"] = () => new ThornsAura(),     // 荆棘光环
+        ["AEmb"] = () => new ManaBurn(),       // 法力燃烧
+        ["AEim"] = () => new Immolation(),     // 献祭（开关型）
+        ["AEfk"] = () => new FanOfKnives(),    // 刀阵旋风
+        ["AEsh"] = () => new ShadowStrike(),   // 暗影突袭
+        ["AEar"] = () => new TrueshotAura(),   // 强击光环（只加远程攻击）
+        // —— 大魔法师 ——
+        ["AHab"] = () => new BrillianceAura(), // 辉煌光环
         // —— 大魔法师 / 巫妖 / 守望者 / 黑暗游侠 ——
         ["AHbz"] = () => new Blizzard(),      // 暴风雪（引导 + 点目标）
         ["AUdd"] = () => new DeathAndDecay(), // 死亡腐烂（引导 + 百分比）
@@ -33,10 +64,11 @@ public static class SkillRegistry
         ["AEev"] = () => new Evasion(),       // 闪避（被动）
         ["AUfa"] = () => new FrostArmor(),    // 霜冻护甲
         // —— 召唤与复活 ——
-        ["AHwe"] = () => new SummonUnit(),     // 水元素
-        ["AEst"] = () => new SummonUnit(),     // 召唤树人
-        ["AOsf"] = () => new SummonUnit(),     // 幽灵狼
-        ["ANsg"] = () => new SummonUnit(),     // 熔岩怪
+        ["AHwe"] = () => new SummonUnit(),     // 水元素（hwat/hwt2/hwt3）
+        ["AEfn"] = () => new SummonUnit(),     // 树人（efon，丛林守护者）
+        ["AEst"] = () => new SummonUnit(),     // 侦察猫头鹰（nowl/now2/now3，女祭司）
+        ["AOsf"] = () => new SummonUnit(),     // 幽灵狼（osw1/2/3）
+        ["ANsg"] = () => new SummonUnit(),     // 召唤熊（ngz1/2/3，兽王）
         ["AHre"] = () => new Resurrection(),   // 复活
         // —— 尸体利用（食尸鬼吞尸 / 亡灵巫师复活死尸） ——
         ["Acan"] = () => new Cannibalize(),

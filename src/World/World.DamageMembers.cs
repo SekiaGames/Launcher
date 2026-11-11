@@ -38,6 +38,11 @@ public sealed partial class World
         float armor = unit.Type.Armor;
         if (unit.IsHero) armor += HeroRules.AgilityArmor(unit.Agility);
         armor += unit.BonusArmor + unit.AuraArmor;
+        // 被动技能的常驻护甲（尖刺甲壳这类）
+        foreach (Ability ability in unit.Abilities)
+        {
+            if (ability.Learned) armor += ability.PassiveArmor;
+        }
         foreach (string upgradeId in unit.Type.UpgradesApplied)
         {
             UpgradeType upgrade = TechTree.Upgrade(upgradeId);
@@ -73,14 +78,15 @@ public sealed partial class World
 
             if (unit.Hp < unit.MaxHp)
             {
-                float hpPerSecond = unit.Type.RegenHp;
+                float hpPerSecond = unit.Type.RegenHp + unit.AuraHpRegenPerSecond;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
                 if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
             }
 
             if (unit.IsHero && unit.Mana < unit.MaxMana)
             {
-                float manaPerSecond = unit.Intelligence * HeroRules.IntRegenBonus + unit.Type.ManaRegen;
+                float manaPerSecond = unit.Intelligence * HeroRules.IntRegenBonus + unit.Type.ManaRegen
+                    + unit.AuraManaRegenPerSecond;
                 if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * Tick);
             }
         }
@@ -166,7 +172,62 @@ public sealed partial class World
             }
         }
 
+        if (info.Amount > 0f) SustainAfterHit(info);
+
         if (target.Hp <= 0f) Kill(target, info.Source);
+    }
+
+    /// <summary>
+    /// 命中之后的连带效果（对标客户端 Health 的 OnDamaged 监听）：
+    /// 睡眠被打醒 → 吸血光环按实际伤害回血 → 荆棘光环/尖刺甲壳把伤害反给攻击者。
+    /// </summary>
+    private void SustainAfterHit(DamageInfo info)
+    {
+        Unit target = info.Target;
+        if (target == null) return;
+
+        // 原版口径：睡眠单位被攻击就醒（只在掉血时）
+        if (target.State.Has(StateMod.Sleep)) target.State.RemoveAll(StateMod.Sleep);
+
+        Unit attacker = info.Source;
+        if (attacker == null || !attacker.Alive || ReferenceEquals(attacker, target)) return;
+        if (info.Reflected || !info.IsAttack) return;
+
+        if (attacker.AuraLifestealPct > 0f)
+        {
+            attacker.Heal(info.Amount * attacker.AuraLifestealPct);
+        }
+
+        bool ranged = info.Weapon != null && !string.IsNullOrEmpty(info.Weapon.MissileScene);
+        float ratio = ReflectRatioOf(target, ranged);
+        if (ratio <= 0f) return;
+
+        DamageInfo counter = MakeAbilityDamage(target, attacker, info.Amount * ratio,
+            AttackType.Spells, DamageType.Universal);
+        counter.Reflected = true;
+        DealDamage(counter);
+    }
+
+    /// <summary>反伤比例：荆棘光环只反近战，被动（尖刺甲壳）自己声明吃不吃远程。</summary>
+    public float ReflectRatioOf(Unit target, bool ranged)
+    {
+        if (target == null) return 0f;
+
+        float ratio = ranged ? 0f : target.AuraThornsPct;
+        foreach (Ability ability in target.Abilities)
+        {
+            if (!ability.Learned) continue;
+            if (ranged && !ability.ReflectsRangedAttack) continue;
+            ratio = Mathf.Max(ratio, ability.ReflectRatio);
+        }
+        return ratio;
+    }
+
+    /// <summary>牺牲一个友军单位（死亡契约 / 黑暗仪式）：不当成击杀，所以不给经验、不掉落。</summary>
+    public void Sacrifice(Unit victim)
+    {
+        if (victim == null || !victim.Alive) return;
+        Kill(victim, null);
     }
 
     /// <summary>技能/陷阱等非武器伤害的统一构造入口。</summary>

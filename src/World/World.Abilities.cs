@@ -102,6 +102,15 @@ public sealed partial class World
         if (!caster.State.CanCast) return false;
         if (caster.IsUnderConstruction) return false;
 
+        // 开关型技能：关掉不花法力、不进冷却（原版关献祭是瞬时的）
+        if (ability.IsToggle && ability.ToggledOn)
+        {
+            ability.SetToggled(this, false);
+            InterruptChannel(caster);
+            AbilityCast?.Invoke(caster, ability, target);
+            return true;
+        }
+
         float cost = ability.ManaCost;
         if (caster.Mana < cost) return false;
         if (!ability.CheckTarget(this, target, point)) return false;
@@ -183,6 +192,12 @@ public sealed partial class World
 
             if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
 
+            for (int index = 0; index < unit.Abilities.Count; index++)
+            {
+                Ability kept = unit.Abilities[index];
+                if (kept.ToggledOn) kept.OnUpkeep(this);
+            }
+
             for (int index = unit.Buffs.Count - 1; index >= 0; index--)
             {
                 Buff buff = unit.Buffs[index];
@@ -244,26 +259,28 @@ public sealed partial class World
     /// <summary>光环：同源取最大，不叠加；施法者阵亡立即失效。</summary>
     public void RefreshAuras()
     {
-        foreach (Unit unit in Units) unit.AuraArmor = 0f;
+        foreach (Unit unit in Units) unit.ClearAura();
 
+        var bonus = new AuraBonus();
         foreach (Unit source in Units)
         {
             if (!source.Alive) continue;
 
             foreach (Ability ability in source.Abilities)
             {
-                if (ability is not DevotionAura aura || !aura.Learned) continue;
+                if (!ability.IsAura || !ability.Learned) continue;
 
-                float value = aura.ArmorBonus;
-                if (value <= 0f) continue;
+                bonus = default;
+                ability.CollectAura(ref bonus);
+                if (bonus.IsZero) continue;
 
-                float radius = aura.AuraArea;
+                float radius = ability.AuraRadius;
                 foreach (Unit unit in Units)
                 {
                     if (!unit.Alive) continue;
                     if (!AreAllied(source.Player, unit.Player)) continue;
                     if (source.DistanceTo(unit) > radius) continue;
-                    unit.AuraArmor = Mathf.Max(unit.AuraArmor, value);
+                    unit.MergeAura(bonus);
                 }
             }
         }
@@ -318,11 +335,12 @@ public sealed partial class World
         hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), hero.Alive);
     }
 
-    /// <summary>移动速度：基础 + 装备，再乘减速。</summary>
+    /// <summary>移动速度：基础 + 装备，乘光环加成，再乘减速。</summary>
     public static float SpeedOf(Unit unit)
     {
         if (unit?.Type == null) return 0f;
         float speed = unit.Type.Speed + unit.BonusMoveSpeedFlat;
+        speed *= 1f + Mathf.Max(0f, unit.AuraMoveSpeedPct);
         if (unit.Slowed) speed *= 1f - unit.SlowMovePct;
         return Mathf.Max(40f, speed);
     }

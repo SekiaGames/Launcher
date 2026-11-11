@@ -81,6 +81,8 @@ public sealed partial class World
 
         float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
             + DamageBonus(unit);
+        // 强击光环只加远程攻击（物编 AEar 的 DataA 是百分比）
+        if (!string.IsNullOrEmpty(weapon.MissileScene)) raw *= 1f + unit.AuraRangedDamagePct;
         raw = ApplyAttackModifiers(unit, target, raw);
         DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
 

@@ -24,11 +24,46 @@ public abstract class Ability
     public virtual bool IsUltimate => Type != null && Type.Ultimate;
     public virtual AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
 
+    // —— 光环：每 tick 由 World.RefreshAuras 汇总，同源取最大 ——
+    /// <summary>光环半径（物编 Area 列，缺省按 900）。</summary>
+    public virtual float AuraRadius => Area > 0f ? Area : 900f;
+
+    /// <summary>把自己的光环数值填进汇总（子类只填自己那一项）。</summary>
+    public virtual void CollectAura(ref AuraBonus bonus) { }
+
+    // —— 反伤：荆棘光环走光环字段，尖刺甲壳这类被动直接给比例 ——
+    /// <summary>受普攻时按该比例把伤害反给攻击者（0 = 不反）。</summary>
+    public virtual float ReflectRatio => 0f;
+
+    /// <summary>反伤是否也吃远程攻击（荆棘光环只反近战，甲壳不管远近）。</summary>
+    public virtual bool ReflectsRangedAttack => false;
+
+    /// <summary>被动提供的护甲（尖刺甲壳这类「常驻加成」写在技能上，不往单位字段里加）。</summary>
+    public virtual float PassiveArmor => 0f;
+
+    // —— 开关型技能（献祭）：开着时每 tick 由 World 推进 OnUpkeep ——
+    public virtual bool IsToggle => false;
+    public bool ToggledOn;
+
+    public void SetToggled(World world, bool on)
+    {
+        if (ToggledOn == on) return;
+        ToggledOn = on;
+        OnToggle(world, on);
+    }
+
+    public virtual void OnToggle(World world, bool on) { }
+
+    /// <summary>开着时每 tick 调用（扣法力、结算每秒伤害）。</summary>
+    public virtual void OnUpkeep(World world) { }
+
     public float Cooldown => Type?.CooldownAt(Level) ?? 0f;
     public float ManaCost => Type?.CostAt(Level) ?? 0f;
     public float CastRange => Type?.RangeAt(Level) ?? 0f;
     public float Area => Type?.AreaAt(Level) ?? 0f;
     public float Duration => Type?.DurationAt(Level) ?? 0f;
+    /// <summary>物编 Cast 列（暗影突袭的持续伤害间隔这类）。</summary>
+    public float CastInterval => Type?.CastAt(Level) ?? 0f;
 
     public bool Learned => Level >= 1;
     public bool CanLevelUp => Type != null && Level < Type.MaxLevel;
@@ -36,6 +71,28 @@ public abstract class Ability
 
     /// <summary>DataA..DataI，按当前等级。</summary>
     protected float Data(char slot) => Type?.DataAt(Level, slot) ?? 0f;
+
+    /// <summary>UnitData.race=undead：圣光术、死亡缠绕、死亡契约都按这个判定。</summary>
+    protected static bool IsUndead(Unit unit) =>
+        unit?.Type != null && string.Equals(unit.Type.Race, "undead", System.StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>活物：非建筑、非亡灵（死亡缠绕/腐臭蜂群这类「有机单位」口径的近似）。</summary>
+    protected static bool IsLiving(Unit unit) =>
+        unit != null && !unit.IsBuilding && !IsUndead(unit) && unit.Type != null;
+
+    /// <summary>半径内有没有敌人：AI 判断「正在交战」用（避免和平时期乱放消耗性技能）。</summary>
+    protected bool HasEnemyNearby(World world, float radius)
+    {
+        if (world == null || Owner == null) return false;
+
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (world.AreAllied(Owner.Player, other.Player)) continue;
+            if (Owner.DistanceTo(other) <= radius) return true;
+        }
+        return false;
+    }
 
     /// <summary>施法距离判定：Rng 为 0 的技能不限距离（自身/AoE 型）。</summary>
     protected bool InRange(Unit target)

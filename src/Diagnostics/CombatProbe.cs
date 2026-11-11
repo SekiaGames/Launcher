@@ -113,6 +113,8 @@ public static partial class CombatProbe
         CheckItems();
         CheckLoot();
         CheckSkills();
+        CheckUndeadSkills();
+        CheckRacialSkills();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
