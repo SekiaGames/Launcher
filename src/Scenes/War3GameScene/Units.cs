@@ -359,6 +359,18 @@ public sealed partial class War3GameScene
 
     private int _morphSerial;
 
+    /// <summary>物编写 hpxe 与 hphx 共用 phoenix 模型，蛋形态用导出时单独拆出来的 PhoenixEgg 场景。</summary>
+    private static string ModelSceneOf(UnitType type)
+    {
+        if (type == null) return null;
+        if (string.Equals(type.Id, "hpxe", StringComparison.OrdinalIgnoreCase))
+        {
+            string egg = PathResolve.ModelScene("Units/Human/Phoenix/PhoenixEgg");
+            if (egg != null) return egg;
+        }
+        return type.ModelPath;
+    }
+
     /// <summary>
     /// 变形后重建模型：旧节点丢掉，按新类型重新实例化，位置/朝向/选中状态/血条都接上。
     /// 模型缺失时保持原样（只是外形不对，不至于把单位弄没）。
@@ -367,7 +379,7 @@ public sealed partial class War3GameScene
     {
         if (unit?.View == null || unit.Type == null) return;
 
-        PackedScene scene = Assets.LoadScene(unit.Type.ModelPath);
+        PackedScene scene = Assets.LoadScene(ModelSceneOf(unit.Type));
         if (scene == null)
         {
             GD.PushWarning($"[MORPH] 缺模型 {unit.Type.Id} -> {unit.Type.ModelPath}");

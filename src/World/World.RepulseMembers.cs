@@ -63,7 +63,7 @@ public sealed partial class World
         float z = unit.Position.Z + deltaZ;
         if (_pathGrid != null && _pathGrid.IsBlockedWorld(x, z)) return;
 
-        float y = MapWorldBuilder.HeightAt(_terrain, x, z);
+        float y = _terrain != null ? MapWorldBuilder.HeightAt(_terrain, x, z) : unit.Position.Y;
         unit.Position = new Vector3(x, y, z);
         if (unit.View != null) unit.View.Root.Position = unit.Position;
     }

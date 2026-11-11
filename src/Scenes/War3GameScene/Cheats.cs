@@ -929,6 +929,62 @@ public sealed partial class War3GameScene
         };
 
         DemoDruidForm(creep);
+        DemoPhoenix(creep);
+    }
+
+    /// <summary>
+    /// 凤凰整条链路：召唤 hphx → 生命归零被 Aphx 接管变成 hpxe 蛋 → 模型换成 PhoenixEgg → 10 秒后孵回。
+    /// 只看类型/生命/模型节点，不截图。
+    /// </summary>
+    private void DemoPhoenix(Unit creep)
+    {
+        Unit mage = Spawn("Hblm", ViewPlayer, creep.Position.X + 520f, creep.Position.Z - 520f, 0f, 0f, 1f);
+        if (mage == null)
+        {
+            GD.Print("[PHOENIX] 缺血法师模型，跳过凤凰验证");
+            return;
+        }
+
+        _world.Units.Add(mage);
+        mage.Level = 6;
+        mage.SkillPoints = 2;
+        _world.RefreshHeroAttributes(mage);
+        mage.Hp = mage.MaxHp;
+        mage.Mana = mage.MaxMana;
+        _world.LearnAbility(mage, "AHpx");
+
+        Ability phoenix = mage.FindAbility("AHpx");
+        if (phoenix == null)
+        {
+            GD.Print("[PHOENIX] 凤凰大招没学会");
+            return;
+        }
+
+        bool cast = _world.TryCast(mage, phoenix, null, mage.Position);
+        Unit bird = null;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit != mage && unit.Type != null && unit.Type.Id == "hphx") bird = unit;
+        }
+        if (bird == null)
+        {
+            GD.Print($"[PHOENIX] 召唤失败 {(cast ? "" : "（施法返回 false）")}");
+            return;
+        }
+
+        GD.Print($"[PHOENIX] 召唤成功 {bird.Type.Id} 生命 {bird.Hp:0}/{bird.MaxHp:0}"
+            + $" 模型 {bird.View?.Root?.Name} 自带回血 {bird.Type.RegenHp:0}/s");
+
+        _world.DealDamage(World.MakeAbilityDamage(mage, bird, 9999f, AttackType.Spells, DamageType.Magic));
+        GD.Print($"[PHOENIX] 生命归零 → 类型 {bird.Type.Id} 生命 {bird.Hp:0}/{bird.MaxHp:0}"
+            + $" 存活 {bird.Alive} 模型 {bird.View?.Root?.Name} 待孵化 {_world.PendingPhoenixEggCount}");
+
+        SceneTreeTimer hatch = GetTree().CreateTimer(11.0);
+        hatch.Timeout += () =>
+        {
+            GD.Print($"[PHOENIX] 孵化后 类型 {bird.Type.Id} 生命 {bird.Hp:0}/{bird.MaxHp:0}"
+                + $" 模型 {bird.View?.Root?.Name}");
+        };
     }
 
     /// <summary>

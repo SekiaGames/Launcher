@@ -79,7 +79,18 @@ public static class SkillRegistry
         ["AEsv"] = () => new SpiritOfVengeance(), // 复仇之魂（守望者，死亡召魂）
         ["AHmt"] = () => new MassTeleport(),  // 群体传送（大法师，点全图）
         ["AEev"] = () => new Evasion(),       // 闪避（被动）
-        ["AUfa"] = () => new FrostArmor(),    // 霜冻护甲
+        ["AUfa"] = () => new FrostArmor(),    // 霜冻护甲（巫妖，主动版）
+        ["AUfu"] = () => new FrostArmor(),    // 霜冻护甲（巫妖，自动施法版）
+        // —— 血法师 ——
+        ["AHbn"] = () => new Banish(),        // 放逐（虚无 + 减速）
+        ["AHfs"] = () => new FlameStrike(),   // 烈焰风暴（满伤阶段 + 余烬阶段）
+        ["AHdr"] = () => new SiphonMana(),    // 吸魔（引导抽蓝 / 反向输蓝）
+        ["AHpx"] = () => new Phoenix(),       // 凤凰（hphx，阵亡变蛋再孵化）
+        ["Aphx"] = () => new PhoenixEgg(),    // 凤凰变蛋（被动）
+        // —— 兽族 / 亡灵 / 暗夜终极与普攻技 ——
+        ["AUls"] = () => new LocustSwarm(),   // 蝗群（地穴领主，20 只 uloc）
+        ["AOeq"] = () => new Earthquake(),    // 地震（先知，引导 25s 拆塔 + 减速）
+        ["AHfa"] = () => new SearingArrows(), // 灼热之箭（白虎，每箭附加火焰伤害）
         // —— 召唤与复活 ——
         ["AHwe"] = () => new SummonUnit(),     // 水元素（hwat/hwt2/hwt3）
         ["AEfn"] = () => new SummonUnit(),     // 树人（efon，丛林守护者）

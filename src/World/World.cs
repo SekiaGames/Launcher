@@ -69,6 +69,7 @@ public sealed partial class World
         TickWeapons();
         TickAbilityMissiles();
         TickChannels();
+        TickGroundSpells();
         TickAbilities();
         TickFogReveals();
         TickMorph();
@@ -78,6 +79,7 @@ public sealed partial class World
         ResolveRepulse();
         TickHeroRevive(Tick);
         TickReincarnation();
+        TickPhoenixEgg();
     }
 
     private void Step(Unit unit)

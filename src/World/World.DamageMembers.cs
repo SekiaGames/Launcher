@@ -268,6 +268,7 @@ public sealed partial class World
     private void Kill(Unit unit, Unit killer = null)
     {
         if (!unit.Alive) return;
+        if (TryPhoenixEgg(unit)) return;
 
         EndMorphBeforeDeath(unit);
         unit.CancelAttack();

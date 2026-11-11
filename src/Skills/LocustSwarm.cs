@@ -1,0 +1,72 @@
+using Godot;
+
+namespace Launcher;
+
+/// <summary>
+/// 蝗群 AUls（地穴领主终极）。对标 Wiki RuntimeLocustSwarmAbility：
+/// 每隔 DataB(0.2s) 放出一只 UnitID(uloc)，共 DataA(20) 只，Dur(30) 秒后消失；
+/// 蝗虫自带 Aloc（无碰撞），会自己扑向附近敌人。物编 Cool=180 Cost=150。
+/// </summary>
+public sealed class LocustSwarm : Ability
+{
+    public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
+
+    public int SwarmCount => Mathf.Clamp(Mathf.RoundToInt(Data('A')), 1, 40);
+    public float ReleaseInterval => Data('B') > 0.05f ? Data('B') : 0.05f;
+    public float SwarmDuration => Duration > 0f ? Duration : 30f;
+    public string SwarmUnitId => Type?.SummonAt(Level) ?? "uloc";
+
+    public override bool OnCast(World world, Unit target, Vector3 point)
+    {
+        if (world == null || Owner == null || !Owner.Alive) return false;
+
+        world.AddGroundSpell(new LocustSwarmRelease
+        {
+            Caster = Owner,
+            UnitId = SwarmUnitId,
+            Count = SwarmCount,
+            Interval = ReleaseInterval,
+            Lifetime = SwarmDuration,
+        });
+        return true;
+    }
+
+    /// <summary>AI：身边有敌人就放（蝗虫会自己找目标）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        if (!HasEnemyNearby(world, 1000f)) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
+    }
+}
+
+/// <summary>蝗群的放出节奏：每 Interval 只出一只，出满 Count 只后结束。</summary>
+public sealed class LocustSwarmRelease : IGroundSpell
+{
+    public Unit Caster;
+    public string UnitId;
+    public int Count;
+    public float Interval;
+    public float Lifetime;
+
+    private int _released;
+    private float _timer;
+
+    public int Released => _released;
+
+    public bool Step(World world, float delta)
+    {
+        if (Caster == null || !Caster.Alive) return false;
+        if (_released >= Count) return false;
+
+        _timer -= Mathf.Max(0f, delta);
+        int guard = 0;
+        while (_timer <= 0f && _released < Count && guard++ < 40)
+        {
+            world.Summon(Caster, UnitId, Caster.Position, Lifetime);
+            _released++;
+            _timer += Mathf.Max(World.Tick, Interval);
+        }
+        return _released < Count;
+    }
+}

@@ -89,6 +89,25 @@ public sealed class AvatarBuff : Buff
     }
 }
 
+/// <summary>放逐：虚无（不能普攻、只吃魔法伤害）+ 减速，到期撤销。</summary>
+public sealed class BanishBuff : Buff
+{
+    public float MoveSlowPct;
+    public float AttackSlowPct;
+
+    public override void OnApply(World world)
+    {
+        if (Owner == null) return;
+        Owner.State.Add(StateMod.Ethereal, Remaining);
+        if (MoveSlowPct > 0f || AttackSlowPct > 0f) Owner.ApplySlow(MoveSlowPct, AttackSlowPct, Remaining);
+    }
+
+    public override void OnRemove(World world)
+    {
+        Owner?.State.RemoveAll(StateMod.Ethereal);
+    }
+}
+
 /// <summary>
 /// 周期伤害（纠缠根须 / 暗影突袭的持续伤害）。每 Interval 秒结算一次，
 /// 伤害来源记在 DamageSource 上，所以击杀经验与赏金仍然算给施法者。
