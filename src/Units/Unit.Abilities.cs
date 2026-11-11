@@ -38,6 +38,10 @@ public sealed partial class Unit
     public OrbEffect OrbEffectKind = OrbEffect.None;
     public float OrbSeconds;
     public float BonusMaxHp;
+    /// <summary>装备给的法力上限（不随智力重算清零）。</summary>
+    public float BonusMaxMana;
+    /// <summary>魔法伤害减免（符文护腕 0.33）。</summary>
+    public float MagicDamageReductionPct;
     /// <summary>AI 控制（非玩家视角）时为 true，会自己找机会放技能。</summary>
     public bool AutoCast;
     public float AutoCastTimer;

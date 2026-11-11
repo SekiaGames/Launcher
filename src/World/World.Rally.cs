@@ -13,6 +13,8 @@ public sealed partial class World
         InterruptChannel(worker);
         worker.BuildSite = site;
         worker.BuildingNow = false;
+        worker.RepairTarget = null;
+        worker.Repairing = false;
         worker.Tree = null;
         worker.GoldMine = null;
         worker.Target = null;
@@ -28,6 +30,8 @@ public sealed partial class World
         InterruptChannel(worker);
         worker.Tree = tree;
         worker.GoldMine = null;
+        worker.RepairTarget = null;
+        worker.Repairing = false;
         worker.Target = null;
         worker.MoveTarget = null;
         worker.HomeHall = null;
@@ -42,6 +46,8 @@ public sealed partial class World
         InterruptChannel(worker);
         worker.GoldMine = mine;
         worker.Tree = null;
+        worker.RepairTarget = null;
+        worker.Repairing = false;
         worker.HomeHall = null;
         worker.Carry = 0;
         worker.WorkTimer = 0f;
@@ -61,6 +67,8 @@ public sealed partial class World
         unit.Tree = null;
         unit.BuildSite = null;
         unit.BuildingNow = false;
+        unit.RepairTarget = null;
+        unit.Repairing = false;
         unit.Path = null;
         unit.PathIndex = 0;
         unit.View?.Play("Stand");

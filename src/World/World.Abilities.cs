@@ -374,7 +374,7 @@ public sealed partial class World
         hero.Hp = Mathf.Max(1f, Mathf.Min(newMaxHp, hero.Hp + Mathf.Max(0f, newMaxHp - hero.MaxHp)));
         hero.MaxHp = newMaxHp;
 
-        float newMaxMana = HeroRules.MaxManaOf(hero.Intelligence);
+        float newMaxMana = HeroRules.MaxManaOf(hero.Intelligence) + hero.BonusMaxMana;
         hero.Mana = Mathf.Max(0f, Mathf.Min(newMaxMana, hero.Mana + Mathf.Max(0f, newMaxMana - hero.MaxMana)));
         hero.MaxMana = newMaxMana;
 
@@ -413,12 +413,15 @@ public sealed partial class World
         unit.BonusManaRegenPerSecond += bonus.ManaRegen;
         unit.BonusEvasionPct += bonus.EvasionPct;
         unit.BonusSight += bonus.Sight;
+        unit.BonusMaxHp += bonus.MaxHp;
+        unit.BonusMaxMana += bonus.MaxMana;
+        unit.MagicDamageReductionPct += bonus.MagicReductionPct;
         RebuildOrb(unit, item, null);
 
         RefreshHeroAttributes(unit);
     }
 
-    private static readonly string[] ItemAbilityCodes = { "AIba", "AIav", "AIar", "AIae", "AIau", "AIcd", "AIuv" };
+    private static readonly string[] ItemAbilityCodes = { "AIba", "AIav", "AIar", "AIae", "AIau", "AIcd", "AIuv", "AIcf", "AIad", "AIgx" };
 
     private void GrantItemAbilities(Unit unit, Item item)
     {
@@ -511,6 +514,9 @@ public sealed partial class World
         unit.BonusManaRegenPerSecond -= bonus.ManaRegen;
         unit.BonusEvasionPct -= bonus.EvasionPct;
         unit.BonusSight -= bonus.Sight;
+        unit.BonusMaxHp -= bonus.MaxHp;
+        unit.BonusMaxMana -= bonus.MaxMana;
+        unit.MagicDamageReductionPct -= bonus.MagicReductionPct;
         item.Bonus = ItemBonus.Zero;
         RebuildOrb(unit, null, item);
 

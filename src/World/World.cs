@@ -73,6 +73,7 @@ public sealed partial class World
         TickAbilityMissiles();
         TickChannels();
         TickGroundSpells();
+        TickRepairs();
         TickAbilities();
         TickFogReveals();
         TickMorph();
@@ -113,6 +114,12 @@ public sealed partial class World
         if (unit.BuildSite != null)
         {
             StepBuild(unit);
+            return;
+        }
+
+        if (unit.RepairTarget != null)
+        {
+            StepRepair(unit);
             return;
         }
 

@@ -69,6 +69,10 @@ public sealed partial class Unit
     public float BuildTotal;
     public Unit BuildSite;
     public bool BuildingNow;
+    /// <summary>正在修理的目标建筑（工人修理指令）。</summary>
+    public Unit RepairTarget;
+    public bool Repairing;
+    public float RepairGoldDebt;
     public bool NoBuilderLogged;
     public float NoBuilderTimer;
 

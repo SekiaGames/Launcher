@@ -24,11 +24,15 @@ public readonly struct ItemBonus
     public readonly float OrbSecondary;
     public readonly OrbEffect OrbEffect;
     public readonly float OrbSeconds;
+    public readonly float MaxHp;
+    public readonly float MaxMana;
+    public readonly float MagicReductionPct;
 
     public ItemBonus(int strength, int agility, int intelligence,
         float damage, float armor, float attackSpeedPct, float moveSpeed, float lifestealPct,
         float manaRegen = 0f, float evasionPct = 0f, float sight = 0f,
-        float orbDamage = 0f, float orbSecondary = 0f, OrbEffect orbEffect = OrbEffect.None, float orbSeconds = 0f)
+        float orbDamage = 0f, float orbSecondary = 0f, OrbEffect orbEffect = OrbEffect.None, float orbSeconds = 0f,
+        float maxHp = 0f, float maxMana = 0f, float magicReductionPct = 0f)
     {
         Strength = strength;
         Agility = agility;
@@ -45,6 +49,9 @@ public readonly struct ItemBonus
         OrbSecondary = orbSecondary;
         OrbEffect = orbEffect;
         OrbSeconds = orbSeconds;
+        MaxHp = maxHp;
+        MaxMana = maxMana;
+        MagicReductionPct = magicReductionPct;
     }
 
     public static readonly ItemBonus Zero = new(0, 0, 0, 0f, 0f, 0f, 0f, 0f);
@@ -66,13 +73,17 @@ public readonly struct ItemBonus
             a.OrbDamage + b.OrbDamage,
             Math.Max(a.OrbSecondary, b.OrbSecondary),
             a.OrbEffect != OrbEffect.None ? a.OrbEffect : b.OrbEffect,
-            Math.Max(a.OrbSeconds, b.OrbSeconds));
+            Math.Max(a.OrbSeconds, b.OrbSeconds),
+            a.MaxHp + b.MaxHp,
+            a.MaxMana + b.MaxMana,
+            a.MagicReductionPct + b.MagicReductionPct);
     }
 
     public bool IsZero => Strength == 0 && Agility == 0 && Intelligence == 0
         && Damage == 0f && Armor == 0f && AttackSpeedPct == 0f && MoveSpeed == 0f && LifestealPct == 0f
         && ManaRegen == 0f && EvasionPct == 0f && Sight == 0f
-        && OrbDamage == 0f && OrbSecondary == 0f && OrbEffect == OrbEffect.None && OrbSeconds == 0f;
+        && OrbDamage == 0f && OrbSecondary == 0f && OrbEffect == OrbEffect.None && OrbSeconds == 0f
+        && MaxHp == 0f && MaxMana == 0f && MagicReductionPct == 0f;
 
     /// <summary>把一件物品的 abilList 逐条翻译成加成。</summary>
     public static ItemBonus ForItem(ItemType item)
@@ -96,6 +107,7 @@ public readonly struct ItemBonus
 
         float dataA = ability.DataAt(1, 'A');
         float dataB = ability.DataAt(1, 'B');
+        float dataC = ability.DataAt(1, 'C');
         float duration = ability.DurationAt(1) > 0f ? ability.DurationAt(1) : 0f;
 
         switch ((ability.Id ?? "").ToUpperInvariant())
@@ -151,6 +163,26 @@ public readonly struct ItemBonus
                 return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, dataA);
             case "AIRM":
                 return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, manaRegen: dataA);
+            case "AIMM":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, maxMana: dataA);
+            case "AIMI":
+            case "AIML":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, maxHp: dataA);
+            case "AIAM":
+                return new ItemBonus(0, (int)MathF.Round(dataA), 0, 0f, 0f, 0f, 0f, 0f);
+            case "AIIM":
+                return new ItemBonus(0, 0, (int)MathF.Round(dataB), 0f, 0f, 0f, 0f, 0f);
+            case "AISM":
+                return new ItemBonus((int)MathF.Round(dataC), 0, 0, 0f, 0f, 0f, 0f, 0f);
+            case "AIXM":
+                return new ItemBonus((int)MathF.Round(dataA), (int)MathF.Round(dataB), (int)MathF.Round(dataC),
+                    0f, 0f, 0f, 0f, 0f);
+            case "AICB":
+                return Orb(OrbEffect.Corruption, dataA, 0f, 5f);
+            case "AILB":
+                return Orb(OrbEffect.Lightning, dataA, 0f, 5f);
+            case "AISR":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, magicReductionPct: dataB > 0f ? dataB : 0.33f);
             default:
                 return Zero;
         }
@@ -175,6 +207,9 @@ public readonly struct ItemBonus
         if (EvasionPct != 0f) parts.Add($"闪避+{EvasionPct * 100f:0.#}%");
         if (Sight != 0f) parts.Add($"视野+{Sight:0}");
         if (OrbEffect != OrbEffect.None) parts.Add($"法球:{OrbEffect}(+{OrbDamage:0})");
+        if (MaxHp != 0f) parts.Add($"生命上限+{MaxHp:0}");
+        if (MaxMana != 0f) parts.Add($"法力上限+{MaxMana:0}");
+        if (MagicReductionPct != 0f) parts.Add($"魔法减伤+{MagicReductionPct * 100f:0}%");
         return parts.Count == 0 ? "-" : string.Join(" ", parts);
     }
 }

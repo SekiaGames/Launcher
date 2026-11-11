@@ -256,6 +256,43 @@ public sealed partial class War3GameScene
     }
 
     private int _focusLogBudget = 8;
+    
+    /// <summary>
+    /// 派工修理：己方有建筑掉到 95% 以下时，找一个没在采集/建造/修理的工人去修；
+    /// 修理本身按物编 DataA 速率回血、按 DataC 扣金（World.TickRepairs）。
+    /// </summary>
+    private void TickAiRepair(PlayerSlot slot)
+    {
+        Unit worst = null;
+        float lowest = 0.95f;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != slot.Id || !unit.IsBuilding) continue;
+            if (unit.IsUnderConstruction) continue;
+
+            float ratio = unit.Hp / Mathf.Max(1f, unit.MaxHp);
+            if (ratio >= lowest) continue;
+            lowest = ratio;
+            worst = unit;
+        }
+        if (worst == null) return;
+
+        foreach (Unit worker in _allUnits)
+        {
+            if (!worker.Alive || worker.Player != slot.Id || !worker.IsWorker) continue;
+            if (worker.BuildSite != null || worker.RepairTarget != null) continue;
+            if (worker.GoldMine != null || worker.Tree != null) continue;
+            if (worker.FindAbility("Ahrp") == null && worker.FindAbility("Arep") == null) continue;
+
+            worker.RepairTarget = worst;
+            worker.Repairing = false;
+            worker.RepairGoldDebt = 0f;
+            worker.Target = null;
+            worker.MoveTarget = null;
+            worker.Path = null;
+            return;
+        }
+    }
 
     /// <summary>
     /// 守家阵型：没目标、没撤退的部队在基地前按编队层排开（物编 formation：0 近战在前、2 远程在后）。
@@ -617,6 +654,13 @@ public sealed partial class War3GameScene
         {
             slot.FormationTimer = 0f;
             TickAiFormation(slot, hall);
+        }
+
+        slot.RepairTimer += 0.3f;
+        if (slot.RepairTimer >= 5f)
+        {
+            slot.RepairTimer = 0f;
+            TickAiRepair(slot);
         }
 
         for (int attempt = 0; attempt < 4; attempt++)

@@ -33,6 +33,33 @@ public sealed partial class War3GameScene
             break;
         }
 
+        Unit damagedAlly = PickUnit(screenPosition, ViewPlayer, anyPlayer: true);
+        if (damagedAlly != null && damagedAlly.Alive && damagedAlly.IsBuilding
+            && AreAllied(damagedAlly.Player, ViewPlayer) && damagedAlly.Hp < damagedAlly.MaxHp)
+        {
+            int repairers = 0;
+            foreach (Unit unit in _selected)
+            {
+                if (!unit.IsWorker || unit.IsBuilding) continue;
+                if (unit.FindAbility("Ahrp") == null && unit.FindAbility("Arep") == null) continue;
+
+                unit.RepairTarget = damagedAlly;
+                unit.Repairing = false;
+                unit.RepairGoldDebt = 0f;
+                unit.BuildSite = null;
+                unit.Tree = null;
+                unit.GoldMine = null;
+                unit.Target = null;
+                unit.MoveTarget = null;
+                unit.Path = null;
+                repairers++;
+            }
+            _hud?.SetHint(repairers > 0
+                ? $"修理：{repairers} 个工人 → {damagedAlly.Type.Name}（{damagedAlly.Hp:0}/{damagedAlly.MaxHp:0}）"
+                : "只有农民 / 苦工能修理建筑");
+            return;
+        }
+
         Unit enemy = null;
         Camera3D camera = _camera.Camera;
         float bestDistance = 55f;

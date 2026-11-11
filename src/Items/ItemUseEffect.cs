@@ -64,9 +64,167 @@ public static class ItemUseEffect
             case "AIRT":
             case "AITP":
                 return TownPortal(world, unit, type);
+            case "AIAN":
+                return world.ReviveCorpsesAround(unit.Position, 900f, 6, unit.Player, Seconds(type, 40f), 1f) > 0;
+            case "AIRS":
+                return world.ReviveCorpsesAround(unit.Position, 900f, 6, unit.Player, 0f, 1f) > 0;
+            case "AIMO":
+                return world.Summon(unit, "nlur", unit.Position, Seconds(type, 60f)) != null;
+            case "AIWM":
+                return world.Summon(unit, "nmrr", unit.Position, Seconds(type, 60f)) != null;
+            case "AISH":
+                return SummonMany(world, unit, "otbk", Mathf.Max(1, Mathf.RoundToInt(type.DataAt(1, 'B'))), Seconds(type, 60f));
+            case "AIRV":
+                world.AddFogReveal(unit.Player, unit.Position, 100000f, Seconds(type, 5f));
+                return true;
+            case "AIDC":
+                world.DispelArea(unit, unit.Position, RadiusOf(type), hostile: true, summonDamage: 0f);
+                world.DispelArea(unit, unit.Position, RadiusOf(type), hostile: false, summonDamage: 0f);
+                return true;
+            case "APRA":
+                HealArea(world, unit, RadiusOf(type), type.DataAt(1, 'A'));
+                return true;
+            case "APMR":
+                RestoreManaArea(world, unit, RadiusOf(type), type.DataAt(1, 'A'));
+                return true;
+            case "APSA":
+                foreach (Unit ally in world.AlliesInRange(unit, unit.Position, RadiusOf(type)))
+                {
+                    if (!ally.Alive || ally.IsBuilding) continue;
+                    world.ApplyBuff(ally, new StatBuff { MoveSpeedPct = 0.3f }, Seconds(type, 60f));
+                }
+                return true;
+            case "APWT":
+                return world.Summon(unit, "nwad", unit.Position, Seconds(type, 120f)) != null;
+            case "APRL":
+                return world.ReviveCorpsesAround(unit.Position, 1400f, 1, unit.Player, 0f, 1f) > 0;
+            case "APRR":
+                return world.ReviveCorpsesAround(unit.Position, 1400f, 3, unit.Player, 0f, 1f) > 0;
+            case "ASPP":
+                return LinkAllies(world, unit, type);
+            case "AIFA":
+                world.AddFogReveal(unit.Player, unit.Position, 1800f, Seconds(type, 15f));
+                return true;
+            case "AITA":
+            case "AITB":
+                world.AddFogReveal(unit.Player, unit.Position, 900f, Seconds(type, 10f));
+                return true;
+            case "AIIL":
+                return SpawnIllusions(world, unit, type);
+            case "AIRD":
+                return world.ReviveCorpsesAround(unit.Position, 900f,
+                    Mathf.Max(1, Mathf.RoundToInt(type.DataAt(1, 'A'))), unit.Player, 0f, 1f) > 0;
+            case "AIPV":
+                world.ApplyBuff(unit, new StatBuff { DamagePct = type.DataAt(1, 'A') }, Seconds(type, 12f));
+                return true;
+            case "AIXS":
+                world.ApplyBuff(unit, new AntiMagicShieldBuff
+                {
+                    Caster = unit,
+                    Absorb = type.DataAt(1, 'A') > 0f ? type.DataAt(1, 'A') : 300f,
+                }, Seconds(type, 30f));
+                return true;
+            case "AISE":
+                foreach (Unit enemy in world.EnemiesInRange(unit, unit.Position, 500f, false))
+                {
+                    enemy.State.Add(StateMod.Silence, Seconds(type, 8f));
+                }
+                return true;
+            case "AIGF":
+                foreach (Unit ally in world.AlliesInRange(unit, unit.Position, 900f))
+                {
+                    if (!ally.Alive || !ally.IsBuilding) continue;
+                    world.ApplyBuff(ally, new StatBuff { Armor = 3f }, Seconds(type, 60f));
+                }
+                return true;
+            case "AIDA":
+                foreach (Unit ally in world.AlliesInRange(unit, unit.Position, 900f))
+                {
+                    if (!ally.Alive) continue;
+                    world.ApplyBuff(ally, new StatBuff { Armor = type.DataAt(1, 'A') }, Seconds(type, 30f));
+                }
+                return true;
+            case "AIFD":
+                return world.Summon(unit, "nrdr", unit.Position, Seconds(type, 60f)) != null;
+            case "AIFR":
+                return world.Summon(unit, "ngst", unit.Position, Seconds(type, 180f)) != null;
+            case "AIFH":
+                return world.Summon(unit, "nfel", unit.Position, Seconds(type, 180f)) != null;
+            case "AIFG":
+                world.AddGroundSpell(new CloudOfFogSpell
+                {
+                    Caster = unit,
+                    Position = unit.Position,
+                    Radius = RadiusOf(type),
+                    Remaining = Seconds(type, 30f),
+                    MissChance = 0.7f,
+                });
+                return true;
             default:
                 return false;
         }
+    }
+
+    private static bool SummonMany(World world, Unit unit, string unitId, int count, float seconds)
+    {
+        bool any = false;
+        for (int index = 0; index < count; index++)
+        {
+            float angle = Mathf.Tau * index / Mathf.Max(1, count);
+            var spot = new Vector3(
+                unit.Position.X + Mathf.Cos(angle) * 80f,
+                unit.Position.Y,
+                unit.Position.Z + Mathf.Sin(angle) * 80f);
+            if (world.Summon(unit, unitId, spot, seconds) != null) any = true;
+        }
+        return any;
+    }
+
+    private static bool SpawnIllusions(World world, Unit unit, AbilityType type)
+    {
+        int count = Mathf.Max(1, Mathf.RoundToInt(type.DataAt(1, 'B')));
+        float seconds = Seconds(type, 30f);
+        bool any = false;
+        for (int index = 0; index < count; index++)
+        {
+            float angle = Mathf.Tau * index / Mathf.Max(1, count);
+            var spot = new Vector3(
+                unit.Position.X + Mathf.Cos(angle) * 96f,
+                unit.Position.Y,
+                unit.Position.Z + Mathf.Sin(angle) * 96f);
+            if (world.CreateIllusion(unit, spot, seconds, 1f, 2f) != null) any = true;
+        }
+        return any;
+    }
+
+    private static void RestoreManaArea(World world, Unit unit, float radius, float amount)
+    {
+        if (amount <= 0f) return;
+        foreach (Unit ally in world.AlliesInRange(unit, unit.Position, radius))
+        {
+            if (!ally.Alive || ally.IsBuilding || ally.MaxMana <= 0f) continue;
+            ally.Mana = Mathf.Min(ally.MaxMana, ally.Mana + amount);
+        }
+    }
+
+    private static bool LinkAllies(World world, Unit unit, AbilityType type)
+    {
+        var members = new List<Unit> { unit };
+        foreach (Unit ally in world.AlliesInRange(unit, unit.Position, RadiusOf(type)))
+        {
+            if (members.Count >= 4) break;
+            if (!ally.Alive || ally.IsBuilding || ally == unit) continue;
+            members.Add(ally);
+        }
+        if (members.Count < 2) return false;
+
+        var group = new SpiritLinkGroup { Members = members, Ratio = Mathf.Clamp(type.DataAt(1, 'A'), 0f, 0.9f) };
+        float seconds = Seconds(type, 75f);
+        foreach (Unit member in members)
+        {
+            world.ApplyBuff(member, new SpiritLinkBuff { Group = group }, seconds);
+        }
+        return true;
     }
 
     private static void HealArea(World world, Unit unit, float radius, float amount)

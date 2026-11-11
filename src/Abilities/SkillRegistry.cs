@@ -300,6 +300,9 @@ public static class SkillRegistry
         ["ACmo"] = () => new Monsoon(),           // 季风（引导范围伤害 + 减速）
         ["Amrf"] = () => new TwoWayForm(),        // 乌鸦形态（麦迪文）
         ["Amic"] = () => new CallToArms(),         // 敲钟（城镇大厅，农民变民兵）
+        ["Ahrp"] = () => new RepairBuilding(),     // 修理（人族农民）
+        ["Arep"] = () => new RepairBuilding(),     // 修理（兽族苦工）
+        ["AIcf"] = () => new CloakOfFlames(),      // 献祭斗篷（物品，持续炎伤）
         // —— 物品栏（单位获得格子的标记码） ——
         ["AInv"] = () => new InventoryPassive(),
         ["Aien"] = () => new InventoryPassive(),
@@ -307,10 +310,131 @@ public static class SkillRegistry
         ["Aion"] = () => new InventoryPassive(),
         ["Aiun"] = () => new InventoryPassive(),
         ["Apak"] = () => new InventoryPassive(),
+        // —— 野怪别名：直接复用同名实现（数据列各自独立） ——
+        ["ACac"] = () => new WarDrums(),          // 命令光环
+        ["ACah"] = () => new ThornsAura(),        // 荆棘光环
+        ["ACat"] = () => new TrueshotAura(),      // 强击光环
+        ["ACav"] = () => new DevotionAura(),      // 专注光环
+        ["ACba"] = () => new BrillianceAura(),    // 辉煌光环
+        ["ACbb"] = () => new Bloodlust(),         // 嗜血
+        ["ACbc"] = () => new BreathOfFire(),      // 火焰吐息
+        ["ACbf"] = () => new FrostBreath(),       // 霜冻吐息
+        ["ACbh"] = () => new Bash(),              // 重击
+        ["ACbk"] = () => new BlackArrow(),        // 黑蚀箭
+        ["ACbz"] = () => new Blizzard(),          // 暴风雪
+        ["ACc2"] = () => new CarrionSwarm(),      // 震荡波
+        ["ACca"] = () => new CarrionSwarm(),      // 腐臭蜂群
+        ["ACce"] = () => new CleavingAttack(),    // 分裂攻击
+        ["ACch"] = () => new Charm(),             // 魅惑
+        ["ACcl"] = () => new ChainLightning(),    // 闪电链
+        ["ACcn"] = () => new Cannibalize(),       // 食尸
+        ["ACcs"] = () => new Curse(),             // 诅咒
+        ["ACcv"] = () => new CarrionSwarm(),      // 震荡波
+        ["ACcw"] = () => new ColdArrows(),        // 寒冰箭
+        ["ACcy"] = () => new Cyclone(),           // 旋风
+        ["ACd2"] = () => new AbolishMagic(),      // 废除魔法
+        ["ACdc"] = () => new DeathCoil(),         // 死亡缠绕
+        ["ACde"] = () => new DevourMagic(),       // 吞噬魔法
+        ["ACdm"] = () => new AbolishMagic(),      // 废除魔法
+        ["ACdr"] = () => new LifeDrain(),         // 生命汲取
+        ["ACds"] = () => new DivineShield(),      // 神圣护甲
+        ["ACdv"] = () => new Devour(),            // 吞噬
+        ["ACev"] = () => new Evasion(),           // 闪避
+        ["ACf2"] = () => new FrostArmor(),        // 霜冻护甲
+        ["ACfd"] = () => new FingerOfDeath(),     // 死亡之指
+        ["ACff"] = () => new FaerieFire(),        // 精灵之火
+        ["ACfl"] = () => new ForkedLightning(),   // 碎裂闪电
+        ["ACfn"] = () => new FrostNova(),         // 霜冻新星
+        ["ACfr"] = () => new SummonUnit(),        // 自然之力
+        ["AChv"] = () => new HealingWave(),       // 治疗波
+        ["AChw"] = () => new HealingWard(),       // 治疗守卫
+        ["AChx"] = () => new Hex(),               // 妖术
+        ["ACim"] = () => new Immolation(),        // 献祭
+        ["ACls"] = () => new LightningShield(),   // 闪电盾
+        ["ACps"] = () => new Charm(),             // 占据
+        ["ACpu"] = () => new Purge(),             // 净化
+        ["ACpv"] = () => new Pulverize(),         // 粉碎
+        ["ACr2"] = () => new Rejuvenation(),      // 回春
+        ["ACrd"] = () => new RaiseDead(),         // 复活死尸
+        ["ACrf"] = () => new RainOfFire(),        // 火焰雨
+        ["ACrj"] = () => new Rejuvenation(),      // 回春
+        ["ACrn"] = () => new Reincarnation(),     // 重生
+        ["ACro"] = () => new Roar(),              // 咆哮
+        ["ACs7"] = () => new SummonUnit(),        // 野性之魂
+        ["ACs9"] = () => new SummonUnit(),        // 野性之魂
+        ["ACsa"] = () => new SearingArrows(),     // 灼热之箭
+        ["ACsh"] = () => new ShockWave(),         // 震荡波
+        ["ACsi"] = () => new Silence(),           // 沉默
+        ["ACsl"] = () => new Sleep(),             // 睡眠
+        ["ACss"] = () => new ShadowStrike(),      // 暗影突袭
+        ["ACt2"] = () => new ThunderClap(),       // 雷霆一击
+        ["ACtb"] = () => new ThunderBolt(),       // 风暴之锤
+        ["ACtc"] = () => new ThunderClap(),       // 雷霆一击
+        ["ACtn"] = () => new SerpentWard(),       // 毒蛇守卫
+        ["ACua"] = () => new UnholyAura(),        // 邪恶光环
+        ["ACvp"] = () => new VampiricAura(),      // 吸血光环
+        ["ACvs"] = () => new VenomSpears(),       // 毒矛
+        ["ACwb"] = () => new Web(),               // 蛛网
+        ["ACwe"] = () => new SummonUnit(),        // 召唤海元素
+        ["ANbf"] = () => new BreathOfFire(),      // 火焰吐息
+        ["ANbh"] = () => new Bash(),              // 重击
+        ["ANbl"] = () => new Blink(),             // 闪烁
+        ["ANcr"] = () => new Berserk(),           // 化学狂暴
+        ["ANdb"] = () => new DrunkenBrawler(),    // 醉拳
+        ["ANdh"] = () => new DrunkenHaze(),       // 醉酒云雾
+        ["ANef"] = () => new StormEarthFire(),    // 风暴大地火焰
+        ["ANfb"] = () => new FireBolt(),          // 火球
+        ["ANab"] = () => new AcidBomb(),          // 酸性炸弹
+        ["ANhs"] = () => new HealingSpray(),      // 治疗喷雾
+        ["ANtm"] = () => new Transmute(),         // 点金术
+        ["ANcs"] = () => new ClusterRockets(),    // 集束火箭
+        ["ANia"] = () => new Incinerate(),        // 焚化
+        ["ANso"] = () => new SoulBurn(),          // 灵魂燃烧
+        ["ANin"] = () => new Inferno(),           // 地狱火
+        ["ANlm"] = () => new SummonUnit(),        // 召唤熔岩
+        ["ANr2"] = () => new Reincarnation(),      // 重生
+        ["ANsq"] = () => new SummonUnit(),        // 召唤豪猪
+        ["ANst"] = () => new Stampede(),          // 兽群狂奔
+        ["ANsw"] = () => new SummonUnit(),        // 召唤猎鹰
+        ["ANt2"] = () => new SpikedCarapace(),    // 荆棘盾
+        ["ANth"] = () => new SpikedCarapace(),    // 荆棘盾
+        ["ANta"] = () => new Taunt(),             // 嘲讽
+        ["ANwk"] = () => new WindWalk(),          // 疾风步
+        ["Aap3"] = () => new PlagueAura(),        // 瘟疫光环
+        ["Abu5"] = () => new Burrow(),            // 钻地
+        ["Ache"] = () => new MassDispel(),        // 连锁驱散
+        ["Acht"] = () => new HowlOfTerror(),      // 恐惧嚎叫
+        ["Aenr"] = () => new EntanglingRoots(),   // 缠绕根须
+        ["Aenw"] = () => new EntanglingRoots(),   // 缠绕海草
+        ["Afbb"] = () => new Feedback(),          // 反馈
+        ["Ahid"] = () => new ShadowMeld(),        // 影遁
+        ["Ambb"] = () => new ManaBurn(),          // 法力燃烧
+        ["Ambd"] = () => new ManaBurn(),          // 法力燃烧
+        ["Anh1"] = () => new Heal(),              // 治疗
+        ["ACcb"] = () => new FrostBolt(),         // 冰霜箭（伤害 + 减速）
+        ["ANms"] = () => new ManaShield(),        // 法力盾（海巫）
+        ["ANb2"] = () => new Bash(),              // 重击（狂熊）
+        ["ANtr"] = () => new DetectPassive(),     // 真实视域（战鹰）
+        ["Andt"] = () => new RevealArea(),        // 中立反隐揭示
+        ["Asdg"] = () => new SelfDestruct(),      // 自爆（发条地精）
+        ["Asd2"] = () => new SelfDestruct(),
+        ["Asd3"] = () => new SelfDestruct(),
+        ["AIgu"] = () => new Ultravision(),       // 超级视力神符
+        ["ACmf"] = () => new ManaShield(),        // 法力盾（扣蓝抵伤）
+        ["Aslp"] = () => new SummonUnit(),        // 召唤龙虾
+        ["Aspd"] = () => new SummonUnit(),        // 召唤蜘蛛
+        ["Aspt"] = () => new SummonUnit(),        // 孵化
+        ["Aspy"] = () => new SummonUnit(),        // 召唤九头蛇
+        ["Assp"] = () => new SummonUnit(),        // 召唤幼蛛
+        ["Awrh"] = () => new WarStomp(),          // 战争践踏
+        ["Awrs"] = () => new WarStomp(),          // 战争践踏
+        ["SCae"] = () => new EnduranceAura(),     // 耐久光环
+        ["Ashs"] = () => new DetectPassive(),     // 真实视域（物品）
         // —— 物品技能里与英雄同源的码 ——
         ["AIbx"] = () => new Bash(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击
         ["AIad"] = () => new DevotionAura(),  // 物品版专注光环
+        ["AIgx"] = () => new RegenerationAura(), // 物品版再生光环
         ["AIdv"] = () => new DivineShield(),  // 物品版神圣护甲
         ["AIhl"] = () => new HolyLight(),     // 物品版圣光术
     };

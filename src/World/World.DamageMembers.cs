@@ -80,6 +80,7 @@ public sealed partial class World
             {
                 float hpPerSecond = unit.Type.RegenHp + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
+                if (IsUndeadUnit(unit) && IsBlighted(unit.Position)) hpPerSecond += BlightHealPerSecond;
                 if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
             }
 
@@ -167,6 +168,10 @@ public sealed partial class World
         if (target.IsIllusion && target.IllusionDamageReceived > 0f) info.Amount *= target.IllusionDamageReceived;
         if (target.BonusDamageTakenPct != 0f) info.Amount *= 1f + target.BonusDamageTakenPct;
         ApplyIncomingModifiers(info);
+        if (info.DamageType == DamageType.Magic && target.MagicDamageReductionPct > 0f)
+        {
+            info.Amount *= 1f - Mathf.Clamp(target.MagicDamageReductionPct, 0f, 0.9f);
+        }
         info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.ArmorFactor(info.Armor);
         info.ClassRatio = War3GameplayConfig.ClassRatio(info.AttackType, info.DefenseType);
         info.Amount = War3GameplayConfig.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
