@@ -242,6 +242,7 @@ public sealed partial class War3GameScene
                 AddTrainingCommands(commands, slot, single);
                 AddResearchCommands(commands, slot, single);
                 AddUpgradeCommands(commands, slot, single);
+                if (single.Type.IsShop) AddShopCommands(commands, slot, single);
             }
             else if (single != null && single.IsHero)
             {
@@ -368,6 +369,32 @@ public sealed partial class War3GameScene
                 Enabled = afford && requires,
                 Action = () => BeginPlacement(id),
             });
+        }
+    }
+
+    /// <summary>商店：按 `*UnitFunc.Sellitems` 列出商品，买下即扣金并在店旁落地。</summary>
+    private void AddShopCommands(List<CommandEntry> commands, PlayerSlot slot, Unit shop)
+    {
+        int shown = 0;
+        foreach (string itemId in shop.Type.SellItems)
+        {
+            ItemType type = ItemCatalog.Get(itemId);
+            if (type == null) continue;
+
+            string id = itemId;
+            Unit target = shop;
+            commands.Add(new CommandEntry
+            {
+                Id = id,
+                Name = $"买 {type.Name}",
+                Cost = $"{type.GoldCost}金",
+                Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}",
+                Icon = TechTree.Icon(type.IconArt),
+                Enabled = slot.Gold >= type.GoldCost,
+                Action = () => BuyItemFromShop(target, id),
+            });
+
+            if (++shown >= 8) break;
         }
     }
 

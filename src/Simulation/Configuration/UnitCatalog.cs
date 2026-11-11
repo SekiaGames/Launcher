@@ -110,6 +110,10 @@ public sealed class UnitType
         return null;
     }
 
+    /// <summary>商店卖的东西（没有就是空）。</summary>
+    public string[] SellItems = Array.Empty<string>();
+    public bool IsShop => SellItems.Length > 0;
+
     public bool IsWorkerType => Builds.Length > 0;
     public bool CanGatherGold => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Aaha");
     public bool EntersMine => HasAbility("Aaha");
@@ -270,6 +274,7 @@ public static class UnitCatalog
             type.Researches = row.Researches;
             type.UpgradeTo = row.UpgradeTo;
             type.Requires = row.Requires;
+            type.SellItems = row.SellItems;
             string missileScene = PathResolve.ModelScene(row.MissileArt);
             type.Weapon.MissileScene = missileScene;
             type.Weapon.MissileArc = row.MissileArc;

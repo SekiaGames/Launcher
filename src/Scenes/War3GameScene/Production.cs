@@ -366,6 +366,46 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
+    /// <summary>
+    /// 商店买物品：扣金 → 在商店旁边落地 → 交给拾取逻辑（英雄站在旁边就自动拿到）。
+    /// 商品列表来自 `*UnitFunc` 的 Sellitems（地精商店 ngme = phea,pman,pinv,…）。
+    /// </summary>
+    public bool BuyItemFromShop(Unit shop, string itemId)
+    {
+        if (shop?.Type == null || _world == null) return false;
+
+        ItemType type = ItemCatalog.Get(itemId);
+        if (type == null) return false;
+
+        PlayerSlot slot = Slot(shop.Player);
+        if (slot == null) return false;
+        if (slot.Gold < type.GoldCost)
+        {
+            _hud?.SetHint($"{type.Name} 需要 {type.GoldCost} 金，当前 {slot.Gold}");
+            return false;
+        }
+
+        slot.Gold -= type.GoldCost;
+        float angle = (float)(GD.Randi() % 628) / 100f;
+        var spot = new Vector3(
+            shop.Position.X + Mathf.Cos(angle) * (shop.Radius + 40f),
+            shop.Position.Y,
+            shop.Position.Z + Mathf.Sin(angle) * (shop.Radius + 40f));
+
+        Item item = SpawnItem(itemId, spot);
+        if (item == null)
+        {
+            slot.Gold += type.GoldCost;
+            _hud?.SetHint($"买不了 {type.Name}（物品模型缺失）");
+            return false;
+        }
+
+        _world.TickItemPickup();
+        _hud?.SetHint($"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金）");
+        RefreshHud();
+        return true;
+    }
+
     private void SpawnTrainedUnit(BuildingOrder order)
     {
         float angle = _allUnits.Count * 0.9f;

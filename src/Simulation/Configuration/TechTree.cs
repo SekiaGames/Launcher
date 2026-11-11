@@ -14,6 +14,8 @@ public sealed class UnitFuncRow
     public string[] Researches = Array.Empty<string>();
     public string[] UpgradeTo = Array.Empty<string>();
     public string[] Requires = Array.Empty<string>();
+    /// <summary>UnitFunc 的 Sellitems：商店卖的物品 id 列表（地精商店 ngme 就是 phea,pman,pinv,…）。</summary>
+    public string[] SellItems = Array.Empty<string>();
     public string MissileArt;
     public float MissileSpeed;
     public float MissileArc;
@@ -234,6 +236,7 @@ public static class TechTree
             Researches = SplitList(Get(fields, "Researches")),
             UpgradeTo = SplitList(Get(fields, "Upgrade")),
             Requires = SplitList(Get(fields, "Requires"), fields, "Requires"),
+            SellItems = SplitList(Get(fields, "Sellitems")),
             MissileArt = Get(fields, "Missileart"),
             MissileSpeed = Number(Get(fields, "Missilespeed"), 0f),
             MissileArc = Number(Get(fields, "Missilearc"), 0f),

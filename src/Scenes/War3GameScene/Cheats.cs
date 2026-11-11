@@ -564,6 +564,25 @@ public sealed partial class War3GameScene
             GD.Print($"[SKILL] 圣光术自疗 {(cast ? "成功" : "失败（自身不是合法目标）")} {before:0}→{hero.Hp:0}");
         }
 
+        // 商店：地精商店（ngme）摆在英雄旁边，买一瓶药水验证 扣金 → 落地 → 自动拾取
+        Unit shop = Spawn("ngme", ViewPlayer, hero.Position.X + 160f, hero.Position.Z + 160f, 0f, 0f, 1f);
+        if (shop != null)
+        {
+            _world.Units.Add(shop);
+            PlayerSlot shopSlot = Slot(ViewPlayer);
+            int goldBefore = shopSlot?.Gold ?? 0;
+            string goods = shop.Type.SellItems.Length > 0 ? string.Join(",", shop.Type.SellItems) : "（无）";
+            GD.Print($"[SHOP] {shop.Type.Name} 商品 {goods}，金币 {goldBefore}");
+
+            if (shop.Type.SellItems.Length > 0)
+            {
+                string first = shop.Type.SellItems[0];
+                bool bought = BuyItemFromShop(shop, first);
+                GD.Print($"[SHOP] 买 {first} {(bought ? "成功" : "失败")} 金币 {goldBefore}→{shopSlot?.Gold}"
+                    + $" 背包 {hero.ItemCount} 件 地面 {_world.GroundItems.Count} 件");
+            }
+        }
+
         // 大法师演示召唤通道：水元素由场景层建出来，交给 World 管
         Unit mage = Spawn("Hamg", ViewPlayer, creep.Position.X - 200f, creep.Position.Z + 260f, 0f, 0f, 1f);
         if (mage != null)
