@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class HolyLight : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public float HealAmount => Data('A');
 

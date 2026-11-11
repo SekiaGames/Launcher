@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class FrostNova : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     private const float SlowMove = 0.5f;
     private const float SlowAttack = 0.5f;
@@ -42,10 +43,11 @@ public sealed class FrostNova : Ability
         return true;
     }
 
+    /// <summary>AI：爆发。找主目标（优先英雄），命中后范围减速交给技能本体。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.State.MagicImmune);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

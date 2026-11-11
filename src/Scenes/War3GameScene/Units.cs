@@ -326,11 +326,12 @@ public sealed partial class War3GameScene
 
         if (type.IsHero)
         {
-            // 英雄生命/法力由属性推导：生命 = 基础 + 力量*25，法力 = 智力*15
+            // 英雄生命/法力由属性推导：生命 = 基础 + 力量*25，法力 = 智力*15；1 级自带 1 点技能点
             unit.MaxHp = HeroRules.MaxHpOf(type, unit.Strength);
             unit.Hp = unit.MaxHp;
             unit.MaxMana = HeroRules.MaxManaOf(unit.Intelligence);
             unit.Mana = unit.MaxMana;
+            unit.SkillPoints = 1;
         }
 
         if (_world != null && type.IsBuilding)

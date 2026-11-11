@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class WarStomp : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public override bool OnCast(World world, Unit target, Vector3 point)
     {

@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class Bladestorm : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool IsChanneled => true;
     public override float ChannelWaveInterval => 1f;

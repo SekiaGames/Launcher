@@ -293,8 +293,8 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
-    /// <summary>指针下的单位；anyPlayer=true 时不限阵营（技能选目标用）。</summary>
-    private Unit PickUnit(Vector2 screenPosition, int player, bool anyPlayer = false)
+    /// <summary>指针下的单位；anyPlayer=true 时不限阵营（技能选目标用），includeCorpses=true 时连尸体一起算。</summary>
+    private Unit PickUnit(Vector2 screenPosition, int player, bool anyPlayer = false, bool includeCorpses = false)
     {
         Camera3D camera = _camera.Camera;
         Unit best = null;
@@ -302,7 +302,7 @@ public sealed partial class War3GameScene
 
         foreach (Unit unit in _allUnits)
         {
-            if (!unit.Alive) continue;
+            if (!unit.Alive && !(includeCorpses && unit.IsCorpse)) continue;
             if (!anyPlayer && unit.Player != player) continue;
 
             Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);

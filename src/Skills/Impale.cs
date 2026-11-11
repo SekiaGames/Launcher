@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class Impale : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -37,10 +38,11 @@ public sealed class Impale : Ability
         return true;
     }
 
+    /// <summary>AI：穿刺带眩晕，按控制技能先出手，朝范围内的敌方（优先英雄）打。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

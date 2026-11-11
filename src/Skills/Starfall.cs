@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class Starfall : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool IsChanneled => true;
     public override float ChannelWaveInterval => Data('B') > 0f ? Data('B') : 1.5f;

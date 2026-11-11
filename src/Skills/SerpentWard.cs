@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class SerpentWard : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -31,5 +32,13 @@ public sealed class SerpentWard : Ability
             ward = world.Summon(Owner, unitId, landing + offset, Duration);
         }
         return ward != null;
+    }
+
+    /// <summary>AI：把守卫插到当前目标脚下（射程内），当肉盾与火力点。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        Unit target = FindEnemyInRange(world);
+        if (target == null) return false;
+        return world.TryCast(Owner, this, null, target.Position);
     }
 }

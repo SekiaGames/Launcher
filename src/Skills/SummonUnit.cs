@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class SummonUnit : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public int Count => Mathf.Max(1, (int)Data('A'));
     public string SummonId => Type?.SummonAt(Level) ?? "";
@@ -32,6 +33,13 @@ public sealed class SummonUnit : Ability
         }
         return created > 0;
     }
+
+    /// <summary>AI：身边有敌人就召，召唤物会被安排当前排（Ai.TickAiFocus）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        if (!HasEnemyNearby(world, 1200f)) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
+    }
 }
 
 /// <summary>
@@ -41,6 +49,7 @@ public sealed class SummonUnit : Ability
 public sealed class Resurrection : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public int MaxTargets => Mathf.Max(1, (int)Data('A'));
     public float Radius => Area > 0f ? Area : 900f;
@@ -62,5 +71,21 @@ public sealed class Resurrection : Ability
             if (revived >= MaxTargets) break;
         }
         return revived > 0;
+    }
+
+    /// <summary>AI：半径内至少两具尸体、且正在交战才拉（拉一手就多几个肉盾）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        if (!HasEnemyNearby(world, Radius)) return false;
+
+        int corpses = 0;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || other.Alive || !other.IsCorpse || other.IsHero) continue;
+            if (!world.AreAllied(Owner.Player, other.Player)) continue;
+            if (Owner.DistanceTo(other) > Radius) continue;
+            corpses++;
+        }
+        return corpses >= 2 && world.TryCast(Owner, this, null, Owner.Position);
     }
 }

@@ -11,6 +11,7 @@ namespace Launcher;
 public sealed class Hex : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -51,10 +52,11 @@ public sealed class Hex : Ability
         return ids.Count == 0 ? "" : ids[world.RandomIndex(ids.Count)];
     }
 
+    /// <summary>AI：控制优先，挑范围内的敌方英雄变羊，没有英雄再挑最近的。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.IsBuilding && !other.Morphed);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

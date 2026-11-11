@@ -11,6 +11,7 @@ public sealed class Immolation : Ability
 {
     public override bool IsToggle => true;
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     private float _pulse;
 

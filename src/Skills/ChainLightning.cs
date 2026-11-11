@@ -11,6 +11,8 @@ namespace Launcher;
 /// </summary>
 public sealed class ChainLightning : Ability
 {
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
+
     public float Damage => Data('A');
     public int TargetCount => Mathf.Max(1, Mathf.RoundToInt(Data('B')));
     public float DamageReduction => Mathf.Clamp(Data('C'), 0f, 1f);
@@ -76,5 +78,13 @@ public sealed class ChainLightning : Ability
             best = other;
         }
         return best;
+    }
+
+    /// <summary>AI：爆发中的群体伤害，目标在当前目标/射程内挑一个不是魔免的。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        Unit target = FindEnemyInRange(world, accept: other => !other.State.MagicImmune);
+        if (target == null) return false;
+        return world.TryCast(Owner, this, target, target.Position);
     }
 }

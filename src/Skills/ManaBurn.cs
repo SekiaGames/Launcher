@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class ManaBurn : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -30,11 +31,11 @@ public sealed class ManaBurn : Ability
         return true;
     }
 
-    /// <summary>AI：只烧有法力的目标（否则白花 50 蓝）。</summary>
+    /// <summary>AI：只烧有法力的目标（英雄/法师），没有就留着不放。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive || target.Mana < 10f) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => other.Mana >= 10f);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

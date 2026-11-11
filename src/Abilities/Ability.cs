@@ -1,6 +1,16 @@
 using Godot;
+using System;
 
 namespace Launcher;
+
+/// <summary>AI 自动施法的出手次序：控制先把人按住，再爆发，最后支援/增益。</summary>
+public enum AbilityCastPriority
+{
+    Control = 0,
+    Burst = 1,
+    Support = 2,
+    Utility = 3,
+}
 
 /// <summary>
 /// 技能运行时实例。对标客户端 Src/Abilities/Ability.cs：
@@ -23,6 +33,12 @@ public abstract class Ability
     public virtual bool IsAura => false;
     public virtual bool IsUltimate => Type != null && Type.Ultimate;
     public virtual AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+
+    /// <summary>AI 出手次序：控制(0) → 爆发(1) → 支援(2) → 其他(3)。World.TickAutoCast 按它排序。</summary>
+    public virtual AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;
+
+    /// <summary>目标必须是尸体（腐尸甲虫这类取材技能），拾取时要把尸体算进去。</summary>
+    public virtual bool TargetsCorpse => false;
 
     // —— 光环：每 tick 由 World.RefreshAuras 汇总，同源取最大 ——
     /// <summary>光环半径（物编 Area 列，缺省按 900）。</summary>
@@ -95,6 +111,42 @@ public abstract class Ability
             if (Owner.DistanceTo(other) <= radius) return true;
         }
         return false;
+    }
+
+    /// <summary>敌对判定：不同玩家且非同队。</summary>
+    protected bool IsHostile(World world, Unit other)
+    {
+        return world != null && Owner != null && other != null && !world.AreAllied(Owner.Player, other.Player);
+    }
+
+    /// <summary>
+    /// AI 选目标：先用手上的目标；打不到（或目标不合法）就在施法距离内另找一个敌人。
+    /// 控制类传 preferHero=true，优先按住敌方英雄；accept 用来过滤「必须是活物 / 有法力」这类条件。
+    /// </summary>
+    protected Unit FindEnemyInRange(World world, bool preferHero = false, Func<Unit, bool> accept = null)
+    {
+        if (world == null || Owner == null) return null;
+
+        Unit current = Owner.Target;
+        bool currentUsable = current != null && current.Alive && IsHostile(world, current) && InRange(current)
+            && (accept == null || accept(current));
+        if (currentUsable && (!preferHero || current.IsHero)) return current;
+
+        Unit best = null;
+        float bestScore = float.MaxValue;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (!IsHostile(world, other)) continue;
+            if (!InRange(other)) continue;
+            if (accept != null && !accept(other)) continue;
+
+            float score = Owner.DistanceTo(other) + (preferHero && !other.IsHero ? 100000f : 0f);
+            if (score >= bestScore) continue;
+            bestScore = score;
+            best = other;
+        }
+        return best;
     }
 
     /// <summary>施法距离判定：Rng 为 0 的技能不限距离（自身/AoE 型）。</summary>

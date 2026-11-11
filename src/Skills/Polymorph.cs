@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class Polymorph : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -29,10 +30,11 @@ public sealed class Polymorph : Ability
         return world.BeginMorph(target, sheep, Duration, disable: true);
     }
 
+    /// <summary>AI：控制优先，优先把敌方英雄变成羊。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive || target.Morphed) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.IsBuilding && !other.Morphed);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

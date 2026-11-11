@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class HealingWave : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {

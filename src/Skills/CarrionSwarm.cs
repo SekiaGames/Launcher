@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class CarrionSwarm : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -37,10 +38,11 @@ public sealed class CarrionSwarm : Ability
         return true;
     }
 
+    /// <summary>AI：爆发，朝当前目标/射程内最近的敌人发一束。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

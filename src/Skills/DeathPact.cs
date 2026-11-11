@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class DeathPact : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public float Ratio => Data('B') > 0f ? Data('B') : 1f;
 

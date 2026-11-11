@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class FanOfKnives : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool OnCast(World world, Unit target, Vector3 point)
     {

@@ -40,7 +40,7 @@ public sealed partial class War3GameScene
         _pendingCast = ability;
         _pendingCaster = caster;
         _hud?.SetHint(ability.TargetMode == AbilityTargetMode.Unit
-            ? $"选择 {ability.Name} 的目标（右键取消）"
+            ? $"选择 {ability.Name} 的目标{(ability.TargetsCorpse ? "（尸体）" : "")}（右键取消）"
             : $"选择 {ability.Name} 的落点（右键取消）");
     }
 
@@ -68,10 +68,10 @@ public sealed partial class War3GameScene
         Unit target = null;
         if (ability.TargetMode == AbilityTargetMode.Unit)
         {
-            target = PickUnit(screenPosition, ViewPlayer, true);
+            target = PickUnit(screenPosition, ViewPlayer, true, ability.TargetsCorpse);
             if (target == null)
             {
-                _hud?.SetHint($"没点到 {ability.Name} 的目标");
+                _hud?.SetHint($"没点到 {ability.Name} 的目标{(ability.TargetsCorpse ? "（尸体）" : "")}");
                 return true;
             }
         }

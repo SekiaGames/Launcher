@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class EntanglingRoots : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -40,10 +41,12 @@ public sealed class EntanglingRoots : Ability
         return true;
     }
 
+    /// <summary>AI：控制优先，优先缠敌方英雄（地面单位），英雄打不到就缠最近的。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true,
+            accept: other => !other.IsBuilding && (other.Type == null || !other.Type.Flying));
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

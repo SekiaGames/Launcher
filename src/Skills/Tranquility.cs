@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class Tranquility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public override bool IsChanneled => true;
     public override float ChannelWaveInterval => 1f;

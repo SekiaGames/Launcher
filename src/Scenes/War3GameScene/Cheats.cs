@@ -683,8 +683,67 @@ public sealed partial class War3GameScene
             }
         }
 
+        // 尸体目标：腐尸甲虫这类取材技能必须能通过命令卡点到尸体
+        DemoCorpseTarget(creep);
+
         GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
             + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
+    }
+
+    /// <summary>
+    /// 命令卡 → 拾取 全链路验尸体目标：地穴领主学腐尸甲虫，把镜头对准尸体后
+    /// 用屏幕坐标走 TryCastAt，与玩家真实点击走同一条代码路径（PickUnit 的 includeCorpses）。
+    /// </summary>
+    private void DemoCorpseTarget(Unit creep)
+    {
+        Unit cryptLord = Spawn("Ucrl", ViewPlayer, creep.Position.X + 320f, creep.Position.Z - 260f, 0f, 0f, 1f);
+        Unit corpse = Spawn("hfoo", ViewPlayer, creep.Position.X + 260f, creep.Position.Z - 200f, 0f, 0f, 1f);
+        if (cryptLord == null || corpse == null)
+        {
+            GD.Print("[CORPSE] 缺模型（Ucrl/hfoo），跳过尸体目标验证");
+            return;
+        }
+
+        _world.Units.Add(cryptLord);
+        _world.Units.Add(corpse);
+        cryptLord.Level = 6;
+        cryptLord.SkillPoints = 2;
+        _world.RefreshHeroAttributes(cryptLord);
+        cryptLord.Hp = cryptLord.MaxHp;
+        cryptLord.Mana = cryptLord.MaxMana;
+        _world.LearnAbility(cryptLord, "AUcb");
+
+        Ability scarabs = cryptLord.FindAbility("AUcb");
+        if (scarabs == null)
+        {
+            GD.Print("[CORPSE] 腐尸甲虫技能没学会");
+            return;
+        }
+
+        corpse.EnterDeath();
+        _camera.Focus(corpse.Position);
+
+        ClearSelection();
+        _selected.Add(cryptLord);
+        cryptLord.View?.SetSelected(true);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+
+        BeginCast(cryptLord, scarabs);
+        float lift = corpse.View != null ? corpse.View.Height * 0.5f : 60f;
+        Vector2 screen = _camera.Camera.UnprojectPosition(corpse.Position + new Vector3(0f, lift, 0f));
+        bool clicked = TryCastAt(screen);
+
+        int beetles = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Type == null) continue;
+            if (!unit.Type.Id.StartsWith("ucs", StringComparison.OrdinalIgnoreCase)) continue;
+            beetles++;
+        }
+
+        GD.Print($"[CORPSE] 命令卡点尸体 点击命中={clicked} 尸体已消耗={!corpse.IsCorpse}"
+            + $" 召出甲虫={beetles} 屏幕点({screen.X:0},{screen.Y:0}) 技能={scarabs.Name}（尸体目标={scarabs.TargetsCorpse}）");
     }
 
     private void DemoItemUse(Unit hero)

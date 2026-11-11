@@ -11,6 +11,7 @@ namespace Launcher;
 public sealed class ThunderClap : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public float Damage => Data('A');
     public float MoveSlowPct => Data('C');
@@ -37,5 +38,20 @@ public sealed class ThunderClap : Ability
             if (victim.Alive) victim.ApplySlow(MoveSlowPct, AttackSlowPct, Duration);
         }
         return true;
+    }
+
+    /// <summary>AI：控制优先，身边至少两个敌人就踩（带减速）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        int nearby = 0;
+        float radius = Area > 0f ? Area : 250f;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (world.AreAllied(Owner.Player, other.Player)) continue;
+            if (Owner.DistanceTo(other) > radius + other.Radius) continue;
+            nearby++;
+        }
+        return nearby >= 2 && world.TryCast(Owner, this, null, Owner.Position);
     }
 }

@@ -9,6 +9,8 @@ namespace Launcher;
 /// </summary>
 public sealed class FrostArmor : Ability
 {
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
+
     public float ArmorBonus => Data('B');
     public float BuffDuration => Data('A') > 0f ? Data('A') : 45f;
 
@@ -36,5 +38,27 @@ public sealed class FrostArmor : Ability
         buff.OnApply(world);
         target.Buffs.Add(buff);
         return true;
+    }
+
+    /// <summary>AI：交战时就给最前面的友军套冰甲（冷却只有 2s，可以反复上）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        if (!HasEnemyNearby(world, 900f)) return false;
+
+        Unit best = null;
+        float bestDistance = float.MaxValue;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive || other.IsBuilding) continue;
+            if (!world.AreAllied(Owner.Player, other.Player)) continue;
+            if (!InRange(other)) continue;
+            if (other.Target == null) continue;
+
+            float distance = Owner.DistanceTo(other);
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            best = other;
+        }
+        return best != null && world.TryCast(Owner, this, best, best.Position);
     }
 }

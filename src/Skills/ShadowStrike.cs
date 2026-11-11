@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class ShadowStrike : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -44,10 +45,11 @@ public sealed class ShadowStrike : Ability
         return true;
     }
 
+    /// <summary>AI：爆发 + 持续伤害，优先扔给敌方英雄。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.State.MagicImmune);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }

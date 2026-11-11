@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class ThunderBolt : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool UsesMissile => true;
     public override float MissileSpeed => 900f;
@@ -27,11 +28,11 @@ public sealed class ThunderBolt : Ability
         return InRange(target);
     }
 
-    /// <summary>自动施法：打当前目标（在射程内且不是魔免）。</summary>
+    /// <summary>自动施法：打当前目标；目标跑了就打射程内另一个不是魔免的。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, accept: other => !other.State.MagicImmune);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 

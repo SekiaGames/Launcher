@@ -10,8 +10,17 @@ namespace Launcher;
 public sealed class Silence : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public float Radius => Area > 0f ? Area : 200f;
+
+    /// <summary>AI：控制优先。把沉默落到敌方英雄脚下，身边安静下来再打爆发。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.IsBuilding);
+        if (target == null) return false;
+        return world.TryCast(Owner, this, null, target.Position);
+    }
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {

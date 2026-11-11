@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class DeathCoil : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public override bool UsesMissile => true;
     public override float MissileSpeed => 900f;
@@ -48,10 +49,25 @@ public sealed class DeathCoil : Ability
         world.DealDamage(World.MakeAbilityDamage(Owner, target, Amount, AttackType.Spells, DamageType.Magic));
     }
 
+    /// <summary>AI：优先补伤兵（亡灵友军），没有伤兵就打射程内最近的活物敌人。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive || !IsLiving(target)) return false;
-        return world.TryCast(Owner, this, target, target.Position);
+        Unit wounded = null;
+        float bestRatio = 0.85f;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive || other == Owner) continue;
+            if (!world.AreAllied(Owner.Player, other.Player)) continue;
+            if (!IsUndead(other) || other.IsBuilding || !InRange(other)) continue;
+
+            float ratio = other.Hp / Mathf.Max(1f, other.MaxHp);
+            if (ratio >= bestRatio) continue;
+            bestRatio = ratio;
+            wounded = other;
+        }
+        if (wounded != null) return world.TryCast(Owner, this, wounded, wounded.Position);
+
+        Unit target = FindEnemyInRange(world, accept: IsLiving);
+        return target != null && world.TryCast(Owner, this, target, target.Position);
     }
 }

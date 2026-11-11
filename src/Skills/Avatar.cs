@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class Avatar : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public float ArmorBonus => Data('A');
     public float HitPointBonus => Data('B');
@@ -32,5 +33,12 @@ public sealed class Avatar : Ability
         Owner.Buffs.Add(buff);
         buff.OnApply(world);
         return true;
+    }
+
+    /// <summary>AI：交战时开，冷却 180s 所以整场就几次，不要空放。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        if (!HasEnemyNearby(world, 900f)) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

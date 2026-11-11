@@ -10,6 +10,8 @@ namespace Launcher;
 public sealed class CarrionScarabs : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
+    public override bool TargetsCorpse => true;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -34,5 +36,22 @@ public sealed class CarrionScarabs : Ability
             world.Summon(Owner, unitId, center + offset, 0f);
         }
         return true;
+    }
+
+    /// <summary>AI：射程内有尸体就召（尸体是最稀缺的资源，不挑是哪方的）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        Unit corpse = null;
+        float bestDistance = float.MaxValue;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || other.Alive || !other.IsCorpse) continue;
+            if (!InRange(other)) continue;
+            float distance = Owner.DistanceTo(other);
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            corpse = other;
+        }
+        return corpse != null && world.TryCast(Owner, this, corpse, corpse.Position);
     }
 }

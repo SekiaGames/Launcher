@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class DarkRitual : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public float ManaRatio => Data('A');
 

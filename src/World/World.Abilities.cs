@@ -218,8 +218,10 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// AI 自动施法：每 0.5 秒试一次，按技能自己挑目标（治疗找最虚弱的友军、伤害技能打当前目标）。
-    /// 冷却与法力由 <see cref="TryCast"/> 统一管，所以不会刷。
+    /// AI 自动施法：每 0.5 秒试一次，按 <see cref="Ability.AiCastPriority"/> 排序——
+    /// 先把控制技能放出去（妖术/缠绕/睡眠/沉默），再放爆发（风暴之锤/霜冻新星），
+    /// 最后才是治疗/召唤/增益。冷却与法力由 <see cref="TryCast"/> 统一管，所以不会刷。
+    /// 高优先级那招条件不满足时继续试后面的，不会因为排第一就卡住整轮。
     /// </summary>
     private void TickAutoCast(Unit unit)
     {
@@ -232,10 +234,20 @@ public sealed partial class World
         }
         unit.AutoCastTimer = 0.5f;
 
+        var ordered = new System.Collections.Generic.List<Ability>(unit.Abilities.Count);
         foreach (Ability ability in unit.Abilities)
         {
             if (!ability.Learned || ability.IsPassive || !ability.Ready) continue;
-            if (unit.Mana < ability.ManaCost) continue;
+            bool turningOff = ability.IsToggle && ability.ToggledOn;
+            if (!turningOff && unit.Mana < ability.ManaCost) continue;
+
+            int at = ordered.Count;
+            while (at > 0 && ordered[at - 1].AiCastPriority > ability.AiCastPriority) at--;
+            ordered.Insert(at, ability);
+        }
+
+        foreach (Ability ability in ordered)
+        {
             if (ability.TryAutoCast(this)) return;
         }
     }

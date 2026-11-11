@@ -43,7 +43,8 @@ public sealed partial class War3GameScene
                 _waveLogBudget--;
                 var names = new List<string>();
                 foreach (string id in wave) names.Add(UnitCatalog.Get(id)?.Name ?? id);
-                GD.Print($"[WAVE] P{player.Id} 出兵 {wave.Count} 个：{string.Join("、", names)}");
+                GD.Print($"[WAVE] P{player.Id} 出兵 {wave.Count} 个：{string.Join("、", names)}"
+                    + $"（{AiCounters.Describe(AiCounters.Analyze(_allUnits, player.Id, AreAllied))}）");
             }
 
             int slot = 0;
@@ -100,6 +101,12 @@ public sealed partial class War3GameScene
         }
 
         if (options.Count == 0) options.Add(RaceMelee[race]);
+
+        // 波次编成也按对手阵容挑：同样的兵造出来，打对面护甲收益高的排前面
+        EnemyComposition enemy = AiCounters.Analyze(_allUnits, player, AreAllied);
+        options.Sort((left, right) =>
+            AiCounters.Score(UnitCatalog.Get(right), enemy).CompareTo(AiCounters.Score(UnitCatalog.Get(left), enemy)));
+
         if (options.Count > 3) options.RemoveRange(3, options.Count - 3);
         return options;
     }
@@ -179,7 +186,8 @@ public sealed partial class War3GameScene
             if (!unit.Alive || unit.Player != slot.Id) continue;
             if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered) continue;
             if (unit.Target != null) continue;
-            if (unit.DistanceTo(hall) > 1800f) continue;
+            // 召唤物当前排：不受基地 1800 限制，直接压上去当肉盾
+            if (unit.DistanceTo(hall) > 1800f && !unit.IsSummon) continue;
 
             unit.Target = focus;
             unit.MoveTarget = null;
@@ -394,6 +402,14 @@ public sealed partial class War3GameScene
         Unit hall = FindHall(slot.Id);
         if (hall == null) return;
 
+        // 对手阵容每 2 秒重算一次：出兵/波次编成靠它挑兵种
+        slot.EnemyTimer += 0.3f;
+        if (slot.EnemyTimer >= 2f)
+        {
+            slot.EnemyTimer = 0f;
+            slot.Enemy = AiCounters.Analyze(_allUnits, slot.Id, AreAllied);
+        }
+
         TickAiRetreat(slot);
         slot.FocusTimer += 0.3f;
         if (slot.FocusTimer >= 2f)
@@ -415,7 +431,7 @@ public sealed partial class War3GameScene
             if (ActionBuild(slot, hall)) continue;
             if (ActionUpgrade(slot, hall)) continue;
             if (ActionResearch(slot, hall)) continue;
-            if (ActionTrain(slot, hall)) continue;
+            if (ActionTrain(slot)) continue;
             if (ActionStaffSites(slot)) continue;
             if (ActionGather(slot)) continue;
             break;
@@ -816,8 +832,14 @@ public sealed partial class War3GameScene
         return false;
     }
 
-    private bool ActionTrain(PlayerSlot slot, Unit hall)
+    /// <summary>
+    /// 出兵：按任务表把没完成的兵种列出来，按「对手阵容收益」排序后逐个试造。
+    /// 排序口径：工人优先（不然经济直接崩）→ 英雄带加成 → 其余看护甲倍率。
+    /// 排前面的造不出来（钱/人口/队列）就接着试下一个，不会卡住整轮。
+    /// </summary>
+    private bool ActionTrain(PlayerSlot slot)
     {
+        var picks = new List<(InhouseTask Task, float Score)>();
         foreach (InhouseTask task in slot.Tasks)
         {
             if (task.Kind != "train") continue;
@@ -826,15 +848,40 @@ public sealed partial class War3GameScene
             UnitType type = UnitCatalog.Get(task.Id);
             if (type == null || !RequirementsMet(slot, type.Requires)) continue;
             if (FoodUsed(slot.Id) + type.FoodUsed > FoodCap(slot.Id)) continue;
+            if (!HasProducer(slot.Id, task.Id)) continue;
 
-            foreach (Unit unit in _allUnits)
-            {
-                if (!unit.Alive || unit.Player != slot.Id || !unit.IsBuilding || unit.IsUnderConstruction) continue;
-                if (Array.IndexOf(unit.Type.Trains, task.Id) < 0) continue;
-                if (QueueLength(unit) >= 2) continue;
-                if (HasPendingUpgrade(unit)) continue;
-                return StartTraining(unit, task.Id);
-            }
+            float score = type.IsWorkerType ? 2f : AiCounters.Score(type, slot.Enemy);
+            if (type.IsHero) score += 0.4f;
+            picks.Add((task, score));
+        }
+
+        picks.Sort((left, right) => right.Score.CompareTo(left.Score));
+        foreach ((InhouseTask Task, float Score) pick in picks)
+        {
+            if (StartTrainingOf(slot, pick.Task.Id)) return true;
+        }
+        return false;
+    }
+
+    private bool HasProducer(int player, string unitId)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != player || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+            if (Array.IndexOf(unit.Type.Trains, unitId) >= 0) return true;
+        }
+        return false;
+    }
+
+    private bool StartTrainingOf(PlayerSlot slot, string unitId)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != slot.Id || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+            if (Array.IndexOf(unit.Type.Trains, unitId) < 0) continue;
+            if (QueueLength(unit) >= 2) continue;
+            if (HasPendingUpgrade(unit)) continue;
+            return StartTraining(unit, unitId);
         }
         return false;
     }

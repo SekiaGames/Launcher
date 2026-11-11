@@ -20,6 +20,9 @@ public sealed partial class War3GameScene
         /// <summary>AI 集火/买装备的节流计时。</summary>
         public float FocusTimer;
         public float ShopTimer;
+        /// <summary>最近一次统计的对手阵容（每 2 秒刷新），出兵与波次编成按它打分。</summary>
+        public EnemyComposition Enemy = new();
+        public float EnemyTimer;
         public readonly HashSet<string> KnownBuildings = new(StringComparer.OrdinalIgnoreCase);
         public readonly Dictionary<string, int> Research = new(StringComparer.OrdinalIgnoreCase);
         public readonly Dictionary<string, int> BuiltCounts = new(StringComparer.OrdinalIgnoreCase);

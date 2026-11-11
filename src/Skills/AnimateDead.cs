@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class AnimateDead : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public int MaxCorpses => Mathf.RoundToInt(Data('A'));
 
@@ -36,5 +37,20 @@ public sealed class AnimateDead : Ability
         }
 
         return raised > 0;
+    }
+
+    /// <summary>AI：交战且半径内至少两具非英雄尸体才拉（一具也要耗大招）。</summary>
+    public override bool TryAutoCast(World world)
+    {
+        if (!HasEnemyNearby(world, Area)) return false;
+
+        int corpses = 0;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || other.Alive || !other.IsCorpse || other.IsHero || other.IsBuilding) continue;
+            if (Owner.DistanceTo(other) > Area) continue;
+            corpses++;
+        }
+        return corpses >= 2 && world.TryCast(Owner, this, null, Owner.Position);
     }
 }

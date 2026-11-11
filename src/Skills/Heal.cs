@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class Heal : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public float Amount => Data('A');
 

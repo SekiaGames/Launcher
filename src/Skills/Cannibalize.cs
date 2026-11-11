@@ -9,6 +9,7 @@ namespace Launcher;
 public sealed class Cannibalize : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public float HealPerSecond => Data('A');
     public float Radius => CastRange > 0f ? CastRange : 50f;
@@ -71,6 +72,7 @@ public sealed class CannibalizeBuff : Buff
 public sealed class RaiseDead : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public int Count => Mathf.Max(1, (int)Data('A'));
     public float Radius => CastRange > 0f ? CastRange : 600f;

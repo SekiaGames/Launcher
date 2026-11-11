@@ -10,6 +10,7 @@ namespace Launcher;
 public sealed class Sleep : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
+    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -30,10 +31,11 @@ public sealed class Sleep : Ability
         return true;
     }
 
+    /// <summary>AI：控制优先。睡眠对英雄无效，所以英雄优先只针对普通单位里的「威胁」。</summary>
     public override bool TryAutoCast(World world)
     {
-        Unit target = Owner?.Target;
-        if (target == null || !target.Alive) return false;
+        Unit target = FindEnemyInRange(world, accept: other => !other.IsBuilding && !other.IsHero);
+        if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }
 }
