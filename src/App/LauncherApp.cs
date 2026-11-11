@@ -41,7 +41,7 @@ public sealed partial class LauncherApp : Node
     private bool _fogOff;
     private bool _musicOff;
     private bool _damageNumbers;
-    private int _aiDifficulty;
+    private int _aiDifficulty = 1;
     private float _daySeconds = -1f;
     private int _players;
     private readonly List<int> _slots = new();

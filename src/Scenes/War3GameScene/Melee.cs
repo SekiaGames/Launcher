@@ -70,6 +70,8 @@ public sealed partial class War3GameScene
         GD.Print($"[MELEE] 对局结束，胜者：{string.Join("、", winners)}");
         int version = IsReignOfChaos ? 0 : 1;
         _music?.PlayEnding(RaceMusicName(ViewPlayer), version, AreAllied(ViewPlayer, alive[0]));
-        _hud?.SetHint($"对局结束，胜者：{string.Join("、", winners)}");
+        string winnersText = string.Join("、", winners);
+        _hud?.SetHint($"对局结束，胜者：{winnersText}");
+        _gameOverPanel?.Show(AreAllied(ViewPlayer, alive[0]), winnersText);
     }
 }

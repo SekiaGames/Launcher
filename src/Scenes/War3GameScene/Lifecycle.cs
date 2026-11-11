@@ -145,6 +145,7 @@ public sealed partial class War3GameScene : Node3D
         _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
         _escMenu = new EscMenu(this, Back);
         _loadingScreen = new LoadingScreen(this, map);
+        _gameOverPanel = new GameOverPanel(this, Back);
         _hud.DetailProvider = DescribeUnit;
         _hud.SelectionSlotClicked = unit =>
         {
@@ -184,6 +185,7 @@ public sealed partial class War3GameScene : Node3D
     private GameLogPanel _log;
     private EscMenu _escMenu;
     private LoadingScreen _loadingScreen;
+    private GameOverPanel _gameOverPanel;
     private SkyboxRenderer _skybox;
     private SkyDomeRenderer _skyDome;
     private Node3D _worldRoot;
