@@ -194,6 +194,9 @@ public abstract class Ability
     /// <summary>每波结算：落点由 BeginChannel 传进来（引导期间施法者可能被推开）。</summary>
     public virtual void OnChannelWave(World world, Vector3 point) { }
 
+    /// <summary>引导结束（打断或自然结束）；龙卷风要在这里把自己召出来的东西收掉。</summary>
+    public virtual void OnChannelEnded(World world, bool interrupted) { }
+
     /// <summary>AI 自动施法钩子：返回 true 表示这次真的放出去了。</summary>
     public virtual bool TryAutoCast(World world) => false;
 

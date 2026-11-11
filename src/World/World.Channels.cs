@@ -147,6 +147,7 @@ public sealed partial class World
         }
 
         ChannelEnded?.Invoke(caster, state.Ability, interrupted);
+        state.Ability?.OnChannelEnded(this, interrupted);
     }
 
     /// <summary>该点能不能站人（没有寻路网格时一律放行，方便探针在空世界里跑）。</summary>

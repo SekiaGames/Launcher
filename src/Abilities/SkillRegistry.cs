@@ -96,6 +96,12 @@ public static class SkillRegistry
         ["AOwk"] = () => new WindWalk(),      // 疾风步（剑圣，隐身 + 破隐一击）
         ["ANba"] = () => new BlackArrow(),    // 黑蚀箭（黑暗游侠，标记击杀召骷髅）
         ["ANdr"] = () => new LifeDrain(),     // 生命汲取（黑暗游侠，引导抽血回自己）
+        // —— 酒馆英雄 ——
+        ["ANrf"] = () => new RainOfFire(),    // 火焰雨（深渊魔王，引导多波 + 灼烧）
+        ["ANto"] = () => new Tornado(),       // 龙卷风（海巫，落点召 ntor，断引导就散）
+        ["ANfl"] = () => new ForkedLightning(), // 碎裂闪电（海巫，扇形 3 个目标）
+        ["ANfa"] = () => new ColdArrows(),    // 冰霜箭（海巫，普攻附加 + 减速）
+        ["AHca"] = () => new ColdArrows(),    // 寒冰箭（凯尔萨斯，同实现）
         // —— 召唤与复活 ——
         ["AHwe"] = () => new SummonUnit(),     // 水元素（hwat/hwt2/hwt3）
         ["AEfn"] = () => new SummonUnit(),     // 树人（efon，丛林守护者）
