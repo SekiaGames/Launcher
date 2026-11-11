@@ -80,6 +80,10 @@ public sealed partial class War3GameScene
 
         Node3D node = null;
         PackedScene scene = Assets.LoadScene(PathResolve.ModelScene(ability.MissileArt));
+        if (scene == null && EffectArtTable.TryResolveMissile(ability.Id, out string fallbackMissile))
+        {
+            scene = Assets.LoadScene(fallbackMissile);
+        }
         if (scene != null)
         {
             node = scene.Instantiate<Node3D>();
@@ -320,6 +324,11 @@ public sealed partial class War3GameScene
             _uiSoundLogBudget--;
             GD.Print($"[AUDIO] UI {soundName}");
         }
+    }
+
+    private void PlayErrorSound()
+    {
+        PlayUiSound("InterfaceError", _camera.Target, ViewPlayer);
     }
 
     private readonly Dictionary<Unit, (int Count, float Last)> _clickMarks = new();

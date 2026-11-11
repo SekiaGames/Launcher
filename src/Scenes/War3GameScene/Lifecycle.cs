@@ -81,6 +81,9 @@ public sealed partial class War3GameScene : Node3D
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads);
         AddChild(worldRoot);
 
+        _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather);
+        if (_weather != null) GD.Print($"[WEATHER] {map.Info?.Environment?.GlobalWeather} 已加载");
+
         _fog = new FogOfWar { Name = "Fog" };
         AddChild(_fog);
         _fog.Enabled = FogEnabled;
@@ -130,6 +133,8 @@ public sealed partial class War3GameScene : Node3D
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
         _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
+        _escMenu = new EscMenu(this, Back);
+        _loadingScreen = new LoadingScreen(this, map);
         _hud.DetailProvider = DescribeUnit;
         _hud.SelectionSlotClicked = unit =>
         {
@@ -159,6 +164,9 @@ public sealed partial class War3GameScene : Node3D
     }
 
     private bool _musicPending;
+    private WeatherRenderer _weather;
+    private EscMenu _escMenu;
+    private LoadingScreen _loadingScreen;
 
     public override void _Ready()
     {
@@ -207,6 +215,8 @@ public sealed partial class War3GameScene : Node3D
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);
         TickSceneEffects((float)delta);
+        _weather?.Tick(_camera.Target);
+        _loadingScreen?.Tick((float)delta);
 
         TickFog((float)delta);
         TickVictoryCheck((float)delta);

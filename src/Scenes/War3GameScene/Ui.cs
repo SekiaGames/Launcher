@@ -246,6 +246,7 @@ public sealed partial class War3GameScene
                 AddResearchCommands(commands, slot, single);
                 AddUpgradeCommands(commands, slot, single);
                 if (single.Type.IsShop) AddShopCommands(commands, slot, single);
+                AddDemolishCommand(commands, single);
                 // 古树的扎根/拔根、神像这类建筑主动技能也挂在命令卡上
                 AddUnitAbilityCommands(commands, single);
             }
@@ -294,6 +295,21 @@ public sealed partial class War3GameScene
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNCancel.blp"),
             Enabled = !sealedByMine,
             Action = () => CancelConstruction(target),
+        });
+    }
+
+    private void AddDemolishCommand(List<CommandEntry> commands, Unit building)
+    {
+        Unit target = building;
+        commands.Add(new CommandEntry
+        {
+            Id = "cmd-demolish",
+            Name = "拆除",
+            SlotIndex = 9,
+            Tooltip = "拆除该建筑（不退资源）",
+            Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNCancel.blp"),
+            Enabled = building.IsBuilding,
+            Action = () => DemolishBuilding(target),
         });
     }
 
@@ -516,6 +532,7 @@ public sealed partial class War3GameScene
         if (type == null) return;
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
+            PlayErrorSound();
             _hud?.SetHint($"资源不足：需要 {type.GoldCost} 金 / {type.LumberCost} 木");
             return;
         }

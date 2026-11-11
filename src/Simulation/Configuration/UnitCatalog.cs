@@ -61,6 +61,13 @@ public sealed class UnitType
     public string Race = "";
     public string SoundSet = "";
 
+    public string ShadowArt = "";
+    public string BuildingShadowArt = "";
+    public float ShadowWidth;
+    public float ShadowHeight;
+    public float ShadowOffsetX;
+    public float ShadowOffsetY;
+
     // —— 英雄字段（UnitBalance 的 STR/AGI/INT + 成长 + Primary） ——
     public bool IsHero;
     public int Strength;
@@ -196,6 +203,12 @@ public static class UnitCatalog
             ModelScale = Number(ui.Get(uiRow, "modelScale"), 1f),
             Name = file.Replace('\\', '/').Split('/')[^1],
             SoundSet = ui.Get(uiRow, "unitSound") ?? "",
+            ShadowArt = (ui.Get(uiRow, "unitShadow") ?? "").Trim(),
+            BuildingShadowArt = (ui.Get(uiRow, "buildingShadow") ?? "").Trim(),
+            ShadowWidth = Number(ui.Get(uiRow, "shadowW"), 0f),
+            ShadowHeight = Number(ui.Get(uiRow, "shadowH"), 0f),
+            ShadowOffsetX = Number(ui.Get(uiRow, "shadowX"), 0f),
+            ShadowOffsetY = Number(ui.Get(uiRow, "shadowY"), 0f),
         };
 
         if (BalanceRows.TryGetValue(id, out int balanceRow))

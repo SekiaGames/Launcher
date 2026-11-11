@@ -276,5 +276,33 @@ public static class EffectArtTable
         return true;
     }
 
+    public static bool TryResolveMissile(string code, out string resPath)
+    {
+        resPath = null;
+        if (string.IsNullOrWhiteSpace(code)) return false;
+        string key = code.Trim();
+
+        if (ExplicitFiles.TryGetValue(key, out string file) && !string.IsNullOrEmpty(file))
+        {
+            if (file.IndexOf("Missile", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                resPath = PathResolve.ModelScene("Abilities\\Spells\\" + file.Replace('/', '\\'));
+                if (resPath != null) return true;
+            }
+
+            int slash = file.LastIndexOf('/');
+            if (slash <= 0) return false;
+            string directory = file[..slash];
+            string directoryName = directory[(directory.LastIndexOf('/') + 1)..];
+            resPath = PathResolve.ModelScene($"Abilities\\Spells\\{directory.Replace('/', '\\')}\\{directoryName}Missile");
+            return resPath != null;
+        }
+
+        if (!Skills.TryGetValue(key, out Entry entry)) return false;
+        string name = entry.Directory[(entry.Directory.LastIndexOf('/') + 1)..];
+        resPath = PathResolve.ModelScene($"Abilities\\Spells\\{entry.Directory.Replace('/', '\\')}\\{name}Missile");
+        return resPath != null;
+    }
+
     public static IReadOnlyCollection<string> Codes => Skills.Keys;
 }

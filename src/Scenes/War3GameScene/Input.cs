@@ -64,11 +64,18 @@ public sealed partial class War3GameScene
                 if (keyEvent.Keycode == Key.Escape)
                 {
                     if (CastPending) CancelCast();
-                    else Back();
+                    else if (_escMenu != null && _escMenu.Visible) _escMenu.Close();
+                    else _escMenu?.Open();
                     return;
                 }
 
                 if (TrySelectionHotkey(keyEvent.Keycode)) return;
+
+                if (keyEvent.Keycode == Key.Tab)
+                {
+                    CycleSubgroup();
+                    return;
+                }
 
                 int group = (int)(keyEvent.Keycode - Key.Key0);
                 if (group is >= 0 and <= 9)

@@ -56,6 +56,42 @@ public sealed class UnitSceneComponent
         return PlayerColors[Mathf.Abs(player) % PlayerColors.Length];
     }
 
+    public void ApplyShadow(string artName, float width, float height, float offsetX, float offsetY)
+    {
+        if (Root == null || string.IsNullOrWhiteSpace(artName)) return;
+        string name = artName.Trim();
+        if (name is "_" or "-" or "") return;
+        if (name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) name = name[..^4];
+
+        Texture2D texture = Assets.LoadTexture(Assets.Res("ReplaceableTextures/Shadows/" + name + ".png"));
+        if (texture == null) return;
+
+        Vector2 textureSize = texture.GetSize();
+        float w = width > 0f ? width : Mathf.Max(64f, textureSize.X * 32f);
+        float h = height > 0f ? height : Mathf.Max(64f, textureSize.Y * 32f);
+
+        var material = new StandardMaterial3D
+        {
+            AlbedoTexture = texture,
+            AlbedoColor = new Color(0f, 0f, 0f, 0.55f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
+        };
+
+        var node = new MeshInstance3D
+        {
+            Name = "Shadow",
+            Mesh = new QuadMesh { Size = new Vector2(w, h) },
+            MaterialOverride = material,
+            Position = new Vector3(offsetX, 1.5f, offsetY),
+            Rotation = new Vector3(-Mathf.Pi / 2f, 0f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        Root.AddChild(node);
+    }
+
     /// <summary>换阵营时重刷模型上的队伍色。</summary>
     public void SetTeamColor(Color color) => ApplyTeamColor(color);
 

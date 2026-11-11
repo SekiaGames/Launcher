@@ -237,6 +237,45 @@ public sealed partial class War3GameScene
         });
     }
 
+    private string _subgroupType = "";
+
+    private void CycleSubgroup()
+    {
+        if (_selected.Count <= 1) return;
+
+        var ids = new List<string>();
+        foreach (Unit unit in _selected)
+        {
+            if (unit?.Type == null) continue;
+            if (!ids.Contains(unit.Type.Id)) ids.Add(unit.Type.Id);
+        }
+        if (ids.Count <= 1)
+        {
+            _hud?.SetHint("当前选择只有一种单位");
+            return;
+        }
+
+        int index = string.IsNullOrEmpty(_subgroupType) ? 0 : ids.IndexOf(_subgroupType);
+        index = (index + 1) % ids.Count;
+        _subgroupType = ids[index];
+
+        var keep = new List<Unit>();
+        foreach (Unit unit in _selected)
+        {
+            if (string.Equals(unit.Type?.Id, _subgroupType, StringComparison.OrdinalIgnoreCase)) keep.Add(unit);
+        }
+
+        ClearSelection();
+        foreach (Unit unit in keep)
+        {
+            _selected.Add(unit);
+            unit.View?.SetSelected(true);
+        }
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        _hud?.SetHint($"子组 {index + 1}/{ids.Count}：{UnitCatalog.Get(_subgroupType)?.Name}（{keep.Count} 个）");
+    }
+
     private void ToggleAutoCast(Unit owner, Ability ability)
     {
         if (owner == null || ability == null) return;

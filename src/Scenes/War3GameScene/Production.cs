@@ -34,7 +34,7 @@ public sealed partial class War3GameScene
 
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
-            if (report) _hud?.SetHint("资源不足");
+            if (report) { PlayErrorSound(); _hud?.SetHint("资源不足"); }
             _placingId = null;
             return null;
         }
@@ -64,7 +64,7 @@ public sealed partial class War3GameScene
 
         if (_pathGrid != null && !_pathGrid.IsAreaFree(ground, footprint))
         {
-            if (report) _hud?.SetHint("这里放不下");
+            if (report) { PlayErrorSound(); _hud?.SetHint("这里放不下"); }
             return null;
         }
 
@@ -74,7 +74,7 @@ public sealed partial class War3GameScene
             float distance = new Vector2(other.Position.X - ground.X, other.Position.Z - ground.Z).Length();
             if (distance < (footprint + other.Type.FootprintRadius) * 0.92f)
             {
-                if (report) _hud?.SetHint("离已有建筑太近");
+                if (report) { PlayErrorSound(); _hud?.SetHint("离已有建筑太近"); }
                 return null;
             }
         }
@@ -170,6 +170,30 @@ public sealed partial class War3GameScene
         return true;
     }
 
+    private bool DemolishBuilding(Unit building)
+    {
+        if (building == null || !building.Alive || !building.IsBuilding || building.IsUnderConstruction) return false;
+
+        for (int index = _orders.Count - 1; index >= 0; index--)
+        {
+            if (ReferenceEquals(_orders[index].Building, building)) _orders.RemoveAt(index);
+        }
+
+        float footprint = Mathf.Max(32f, building.Type.FootprintRadius);
+        _pathGrid?.RemoveBlocker(building.Position, footprint);
+        _world?.Units.Remove(building);
+        _allUnits.Remove(building);
+        if (_selected.Remove(building)) _hud?.SetSelection(_selected);
+        building.Alive = false;
+        building.View?.Root.QueueFree();
+
+        GD.Print($"[BUILD] P{building.Player} 拆除 {building.Type.Name}");
+        RefreshHud();
+        UpdateCommandCard();
+        UpdateQueueLabel();
+        return true;
+    }
+
     private void AssignBuilders(Unit site, PlayerSlot slot, int wanted)
     {
         int assigned = 0;
@@ -241,16 +265,19 @@ public sealed partial class War3GameScene
 
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
+            PlayErrorSound();
             _hud?.SetHint($"资源不足：需要 {type.GoldCost} 金 / {type.LumberCost} 木");
             return false;
         }
         if (!RequirementsMet(slot, type.Requires))
         {
+            PlayErrorSound();
             _hud?.SetHint($"缺少前置建筑：{MissingRequirement(slot, type.Requires)}");
             return false;
         }
         if (FoodUsed(slot.Id) + type.FoodUsed > FoodCap(slot.Id))
         {
+            PlayErrorSound();
             _hud?.SetHint("人口已满，先补供给建筑");
             return false;
         }
