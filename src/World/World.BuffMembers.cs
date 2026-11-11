@@ -59,7 +59,9 @@ public sealed partial class World
         foreach (Unit unit in Units)
         {
             if (unit == null || !unit.Alive) continue;
-            if (caster.DistanceTo(unit) > radius) continue;
+            float dx = center.X - unit.Position.X;
+            float dz = center.Z - unit.Position.Z;
+            if (dx * dx + dz * dz > radius * radius) continue;
 
             bool enemy = !AreAllied(caster.Player, unit.Player);
             if (enemy != hostile) continue;

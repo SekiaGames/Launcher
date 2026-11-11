@@ -31,6 +31,9 @@ public class Buff
     /// <summary>持有者被普攻命中后（霜冻护甲减速攻击者、荆棘反伤这类挂这里）。</summary>
     public virtual void OnAttacked(World world, Unit attacker, DamageInfo info) { }
 
+    /// <summary>受到伤害修正（护甲与类型矩阵之前）：反魔法盾吸收、灵魂链分摊、相位转移都挂这里。</summary>
+    public virtual void ModifyIncomingDamage(World world, DamageInfo info) { }
+
     /// <summary>持有者死亡时（黑蚀箭的标记到点召骷髅）。</summary>
     public virtual void OnDeath(World world) { }
 

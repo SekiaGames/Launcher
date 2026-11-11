@@ -249,8 +249,14 @@ public sealed partial class World
     public void ApplyIncomingModifiers(DamageInfo info)
     {
         Unit target = info?.Target;
-        if (target?.Abilities == null || target.Abilities.Count == 0) return;
+        if (target == null) return;
 
+        for (int index = 0; index < target.Buffs.Count; index++)
+        {
+            target.Buffs[index].ModifyIncomingDamage(this, info);
+        }
+
+        if (target.Abilities == null) return;
         foreach (Ability ability in target.Abilities)
         {
             if (!ability.Learned) continue;

@@ -215,6 +215,78 @@ public static class SkillRegistry
         ["AIar"] = () => new ItemAura(),          // 强击光环（物品）
         ["AIae"] = () => new ItemAura(),          // 耐久光环（物品）
         ["AIau"] = () => new ItemAura(),          // 邪恶光环（物品）
+        // —— 人族单位补充 ——
+        ["Adef"] = () => new Defend(),           // 防御（步兵，远程减伤 50%）
+        ["Ainf"] = () => new InnerFire(),        // 内火（牧师，攻击 +% / 护甲 +）
+        ["Adis"] = () => new MassDispel(),       // 驱散魔法（牧师，区域驱散）
+        ["Amls"] = () => new AerialShackles(),   // 空中枷锁（龙鹰，空中定身引导）
+        ["Aflk"] = () => new FlakCannon(),       // 高射炮（直升机，对空溅射）
+        ["Afsh"] = () => new FragShards(),       // 碎片（迫击炮，落地溅射）
+        ["Aroc"] = () => new RocketAttack(),     // 火箭攻击（蒸汽机车，对空溅射）
+        ["Asps"] = () => new SpellSteal(),       // 窃法（破法者，偷一个增益）
+        ["Asth"] = () => new StormHammers(),     // 风暴之锤（狮鹫，攻击弹射）
+        ["Apxf"] = () => new PhoenixFireAbility(), // 凤凰火焰（凤凰，攻击溅射）
+        ["Amim"] = () => new MagicImmunityPassive(), // 魔法免疫（破法者 / 树妖 / 精灵龙）
+        // —— 兽族单位补充 ——
+        ["Aens"] = () => new Ensnare(),           // 诱捕（狼骑兵，定身）
+        ["Ahwd"] = () => new HealingWard(),       // 治疗守卫（萨满，召 ohwd）
+        ["Asta"] = () => new StasisTrap(),        // 静止陷阱（萨满，敌人靠近眩晕）
+        ["Aspl"] = () => new SpiritLink(),        // 灵魂链（灵魂行者，伤害分摊）
+        ["Afrz"] = () => new FreezingBreath(),    // 冰冻吐息（冰龙，对建筑减速）
+        // —— 暗夜单位补充 ——
+        ["Apiv"] = () => new Ghost(),             // 永久隐身
+        ["Agho"] = () => new Ghost(),             // 幽灵（阴影，永久隐身）
+        ["Apsh"] = () => new PhaseShift(),        // 相位转移
+        ["Acpf"] = () => new CorporealForm(),     // 实体形态（灵魂行者，取消虚无）
+        ["Aimp"] = () => new ImpalingBolt(),      // 穿刺之箭（弩车，直线穿透）
+        ["Adcn"] = () => new MassDispel(),        // 驱散（灵魂行者）
+        ["Afrb"] = () => new FrostBreath(),       // 霜冻吐息（冰龙，减速）
+        ["Afr2"] = () => new FrostBreath(),       // 霜冻攻击（冰塔）
+        ["Afra"] = () => new FrostBreath(),       // 霜冻攻击（冰霜巨龙）
+        ["Adtg"] = () => new DetectPassive(),     // 通用反隐
+        ["Avul"] = () => new InvulnerablePassive(), // 常驻无敌（守卫 / 中立建筑）
+        ["Atau"] = () => new Taunt(),             // 嘲讽（山岭巨人）
+        // —— 亡灵单位补充 ——
+        ["Aam2"] = () => new AntiMagicShield(),   // 反魔法盾（女妖，吸收魔法伤害）
+        ["Abur"] = () => new Burrow(),            // 钻地（地穴恶魔，隐形禁攻）
+        ["Apts"] = () => new PlagueToss(),        // 投掷瘟疫（绞肉车，消耗尸体召 uplg）
+        ["Astn"] = () => new StoneForm(),         // 石像形态（石像鬼，护甲 + 定身）
+        ["Auhf"] = () => new UnholyFrenzy(),      // 邪恶狂热（亡灵法师，攻速 + 掉血）
+        ["Acri"] = () => new Cripple(),           // 残废（亡灵巫师）
+        ["Acrs"] = () => new Curse(),             // 诅咒（女妖）
+        ["Aps2"] = () => new Charm(),             // 占据（女妖，同魅惑）
+        ["Aeye"] = () => new HealingWard(),       // 岗哨守卫（萨满，召 oeye）
+        ["Abu2"] = () => new Burrow(),            // 钻地（甲虫 2 级）
+        ["Abu3"] = () => new Burrow(),            // 钻地（甲虫 3 级）
+        ["Adt1"] = () => new DetectPassive(),     // 反隐（岗哨守卫）
+        ["Adev"] = () => new Devour(),            // 吞噬（科多兽，吞非英雄单位）
+        ["Aave"] = () => new TwoWayForm(),        // 毁灭者形态（雕像 ⇄ 毁灭者）
+        ["Amil"] = () => new TwoWayForm(),        // 民兵（农民 ⇄ 民兵）
+        ["Arpl"] = () => new Replenish(),         // 补充生命（雕像）
+        ["Arpm"] = () => new Replenish(),         // 补充法力（雕像）
+        // —— 野怪别名码 ——
+        ["ACad"] = () => new AnimateDead(),       // 野怪版操纵死尸
+        ["ACam"] = () => new AntiMagicShield(),   // 野怪版反魔法盾
+        ["ACbl"] = () => new Bloodlust(),         // 野怪版嗜血
+        ["ACcr"] = () => new Cripple(),           // 野怪版残废
+        ["ACct"] = () => new CriticalStrike(),    // 野怪版致命一击
+        ["ACen"] = () => new Ensnare(),           // 野怪版诱捕
+        ["ACif"] = () => new InnerFire(),         // 野怪版内火
+        ["ACmi"] = () => new MagicImmunityPassive(), // 野怪版魔法免疫
+        ["ACpy"] = () => new Polymorph(),         // 野怪版变羊
+        ["ACrk"] = () => new ResistantSkin(),     // 野怪版抗性皮肤
+        ["ACsk"] = () => new ResistantSkin(),
+        ["ACsw"] = () => new SlowUnit(),          // 野怪版减速
+        ["ACuf"] = () => new UnholyFrenzy(),      // 野怪版邪恶狂热
+        ["Awfb"] = () => new FireBolt(),          // 野怪火球（伤害 + 眩晕）
+        ["ACfb"] = () => new FireBolt(),
+        ["Anh2"] = () => new Heal(),              // 野怪高级治疗
+        ["Adsm"] = () => new MassDispel(),        // 野怪驱散
+        ["ACc3"] = () => new CarrionSwarm(),      // 野怪震荡波
+        ["ACm2"] = () => new MagicImmunityPassive(), // 阿克蒙德魔法免疫
+        ["SCc1"] = () => new Cyclone(),           // 塞纳留斯旋风
+        ["Scri"] = () => new Cripple(),           // 野怪术士残废
+        ["Suhf"] = () => new UnholyFrenzy(),      // 野怪术士邪恶狂热
         // —— 物品技能里与英雄同源的码 ——
         ["AIbx"] = () => new Bash(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击
