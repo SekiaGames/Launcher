@@ -81,6 +81,7 @@ public sealed partial class World
 
         float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
             + DamageBonus(unit);
+        raw *= 1f + unit.BonusDamagePct + unit.AuraDamagePct;
         // 强击光环只加远程攻击（物编 AEar 的 DataA 是百分比）
         if (!string.IsNullOrEmpty(weapon.MissileScene)) raw *= 1f + unit.AuraRangedDamagePct;
         raw = ApplyAttackModifiers(unit, target, raw);
@@ -98,7 +99,6 @@ public sealed partial class World
         }
 
         ResolveHit(info);
-        AttackLanded?.Invoke(unit, target);
         if (target.AutoAcquire && target.Alive && target.Target == null) EngageTarget(target, unit);
     }
 
@@ -106,8 +106,22 @@ public sealed partial class World
     private void ResolveHit(DamageInfo info)
     {
         DealDamage(info);
+        ApplyLandedModifiers(info);
         ApplySplash(info);
         AttackLanded?.Invoke(info.Source, info.Target);
+    }
+
+    /// <summary>普攻命中钩子：腐蚀吐息/液体火焰/毒矛/月刃这类「中了之后再生数」的被动。</summary>
+    public void ApplyLandedModifiers(DamageInfo info)
+    {
+        Unit attacker = info?.Source;
+        if (info == null || !info.IsAttack || attacker?.Abilities == null) return;
+
+        foreach (Ability ability in attacker.Abilities)
+        {
+            if (!ability.Learned) continue;
+            ability.OnAttackLanded(this, info);
+        }
     }
 
     /// <summary>溅射：距离主目标 ≤ Farea 全额、≤ Harea 半额、≤ Qarea 四分之一。</summary>

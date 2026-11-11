@@ -21,6 +21,9 @@ public class Buff
 
     public bool Expired => Remaining <= 0f;
 
+    /// <summary>是否为负面效果：驱散时对敌取负面、对友取正面。</summary>
+    public virtual bool IsHarmful => true;
+
     public virtual void OnApply(World world) { }
 
     public virtual void OnRemove(World world) { }

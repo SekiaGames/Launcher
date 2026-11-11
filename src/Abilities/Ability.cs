@@ -107,6 +107,7 @@ public abstract class Ability
         foreach (Unit other in world.Units)
         {
             if (other == null || !other.Alive) continue;
+            if (other.Gold > 0) continue;
             if (world.AreAllied(Owner.Player, other.Player)) continue;
             if (Owner.DistanceTo(other) <= radius) return true;
         }
@@ -137,6 +138,7 @@ public abstract class Ability
         foreach (Unit other in world.Units)
         {
             if (other == null || !other.Alive) continue;
+            if (other.Gold > 0) continue;
             if (!IsHostile(world, other)) continue;
             if (!InRange(other)) continue;
             if (accept != null && !accept(other)) continue;
@@ -205,6 +207,21 @@ public abstract class Ability
 
     /// <summary>受击钩子：闪避这类被动返回 false 把伤害取消掉。</summary>
     public virtual bool CanBeHitBy(World world, DamageInfo info) => true;
+
+    /// <summary>受到伤害修正（护甲与类型矩阵之前）：硬化皮肤、艾露恩恩泽这类在这里改数值。</summary>
+    public virtual void ModifyIncomingDamage(World world, DamageInfo info) { }
+
+    /// <summary>普攻命中之后（伤害已结算）：腐蚀吐息、液体火焰、月刃弹射这类挂这里。</summary>
+    public virtual void OnAttackLanded(World world, DamageInfo info) { }
+
+    /// <summary>每 tick 推进（被动也调）：瘟疫光环、幽灵隐身、补充回血这类自己维护计时。</summary>
+    public virtual void OnWorldTick(World world, float delta) { }
+
+    /// <summary>固定反伤（尖刺路障这类点数值，不再是比例）。</summary>
+    public virtual float ReflectFlat => 0f;
+
+    /// <summary>被动提供的反隐半径（真实视域）：0 表示没有。</summary>
+    public virtual float PassiveDetectRadius => 0f;
 
     public virtual void OnLearned() { }
 

@@ -205,6 +205,7 @@ public sealed partial class World
             {
                 Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
+                if (kept.Learned) kept.OnWorldTick(this, Tick);
             }
 
             for (int buffIndex = unit.Buffs.Count - 1; buffIndex >= 0; buffIndex--)

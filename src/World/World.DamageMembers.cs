@@ -113,6 +113,7 @@ public sealed partial class World
             UnderConstruction = underConstruction,
             Ethereal = target.State.Ethereal,
             IsAttack = true,
+            Ranged = weapon != null && !string.IsNullOrEmpty(weapon.MissileScene),
         };
     }
 
@@ -155,6 +156,8 @@ public sealed partial class World
 
         info.Ethereal = target.State.Ethereal;
         if (target.IsIllusion && target.IllusionDamageReceived > 0f) info.Amount *= target.IllusionDamageReceived;
+        if (target.BonusDamageTakenPct != 0f) info.Amount *= 1f + target.BonusDamageTakenPct;
+        ApplyIncomingModifiers(info);
         info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.ArmorFactor(info.Armor);
         info.ClassRatio = War3GameplayConfig.ClassRatio(info.AttackType, info.DefenseType);
         info.Amount = War3GameplayConfig.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
@@ -199,14 +202,51 @@ public sealed partial class World
             attacker.Heal(info.Amount * (attacker.AuraLifestealPct + attacker.BonusLifestealPct));
         }
 
-        bool ranged = info.Weapon != null && !string.IsNullOrEmpty(info.Weapon.MissileScene);
+        bool ranged = info.Ranged || (info.Weapon != null && !string.IsNullOrEmpty(info.Weapon.MissileScene));
         float ratio = ReflectRatioOf(target, ranged);
-        if (ratio <= 0f) return;
+        if (ratio > 0f)
+        {
+            DamageInfo counter = MakeAbilityDamage(target, attacker, info.Amount * ratio,
+                AttackType.Spells, DamageType.Universal);
+            counter.Reflected = true;
+            DealDamage(counter);
+        }
 
-        DamageInfo counter = MakeAbilityDamage(target, attacker, info.Amount * ratio,
-            AttackType.Spells, DamageType.Universal);
-        counter.Reflected = true;
-        DealDamage(counter);
+        float flat = ReflectFlatOf(target, ranged);
+        if (flat > 0f)
+        {
+            DamageInfo spikes = MakeAbilityDamage(target, attacker, flat,
+                AttackType.Spells, DamageType.Universal);
+            spikes.Reflected = true;
+            DealDamage(spikes);
+        }
+    }
+
+    /// <summary>固定反伤（尖刺路障）：只看近战普通攻击，按点数值返回。</summary>
+    public float ReflectFlatOf(Unit target, bool ranged)
+    {
+        if (target == null || ranged) return 0f;
+
+        float flat = 0f;
+        foreach (Ability ability in target.Abilities)
+        {
+            if (!ability.Learned) continue;
+            flat = Mathf.Max(flat, ability.ReflectFlat);
+        }
+        return flat;
+    }
+
+    /// <summary>受到伤害修正钩子（艾露恩恩泽、硬化皮肤）：在护甲与类型矩阵之前改数值。</summary>
+    public void ApplyIncomingModifiers(DamageInfo info)
+    {
+        Unit target = info?.Target;
+        if (target?.Abilities == null || target.Abilities.Count == 0) return;
+
+        foreach (Ability ability in target.Abilities)
+        {
+            if (!ability.Learned) continue;
+            ability.ModifyIncomingDamage(this, info);
+        }
     }
 
     /// <summary>反伤比例：荆棘光环只反近战，被动（尖刺甲壳）自己声明吃不吃远程。</summary>

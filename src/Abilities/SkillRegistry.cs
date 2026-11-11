@@ -114,6 +114,83 @@ public static class SkillRegistry
         ["Arai"] = () => new RaiseDead(),
         // —— 通用治疗（牧师 / 野怪牧师，自动施法） ——
         ["Ahea"] = () => new Heal(),
+        // —— 人族单位 ——
+        ["Aslo"] = () => new SlowUnit(),          // 减速（女巫，自动施法）
+        ["Aivs"] = () => new InvisibilitySpell(), // 隐身术（女巫，普攻破隐）
+        ["Afla"] = () => new Flare(),             // 照明弹（翔车，区域揭示）
+        ["AHta"] = () => new RevealArea(),        // 魔法岗哨反隐
+        ["Atru"] = () => new DetectPassive(),     // 真实视域（阴影/直升机/魔法哨塔）
+        ["Agyv"] = () => new DetectPassive(),
+        ["Adts"] = () => new DetectPassive(),
+        ["Afbk"] = () => new Feedback(),          // 反馈（破法者，烧蓝转伤害）
+        ["Afbt"] = () => new Feedback(),
+        ["Abof"] = () => new BallsOfFire(),       // 火球（投石车，附加范围火焰）
+        ["Acmg"] = () => new Charm(),             // 控制魔法（破法者，抢召唤物）
+        // —— 兽族单位 ——
+        ["Ablo"] = () => new Bloodlust(),         // 嗜血（萨满，攻速/移速）
+        ["Alsh"] = () => new LightningShield(),   // 闪电护盾（萨满）
+        ["Apg2"] = () => new Purge(),             // 净化（萨满）
+        ["Awar"] = () => new Pulverize(),         // 粉碎（牛头人，概率范围伤害）
+        ["Absk"] = () => new Berserk(),           // 狂暴（猎头者）
+        ["Aliq"] = () => new LiquidFire(),        // 液体火焰（蝙蝠骑士，烧建筑）
+        ["Auco"] = () => new UnstableConcoction(),// 不稳定化合物（蝙蝠骑士自爆）
+        ["Aven"] = () => new VenomSpears(),       // 毒矛（双足飞龙，持续毒伤）
+        ["Asal"] = () => new Pillage(),           // 掠夺（兽族步兵，拆建筑得金）
+        ["Aspi"] = () => new SpikedBarricades(),  // 尖刺路障（兽族建筑反伤）
+        ["Aakb"] = () => new WarDrums(),          // 战鼓光环（科多兽）
+        ["AIcd"] = () => new WarDrums(),          // 物品版命令光环
+        ["Acn2"] = () => new Cannibalize(),       // 食尸（憎恶）
+        // —— 暗夜单位 ——
+        ["Ara2"] = () => new Roar(),              // 咆哮（熊德）
+        ["Aroa"] = () => new Roar(),
+        ["Arej"] = () => new Rejuvenation(),      // 回春（猛禽德鲁伊）
+        ["Acyc"] = () => new Cyclone(),           // 旋风（猛禽德鲁伊）
+        ["Afae"] = () => new FaerieFire(),        // 精灵之火（猛禽德鲁伊）
+        ["Afa2"] = () => new FaerieFire(),
+        ["Aadm"] = () => new AbolishMagic(),      // 废除魔法（树妖）
+        ["Aspo"] = () => new SlowPoison(),        // 慢性毒（树妖）
+        ["Amfl"] = () => new ManaFlare(),         // 法力闪耀（仙女龙）
+        ["Apsh"] = () => new PhaseShift(),        // 相位转移（仙女龙）
+        ["Atau"] = () => new Taunt(),             // 嘲讽（山岭巨人）
+        ["Assk"] = () => new HardenedSkin(),      // 硬化皮肤（山岭巨人）
+        ["Aegr"] = () => new ElunesGrace(),       // 艾露恩恩泽（弓箭手）
+        ["Aesn"] = () => new Sentinel(),          // 哨兵（女猎手，区域视野）
+        ["Aesr"] = () => new Sentinel(),
+        ["Amgl"] = () => new MoonGlaive(),        // 月刃（女猎手，弹跳）
+        ["Amgr"] = () => new MoonGlaive(),
+        ["Alit"] = () => new LightningAttack(),   // 闪电攻击（奇美拉）
+        ["Acor"] = () => new CorrosiveBreath(),   // 腐蚀吐息（奇美拉，烧建筑）
+        // —— 亡灵单位 ——
+        ["Advm"] = () => new DevourMagic(),       // 吞噬魔法（毁灭者）
+        ["Afak"] = () => new OrbOfAnnihilation(), // 毁灭之球（毁灭者）
+        ["Aabs"] = () => new AbsorbMana(),        // 吸收法力（毁灭者）
+        ["Aweb"] = () => new Web(),               // 蛛网（地穴恶魔，缠住空中）
+        ["Afrb"] = () => new FrostBreath(),       // 霜冻吐息（冰霜巨龙）
+        ["Afrz"] = () => new FrostBreath(),       // 冻结吐息（冰冻之魂）
+        ["Agho"] = () => new Ghost(),             // 幽灵（阴影，常驻隐身）
+        ["Arpl"] = () => new Replenish(),         // 补充生命（黑曜石雕像）
+        ["Arpm"] = () => new Replenish(),         // 补充法力
+        ["Aap2"] = () => new PlagueAura(),        // 瘟疫光环（瘟疫守卫）
+        ["Aapl"] = () => new PlagueAura(),
+        // —— 英雄别名（同实现跨单位复用） ——
+        ["AOr3"] = () => new Reincarnation(),     // 凯恩·血蹄重生
+        ["ANrn"] = () => new Reincarnation(),     // 玛诺洛斯重生
+        ["AOs2"] = () => new ShockWave(),         // 凯恩震荡波
+        ["ANsh"] = () => new ShockWave(),         // 加里索斯震荡波
+        ["AOw2"] = () => new WarStomp(),          // 凯恩战争践踏
+        ["AEIl"] = () => new Metamorphosis(),     // 伊利丹变身
+        ["AEvi"] = () => new Metamorphosis(),
+        ["ANav"] = () => new Avatar(),            // 加里索斯天神下凡
+        ["ANhw"] = () => new HealingWave(),       // 洛克汗医疗波
+        ["ANhx"] = () => new Hex(),               // 洛克汗妖术
+        ["Arsw"] = () => new SerpentWard(),       // 洛克汗毒蛇守卫
+        ["AOls"] = () => new LocustSwarm(),       // 洛克汗巫毒精灵
+        ["Arsg"] = () => new SummonUnit(),        // 雷克萨召熊
+        ["Arsq"] = () => new SummonUnit(),        // 雷克萨召豪猪
+        ["ANsb"] = () => new ThunderBolt(),       // 雷克萨风暴之锤
+        ["AIan"] = () => new AnimateDead(),       // 物品版操纵死尸
+        ["AIrs"] = () => new Resurrection(),      // 物品版复活
+        ["AIrx"] = () => new Resurrection(),
         // —— 物品技能里与英雄同源的码 ——
         ["AIbx"] = () => new Bash(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击

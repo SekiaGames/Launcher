@@ -16,6 +16,10 @@ public sealed partial class Unit
     // —— 加成（不含单位类型自身的数值） ——
     public float BonusArmor;
     public float BonusDamageFlat;
+    /// <summary>攻击力百分比（命令光环、战鼓、咆哮）。</summary>
+    public float BonusDamagePct;
+    /// <summary>受到伤害百分比（狂暴：+50%）。</summary>
+    public float BonusDamageTakenPct;
     public float BonusAttackSpeedPct;
     public float BonusMoveSpeedFlat;
     /// <summary>物品给的攻击吸血比例（AIva）。</summary>
@@ -35,6 +39,7 @@ public sealed partial class Unit
     public float AuraRangedDamagePct;
     public float AuraAttackSpeedPct;
     public float AuraMoveSpeedPct;
+    public float AuraDamagePct;
     public float AuraHpRegenPerSecond;
     public float AuraManaRegenPerSecond;
 
@@ -47,6 +52,7 @@ public sealed partial class Unit
         AuraRangedDamagePct = 0f;
         AuraAttackSpeedPct = 0f;
         AuraMoveSpeedPct = 0f;
+        AuraDamagePct = 0f;
         AuraHpRegenPerSecond = 0f;
         AuraManaRegenPerSecond = 0f;
     }
@@ -59,6 +65,7 @@ public sealed partial class Unit
         AuraRangedDamagePct = Mathf.Max(AuraRangedDamagePct, bonus.RangedDamagePct);
         AuraAttackSpeedPct = Mathf.Max(AuraAttackSpeedPct, bonus.AttackSpeedPct);
         AuraMoveSpeedPct = Mathf.Max(AuraMoveSpeedPct, bonus.MoveSpeedPct);
+        AuraDamagePct = Mathf.Max(AuraDamagePct, bonus.DamagePct);
         AuraHpRegenPerSecond = Mathf.Max(AuraHpRegenPerSecond, bonus.HpRegenPerSecond);
         AuraManaRegenPerSecond = Mathf.Max(AuraManaRegenPerSecond, bonus.ManaRegenPerSecond);
     }
@@ -99,6 +106,25 @@ public sealed partial class Unit
             if (string.Equals(ability.Id, id, System.StringComparison.OrdinalIgnoreCase)) return ability;
         }
         return null;
+    }
+
+    public T FindBuff<T>() where T : Buff
+    {
+        foreach (Buff buff in Buffs)
+        {
+            if (buff is T match) return match;
+        }
+        return null;
+    }
+
+    /// <summary>身上是否有可驱散的某类 Buff（harmful=true 查负面）。</summary>
+    public bool HasBuff(bool harmful)
+    {
+        foreach (Buff buff in Buffs)
+        {
+            if (buff.IsHarmful == harmful) return true;
+        }
+        return false;
     }
 
     /// <summary>挂一个技能实例；已经有的直接返回旧的。</summary>

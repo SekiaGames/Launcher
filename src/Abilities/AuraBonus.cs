@@ -15,12 +15,14 @@ public struct AuraBonus
     public float RangedDamagePct;
     public float AttackSpeedPct;
     public float MoveSpeedPct;
+    public float DamagePct;
     public float HpRegenPerSecond;
     public float ManaRegenPerSecond;
 
     public bool IsZero =>
         Armor == 0f && ThornsPct == 0f && LifestealPct == 0f && RangedDamagePct == 0f
-        && AttackSpeedPct == 0f && MoveSpeedPct == 0f && HpRegenPerSecond == 0f && ManaRegenPerSecond == 0f;
+        && AttackSpeedPct == 0f && MoveSpeedPct == 0f && DamagePct == 0f
+        && HpRegenPerSecond == 0f && ManaRegenPerSecond == 0f;
 
     /// <summary>合并两条光环：逐项取大，互不覆盖。</summary>
     public void MergeFrom(AuraBonus other)
@@ -31,6 +33,7 @@ public struct AuraBonus
         RangedDamagePct = Mathf.Max(RangedDamagePct, other.RangedDamagePct);
         AttackSpeedPct = Mathf.Max(AttackSpeedPct, other.AttackSpeedPct);
         MoveSpeedPct = Mathf.Max(MoveSpeedPct, other.MoveSpeedPct);
+        DamagePct = Mathf.Max(DamagePct, other.DamagePct);
         HpRegenPerSecond = Mathf.Max(HpRegenPerSecond, other.HpRegenPerSecond);
         ManaRegenPerSecond = Mathf.Max(ManaRegenPerSecond, other.ManaRegenPerSecond);
     }

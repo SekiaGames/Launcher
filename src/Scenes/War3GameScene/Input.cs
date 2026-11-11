@@ -304,8 +304,9 @@ public sealed partial class War3GameScene
         {
             if (!unit.Alive && !(includeCorpses && unit.IsCorpse)) continue;
             if (!anyPlayer && unit.Player != player) continue;
-            // 隐身敌方单位点不到（没有反隐单位的口径简化）
-            if (unit.Alive && unit.State.Invisible && unit.Player != ViewPlayer) continue;
+            // 隐身敌方单位点不到（附近有反隐单位时照常可点）
+            if (unit.Alive && unit.State.Invisible && unit.Player != ViewPlayer
+                && (_world == null || !_world.IsDetectedBy(ViewPlayer, unit))) continue;
 
             Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
             if (camera.IsPositionBehind(point)) continue;
