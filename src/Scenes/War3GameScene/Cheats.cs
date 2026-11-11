@@ -689,8 +689,63 @@ public sealed partial class War3GameScene
         // 远视：把一块原本看不见的区域刷成可见（World.Reveals → FogOfWar.Refresh）
         DemoFarSight(creep);
 
+        // 阵型：选中近战+远程一起右键地面，验证近战站前排、远程站后排
+        DemoGroupMove(creep);
+
         GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
             + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
+    }
+
+    /// <summary>
+    /// 编队阵型：真正走玩家右键的 OrderAt 路径（屏幕坐标 → 地面点 → GroupFormation），
+    /// 2 秒后看四单位的相对深度，近战必须在远程前面。
+    /// </summary>
+    private void DemoGroupMove(Unit creep)
+    {
+        var group = new List<Unit>();
+        for (int index = 0; index < 2; index++)
+        {
+            Unit melee = Spawn("hfoo", ViewPlayer, creep.Position.X - 240f + index * 40f, creep.Position.Z - 120f, 0f, 0f, 1f);
+            Unit ranged = Spawn("hrif", ViewPlayer, creep.Position.X - 240f + index * 40f, creep.Position.Z - 220f, 0f, 0f, 1f);
+            if (melee != null) { _world.Units.Add(melee); group.Add(melee); }
+            if (ranged != null) { _world.Units.Add(ranged); group.Add(ranged); }
+        }
+        if (group.Count < 2)
+        {
+            GD.Print("[FORM] 缺步兵/火枪模型，跳过阵型验证");
+            return;
+        }
+
+        var destination = new Vector3(creep.Position.X, creep.Position.Y, creep.Position.Z + 320f);
+        _camera.Focus(destination);
+
+        ClearSelection();
+        foreach (Unit unit in group)
+        {
+            _selected.Add(unit);
+            unit.View?.SetSelected(true);
+        }
+        _hud?.SetSelection(_selected);
+
+        Vector2 screen = _camera.Camera.UnprojectPosition(destination + new Vector3(0f, 40f, 0f));
+        OrderAt(screen);
+
+        SceneTreeTimer timer = GetTree().CreateTimer(2.5);
+        timer.Timeout += () =>
+        {
+            float meleeFront = float.MaxValue;
+            float rangedFront = float.MaxValue;
+            foreach (Unit unit in group)
+            {
+                if (!unit.Alive) continue;
+                float depth = destination.Z - unit.Position.Z;
+                if (unit.FormationRank == 0) meleeFront = Mathf.Min(meleeFront, depth);
+                else rangedFront = Mathf.Min(rangedFront, depth);
+            }
+
+            GD.Print($"[FORM] 阵型落位 近战最近 {meleeFront:0} 远程最近 {rangedFront:0}"
+                + $"（间距 成员 {GroupFormation.MemberGap:0} 行 {GroupFormation.RowGap:0} 层 {GroupFormation.RankGap:0}）");
+        };
     }
 
     /// <summary>

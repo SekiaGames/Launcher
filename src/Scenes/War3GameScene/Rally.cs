@@ -102,22 +102,28 @@ public sealed partial class War3GameScene
 
         if (!TryGroundPoint(screenPosition, out Vector3 ground)) return;
 
-        int index = 0;
+        var movers = new List<Unit>();
+        Vector3 centroid = Vector3.Zero;
         foreach (Unit unit in _selected)
         {
-            if (unit.IsBuilding) continue;
+            if (unit.IsBuilding || !unit.Alive) continue;
+            movers.Add(unit);
+            centroid += unit.Position;
+        }
+        if (movers.Count == 0) return;
+        centroid /= movers.Count;
 
-            float ring = 60f * (index / 6);
-            float angle = Mathf.Tau * (index % 6) / 6f;
-            var offset = new Vector3(Mathf.Cos(angle) * ring, 0f, Mathf.Sin(angle) * ring);
+        // 按物编 formation 分层排队：近战在前、远程/法师在后（对标客户端 MovementFormationOffsets）
+        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
+        foreach (Unit unit in movers)
+        {
             unit.Target = null;
             unit.GoldMine = null;
             unit.Tree = null;
-            unit.MoveTarget = ground + offset;
+            unit.MoveTarget = slots.TryGetValue(unit, out Vector3 spot) ? spot : ground;
             unit.Path = null;
-            index++;
         }
-        _hud?.SetHint($"移动到 ({ground.X:0}, {ground.Z:0})");
+        _hud?.SetHint($"移动到 ({ground.X:0}, {ground.Z:0})，{movers.Count} 个单位按阵型展开");
     }
 
     /// <summary>选中建筑时右键 = 设集结点：指针下是单位/树就绑目标，否则设地面点。</summary>

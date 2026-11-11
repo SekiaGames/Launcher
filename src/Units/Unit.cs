@@ -78,6 +78,9 @@ public sealed partial class Unit
             : Mathf.Max(8f, Type.CollisionRadius);
     public bool IsWorker => Type != null && Type.IsWorkerType;
 
+    /// <summary>编队层号（物编 formation）：0 近战前排、2 远程后排，阵型按它分排。</summary>
+    public int FormationRank => Type?.FormationRank ?? 0;
+
     public float DistanceTo(Unit other) =>
         new Vector2(Position.X - other.Position.X, Position.Z - other.Position.Z).Length();
 }

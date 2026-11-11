@@ -32,6 +32,8 @@ public sealed class UnitType
     public DefenseType DefenseType = DefenseType.Unarmored;
     /// <summary>UnitData.targType，本单位被索敌时匹配对方的武器 TargetKind。</summary>
     public TargetKind Kind = TargetKind.Ground;
+    /// <summary>UnitData.formation：编队层号（0 = 近战前排，2 = 远程/法师后排）。</summary>
+    public int FormationRank;
     /// <summary>UnitBalance.collision，真实碰撞/推挤半径（不是 footprint）。</summary>
     public float CollisionRadius = 16f;
     /// <summary>UnitData.movetp=fly，空中单位不吃地面路径阻挡。</summary>
@@ -219,8 +221,10 @@ public static class UnitCatalog
             type.ManaStart = Number(balance.Get(balanceRow, "mana0"), 0f);
             if (DataRows.TryGetValue(id, out int turnRow) && !type.IsBuilding)
             {
-                float turnRate = Number(War3Tables.UnitData().Get(turnRow, "turnRate"), 0f);
+                SlkTable unitData = War3Tables.UnitData();
+                float turnRate = Number(unitData.Get(turnRow, "turnRate"), 0f);
                 if (turnRate > 0f) type.TurnSpeed = Mathf.Clamp(turnRate * 6f, 1.5f, 14f);
+                type.FormationRank = Mathf.Clamp((int)Number(unitData.Get(turnRow, "formation"), 0f), 0, 15);
             }
             type.SightNight = Number(balance.Get(balanceRow, "nsight"), 800f);
             type.RegenHp = Number(balance.Get(balanceRow, "regenHP"), 0f);

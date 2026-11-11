@@ -205,6 +205,84 @@ public sealed partial class War3GameScene
     private int _focusLogBudget = 8;
 
     /// <summary>
+    /// 守家阵型：没目标、没撤退的部队在基地前按编队层排开（物编 formation：0 近战在前、2 远程在后）。
+    /// 只有离自己的位超过 120 才重新下令，避免每 3 秒把人推来推去。
+    /// </summary>
+    private void TickAiFormation(PlayerSlot slot, Unit hall)
+    {
+        Vector3 forward = FormationForward(slot, hall);
+        var idle = new List<Unit>();
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != slot.Id) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.IsHero) continue;
+            if (unit.Target != null || unit.RetreatOrdered) continue;
+            if (unit.DistanceTo(hall) > 1200f) continue;
+            idle.Add(unit);
+        }
+        if (idle.Count < 2) return;
+
+        Vector3 staging = hall.Position + forward * 260f;
+        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(idle, staging, forward);
+        int moved = 0;
+        foreach (KeyValuePair<Unit, Vector3> pair in slots)
+        {
+            Unit unit = pair.Key;
+            Vector3 spot = pair.Value;
+            float dx = unit.Position.X - spot.X;
+            float dz = unit.Position.Z - spot.Z;
+            if (dx * dx + dz * dz < 120f * 120f) continue;
+
+            unit.MoveTarget = spot;
+            unit.Path = null;
+            moved++;
+        }
+
+        if (moved > 0 && _formationLogBudget > 0)
+        {
+            _formationLogBudget--;
+            GD.Print($"[AI] P{slot.Id} 守家阵型重排 {moved} 个单位（前排 {CountRank(idle, 0)}、后排 {CountRank(idle, 2)}）");
+        }
+    }
+
+    private int _formationLogBudget = 6;
+
+    private static int CountRank(List<Unit> units, int rank)
+    {
+        int count = 0;
+        foreach (Unit unit in units)
+        {
+            if (unit.FormationRank == rank) count++;
+        }
+        return count;
+    }
+
+    /// <summary>阵型朝向：优先朝最近的敌人；没敌人就按大厅朝向。</summary>
+    private Vector3 FormationForward(PlayerSlot slot, Unit hall)
+    {
+        Unit nearest = null;
+        float best = float.MaxValue;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.IsBuilding) continue;
+            if (unit.Player == slot.Id || AreAllied(unit.Player, slot.Id)) continue;
+            if (unit.Player == 15 || unit.Player == 12) continue;
+            float distance = unit.DistanceTo(hall);
+            if (distance >= best) continue;
+            best = distance;
+            nearest = unit;
+        }
+
+        if (nearest != null)
+        {
+            Vector3 direction = nearest.Position - hall.Position;
+            direction.Y = 0f;
+            if (direction.LengthSquared() > 1f) return direction.Normalized();
+        }
+        return new Vector3(Mathf.Sin(hall.Facing), 0f, Mathf.Cos(hall.Facing));
+    }
+
+    /// <summary>
     /// 买装备：AI 英雄站在商店 700 内、背包有空位、钱够，就买店里最便宜且有货的那件。
     /// 贵的东西（比如 1000 金神器）要等经济起来，这条规则自然就把它排在后面。
     /// </summary>
@@ -422,6 +500,13 @@ public sealed partial class War3GameScene
         {
             slot.ShopTimer = 0f;
             TickAiShopping(slot);
+        }
+
+        slot.FormationTimer += 0.3f;
+        if (slot.FormationTimer >= 3f)
+        {
+            slot.FormationTimer = 0f;
+            TickAiFormation(slot, hall);
         }
 
         for (int attempt = 0; attempt < 4; attempt++)
