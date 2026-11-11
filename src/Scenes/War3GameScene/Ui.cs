@@ -372,7 +372,10 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>商店：按 `*UnitFunc.Sellitems` 列出商品，买下即扣金并在店旁落地。</summary>
+    /// <summary>
+    /// 商店卡：上半是买（带库存），下半是卖（把附近友方英雄的物品按半价卖回店里）。
+    /// 商品列表来自 `*UnitFunc.Sellitems`，库存来自 `ItemData.stockMax/stockRegen`。
+    /// </summary>
     private void AddShopCommands(List<CommandEntry> commands, PlayerSlot slot, Unit shop)
     {
         int shown = 0;
@@ -383,19 +386,83 @@ public sealed partial class War3GameScene
 
             string id = itemId;
             Unit target = shop;
+            int stock = shop.StockOf(itemId);
+            int max = shop.StockMaxOf(itemId);
             commands.Add(new CommandEntry
             {
                 Id = id,
                 Name = $"买 {type.Name}",
                 Cost = $"{type.GoldCost}金",
-                Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}",
+                Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}\n库存 {stock}/{max}",
                 Icon = TechTree.Icon(type.IconArt),
-                Enabled = slot.Gold >= type.GoldCost,
+                Enabled = stock > 0 && slot.Gold >= type.GoldCost,
                 Action = () => BuyItemFromShop(target, id),
             });
 
-            if (++shown >= 8) break;
+            if (++shown >= 6) break;
         }
+
+        Unit seller = NearestFriendlyHero(slot.Id, shop.Position, 700f);
+        if (seller == null) return;
+
+        for (int index = 0; index < Unit.InventorySize; index++)
+        {
+            Item item = seller.Inventory[index];
+            if (item?.Type == null || item.Type.GoldCost <= 0) continue;
+
+            Unit shopRef = shop;
+            Unit sellerRef = seller;
+            int captured = index;
+            int price = Mathf.Max(1, item.Type.GoldCost / 2);
+            commands.Add(new CommandEntry
+            {
+                Id = item.Type.Id,
+                Name = $"卖 {item.Type.Name}",
+                Cost = $"+{price}金",
+                Tooltip = $"卖给 {shop.Type.Name}：+{price} 金（半价）",
+                Icon = TechTree.Icon(item.Type.IconArt),
+                Enabled = true,
+                Action = () => SellItemToShop(shopRef, sellerRef, captured),
+            });
+        }
+    }
+
+    private void SellItemToShop(Unit shop, Unit seller, int slot)
+    {
+        Item item = seller?.Inventory != null && slot < seller.Inventory.Length ? seller.Inventory[slot] : null;
+        if (item?.Type == null || _world == null) return;
+
+        int price = _world.SellItem(shop, item);
+        if (price <= 0)
+        {
+            _hud?.SetHint($"{item.Type.Name} 卖不掉");
+            return;
+        }
+
+        PlayerSlot slotData = Slot(shop.Player);
+        if (slotData != null) slotData.Gold += price;
+
+        _hud?.SetHint($"卖出 {item.Type.Name}：+{price} 金（半价）");
+        RefreshHud();
+        UpdateCommandCard();
+    }
+
+    /// <summary>某个玩家在给定位置附近的友方英雄（商店卖东西、物品转交都用它）。</summary>
+    private Unit NearestFriendlyHero(int player, Vector3 from, float range)
+    {
+        Unit best = null;
+        float bestDistance = range;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || !unit.IsHero) continue;
+            if (!AreAllied(unit.Player, player)) continue;
+
+            float distance = new Vector2(unit.Position.X - from.X, unit.Position.Z - from.Z).Length();
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            best = unit;
+        }
+        return best;
     }
 
     private void BeginPlacement(string buildingId)

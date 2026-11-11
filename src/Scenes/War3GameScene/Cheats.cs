@@ -577,9 +577,26 @@ public sealed partial class War3GameScene
             if (shop.Type.SellItems.Length > 0)
             {
                 string first = shop.Type.SellItems[0];
-                bool bought = BuyItemFromShop(shop, first);
-                GD.Print($"[SHOP] 买 {first} {(bought ? "成功" : "失败")} 金币 {goldBefore}→{shopSlot?.Gold}"
-                    + $" 背包 {hero.ItemCount} 件 地面 {_world.GroundItems.Count} 件");
+                int bought = 0;
+                for (int attempt = 0; attempt < 5; attempt++)
+                {
+                    if (BuyItemFromShop(shop, first)) bought++;
+                }
+                GD.Print($"[SHOP] 连买 {first} {bought} 次（库存 {shop.StockOf(first)}/{shop.StockMaxOf(first)}）"
+                    + $" 金币 {goldBefore}→{shopSlot?.Gold} 背包 {hero.ItemCount} 件 地面 {_world.GroundItems.Count} 件");
+
+                for (int index = 0; index < Unit.InventorySize; index++)
+                {
+                    Item held = hero.Inventory[index];
+                    if (held?.Type == null || held.Type.GoldCost <= 0) continue;
+                    int goldBeforeSell = shopSlot?.Gold ?? 0;
+                    int price = _world.SellItem(shop, held);
+                    if (price <= 0) continue;
+                    if (shopSlot != null) shopSlot.Gold += price;
+                    GD.Print($"[SHOP] 卖回 {held.Type.Name} +{price} 金 金币 {goldBeforeSell}→{shopSlot?.Gold}"
+                        + $" 库存 {shop.StockOf(held.Type.Id)}/{shop.StockMaxOf(held.Type.Id)}");
+                    break;
+                }
             }
         }
 

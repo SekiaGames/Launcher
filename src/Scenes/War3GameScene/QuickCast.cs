@@ -171,6 +171,26 @@ public sealed partial class War3GameScene
     /// </summary>
     private static readonly int[] InventorySlotIndices = { 2, 3, 6, 7, 10, 11 };
 
+    /// <summary>
+    /// 右键物品：附近有友方英雄就转交给他（原版把物品给单位），否则丢到地上。
+    /// </summary>
+    private void GiveOrDropItem(Unit hero, int slot)
+    {
+        Item item = hero?.Inventory != null && slot < hero.Inventory.Length ? hero.Inventory[slot] : null;
+        if (item?.Type == null) return;
+
+        Unit ally = NearestFriendlyHero(hero.Player, hero.Position, 450f);
+        if (ally != null && !ReferenceEquals(ally, hero) && _world != null && _world.GiveItem(hero, slot, ally))
+        {
+            _hud?.SetHint($"{hero.Type.Name} 把 {item.Type.Name} 交给了 {ally.Type.Name}");
+            RefreshHud();
+            UpdateCommandCard();
+            return;
+        }
+
+        DropInventorySlot(hero, slot);
+    }
+
     /// <summary>右键丢物品（原版也是右键把物品丢到地上）。</summary>
     private void DropInventorySlot(Unit hero, int slot)
     {
@@ -246,7 +266,7 @@ public sealed partial class War3GameScene
                 Icon = TechTree.Icon(item.Type.IconArt),
                 Enabled = true,
                 Action = () => UseOrDropItem(hero, item, captured, usable),
-                RightAction = () => DropInventorySlot(hero, captured),
+                RightAction = () => GiveOrDropItem(hero, captured),
             });
         }
     }

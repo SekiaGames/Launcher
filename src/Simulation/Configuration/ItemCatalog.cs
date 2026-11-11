@@ -28,6 +28,10 @@ public sealed class ItemType
     public string AbilList = "";
     public int Uses;
     public bool Perishable;
+    /// <summary>ItemData.stockMax / stockRegen / stockStart：商店库存上限、补一件的秒数、开局延迟。</summary>
+    public int StockMax;
+    public float StockRegen = 120f;
+    public float StockStart;
     /// <summary>图标。物编的 Art 列没导出，按 abilList 的基类码给原版图标名。</summary>
     public string IconArt = @"ReplaceableTextures\CommandButtons\BTNGoldRing";
 
@@ -88,6 +92,9 @@ public static class ItemCatalog
             LumberCost = table.GetInt(row, "lumbercost"),
             Droppable = table.Get(row, "droppable") == "1",
             Uses = Mathf.Max(0, table.GetInt(row, "uses", 0)),
+            StockMax = Mathf.Max(0, table.GetInt(row, "stockMax", 0)),
+            StockRegen = Number(table.Get(row, "stockRegen"), 120f),
+            StockStart = Number(table.Get(row, "stockStart"), 0f),
             Perishable = table.Get(row, "perishable") == "1",
             Usable = table.Get(row, "usable") == "1",
             PowerUp = table.Get(row, "powerup") == "1",

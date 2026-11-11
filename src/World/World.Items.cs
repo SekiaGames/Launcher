@@ -93,6 +93,69 @@ public sealed partial class World
         if (!_groundItems.Contains(item)) _groundItems.Add(item);
     }
 
+    /// <summary>商店补货：每个补货周期给所有没满的商品各 +1。</summary>
+    public void TickShops()
+    {
+        foreach (Unit shop in Units)
+        {
+            if (!shop.Alive || !shop.IsShop) continue;
+
+            float interval = shop.RestockInterval;
+            if (interval <= 0f) continue;
+
+            shop.ShopRestockTimer += Tick;
+            if (shop.ShopRestockTimer < interval) continue;
+            shop.ShopRestockTimer = 0f;
+            shop.RestockOne();
+        }
+    }
+
+    /// <summary>
+    /// 把物品卖给商店：按原版对战口径给**半价**（`goldcost / 2`，至少 1 金），
+    /// 物品从背包消失、加成撤回、库存回收一件。返回卖出所得（0 表示卖不掉）。
+    /// </summary>
+    public int SellItem(Unit shop, Item item)
+    {
+        if (shop?.Type == null || item?.Type == null) return 0;
+        if (!shop.IsShop) return 0;
+
+        Unit owner = item.Owner;
+        if (owner == null || item.Slot < 0) return 0;
+
+        int price = Mathf.Max(1, item.Type.GoldCost / 2);
+        RemoveItemBonus(owner, item);
+        owner.RemoveSlot(item.Slot);
+        if (item.Node != null)
+        {
+            item.Node.QueueFree();
+            item.Node = null;
+        }
+
+        shop.AddStock(item.Type.Id);
+        return price;
+    }
+
+    /// <summary>把物品转交另一个单位（英雄给英雄）；目标没空格就原样退回。</summary>
+    public bool GiveItem(Unit from, int slot, Unit to)
+    {
+        if (from == null || to == null || ReferenceEquals(from, to)) return false;
+        if (!to.CanCarryItems || !to.HasFreeSlot) return false;
+
+        Item item = from.RemoveSlot(slot);
+        if (item == null) return false;
+
+        RemoveItemBonus(from, item);
+        if (!to.AddItem(item))
+        {
+            from.AddItem(item);
+            ApplyItemBonus(from, item);
+            return false;
+        }
+
+        ApplyItemBonus(to, item);
+        return true;
+    }
+
     public void TickItemPickup()
     {
         if (_groundItems.Count == 0) return;

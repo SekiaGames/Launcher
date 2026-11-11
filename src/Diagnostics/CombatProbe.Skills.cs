@@ -423,7 +423,73 @@ public static partial class CombatProbe
             GD.Print($"[自检] 丢弃 {crown2.Name}：力量 {baseStrength}+5 → {hero3.Strength}，地面物品 {world13.GroundItems.Count}");
         }
 
+        CheckShopAndTrade();
+
         CheckItemBonus();
+    }
+
+    /// <summary>商店库存/补货/卖出，以及英雄之间的物品转交。</summary>
+    private static void CheckShopAndTrade()
+    {
+        UnitType shopType = UnitCatalog.Get("ngme");
+        UnitType paladinType = UnitCatalog.Get("Hpal");
+        if (shopType == null || paladinType == null) return;
+
+        var world = new World(null, null);
+        Unit shop = MakeUnit(shopType, 0);
+        shop.InitShopStock();
+        Unit hero = MakeHero(paladinType, 0, 3, world);
+        world.Units.Add(shop);
+        world.Units.Add(hero);
+
+        int max = shop.StockMaxOf("phea");
+        Verify("药水满仓 3", 3f, max, 0f);
+        Verify("开局库存等于上限", max, shop.StockOf("phea"), 0f);
+
+        for (int index = 0; index < max; index++) shop.TakeStock("phea");
+        Verify("买空后为 0", 0f, shop.StockOf("phea"), 0f);
+        Verify("没货买不了", 0f, shop.TakeStock("phea") ? 1f : 0f, 0f);
+
+        int steps = (int)(shop.RestockInterval / World.Tick) + 2;
+        for (int index = 0; index < steps; index++) world.TickShops();
+        Verify("过一个补货周期补回 1", 1f, shop.StockOf("phea"), 0f);
+
+        // 卖：王冠 1000 金，半价 500；加成要撤回
+        ItemType crown = ItemCatalog.Get("ckng");
+        if (crown != null)
+        {
+            var treasure = new Item { Type = crown };
+            hero.AddItem(treasure);
+            world.ApplyItemBonus(hero, treasure);
+            int strengthWith = hero.Strength;
+
+            int price = world.SellItem(shop, treasure);
+            Verify("卖价是半价 500", 500f, price, 0f);
+            Verify("卖出后物品消失", 0f, hero.ItemCount, 0f);
+            Verify("卖出后加成撤回", strengthWith - 5, hero.Strength, 0f);
+        }
+
+        // 转交：力量加成跟着物品走
+        Unit other = MakeHero(paladinType, 0, 3, world);
+        world.Units.Add(other);
+        var ring = new Item { Type = ItemCatalog.Get("rde1") };
+        if (ring.Type != null)
+        {
+            hero.AddItem(ring);
+            world.ApplyItemBonus(hero, ring);
+            int heroArmor = (int)world.ArmorOf(hero);
+            int otherArmor = (int)world.ArmorOf(other);
+
+            bool given = world.GiveItem(hero, ring.Slot, other);
+            Verify("转交成功", 1f, given ? 1f : 0f, 0f);
+            Verify("转交后原主空手", 0f, hero.ItemCount, 0f);
+            Verify("转交后对方拿到 1 件", 1f, other.ItemCount, 0f);
+            Verify("护甲加成跟着走", 1f, world.ArmorOf(other) > otherArmor ? 1f : 0f, 0f);
+            GD.Print($"[自检] 转交护戒：原主护甲 {heroArmor}→{(int)world.ArmorOf(hero)}，对方 {otherArmor}→{(int)world.ArmorOf(other)}");
+        }
+
+        GD.Print($"[自检] 商店 药水库存 0→{shop.StockOf("phea")}（补一件 {shop.RestockInterval:0}s），"
+            + $"王冠卖 {Mathf.Max(1, (ItemCatalog.Get("ckng")?.GoldCost ?? 0) / 2)} 金");
     }
 
     /// <summary>物品属性加成：三围 + 攻击 + 护甲，并立刻反映到英雄派生值。</summary>

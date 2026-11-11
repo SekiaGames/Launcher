@@ -43,6 +43,8 @@ public sealed partial class Unit
     public bool Returning;
     public float ReturnDelay;
     public float LeashRange = 1000f;
+    /// <summary>AI 已经下令撤退（避免每 0.3s 重复下同一个命令）。</summary>
+    public bool RetreatOrdered;
 
     // —— 英雄状态 ——
     public bool IsHero;

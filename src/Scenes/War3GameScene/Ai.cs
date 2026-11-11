@@ -36,15 +36,33 @@ public sealed partial class War3GameScene
             if (hall == null) continue;
 
             int race = Mathf.Clamp(player.Race, 1, 4);
-            string unitId = RaceMelee[race];
+            List<string> wave = WaveComposition(player.Id, race);
             float angle = Mathf.Pi;
-            float worldX = hall.Position.X + Mathf.Cos(angle) * 220f;
-            float worldZ = hall.Position.Z + Mathf.Sin(angle) * 220f;
-            Unit attacker = Spawn(unitId, player.Id, worldX, worldZ, Mathf.Pi + angle, 0f, 1f);
-            if (attacker == null) continue;
+            if (_waveLogBudget > 0)
+            {
+                _waveLogBudget--;
+                var names = new List<string>();
+                foreach (string id in wave) names.Add(UnitCatalog.Get(id)?.Name ?? id);
+                GD.Print($"[WAVE] P{player.Id} 出兵 {wave.Count} 个：{string.Join("、", names)}");
+            }
 
-            _world.Units.Add(attacker);
-            attacker.Target = NearestTargetOf(ViewPlayer, hall.Position);
+            int slot = 0;
+            foreach (string unitId in wave)
+            {
+                float ring = 220f + (slot / 4) * 90f;
+                float spread = Mathf.Cos(angle) * ring;
+                float lateral = Mathf.Sin((float)(slot * 0.9)) * 60f;
+                Unit attacker = Spawn(unitId, player.Id,
+                    hall.Position.X + spread + lateral,
+                    hall.Position.Z + Mathf.Sin(angle) * ring,
+                    Mathf.Pi + angle, 0f, 1f);
+                slot++;
+                if (attacker == null) continue;
+
+                _world.Units.Add(attacker);
+                attacker.Target = NearestTargetOf(ViewPlayer, hall.Position);
+                attacker.RetreatOrdered = false;
+            }
 
             // 有活着的英雄就一起上（英雄自己会施法/治疗）
             Unit hero = null;
@@ -59,6 +77,76 @@ public sealed partial class War3GameScene
                 hero.Target = NearestTargetOf(ViewPlayer, hall.Position);
                 hero.MoveTarget = null;
                 hero.Path = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 波次编成：优先用这家已经造出来的出兵建筑能产的兵种（去重、最多 3 种），
+    /// 每种出 1 个，凑不满就退回本族步兵。用的是真实生产表，不是硬编码的种族表。
+    /// </summary>
+    private List<string> WaveComposition(int player, int race)
+    {
+        var options = new List<string>();
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != player || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+            foreach (string id in unit.Type.Trains)
+            {
+                UnitType type = UnitCatalog.Get(id);
+                if (type == null || type.IsHero || type.IsWorkerType || type.FoodUsed <= 0) continue;
+                if (!options.Contains(id)) options.Add(id);
+            }
+        }
+
+        if (options.Count == 0) options.Add(RaceMelee[race]);
+        if (options.Count > 3) options.RemoveRange(3, options.Count - 3);
+        return options;
+    }
+
+    /// <summary>
+    /// 撤退：血量低于 30% 且离基地较远时，放下目标往主基地走；
+    /// 回到 60% 以上或已经到家就解除（不做治疗逻辑，靠自然回血）。
+    /// </summary>
+    private int _waveLogBudget = 8;
+    private int _retreatLogBudget = 6;
+
+    private void TickAiRetreat(PlayerSlot slot)
+    {
+        Unit hall = FindHall(slot.Id);
+        if (hall == null) return;
+
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != slot.Id) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.IsHero) continue;
+
+            float ratio = unit.MaxHp > 0f ? unit.Hp / unit.MaxHp : 1f;
+            float distance = unit.DistanceTo(hall);
+
+            if (unit.RetreatOrdered)
+            {
+                if (ratio > 0.6f || distance < 420f)
+                {
+                    unit.RetreatOrdered = false;
+                    if (distance < 420f) unit.MoveTarget = null;
+                }
+                continue;
+            }
+
+            if (ratio > 0.3f || distance < 700f) continue;
+
+            unit.RetreatOrdered = true;
+            unit.Target = null;
+            unit.GoldMine = null;
+            unit.Tree = null;
+            unit.MoveTarget = hall.Position;
+            unit.Path = null;
+
+            if (_retreatLogBudget > 0)
+            {
+                _retreatLogBudget--;
+                GD.Print($"[AI] P{slot.Id} {unit.Type.Name} 残血 {ratio * 100f:0}% 撤退回基地");
             }
         }
     }
@@ -211,6 +299,8 @@ public sealed partial class War3GameScene
 
         Unit hall = FindHall(slot.Id);
         if (hall == null) return;
+
+        TickAiRetreat(slot);
 
         for (int attempt = 0; attempt < 4; attempt++)
         {

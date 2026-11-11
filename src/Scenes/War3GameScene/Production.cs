@@ -384,6 +384,11 @@ public sealed partial class War3GameScene
             _hud?.SetHint($"{type.Name} 需要 {type.GoldCost} 金，当前 {slot.Gold}");
             return false;
         }
+        if (!shop.TakeStock(itemId))
+        {
+            _hud?.SetHint($"{shop.Type.Name} 的 {type.Name} 卖光了（{type.StockRegen:0}s 补一件）");
+            return false;
+        }
 
         slot.Gold -= type.GoldCost;
         float angle = (float)(GD.Randi() % 628) / 100f;
@@ -396,6 +401,7 @@ public sealed partial class War3GameScene
         if (item == null)
         {
             slot.Gold += type.GoldCost;
+            shop.AddStock(itemId);
             _hud?.SetHint($"买不了 {type.Name}（物品模型缺失）");
             return false;
         }
