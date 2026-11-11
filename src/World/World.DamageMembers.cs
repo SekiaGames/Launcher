@@ -154,6 +154,7 @@ public sealed partial class World
         }
 
         info.Ethereal = target.State.Ethereal;
+        if (target.IsIllusion && target.IllusionDamageReceived > 0f) info.Amount *= target.IllusionDamageReceived;
         info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.ArmorFactor(info.Armor);
         info.ClassRatio = War3GameplayConfig.ClassRatio(info.AttackType, info.DefenseType);
         info.Amount = War3GameplayConfig.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
@@ -270,9 +271,15 @@ public sealed partial class World
         if (!unit.Alive) return;
         if (TryPhoenixEgg(unit)) return;
 
+        TriggerBuffDeathEffects(unit);
+
         EndMorphBeforeDeath(unit);
         unit.CancelAttack();
         InterruptChannel(unit);
+        for (int index = 0; index < unit.Abilities.Count; index++)
+        {
+            unit.Abilities[index].OnOwnerDeath(this);
+        }
         unit.EnterDeath();
         bool reincarnating = TryDeathTriggers(unit);
         if (!reincarnating)
@@ -288,5 +295,19 @@ public sealed partial class World
         }
 
         Died?.Invoke(unit);
+        if (unit.IsIllusion)
+        {
+            unit.IsCorpse = false;
+            if (unit.View != null) unit.View.Root.Visible = false;
+        }
+    }
+
+    /// <summary>死亡时遍历 Buff 钩子（黑蚀箭标记召骷髅）。正在跑的回调可能挂新 Buff，用下标遍历。</summary>
+    private void TriggerBuffDeathEffects(Unit unit)
+    {
+        for (int index = 0; index < unit.Buffs.Count; index++)
+        {
+            unit.Buffs[index].OnDeath(this);
+        }
     }
 }

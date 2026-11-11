@@ -91,6 +91,11 @@ public static class SkillRegistry
         ["AUls"] = () => new LocustSwarm(),   // 蝗群（地穴领主，20 只 uloc）
         ["AOeq"] = () => new Earthquake(),    // 地震（先知，引导 25s 拆塔 + 减速）
         ["AHfa"] = () => new SearingArrows(), // 灼热之箭（白虎，每箭附加火焰伤害）
+        // —— 剑圣 / 黑暗游侠 ——
+        ["AOmi"] = () => new MirrorImage(),   // 镜像分身（剑圣，幻象 + 本体随机换位）
+        ["AOwk"] = () => new WindWalk(),      // 疾风步（剑圣，隐身 + 破隐一击）
+        ["ANba"] = () => new BlackArrow(),    // 黑蚀箭（黑暗游侠，标记击杀召骷髅）
+        ["ANdr"] = () => new LifeDrain(),     // 生命汲取（黑暗游侠，引导抽血回自己）
         // —— 召唤与复活 ——
         ["AHwe"] = () => new SummonUnit(),     // 水元素（hwat/hwt2/hwt3）
         ["AEfn"] = () => new SummonUnit(),     // 树人（efon，丛林守护者）

@@ -27,7 +27,7 @@ public sealed partial class World
     /// </summary>
     public static bool GivesBounty(Unit victim)
     {
-        return victim != null && victim.Player == 12;
+        return victim != null && victim.Player == 12 && !victim.IsIllusion;
     }
 
     public int BountyGoldOf(Unit victim)

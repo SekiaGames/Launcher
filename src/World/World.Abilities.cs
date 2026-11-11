@@ -334,6 +334,19 @@ public sealed partial class World
         return result;
     }
 
+    /// <summary>普攻出手钩子：疾风步的破隐一击挂 Buff 上（隐身要在这时破）。</summary>
+    public float ApplyLaunchModifiers(Unit attacker, Unit target, float raw)
+    {
+        if (attacker == null || attacker.Buffs.Count == 0) return raw;
+
+        float result = raw;
+        for (int index = 0; index < attacker.Buffs.Count; index++)
+        {
+            if (attacker.Buffs[index] is IAttackLaunchBuff hook) hook.OnAttackLaunched(this, target, ref result);
+        }
+        return result;
+    }
+
     /// <summary>按 基础 + 等级成长 + 装备/技能加成 重算英雄三围与生命法力。</summary>
     public void RefreshHeroAttributes(Unit hero)
     {

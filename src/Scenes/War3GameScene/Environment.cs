@@ -44,9 +44,12 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.View == null) continue;
-            bool visible = !unit.InMine
-                && (unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
+            bool own = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
+            bool visible = !unit.InMine && (own || _fog.IsVisible(unit.Position));
+            // 隐身（疾风步）：敌方看不见；自己/盟友能看见，但只能看到一个淡影
+            if (unit.State.Invisible) visible = own;
             unit.View.Root.Visible = visible;
+            if (visible) unit.View.SetGhost(unit.State.Invisible);
         }
     }
 }

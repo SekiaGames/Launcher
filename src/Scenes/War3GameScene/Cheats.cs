@@ -930,6 +930,53 @@ public sealed partial class War3GameScene
 
         DemoDruidForm(creep);
         DemoPhoenix(creep);
+        DemoIllusion(creep);
+    }
+
+    /// <summary>
+    /// 镜像与疾风步：场景层看幻象真的建出了模型节点、隐身真的挂在状态上且自己眼里只留淡影。
+    /// </summary>
+    private void DemoIllusion(Unit creep)
+    {
+        Unit blade = Spawn("Obla", ViewPlayer, creep.Position.X + 620f, creep.Position.Z - 620f, 0f, 0f, 1f);
+        if (blade == null)
+        {
+            GD.Print("[ILLUSION] 缺剑圣模型，跳过镜像验证");
+            return;
+        }
+
+        _world.Units.Add(blade);
+        blade.Level = 6;
+        blade.SkillPoints = 3;
+        _world.RefreshHeroAttributes(blade);
+        blade.Hp = blade.MaxHp;
+        blade.Mana = blade.MaxMana;
+        _world.LearnAbility(blade, "AOmi");
+        _world.LearnAbility(blade, "AOwk");
+
+        Ability mirror = blade.FindAbility("AOmi");
+        bool cast = mirror != null && _world.TryCast(blade, mirror, null, blade.Position);
+
+        int images = 0;
+        string names = "";
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || !unit.IsIllusion) continue;
+            images++;
+            names += (unit.View?.Root?.Name ?? "?") + " ";
+        }
+        GD.Print($"[ILLUSION] 镜像 {(cast ? "成功" : "失败")} 幻象 {images} 个：{names}本体模型 {blade.View?.Root?.Name}");
+
+        Ability wind = blade.FindAbility("AOwk");
+        float baseSpeed = World.SpeedOf(blade);
+        bool windCast = wind != null && _world.TryCast(blade, wind, null, blade.Position);
+
+        SceneTreeTimer timer = GetTree().CreateTimer(1.2);
+        timer.Timeout += () =>
+        {
+            GD.Print($"[ILLUSION] 疾风步 {(windCast ? "成功" : "失败")} 隐身={blade.State.Invisible}"
+                + $" 移速 {baseSpeed:0}→{World.SpeedOf(blade):0} 自己看得到={blade.View?.Root?.Visible}");
+        };
     }
 
     /// <summary>

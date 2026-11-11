@@ -1,4 +1,12 @@
+using Godot;
+
 namespace Launcher;
+
+/// <summary>普攻出手时的 Buff 钩子（疾风步的破隐一击这类）。</summary>
+public interface IAttackLaunchBuff
+{
+    void OnAttackLaunched(World world, Unit target, ref float raw);
+}
 
 /// <summary>
 /// 时限增益/减益。对标客户端 Src/Abilities/Buff.cs：
@@ -19,6 +27,9 @@ public class Buff
 
     /// <summary>持有者被普攻命中后（霜冻护甲减速攻击者、荆棘反伤这类挂这里）。</summary>
     public virtual void OnAttacked(World world, Unit attacker, DamageInfo info) { }
+
+    /// <summary>持有者死亡时（黑蚀箭的标记到点召骷髅）。</summary>
+    public virtual void OnDeath(World world) { }
 
     /// <summary>返回 true 表示可以继续存在。</summary>
     public virtual bool OnTick(World world, float delta)
@@ -105,6 +116,85 @@ public sealed class BanishBuff : Buff
     public override void OnRemove(World world)
     {
         Owner?.State.RemoveAll(StateMod.Ethereal);
+    }
+}
+
+/// <summary>
+/// 疾风步：淡入隐身 + 移速加成，第一次出手把隐身破掉并多打一刀。
+/// 对标 Wiki RuntimeWindWalkBuff（DataA 淡入、DataB 移速系数、DataC 破隐伤害）。
+/// </summary>
+public sealed class WindWalkBuff : Buff, IAttackLaunchBuff
+{
+    public float FadeSeconds;
+    public float MoveSpeedFactor;
+    public float BackstabDamage;
+
+    private float _fadeRemaining;
+    private float _appliedMove;
+    private bool _revealed;
+
+    public bool Revealed => _revealed;
+
+    public override void OnApply(World world)
+    {
+        if (Owner == null) return;
+        _appliedMove = Owner.Type != null ? Owner.Type.Speed * MoveSpeedFactor : 0f;
+        Owner.BonusMoveSpeedFlat += _appliedMove;
+        _fadeRemaining = Mathf.Max(0f, FadeSeconds);
+        if (_fadeRemaining <= 0f) BecomeInvisible();
+    }
+
+    public override bool OnTick(World world, float delta)
+    {
+        bool alive = base.OnTick(world, delta);
+        if (!alive || Owner == null) return alive;
+        if (_revealed || Owner.State.Invisible) return alive;
+
+        _fadeRemaining -= delta;
+        if (_fadeRemaining <= 0f) BecomeInvisible();
+        return alive;
+    }
+
+    public void OnAttackLaunched(World world, Unit target, ref float raw)
+    {
+        if (Owner == null || !Owner.State.Invisible) return;
+        Owner.State.RemoveAll(StateMod.Invisible);
+        _revealed = true;
+        if (BackstabDamage > 0f) raw += BackstabDamage;
+    }
+
+    public override void OnRemove(World world)
+    {
+        if (Owner == null) return;
+        Owner.BonusMoveSpeedFlat -= _appliedMove;
+        _appliedMove = 0f;
+        Owner.State.RemoveAll(StateMod.Invisible);
+    }
+
+    private void BecomeInvisible()
+    {
+        if (Owner == null || !Owner.Alive) return;
+        Owner.State.Add(StateMod.Invisible, Mathf.Max(0.1f, Remaining));
+    }
+}
+
+/// <summary>黑蚀箭标记：Dur 内被射死就召出 DataB 只 UnitID（DataC 秒）。</summary>
+public sealed class BlackArrowMarkBuff : Buff
+{
+    public Unit Summoner;
+    public string UnitId = "";
+    public int Count = 1;
+    public float SummonLifetime;
+
+    public override void OnDeath(World world)
+    {
+        if (world == null || Summoner == null || Owner == null) return;
+        if (string.IsNullOrEmpty(UnitId) || Count <= 0) return;
+
+        for (int index = 0; index < Count; index++)
+        {
+            world.Summon(Summoner, UnitId, Owner.Position, SummonLifetime);
+        }
     }
 }
 

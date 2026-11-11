@@ -10,7 +10,7 @@ public sealed partial class World
     /// <summary>击杀时给附近同阵营英雄发经验（HeroExpRange），逐级结算升级。</summary>
     public void GrantKillExperience(Unit killer, Unit victim)
     {
-        if (victim == null) return;
+        if (victim == null || victim.IsIllusion) return;
 
         int xp = HeroRules.KillXpFor(victim);
         if (xp <= 0) return;

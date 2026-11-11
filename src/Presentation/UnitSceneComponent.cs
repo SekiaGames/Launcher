@@ -59,6 +59,21 @@ public sealed class UnitSceneComponent
     /// <summary>换阵营时重刷模型上的队伍色。</summary>
     public void SetTeamColor(Color color) => ApplyTeamColor(color);
 
+    private bool _ghost;
+
+    /// <summary>隐身时只留一个淡影（自己的单位能看见自己在哪里）。</summary>
+    public void SetGhost(bool ghost)
+    {
+        if (_ghost == ghost) return;
+        _ghost = ghost;
+        float transparency = ghost ? 0.55f : 0f;
+
+        foreach (Node node in Root.FindChildren("*", "GeometryInstance3D", true, false))
+        {
+            if (node is GeometryInstance3D geometry) geometry.Transparency = transparency;
+        }
+    }
+
     private void ApplyTeamColor(Color color)
     {
         foreach (Node node in Root.FindChildren("*", "MeshInstance3D", true, false))

@@ -84,6 +84,8 @@ public sealed partial class World
         // 强击光环只加远程攻击（物编 AEar 的 DataA 是百分比）
         if (!string.IsNullOrEmpty(weapon.MissileScene)) raw *= 1f + unit.AuraRangedDamagePct;
         raw = ApplyAttackModifiers(unit, target, raw);
+        raw = ApplyLaunchModifiers(unit, target, raw);
+        if (unit.IsIllusion) raw *= unit.IllusionDamageDealt;
         DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
 
         bool flies = weapon.MissileScene != null && weapon.MissileSpeed > 0f;

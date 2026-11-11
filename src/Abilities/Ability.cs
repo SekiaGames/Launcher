@@ -204,4 +204,7 @@ public abstract class Ability
     public virtual bool CanBeHitBy(World world, DamageInfo info) => true;
 
     public virtual void OnLearned() { }
+
+    /// <summary>持有者死亡时（镜像分身要把幻象一起收掉）。</summary>
+    public virtual void OnOwnerDeath(World world) { }
 }
