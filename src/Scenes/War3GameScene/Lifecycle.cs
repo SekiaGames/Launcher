@@ -109,6 +109,7 @@ public sealed partial class War3GameScene : Node3D
         _world.ChannelEnded += OnChannelEnded;
         _world.HeroRevived += OnHeroRevived;
         _world.UnitMorphed += OnUnitMorphed;
+        _world.UnitRemoved += OnUnitRemoved;
         _world.TrySpendGold = (player, amount) =>
         {
             PlayerSlot slot = Slot(player);

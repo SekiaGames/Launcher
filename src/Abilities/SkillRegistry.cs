@@ -484,6 +484,17 @@ public static class SkillRegistry
         ["ANc1"] = () => new ClusterRockets(), // 火箭群（工程升级后的码）
         ["ANc2"] = () => new ClusterRockets(),
         ["ANc3"] = () => new ClusterRockets(),
+        // —— 形态与升级（客户端 RuntimeCouple/Decouple/AlternateForm） ——
+        ["Aco2"] = () => new Couple(),         // 弓箭手骑上角鹰兽
+        ["Aco3"] = () => new Couple(),         // 角鹰兽载起弓箭手
+        ["Adec"] = () => new Decouple(),       // 分离回弓箭手 + 角鹰兽
+        ["Sbsk"] = () => new UnitTypeUpgrade(),// 猎头者研究完成后换狂暴战士
+        ["Srtt"] = () => new UnitTypeUpgrade(),// 蒸汽机车研究完成后换升级机车
+        ["Asb1"] = () => new Submerge(),       // 潜水（穆戈尔）
+        ["Asb2"] = () => new Submerge(),       // 潜水（皇家卫兵）
+        ["Asb3"] = () => new Submerge(),       // 潜水（飞龙）
+        ["Ansk"] = () => new HardenedSkin(),   // 硬化皮肤（龙龟）
+        ["Aast"] = () => new AncestralSpirit(),// 牛头人祖灵（灵魂行者）
     };
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);

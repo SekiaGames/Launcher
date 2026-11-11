@@ -51,6 +51,38 @@ public sealed partial class World
         _pathGrid?.ClearArea(tree.Position, 24f);
     }
 
+    /// <summary>
+    /// 把一个单位真正从这个世界上拿掉（骑乘合成、分离这类「原地换人」）。
+    /// 场景层监听 <see cref="UnitRemoved"/> 释放模型节点。
+    /// </summary>
+    public void RemoveUnit(Unit unit)
+    {
+        if (unit == null) return;
+
+        unit.Alive = false;
+        unit.IsCorpse = false;
+        unit.Target = null;
+        unit.MoveTarget = null;
+        Units.Remove(unit);
+        UnitRemoved?.Invoke(unit);
+    }
+
+    /// <summary>
+    /// 造一个属于某单位的玩家、但不带召唤关系的单位（骑乘合成、分离用）。
+    /// 与 <see cref="Summon"/> 的区别：不会随召唤者死亡消失，也不会自己到期。
+    /// </summary>
+    public Unit CreateFor(Unit owner, string unitId, Vector3 position)
+    {
+        if (owner == null || SummonHandler == null || string.IsNullOrEmpty(unitId)) return null;
+
+        Unit created = SummonHandler(owner, unitId, position);
+        if (created == null) return null;
+        created.Summoner = null;
+        created.SummonRemaining = 0f;
+        if (!Units.Contains(created)) Units.Add(created);
+        return created;
+    }
+
     /// <summary>古树拔根：放开自己占的格子（半径取拔根前的建筑足迹）。</summary>
     public void ReleaseFootprint(Unit unit, float radius)
     {

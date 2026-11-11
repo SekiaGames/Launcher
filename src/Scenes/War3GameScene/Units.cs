@@ -408,4 +408,18 @@ public sealed partial class War3GameScene
             + $" 生命 {unit.Hp:0}/{unit.MaxHp:0}"
             + (unit.Morphed ? $" 剩余变形 {unit.MorphRemaining:0.0}s" : " 已还原"));
     }
+
+    /// <summary>骑乘合成 / 分离把单位从世界上拿掉：模型与选中列表同步清掉，避免残留空节点。</summary>
+    private void OnUnitRemoved(Unit unit)
+    {
+        if (unit == null) return;
+
+        bool selected = _selected.Remove(unit);
+        _allUnits.Remove(unit);
+        unit.View?.Root.QueueFree();
+        unit.View = null;
+        if (selected) _hud?.SetSelection(_selected);
+
+        GD.Print($"[UNIT] {unit.Type?.Id ?? "?"} 已离场（骑乘/分离）");
+    }
 }

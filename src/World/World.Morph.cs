@@ -66,6 +66,34 @@ public sealed partial class World
         }
     }
 
+    /// <summary>
+    /// 研究与升级驱动的「永久换单位类型」（猎头者→狂暴战士、蒸汽机车→升级机车）。
+    /// 与 <see cref="BeginMorph"/> 的区别：生命上限取新类型自己的，不看旧上限。
+    /// </summary>
+    public bool ReplaceType(Unit unit, UnitType newType)
+    {
+        if (unit == null || unit.Type == null || newType == null || !unit.Alive) return false;
+        if (string.Equals(unit.Type.Id, newType.Id, StringComparison.OrdinalIgnoreCase)) return false;
+
+        if (unit.Morphed) EndMorph(unit, notify: false);
+
+        float ratio = Mathf.Clamp(unit.Hp / Mathf.Max(1f, unit.MaxHp), 0.01f, 1f);
+        unit.Type = newType;
+        unit.IsHero = newType.IsHero;
+        unit.IsBuilding = newType.IsBuilding;
+        unit.MaxHp = newType.IsHero
+            ? Mathf.Max(1f, HeroRules.MaxHpOf(newType, unit.Strength) + unit.BonusMaxHp)
+            : Mathf.Max(1f, newType.Hp);
+        unit.Hp = Mathf.Clamp(unit.MaxHp * ratio, 1f, unit.MaxHp);
+        unit.MaxMana = newType.ManaMax > 0f ? newType.ManaMax : 0f;
+        unit.Mana = Mathf.Min(unit.Mana, unit.MaxMana);
+        unit.CancelAttack();
+
+        SyncAbilitiesToType(unit);
+        UnitMorphed?.Invoke(unit);
+        return true;
+    }
+
     public void TickMorph()
     {
         foreach (Unit unit in Units)
