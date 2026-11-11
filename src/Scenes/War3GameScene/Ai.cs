@@ -135,6 +135,9 @@ public sealed partial class War3GameScene
             }
         }
 
+        // 建造优先级：先人口（否则卡人口），再英雄祭坛（原版 AI 也是先出英雄），然后出兵建筑
+        buildable.Sort((left, right) => BuildPriority(left).CompareTo(BuildPriority(right)));
+
         foreach (string id in buildable)
         {
             UnitType type = UnitCatalog.Get(id);
@@ -173,6 +176,21 @@ public sealed partial class War3GameScene
         }
 
         GD.Print($"[内务] P{slot.Id} 计划 {slot.Tasks.Count} 条（建筑 {buildable.Count} 种，工人 {worker?.Name}）");
+    }
+
+    /// <summary>0=人口建筑，1=能出英雄的祭坛，2=出兵建筑，3=其余。</summary>
+    private static int BuildPriority(string id)
+    {
+        UnitType type = UnitCatalog.Get(id);
+        if (type == null) return 9;
+        if (type.FoodMade > 0) return 0;
+
+        foreach (string unitId in type.Trains)
+        {
+            UnitType trained = UnitCatalog.Get(unitId);
+            if (trained != null && trained.IsHero) return 1;
+        }
+        return type.Trains.Length > 0 ? 2 : 3;
     }
 
     private void CollectUpgradeFamily(string id, HashSet<string> family)
