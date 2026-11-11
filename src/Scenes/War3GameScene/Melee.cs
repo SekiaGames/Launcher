@@ -73,5 +73,6 @@ public sealed partial class War3GameScene
         string winnersText = string.Join("、", winners);
         _hud?.SetHint($"对局结束，胜者：{winnersText}");
         _gameOverPanel?.Show(AreAllied(ViewPlayer, alive[0]), winnersText);
+        Paused = true;
     }
 }
