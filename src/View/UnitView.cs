@@ -24,7 +24,12 @@ public sealed class UnitView
     public MeshInstance3D Ring { get; private set; }
     public string CurrentAnimation { get; private set; }
 
-    public static UnitView Create(PackedScene scene, Color teamColor, float scale, bool isBuilding)
+    public MeshInstance3D ProgressNode { get; private set; }
+    private ImmediateMesh _progressMesh;
+    private float _progressRadius;
+    private float _progressDrawn = -1f;
+
+    public static UnitView Create(PackedScene scene, Color teamColor, float scale, bool isBuilding, float footprintRadius = 0f)
     {
         var view = new UnitView();
         var root = scene.Instantiate<Node3D>();
@@ -39,8 +44,10 @@ public sealed class UnitView
         MapWorldBuilder.ApplyUnitTextureFilter(root);
 
         view.Height = MeasureHeight(root, isBuilding);
+        view._progressRadius = Mathf.Max(40f, footprintRadius);
         view.BuildBar(isBuilding);
         view.BuildRing(isBuilding);
+        if (isBuilding) view.BuildProgressRing();
         return view;
     }
 
@@ -223,6 +230,94 @@ public sealed class UnitView
             if (name.StartsWith(kind, StringComparison.OrdinalIgnoreCase)) return name;
         }
         return null;
+    }
+
+    private void BuildProgressRing()
+    {
+        _progressMesh = new ImmediateMesh();
+        ProgressNode = new MeshInstance3D
+        {
+            Mesh = _progressMesh,
+            MaterialOverride = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                AlbedoColor = new Color(0.35f, 1f, 0.45f, 0.55f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                NoDepthTest = false,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            },
+            Position = new Vector3(0f, 12f, 0f),
+            Visible = false,
+            Name = "BuildProgress",
+        };
+        Root.AddChild(ProgressNode);
+    }
+
+    private void UpdateProgressRing(float progress)
+    {
+        if (_progressMesh == null) return;
+
+        if (progress >= 1f)
+        {
+            ProgressNode.Visible = false;
+            _progressDrawn = -1f;
+            return;
+        }
+
+        ProgressNode.Visible = true;
+        if (Mathf.Abs(progress - _progressDrawn) < 0.02f) return;
+        _progressDrawn = progress;
+
+        // 客户端是贴着建筑底边的一圈细环，不是实心圆盘
+        const int segments = 48;
+        int filled = Mathf.Max(1, Mathf.CeilToInt(segments * Mathf.Clamp(progress, 0f, 1f)));
+        float outer = _progressRadius * 1.02f;
+        float inner = outer * 0.90f;
+
+        _progressMesh.ClearSurfaces();
+        _progressMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        _progressMesh.SurfaceSetColor(new Color(0.35f, 1f, 0.45f, 0.55f));
+        for (int i = 0; i < filled; i++)
+        {
+            float a0 = Mathf.Tau * i / segments - Mathf.Pi * 0.5f;
+            float a1 = Mathf.Tau * (i + 1) / segments - Mathf.Pi * 0.5f;
+
+            var i0 = new Vector3(Mathf.Cos(a0) * inner, 0f, Mathf.Sin(a0) * inner);
+            var o0 = new Vector3(Mathf.Cos(a0) * outer, 0f, Mathf.Sin(a0) * outer);
+            var i1 = new Vector3(Mathf.Cos(a1) * inner, 0f, Mathf.Sin(a1) * inner);
+            var o1 = new Vector3(Mathf.Cos(a1) * outer, 0f, Mathf.Sin(a1) * outer);
+
+            _progressMesh.SurfaceAddVertex(i0);
+            _progressMesh.SurfaceAddVertex(o0);
+            _progressMesh.SurfaceAddVertex(o1);
+
+            _progressMesh.SurfaceAddVertex(i0);
+            _progressMesh.SurfaceAddVertex(o1);
+            _progressMesh.SurfaceAddVertex(i1);
+        }
+        _progressMesh.SurfaceEnd();
+    }
+
+    public void SetBuildProgress(float progress)
+    {
+        UpdateProgressRing(progress);
+        if (Player == null) return;
+
+        string found = PickAnimation("Birth");
+        if (found == null) return;
+
+        if (CurrentAnimation != found)
+        {
+            CurrentAnimation = found;
+            Player.Play(found);
+        }
+
+        Animation animation = Player.GetAnimation(found);
+        if (animation == null) return;
+
+        Player.Seek((double)(Mathf.Clamp(progress, 0f, 1f) * (float)animation.Length), true);
+        Player.Pause();
     }
 
     public void SetHp(float ratio, bool alive)

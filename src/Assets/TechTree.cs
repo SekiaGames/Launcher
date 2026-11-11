@@ -14,6 +14,9 @@ public sealed class UnitFuncRow
     public string[] Researches = Array.Empty<string>();
     public string[] UpgradeTo = Array.Empty<string>();
     public string[] Requires = Array.Empty<string>();
+    public string MissileArt;
+    public float MissileSpeed;
+    public float MissileArc;
 }
 
 public sealed class UpgradeType
@@ -231,6 +234,9 @@ public static class TechTree
             Researches = SplitList(Get(fields, "Researches")),
             UpgradeTo = SplitList(Get(fields, "Upgrade")),
             Requires = SplitList(Get(fields, "Requires"), fields, "Requires"),
+            MissileArt = Get(fields, "Missileart"),
+            MissileSpeed = Number(Get(fields, "Missilespeed"), 0f),
+            MissileArc = Number(Get(fields, "Missilearc"), 0f),
         };
         Rows[id] = row;
         return row;

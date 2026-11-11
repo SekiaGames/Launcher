@@ -51,6 +51,19 @@ public sealed class MapWorldBuilder
         return InterpolatedHeight(terrain, gridX, gridZ);
     }
 
+    private static List<string> UsedCliffIds(W3eTerrain terrain)
+    {
+        var used = new List<string>();
+        foreach (W3eTerrain.Corner corner in terrain.Corners)
+        {
+            int index = corner.CliffTexture;
+            if (index < 0 || index >= terrain.CliffTextures.Count) continue;
+            string id = terrain.CliffTextures[index];
+            if (!used.Contains(id)) used.Add(id);
+        }
+        return used;
+    }
+
     private bool[,] BuildCliffs(W3eTerrain terrain)
     {
         int width = terrain.Width;
@@ -68,7 +81,7 @@ public sealed class MapWorldBuilder
         var covered = new bool[width, height];
         _cliffTransitions = new bool[width, height];
 
-        CliffTextureSet cliffSet = CliffTextureSet.Build(terrain.CliffTextures);
+        CliffTextureSet cliffSet = CliffTextureSet.Build(UsedCliffIds(terrain));
         var material = new ShaderMaterial
         {
             Shader = GD.Load<Shader>("res://assets/shaders/cliff_map.gdshader"),

@@ -127,7 +127,7 @@ public sealed class PathGrid
         while (open.TryDequeue(out int current, out _))
         {
             if (current == goal) return BuildPath(cameFrom, goal, sx, sy, unitRadius);
-            if (++guard > 200000) return null;
+            if (++guard > 20000) return null;
 
             int cx = current % _width;
             int cy = current / _width;

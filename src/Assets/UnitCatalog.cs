@@ -36,8 +36,26 @@ public sealed class UnitType
     public string[] UpgradeTo = Array.Empty<string>();
     public string[] Requires = Array.Empty<string>();
     public string[] UpgradesApplied = Array.Empty<string>();
+    public string[] Abilities = Array.Empty<string>();
+    public int FootprintCells = 2;
+    public string MissileScene;
+    public float MissileSpeed = 900f;
+    public float MissileArc;
 
     public bool IsWorkerType => Builds.Length > 0;
+    public bool CanGatherGold => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Aaha");
+    public bool EntersMine => HasAbility("Aaha");
+    public float FootprintRadius => FootprintCells * 32f * 0.5f;
+    public bool CanGatherLumber => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Ahrl");
+
+    private bool HasAbility(string code)
+    {
+        foreach (string ability in Abilities)
+        {
+            if (string.Equals(ability, code, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
 }
 
 public static class UnitCatalog
@@ -46,6 +64,8 @@ public static class UnitCatalog
     private static readonly Dictionary<string, int> UiRows = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, int> BalanceRows = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, int> WeaponRows = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, int> AbilityRows = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, int> DataRows = new(StringComparer.OrdinalIgnoreCase);
     private static bool _indexed;
 
     private static void EnsureIndex()
@@ -55,7 +75,9 @@ public static class UnitCatalog
         Index(War3Tables.UnitUI(), "unitUIID", UiRows);
         Index(War3Tables.UnitBalance(), "unitBalanceID", BalanceRows);
         Index(War3Tables.UnitWeapons(), "unitWeapID", WeaponRows);
-        GD.Print($"[UNIT] 索引 unitUI={UiRows.Count} balance={BalanceRows.Count} weapons={WeaponRows.Count}");
+        Index(War3Tables.UnitAbilities(), "unitAbilID", AbilityRows);
+        Index(War3Tables.UnitData(), "unitID", DataRows);
+        GD.Print($"[UNIT] 索引 unitUI={UiRows.Count} balance={BalanceRows.Count} weapons={WeaponRows.Count} abilities={AbilityRows.Count}");
     }
 
     private static void Index(SlkTable table, string column, Dictionary<string, int> target)
@@ -116,14 +138,27 @@ public static class UnitCatalog
         if (WeaponRows.TryGetValue(id, out int weaponRow))
         {
             SlkTable weapons = War3Tables.UnitWeapons();
-            string kind = weapons.Get(weaponRow, "weapTp1");
-            type.CanAttack = !string.IsNullOrWhiteSpace(kind)
+            string kind = weapons.Get(weaponRow, "weapTp1")?.Trim();
+            type.CanAttack = !string.IsNullOrEmpty(kind)
+                && kind != "_" && kind != "-"
                 && !kind.Equals("none", StringComparison.OrdinalIgnoreCase);
             type.AttackRange = Number(weapons.Get(weaponRow, "rangeN1"), 90f);
             type.AttackCooldown = Number(weapons.Get(weaponRow, "cool1"), 1.5f);
             type.MinDamage = Number(weapons.Get(weaponRow, "mindmg1"), 5f);
             type.MaxDamage = Number(weapons.Get(weaponRow, "maxdmg1"), 10f);
             type.AcquireRange = Number(weapons.Get(weaponRow, "acquire"), 500f);
+        }
+
+        if (DataRows.TryGetValue(id, out int dataRow))
+        {
+            SlkTable data = War3Tables.UnitData();
+            type.FootprintCells = FootprintFromPathTexture(data.Get(dataRow, "pathTex"), type.FootprintCells);
+        }
+
+        if (AbilityRows.TryGetValue(id, out int abilityRow))
+        {
+            SlkTable abilities = War3Tables.UnitAbilities();
+            type.Abilities = SplitList(abilities.Get(abilityRow, "abilList"));
         }
 
         UnitFuncRow row = TechTree.Row(id);
@@ -134,6 +169,9 @@ public static class UnitCatalog
             type.Researches = row.Researches;
             type.UpgradeTo = row.UpgradeTo;
             type.Requires = row.Requires;
+            type.MissileScene = PathResolve.ModelScene(row.MissileArt);
+            type.MissileArc = row.MissileArc;
+            if (row.MissileSpeed > 0f) type.MissileSpeed = row.MissileSpeed;
         }
 
         string localized = TechTree.UnitName(id);
@@ -154,6 +192,23 @@ public static class UnitCatalog
             list.Add(part);
         }
         return list.ToArray();
+    }
+
+    private static int FootprintFromPathTexture(string pathTexture, int fallback)
+    {
+        if (string.IsNullOrWhiteSpace(pathTexture)) return fallback;
+
+        string name = pathTexture.Replace('\\', '/');
+        int slash = name.LastIndexOf('/');
+        if (slash >= 0) name = name[(slash + 1)..];
+
+        int x = name.IndexOf('x');
+        if (x <= 0) return fallback;
+
+        int start = x - 1;
+        while (start >= 0 && char.IsDigit(name[start])) start--;
+        if (!int.TryParse(name[(start + 1)..x], out int cells)) return fallback;
+        return cells > 0 ? cells : fallback;
     }
 
     private static float Number(string text, float fallback)

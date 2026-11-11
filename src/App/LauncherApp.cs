@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using WorldEdit.Core.Formats.W3x;
 
 namespace Launcher;
 
@@ -23,8 +25,16 @@ public sealed partial class LauncherApp : Node
     private bool _buildTest;
     private bool _fast;
     private bool _housekeeping;
-    private int _startGold = 1000000;
-    private int _startLumber = 1000000;
+    private bool _dumpUnits;
+    private bool _creepProbe;
+    private bool _aggro;
+    private bool _noAi;
+    private int _viewPlayer = -1;
+    private int _players;
+    private readonly List<int> _slots = new();
+    private readonly List<List<int>> _teams = new();
+    private int _startGold = -1;
+    private int _startLumber = -1;
     private float _timeScale = 1f;
 
     public override void _Ready()
@@ -91,9 +101,57 @@ public sealed partial class LauncherApp : Node
             {
                 _timeScale = Mathf.Clamp(scale, 0.02f, 1f);
             }
+            else if (argument == "--aggro")
+            {
+                _aggro = true;
+            }
+            else if (argument.StartsWith("--players=") && int.TryParse(argument["--players=".Length..], out int players))
+            {
+                _players = Mathf.Clamp(players, 1, 12);
+            }
+            else if (argument.StartsWith("--slots="))
+            {
+                foreach (string part in argument["--slots=".Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (int.TryParse(part.Trim(), out int slot) && slot >= 0 && slot <= 11) _slots.Add(slot);
+                }
+            }
+            else if (argument.StartsWith("--teams="))
+            {
+                foreach (string group in argument["--teams=".Length..].Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var team = new List<int>();
+                    foreach (string part in group.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (int.TryParse(part.Trim(), out int slot) && slot >= 0 && slot <= 11) team.Add(slot);
+                    }
+                    if (team.Count > 0) _teams.Add(team);
+                }
+            }
+            else if (argument.StartsWith("--view=") && int.TryParse(argument["--view=".Length..], out int view))
+            {
+                _viewPlayer = Mathf.Clamp(view, 0, 11);
+            }
+            else if (argument == "--no-ai")
+            {
+                _noAi = true;
+            }
+            else if (argument == "--creep-probe")
+            {
+                _creepProbe = true;
+            }
+            else if (argument == "--dump-units")
+            {
+                _dumpUnits = true;
+            }
             else if (argument == "--housekeeping")
             {
                 _housekeeping = true;
+            }
+            else if (argument == "--rich")
+            {
+                _startGold = 1000000;
+                _startLumber = 1000000;
             }
             else if (argument.StartsWith("--gold=") && int.TryParse(argument["--gold=".Length..], out int gold))
             {
@@ -123,6 +181,13 @@ public sealed partial class LauncherApp : Node
                     _focusMapPoint = new Vector2(mx, my);
                 }
             }
+        }
+
+        if (_dumpUnits)
+        {
+            DumpUnits(playPath);
+            GetTree().Quit();
+            return;
         }
 
         if (_simTest)
@@ -174,6 +239,12 @@ public sealed partial class LauncherApp : Node
         game.TimeScaleHint = _fast ? Mathf.Min(0.15f, _timeScale) : _timeScale;
         game.StartGold = _startGold;
         game.StartLumber = _startLumber;
+        game.Aggression = _aggro;
+        game.AiEnabled = !_noAi;
+        game.ActivePlayers = _players;
+        if (_viewPlayer >= 0) game.ViewPlayer = _viewPlayer;
+        foreach (int slot in _slots) game.ActiveSlots.Add(slot);
+        foreach (List<int> team in _teams) game.Teams.Add(team);
         game.Setup(map, ShowMapList);
         if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
         if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
@@ -186,6 +257,7 @@ public sealed partial class LauncherApp : Node
         if (_lumberTest) game.ScriptedLumberTest();
         if (_buildTest) game.ScriptedBuildTest();
         if (_housekeeping) game.RunHousekeeping();
+        if (_creepProbe) game.RunCreepProbe();
         if (_pathProbe)
         {
             game.PathProbe();
@@ -195,6 +267,61 @@ public sealed partial class LauncherApp : Node
         _current = game;
         _elapsed = 0f;
         _shotTaken = false;
+    }
+
+    private static void DumpUnits(string gmapPath)
+    {
+        string full = string.IsNullOrEmpty(gmapPath) ? null : (System.IO.Path.IsPathRooted(gmapPath) ? gmapPath : Assets.WorkspaceDir + "/" + gmapPath);
+        MapSource map = MapSource.Open(full);
+        if (map == null)
+        {
+            GD.Print("[DUMP] 打不开地图");
+            return;
+        }
+
+        byte[] rawUnits = Assets.ReadBytes("res://gmap/map/war3mapUnits.doo");
+        if (rawUnits != null)
+        {
+            System.IO.File.WriteAllBytes("/tmp/war3mapUnits.doo", rawUnits);
+            GD.Print($"[DUMP] 原始 doo {rawUnits.Length} 字节已存 /tmp/war3mapUnits.doo");
+        }
+
+        System.IO.File.WriteAllBytes("/tmp/war3map.w3e", Assets.ReadBytes("res://gmap/map/war3map.w3e") ?? Array.Empty<byte>());
+        System.IO.File.WriteAllBytes("/tmp/war3map.wts", Assets.ReadBytes("res://gmap/map/war3map.wts") ?? Array.Empty<byte>());
+        foreach (string candidate in new[] { "war3mapMap.tga", "war3mapMap.blp", "war3mapMap.b00" })
+        {
+            byte[] data = Assets.ReadBytes("res://gmap/map/" + candidate);
+            GD.Print($"[DUMP] 小地图 {candidate} {(data == null ? "缺失" : data.Length + " 字节")}");
+        }
+        byte[] rawInfo = Assets.ReadBytes("res://gmap/map/war3map.w3i");
+        if (rawInfo != null)
+        {
+            System.IO.File.WriteAllBytes("/tmp/war3map.w3i", rawInfo);
+            System.IO.File.WriteAllBytes("/tmp/war3map.w3r", Assets.ReadBytes("res://gmap/map/war3map.w3r") ?? Array.Empty<byte>());
+        }
+
+        float offsetX = map.Terrain.OffsetX;
+        float offsetY = map.Terrain.OffsetY;
+        float startX = 0f;
+        float startZ = 0f;
+        foreach (W3iPlayer player in map.Players)
+        {
+            GD.Print($"[DUMP] 玩家 P{player.Id} 种族{player.Race} 控制{player.Controller} 起点({player.StartX:0},{player.StartY:0})"
+                + $" 名字={player.Name} ally={player.AllyLow}/{player.AllyHigh} enemy={player.EnemyLow}/{player.EnemyHigh}");
+            if (player.Id == 0)
+            {
+                startX = -(player.StartX - offsetX);
+                startZ = player.StartY - offsetY;
+            }
+        }
+
+        foreach (UnitPlacement entry in map.Units.Units)
+        {
+            float worldX = -(entry.X - offsetX);
+            float worldZ = entry.Y - offsetY;
+            float distance = Mathf.Sqrt((worldX - startX) * (worldX - startX) + (worldZ - startZ) * (worldZ - startZ));
+            GD.Print($"[DUMP] {entry.Id,-6} player={entry.Player,-3} 地图({entry.X:0},{entry.Y:0}) 世界({worldX:0},{worldZ:0}) 距P0={distance:0} gold={entry.Gold} hp={entry.Hitpoints}");
+        }
     }
 
     private void Clear()

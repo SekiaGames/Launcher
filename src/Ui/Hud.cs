@@ -29,11 +29,27 @@ public sealed class Hud
     private readonly Label _selectionDetail;
     private readonly Label _hint;
     private readonly Label _queueLabel;
+    private readonly Label _playerInfo;
+    private readonly Panel _box;
     private readonly List<Button> _slots = new();
     private readonly List<Label> _slotCosts = new();
     private readonly List<CommandEntry> _commands = new();
 
     public Func<UnitState, string> DetailProvider;
+    public Minimap Minimap { get; }
+
+    public void SetSelectionBox(Rect2 rect, bool visible)
+    {
+        _box.Visible = visible && rect.Size.X > 1f && rect.Size.Y > 1f;
+        if (!_box.Visible) return;
+        _box.Position = rect.Position;
+        _box.Size = rect.Size;
+    }
+
+    public void SetPlayerInfo(string text)
+    {
+        _playerInfo.Text = text;
+    }
 
     public Hud(Node parent, string mapName)
     {
@@ -52,8 +68,11 @@ public sealed class Hud
         _title = Label(mapName, 18, new Vector2(16f, 10f), Colors.White);
         layer.AddChild(_title);
 
-        _resources = Label("金币 0    木材 0    人口 0/0", 17, new Vector2(1140f, 10f), Color.FromHtml("ffd75e"));
+        _resources = Label("金币 0    木材 0    人口 0/0", 17, new Vector2(1280f, 10f), Color.FromHtml("ffd75e"));
         layer.AddChild(_resources);
+
+        _playerInfo = Label("", 16, new Vector2(320f, 11f), new Color(0.82f, 0.86f, 0.92f));
+        layer.AddChild(_playerInfo);
 
         var bottomBar = new ColorRect
         {
@@ -64,18 +83,33 @@ public sealed class Hud
         };
         layer.AddChild(bottomBar);
 
-        _selection = Label("未选中单位", 18, new Vector2(20f, 690f), Colors.White);
+        _selection = Label("未选中单位", 18, new Vector2(222f, 690f), Colors.White);
         layer.AddChild(_selection);
 
-        _selectionDetail = Label("", 15, new Vector2(20f, 724f), new Color(0.78f, 0.8f, 0.84f));
+        _selectionDetail = Label("", 15, new Vector2(222f, 724f), new Color(0.78f, 0.8f, 0.84f));
         layer.AddChild(_selectionDetail);
 
-        _queueLabel = Label("", 14, new Vector2(20f, 758f), new Color(0.85f, 0.85f, 0.85f));
+        _queueLabel = Label("", 14, new Vector2(222f, 758f), new Color(0.85f, 0.85f, 0.85f));
         layer.AddChild(_queueLabel);
 
-        _hint = Label("左键选中  右键移动/攻击/采金/伐木  农民可建造  中键拖拽  滚轮缩放  WASD 平移  ESC 返回",
-            14, new Vector2(20f, 866f), new Color(0.7f, 0.72f, 0.75f));
+        _hint = Label("左键选中/框选  双击选同类  Ctrl+数字编队  右键移动/攻击/采集  中键拖拽  滚轮缩放  WASD 平移  ESC 返回",
+            14, new Vector2(222f, 862f), new Color(0.7f, 0.72f, 0.75f));
         layer.AddChild(_hint);
+
+        Minimap = new Minimap { Name = "Minimap", Position = new Vector2(14f, 682f) };
+        layer.AddChild(Minimap);
+
+        _box = new Panel { Name = "SelectionBox", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _box.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.3f, 1f, 0.4f, 0.10f),
+            BorderColor = new Color(0.35f, 0.95f, 0.45f, 0.9f),
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+        });
+        layer.AddChild(_box);
 
         BuildCommandSlots(layer);
     }

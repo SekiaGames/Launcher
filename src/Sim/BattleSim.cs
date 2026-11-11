@@ -31,11 +31,16 @@ public sealed class UnitState
     public Vector3 Home;
     public bool AutoAcquire;
     public bool Returning;
+    public float ReturnDelay;
     public float LeashRange = 1000f;
 
     public bool IsUnderConstruction;
     public float BuildRemaining;
     public float BuildTotal;
+    public UnitState BuildSite;
+    public bool BuildingNow;
+    public bool NoBuilderLogged;
+    public float NoBuilderTimer;
 
     public List<Vector3> Path;
     public int PathIndex;
@@ -63,6 +68,10 @@ public sealed class BattleSim
     public event Action<UnitState> Died;
     public event Action<int, int> GoldDeposited;
     public event Action<int, int> LumberDeposited;
+    public event Action<UnitState, UnitState> MissileFired;
+
+    /// <summary>同盟判定由对局层注入（w3i 队伍），模拟层不假设玩家号顺序。</summary>
+    public Func<int, int, bool> Allied;
 
     private readonly Dictionary<string, int> _research = new(StringComparer.OrdinalIgnoreCase);
 
@@ -133,6 +142,12 @@ public sealed class BattleSim
         if (unit.IsUnderConstruction)
         {
             TickConstruction(unit);
+            return;
+        }
+
+        if (unit.BuildSite != null)
+        {
+            StepBuild(unit);
             return;
         }
 
@@ -259,24 +274,106 @@ public sealed class BattleSim
         return best;
     }
 
-    private void TickConstruction(UnitState unit)
+    private void TickConstruction(UnitState site)
     {
-        unit.BuildRemaining -= Tick;
-        float progress = unit.BuildTotal <= 0f ? 1f : 1f - unit.BuildRemaining / unit.BuildTotal;
-        unit.Hp = Mathf.Max(1f, unit.MaxHp * Mathf.Clamp(progress, 0f, 1f));
+        int builders = 0;
+        int assigned = 0;
+        foreach (UnitState unit in Units)
+        {
+            if (!unit.Alive || unit.BuildSite != site) continue;
+            assigned++;
+            if (unit.BuildingNow) builders++;
+        }
 
-        if (unit.BuildRemaining > 0f) return;
+        if (assigned == 0)
+        {
+            site.NoBuilderTimer += Tick;
+            if (!site.NoBuilderLogged && site.NoBuilderTimer >= 3f)
+            {
+                site.NoBuilderLogged = true;
+                GD.Print($"[BUILD] {site.Type.Name} 没有指派工人，施工暂停");
+            }
+        }
+        else
+        {
+            site.NoBuilderTimer = 0f;
+            site.NoBuilderLogged = false;
+        }
 
-        unit.IsUnderConstruction = false;
-        unit.BuildRemaining = 0f;
-        unit.Hp = unit.MaxHp;
-        unit.View?.Play("Stand");
-        unit.View?.SetHp(1f, true);
+        if (builders > 0)
+        {
+            float rate = Mathf.Min(builders, 3);
+            site.BuildRemaining -= Tick * rate;
+            if (_buildLogBudget > 0 && site.BuildRemaining > 0f && builders > 1)
+            {
+                _buildLogBudget--;
+                GD.Print($"[BUILD] {site.Type.Name} 合建 {builders} 人，速度 x{rate:0}");
+            }
+        }
+        float progress = site.BuildTotal <= 0f ? 1f : 1f - site.BuildRemaining / site.BuildTotal;
+        site.Hp = Mathf.Max(1f, site.MaxHp * Mathf.Clamp(progress, 0f, 1f));
+
+        if (site.BuildRemaining > 0f) return;
+
+        site.IsUnderConstruction = false;
+        site.BuildRemaining = 0f;
+        site.Hp = site.MaxHp;
+        foreach (UnitState unit in Units)
+        {
+            if (ReferenceEquals(unit.BuildSite, site))
+            {
+                unit.BuildSite = null;
+                unit.BuildingNow = false;
+                unit.Path = null;
+            }
+        }
+        site.View?.Play("Stand");
+        site.View?.SetHp(1f, true);
+    }
+
+    private static int _buildLogBudget = 6;
+
+    public void SetBuild(UnitState worker, UnitState site)
+    {
+        if (worker == null || site == null) return;
+        worker.BuildSite = site;
+        worker.BuildingNow = false;
+        worker.Tree = null;
+        worker.GoldMine = null;
+        worker.Target = null;
+        worker.MoveTarget = null;
+        worker.Path = null;
+        worker.PathIndex = 0;
+        worker.WorkTimer = 0f;
+    }
+
+    private void StepBuild(UnitState worker)
+    {
+        UnitState site = worker.BuildSite;
+        if (site == null || !site.Alive || !site.IsUnderConstruction)
+        {
+            worker.BuildSite = null;
+            worker.BuildingNow = false;
+            worker.View?.Play("Stand");
+            return;
+        }
+
+        float reach = site.Type.FootprintRadius + 80f;
+        if (Advance(worker, site.Position, reach))
+        {
+            worker.BuildingNow = true;
+            worker.View?.Play("Stand Work");
+            FaceTarget(worker, site);
+        }
+        else
+        {
+            worker.BuildingNow = false;
+        }
     }
 
     public void SetChop(UnitState worker, TreeState tree)
     {
-        if (worker == null || tree == null) return;
+        if (worker == null || tree == null || !worker.Type.CanGatherLumber) return;
         worker.Tree = tree;
         worker.GoldMine = null;
         worker.Target = null;
@@ -294,19 +391,36 @@ public sealed class BattleSim
             if (Advance(unit, unit.Home, 60f))
             {
                 unit.Returning = false;
+                unit.ReturnDelay = 0f;
+                unit.Path = null;
                 unit.View?.Play("Stand");
             }
             return;
         }
 
+        if (unit.ReturnDelay > 0f)
+        {
+            unit.ReturnDelay -= Tick;
+            unit.Target = null;
+            unit.MoveTarget = null;
+            unit.Path = null;
+            unit.View?.Play("Stand");
+            if (unit.ReturnDelay <= 0f) unit.Returning = true;
+            return;
+        }
+
         if (unit.Target != null)
         {
-            if (!unit.Target.Alive || LeashExceeded(unit))
+            if (!unit.Target.Alive)
             {
                 unit.Target = null;
                 unit.MoveTarget = null;
                 unit.Path = null;
-                if (LeashExceeded(unit)) unit.Returning = true;
+                return;
+            }
+            if (GuardDistanceExceeded(unit))
+            {
+                GiveUpChase(unit);
                 return;
             }
 
@@ -326,11 +440,11 @@ public sealed class BattleSim
         UnitState victim = FindAcquireTarget(unit);
         if (victim != null)
         {
-            unit.Target = victim;
-            if (_creepLogBudget > 0)
+            EngageTarget(unit, victim);
+            if (unit.Player == 12 && _creepLogBudget > 0)
             {
                 _creepLogBudget--;
-                GD.Print($"[AI] 野怪 {unit.Type.Id} p{unit.Player} 锁定 {victim.Type.Id} 距离 {unit.DistanceTo(victim):0} 自身 {unit.Position.X:0},{unit.Position.Z:0}");
+                GD.Print($"[CREEP] 野怪 {unit.Type.Id} 警戒锁定 {victim.Type.Id} 距离 {unit.DistanceTo(victim):0} 距营地 {DistanceFromGuard(unit):0}");
             }
             return;
         }
@@ -343,10 +457,12 @@ public sealed class BattleSim
     private UnitState FindAcquireTarget(UnitState unit)
     {
         UnitState best = null;
-        float bestDistance = Mathf.Min(unit.Type.AcquireRange, 100f);
+        float bestDistance = Mathf.Min(unit.Type.AcquireRange, MiscRules.GuardDistance);
         foreach (UnitState other in Units)
         {
-            if (!other.Alive || other.Player != 0 || other.IsBuilding) continue;
+            if (!other.Alive) continue;
+            if (other.Player == 15) continue;
+            if (IsAllied(unit.Player, other.Player)) continue;
             float distance = unit.DistanceTo(other);
             if (distance < bestDistance)
             {
@@ -357,9 +473,58 @@ public sealed class BattleSim
         return best;
     }
 
-    private bool LeashExceeded(UnitState unit)
+    private bool IsAllied(int a, int b)
     {
-        return new Vector2(unit.Position.X - unit.Home.X, unit.Position.Z - unit.Home.Z).Length() > unit.LeashRange;
+        if (a == b) return true;
+        return Allied != null && Allied(a, b);
+    }
+
+    private static float DistanceFromGuard(UnitState unit)
+    {
+        return new Vector2(unit.Position.X - unit.Home.X, unit.Position.Z - unit.Home.Z).Length();
+    }
+
+    private static bool GuardDistanceExceeded(UnitState unit)
+    {
+        if (unit.Player != 12) return DistanceFromGuard(unit) > unit.LeashRange;
+        return DistanceFromGuard(unit) >= MiscRules.MaxGuardDistance;
+    }
+
+    private void GiveUpChase(UnitState unit)
+    {
+        unit.Target = null;
+        unit.MoveTarget = null;
+        unit.Path = null;
+        unit.PathIndex = 0;
+        unit.ReturnDelay = MiscRules.GuardReturnTime;
+        unit.Returning = false;
+        unit.View?.Play("Stand");
+        if (_creepLogBudget > 0)
+        {
+            _creepLogBudget--;
+            GD.Print($"[CREEP] 野怪 {unit.Type.Id} 超出最大追击 {DistanceFromGuard(unit):0} >= {MiscRules.MaxGuardDistance:0}，原地等待 {MiscRules.GuardReturnTime:0}s 后回营");
+        }
+    }
+
+    private void EngageTarget(UnitState unit, UnitState victim)
+    {
+        if (victim == null || !victim.Alive) return;
+        unit.Target = victim;
+        unit.Returning = false;
+        unit.ReturnDelay = 0f;
+        CallForHelp(unit, victim);
+    }
+
+    private void CallForHelp(UnitState caller, UnitState victim)
+    {
+        if (caller.Player != 12) return;
+        foreach (UnitState other in Units)
+        {
+            if (!other.Alive || other == caller || other.Player != 12) continue;
+            if (other.Target != null || other.Returning || other.ReturnDelay > 0f) continue;
+            if (caller.DistanceTo(other) > MiscRules.CreepCallForHelp) continue;
+            other.Target = victim;
+        }
     }
 
     private void StepGather(UnitState unit)
@@ -403,8 +568,15 @@ public sealed class BattleSim
                 unit.WorkTimer = 0f;
                 int take = Mathf.Min(10, mine.Gold);
                 mine.Gold -= take;
-                unit.Carry = take;
-                unit.HomeHall = NearestHall(unit);
+                if (unit.Type.EntersMine)
+                {
+                    GoldDeposited?.Invoke(unit.Player, take);
+                }
+                else
+                {
+                    unit.Carry = take;
+                    unit.HomeHall = NearestHall(unit);
+                }
             }
         }
     }
@@ -444,8 +616,11 @@ public sealed class BattleSim
     {
         unit.RepathTimer -= Tick;
         bool exhausted = unit.Path == null || unit.PathIndex >= unit.Path.Count;
-        bool chasing = unit.Target != null && unit.RepathTimer <= 0f;
+        if (exhausted && unit.RepathTimer > 0f) return;
+
+        bool chasing = unit.Target != null;
         if (!exhausted && !chasing) return;
+        if (!exhausted && unit.RepathTimer > 0f) return;
 
         unit.RepathTimer = 0.8f;
         if (_pathGrid == null)
@@ -530,12 +705,13 @@ public sealed class BattleSim
         unit.View?.Play("Attack");
 
         float damage = Mathf.Lerp(unit.Type.MinDamage, unit.Type.MaxDamage, (float)_random.NextDouble()) + DamageBonus(unit);
+        if (unit.Type.MissileScene != null) MissileFired?.Invoke(unit, target);
         target.Hp -= Mathf.Max(1f, damage);
         target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), target.Alive);
 
         if (target.AutoAcquire && target.Alive && target.Target == null)
         {
-            target.Target = unit;
+            EngageTarget(target, unit);
         }
 
         if (target.Hp <= 0f) Kill(target);
@@ -561,7 +737,7 @@ public sealed class BattleSim
 
     public void SetGather(UnitState worker, UnitState mine)
     {
-        if (worker == null || mine == null) return;
+        if (worker == null || mine == null || !worker.Type.CanGatherGold) return;
         worker.GoldMine = mine;
         worker.Tree = null;
         worker.HomeHall = null;
@@ -579,6 +755,8 @@ public sealed class BattleSim
         unit.MoveTarget = null;
         unit.GoldMine = null;
         unit.Tree = null;
+        unit.BuildSite = null;
+        unit.BuildingNow = false;
         unit.Path = null;
         unit.PathIndex = 0;
         unit.View?.Play("Stand");

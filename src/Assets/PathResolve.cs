@@ -14,9 +14,18 @@ public static class PathResolve
         if (string.IsNullOrWhiteSpace(war3Path)) return null;
         if (SceneCache.TryGetValue(war3Path, out string cached)) return cached;
 
-        string result = ResourceFile(war3Path, ".tscn") ?? ResourceFile(war3Path, ".glb");
+        string trimmed = WithoutExtension(war3Path);
+        string result = ResourceFile(trimmed, ".tscn") ?? ResourceFile(trimmed, ".glb");
         SceneCache[war3Path] = result;
         return result;
+    }
+
+    private static string WithoutExtension(string path)
+    {
+        string normalized = path.Replace('\\', '/');
+        int slash = normalized.LastIndexOf('/');
+        int dot = normalized.LastIndexOf('.');
+        return dot > slash && dot > 0 ? normalized[..dot] : normalized;
     }
 
     public static string IconPng(string war3Path)
