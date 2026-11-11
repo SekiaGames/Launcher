@@ -45,6 +45,11 @@ public sealed partial class Unit
     public float LeashRange = 1000f;
     /// <summary>AI 已经下令撤退（避免每 0.3s 重复下同一个命令）。</summary>
     public bool RetreatOrdered;
+    /// <summary>交战时被贴脸后的后撤（远程/法师）：后撤期间优先走位，不走目标。</summary>
+    public bool Kiting;
+    public float KiteCooldown;
+    /// <summary>绕侧翼已持续的时间；超过 10 秒就直接压上去，避免绕路卡住。</summary>
+    public float FlankTimer;
 
     // —— 英雄状态 ——
     public bool IsHero;

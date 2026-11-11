@@ -692,8 +692,49 @@ public sealed partial class War3GameScene
         // 阵型：选中近战+远程一起右键地面，验证近战站前排、远程站后排
         DemoGroupMove(creep);
 
+        // 拉扯：远程被贴脸后退到射程边缘
+        DemoKite(creep);
+
         GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
             + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
+    }
+
+    /// <summary>
+    /// 拉扯：步枪被近战贴到 80，直接跑一遍 AI 的 TickAiKite，看它是否下令后撤、
+    /// 1.8 秒后实际距离是不是拉回到了射程附近。
+    /// </summary>
+    private void DemoKite(Unit creep)
+    {
+        Unit rifle = Spawn("hrif", ViewPlayer, creep.Position.X + 320f, creep.Position.Z + 320f, 0f, 0f, 1f);
+        Unit threat = Spawn("hfoo", 1, creep.Position.X + 400f, creep.Position.Z + 320f, Mathf.Pi, 0f, 1f);
+        if (rifle == null || threat == null)
+        {
+            GD.Print("[KITE] 缺火枪/步兵模型，跳过拉扯验证");
+            return;
+        }
+
+        _world.Units.Add(rifle);
+        _world.Units.Add(threat);
+        rifle.Target = threat;
+        rifle.KiteCooldown = 0f;
+
+        PlayerSlot slot = Slot(ViewPlayer);
+        if (slot == null)
+        {
+            GD.Print("[KITE] 当前玩家不在参战列表，跳过拉扯验证");
+            return;
+        }
+
+        float before = rifle.DistanceTo(threat);
+        TickAiKite(slot);
+        GD.Print($"[KITE] 被贴脸 {(rifle.Kiting ? "已下令后撤" : "未触发")} 距离 {before:0}"
+            + $"（射程 {rifle.Type.AttackRange:0}，目标点 {(rifle.MoveTarget.HasValue ? $"({rifle.MoveTarget.Value.X:0},{rifle.MoveTarget.Value.Z:0})" : "无")}）");
+
+        SceneTreeTimer timer = GetTree().CreateTimer(1.8);
+        timer.Timeout += () =>
+        {
+            GD.Print($"[KITE] 1.8 秒后距离 {rifle.DistanceTo(threat):0}（射程 {rifle.Type.AttackRange:0}，还在后撤={rifle.Kiting}）");
+        };
     }
 
     /// <summary>

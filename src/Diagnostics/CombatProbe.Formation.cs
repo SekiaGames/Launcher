@@ -57,4 +57,50 @@ public static partial class CombatProbe
             + $"横向 {slots[meleeLeft].Z:0}/{slots[meleeRight].Z:0}，"
             + $"间距 成员{GroupFormation.MemberGap:0} 行{GroupFormation.RowGap:0} 层{GroupFormation.RankGap:0}");
     }
+
+    /// <summary>AI 战术：威胁分（英雄 > 后排 > 攻城 > 普通）与切入点选敌人少的一侧。</summary>
+    private static void CheckAiTactics()
+    {
+        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType rifleType = UnitCatalog.Get("hrif");
+        UnitType mortarType = UnitCatalog.Get("hmtm");
+        UnitType heroType = UnitCatalog.Get("Hpal");
+        if (footmanType == null || rifleType == null || mortarType == null || heroType == null) return;
+
+        Unit footman = MakeUnit(footmanType, 1);
+        Unit rifle = MakeUnit(rifleType, 1);
+        Unit mortar = MakeUnit(mortarType, 1);
+        Unit hero = MakeHero(heroType, 1, 3, null);
+        Unit illusionHero = MakeHero(heroType, 1, 3, null);
+        illusionHero.IsIllusion = true;
+
+        float footScore = AiTactics.ThreatScore(footman);
+        float rifleScore = AiTactics.ThreatScore(rifle);
+        float mortarScore = AiTactics.ThreatScore(mortar);
+        float heroScore = AiTactics.ThreatScore(hero);
+        float illusionScore = AiTactics.ThreatScore(illusionHero);
+
+        Verify("英雄威胁分高于远程", 1f, heroScore > rifleScore ? 1f : 0f, 0f);
+        Verify("英雄威胁分高于攻城", 1f, heroScore > mortarScore ? 1f : 0f, 0f);
+        Verify("攻城威胁分高于远程", 1f, mortarScore > rifleScore ? 1f : 0f, 0f);
+        Verify("远程威胁分高于近战", 1f, rifleScore > footScore ? 1f : 0f, 0f);
+        Verify("幻象不算英雄", 1f, illusionScore < heroScore ? 1f : 0f, 0f);
+
+        var units = new List<Unit> { footman, rifle };
+        for (int index = 0; index < 2; index++)
+        {
+            Unit guard = MakeUnit(footmanType, 1);
+            guard.Position = new Vector3(1000f, 0f, 420f);
+            units.Add(guard);
+        }
+
+        var focus = MakeUnit(rifleType, 1);
+        focus.Position = new Vector3(1000f, 0f, 0f);
+        Vector3 flank = AiTactics.FlankPoint(focus, Vector3.Zero, units, null, 0);
+        Verify("切入侧选敌人少的那边", -420f, flank.Z, 1f);
+
+        GD.Print($"[自检] 威胁分 英雄 {heroScore:0.00}（幻象 {illusionScore:0.00}）"
+            + $" 远程 {rifleScore:0.00} 攻城 {mortarScore:0.00} 近战 {footScore:0.00}；"
+            + $"侧翼 ({flank.X:0},{flank.Z:0})");
+    }
 }

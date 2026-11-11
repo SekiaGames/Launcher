@@ -160,7 +160,8 @@ public sealed partial class War3GameScene
 
     /// <summary>
     /// 集火：每 2 秒给本家「还没目标、没在撤退」的部队指定同一个敌人——
-    /// 优先挑血量最少、且在基地 1800 以内的敌人，让整队往一处压。
+    /// 目标按威胁分挑（英雄 > 远程/法师 > 攻城 > 普通，同分看残血），
+    /// 距离还远时先拐到敌人稀少的侧翼列阵，进入 900 才正式咬上去。
     /// </summary>
     private void TickAiFocus(PlayerSlot slot)
     {
@@ -168,37 +169,89 @@ public sealed partial class War3GameScene
         if (hall == null) return;
 
         Unit focus = null;
-        float bestHp = float.MaxValue;
+        float bestScore = 0f;
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.IsBuilding) continue;
             if (unit.Player == slot.Id || AreAllied(unit.Player, slot.Id)) continue;
+            if (unit.Player == 15 || unit.Player == 12) continue;
             if (unit.DistanceTo(hall) > 1800f) continue;
-            if (unit.Hp >= bestHp) continue;
-            bestHp = unit.Hp;
+
+            float score = AiTactics.ThreatScore(unit);
+            if (score <= bestScore) continue;
+            bestScore = score;
             focus = unit;
         }
         if (focus == null) return;
 
-        int assigned = 0;
+        var attackers = new List<Unit>();
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.Player != slot.Id) continue;
-            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered) continue;
-            if (unit.Target != null) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered || unit.Kiting) continue;
             // 召唤物当前排：不受基地 1800 限制，直接压上去当肉盾
             if (unit.DistanceTo(hall) > 1800f && !unit.IsSummon) continue;
+            attackers.Add(unit);
+        }
+        if (attackers.Count == 0) return;
+
+        Vector3 flank = AiTactics.FlankPoint(focus, hall.Position, _allUnits, AreAllied, slot.Id);
+        Dictionary<Unit, Vector3> approach = GroupFormation.Layout(attackers, flank, flank - hall.Position);
+
+        int assigned = 0;
+        int marching = 0;
+        foreach (Unit unit in attackers)
+        {
+            float distance = unit.DistanceTo(focus);
+            // 太远就直接压上去：绕侧翼只用在最后一段，避免跨地图绕路/卡路
+            if (distance > 1500f || unit.FlankTimer > 10f)
+            {
+                unit.Target = focus;
+                unit.Kiting = false;
+                unit.MoveTarget = null;
+                unit.Path = null;
+                unit.FlankTimer = 0f;
+                assigned++;
+                continue;
+            }
+
+            if (distance > 900f)
+            {
+                Vector3 spot = approach.TryGetValue(unit, out Vector3 assignedSpot) ? assignedSpot : flank;
+                unit.FlankTimer += 2f;
+                // 已经在往同一个侧翼点走就别每 2 秒重下命令（否则一直在重新寻路）
+                if (unit.MoveTarget.HasValue && unit.Target == null)
+                {
+                    float dx = unit.MoveTarget.Value.X - spot.X;
+                    float dz = unit.MoveTarget.Value.Z - spot.Z;
+                    if (dx * dx + dz * dz < 150f * 150f)
+                    {
+                        marching++;
+                        continue;
+                    }
+                }
+
+                unit.Target = null;
+                unit.Kiting = false;
+                unit.MoveTarget = spot;
+                unit.Path = null;
+                marching++;
+                continue;
+            }
 
             unit.Target = focus;
+            unit.Kiting = false;
             unit.MoveTarget = null;
             unit.Path = null;
+            unit.FlankTimer = 0f;
             assigned++;
         }
 
-        if (assigned > 0 && _focusLogBudget > 0)
+        if ((assigned > 0 || marching > 0) && _focusLogBudget > 0)
         {
             _focusLogBudget--;
-            GD.Print($"[AI] P{slot.Id} 集火 {focus.Type.Name}（{assigned} 个单位）");
+            GD.Print($"[AI] P{slot.Id} 集火 {focus.Type.Name}（{assigned} 个咬住 / {marching} 个绕侧翼）"
+                + $" 威胁分 {bestScore:0.0} 侧翼 ({flank.X:0},{flank.Z:0})");
         }
     }
 
@@ -281,6 +334,62 @@ public sealed partial class War3GameScene
         }
         return new Vector3(Mathf.Sin(hall.Facing), 0f, Mathf.Cos(hall.Facing));
     }
+
+    /// <summary>
+    /// 交战拉择：远程/法师被敌人贴到射程 35% 以内时，沿远离威胁的方向后撤到射程 60% 左右，
+    /// 后退期间不再咬目标（Kiting），到位后重新索敌开火。冷却 2.5 秒，避免原地抖动。
+    /// </summary>
+    private void TickAiKite(PlayerSlot slot)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != slot.Id) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered) continue;
+            if (unit.KiteCooldown > 0f) unit.KiteCooldown -= 0.3f;
+            if (!AiTactics.IsBackline(unit) || unit.IsHero) continue;
+            if (unit.Type.AttackRange < 250f) continue;
+
+            Unit threat = unit.Target;
+            if (threat == null || !threat.Alive)
+            {
+                unit.Kiting = false;
+                continue;
+            }
+            if (unit.KiteCooldown > 0f) continue;
+
+            float range = unit.Type.AttackRange;
+            if (unit.DistanceTo(threat) > Mathf.Max(120f, range * 0.35f)) continue;
+
+            Vector3 away = unit.Position - threat.Position;
+            away.Y = 0f;
+            if (away.LengthSquared() < 1f) away = new Vector3(1f, 0f, 0f);
+            away = away.Normalized();
+
+            Vector3 spot = unit.Position;
+            float[] turns = { 0f, 0.6f, -0.6f, 1.2f, -1.2f };
+            foreach (float turn in turns)
+            {
+                Vector3 candidate = unit.Position + away.Rotated(Vector3.Up, turn) * (range * 0.6f + 60f);
+                if (!_world.CanStandAt(candidate, unit.Radius)) continue;
+                spot = candidate;
+                break;
+            }
+
+            unit.Target = null;
+            unit.MoveTarget = spot;
+            unit.Path = null;
+            unit.Kiting = true;
+            unit.KiteCooldown = 2.5f;
+
+            if (_kiteLogBudget > 0)
+            {
+                _kiteLogBudget--;
+                GD.Print($"[AI] P{slot.Id} {unit.Type.Name} 被贴脸后撤（距离 {unit.DistanceTo(threat):0}，射程 {range:0}）");
+            }
+        }
+    }
+
+    private int _kiteLogBudget = 8;
 
     /// <summary>
     /// 买装备：AI 英雄站在商店 700 内、背包有空位、钱够，就买店里最便宜且有货的那件。
@@ -489,6 +598,7 @@ public sealed partial class War3GameScene
         }
 
         TickAiRetreat(slot);
+        TickAiKite(slot);
         slot.FocusTimer += 0.3f;
         if (slot.FocusTimer >= 2f)
         {

@@ -9,6 +9,18 @@ public sealed partial class World
 {
     private void StepCreep(Unit unit)
     {
+        // 被贴脸的远程/法师正在后撤：优先把这段路走完，不去追人
+        if (unit.Kiting && unit.MoveTarget.HasValue)
+        {
+            if (Advance(unit, unit.MoveTarget.Value, 20f))
+            {
+                unit.MoveTarget = null;
+                unit.Kiting = false;
+                unit.View?.Play("Stand");
+            }
+            return;
+        }
+
         if (unit.Returning)
         {
             if (Advance(unit, unit.Home, 60f))
