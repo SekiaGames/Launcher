@@ -42,7 +42,7 @@ public sealed class UnitState
     public float RepathTimer;
 
     public float Radius => IsBuilding ? 48f : 28f;
-    public bool IsWorker => Type != null && (Type.Id is "hpea" or "opeo" or "uaco" or "ewsp");
+    public bool IsWorker => Type != null && Type.IsWorkerType;
 
     public float DistanceTo(UnitState other) =>
         new Vector2(Position.X - other.Position.X, Position.Z - other.Position.Z).Length();
@@ -63,6 +63,54 @@ public sealed class BattleSim
     public event Action<UnitState> Died;
     public event Action<int, int> GoldDeposited;
     public event Action<int, int> LumberDeposited;
+
+    private readonly Dictionary<string, int> _research = new(StringComparer.OrdinalIgnoreCase);
+
+    public int ResearchLevel(int player, string upgradeId)
+    {
+        return _research.TryGetValue(player + "|" + upgradeId, out int level) ? level : 0;
+    }
+
+    public void SetResearchLevel(int player, string upgradeId, int level)
+    {
+        _research[player + "|" + upgradeId] = Mathf.Max(0, level);
+    }
+
+    public float DamageBonus(UnitState unit)
+    {
+        float bonus = 0f;
+        foreach (string upgradeId in unit.Type.UpgradesApplied)
+        {
+            UpgradeType upgrade = TechTree.Upgrade(upgradeId);
+            if (upgrade == null) continue;
+            bonus += upgrade.DamageAt(ResearchLevel(unit.Player, upgradeId));
+        }
+        return bonus;
+    }
+
+    public float ArmorOf(UnitState unit)
+    {
+        float armor = unit.Type.Armor;
+        foreach (string upgradeId in unit.Type.UpgradesApplied)
+        {
+            UpgradeType upgrade = TechTree.Upgrade(upgradeId);
+            if (upgrade == null) continue;
+            armor += upgrade.ArmorAt(ResearchLevel(unit.Player, upgradeId));
+        }
+        return armor;
+    }
+
+    public float HpMultiplier(UnitState unit, int player)
+    {
+        float multiplier = 1f;
+        foreach (string upgradeId in unit.Type.UpgradesApplied)
+        {
+            UpgradeType upgrade = TechTree.Upgrade(upgradeId);
+            if (upgrade == null) continue;
+            multiplier += upgrade.HpPercentAt(ResearchLevel(player, upgradeId));
+        }
+        return multiplier;
+    }
 
     public BattleSim(W3eTerrain terrain, PathGrid pathGrid, List<TreeState> trees = null)
     {
@@ -481,7 +529,7 @@ public sealed class BattleSim
         unit.AttackCooldown = Mathf.Max(0.2f, unit.Type.AttackCooldown);
         unit.View?.Play("Attack");
 
-        float damage = Mathf.Lerp(unit.Type.MinDamage, unit.Type.MaxDamage, (float)_random.NextDouble());
+        float damage = Mathf.Lerp(unit.Type.MinDamage, unit.Type.MaxDamage, (float)_random.NextDouble()) + DamageBonus(unit);
         target.Hp -= Mathf.Max(1f, damage);
         target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), target.Alive);
 

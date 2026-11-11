@@ -22,6 +22,10 @@ public sealed partial class LauncherApp : Node
     private bool _lumberTest;
     private bool _buildTest;
     private bool _fast;
+    private bool _housekeeping;
+    private int _startGold = 1000000;
+    private int _startLumber = 1000000;
+    private float _timeScale = 1f;
 
     public override void _Ready()
     {
@@ -82,6 +86,22 @@ public sealed partial class LauncherApp : Node
             else if (argument == "--fast")
             {
                 _fast = true;
+            }
+            else if (argument.StartsWith("--time=") && float.TryParse(argument["--time=".Length..], out float scale))
+            {
+                _timeScale = Mathf.Clamp(scale, 0.02f, 1f);
+            }
+            else if (argument == "--housekeeping")
+            {
+                _housekeeping = true;
+            }
+            else if (argument.StartsWith("--gold=") && int.TryParse(argument["--gold=".Length..], out int gold))
+            {
+                _startGold = gold;
+            }
+            else if (argument.StartsWith("--lumber=") && int.TryParse(argument["--lumber=".Length..], out int lumber))
+            {
+                _startLumber = lumber;
             }
             else if (argument.StartsWith("--move-to="))
             {
@@ -151,7 +171,9 @@ public sealed partial class LauncherApp : Node
         Clear();
 
         var game = new GameScreen { Name = "Game" };
-        game.TimeScaleHint = _fast ? 0.15f : 1f;
+        game.TimeScaleHint = _fast ? Mathf.Min(0.15f, _timeScale) : _timeScale;
+        game.StartGold = _startGold;
+        game.StartLumber = _startLumber;
         game.Setup(map, ShowMapList);
         if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
         if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
@@ -163,6 +185,7 @@ public sealed partial class LauncherApp : Node
         if (_moveTo.HasValue) game.ScriptedMoveTo(_moveTo.Value.X, _moveTo.Value.Y);
         if (_lumberTest) game.ScriptedLumberTest();
         if (_buildTest) game.ScriptedBuildTest();
+        if (_housekeeping) game.RunHousekeeping();
         if (_pathProbe)
         {
             game.PathProbe();

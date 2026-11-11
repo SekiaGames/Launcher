@@ -19,6 +19,17 @@ public static class PathResolve
         return result;
     }
 
+    public static string IconPng(string war3Path)
+    {
+        if (string.IsNullOrWhiteSpace(war3Path)) return null;
+
+        string trimmed = war3Path.Replace('\\', '/').Trim('/');
+        int dot = trimmed.LastIndexOf('.');
+        int slash = trimmed.LastIndexOf('/');
+        if (dot > slash) trimmed = trimmed[..dot];
+        return ResourceFile(trimmed, ".png");
+    }
+
     public static string ResourceFile(string relative, string extension)
     {
         if (string.IsNullOrWhiteSpace(relative)) return null;

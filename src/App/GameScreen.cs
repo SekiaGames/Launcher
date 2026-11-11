@@ -16,29 +16,48 @@ public sealed partial class GameScreen : Node3D
 
     private readonly List<UnitState> _selected = new();
     private readonly List<UnitState> _own = new();
+    private readonly List<UnitState> _allUnits = new();
     private bool _middleDown;
     private bool _leftDown;
     private Vector2 _dragStart;
     private float _hudTimer;
     private PathGrid _pathGrid;
-    private int _gold = 500;
-    private int _lumber = 200;
-    private readonly Queue<TrainOrder> _trainQueue = new();
     private List<TreeState> _trees = new();
     private string _placingId;
 
-    private sealed class TrainOrder
+    public int StartGold = 1000000;
+    public int StartLumber = 1000000;
+    private int _gold;
+    private int _lumber;
+
+    private enum OrderKind
     {
-        public UnitState Hall;
-        public string WorkerId;
+        Train,
+        Research,
+        Upgrade,
+    }
+
+    private sealed class BuildingOrder
+    {
+        public UnitState Building;
+        public OrderKind Kind;
+        public string Id;
+        public int Level;
         public float Remaining;
         public float Total;
     }
+
+    private readonly List<BuildingOrder> _orders = new();
+    private readonly Dictionary<string, int> _researchLevels = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _knownBuildings = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _builtCounts = new(StringComparer.OrdinalIgnoreCase);
 
     public void Setup(MapSource map, Action back)
     {
         _map = map;
         _back = back;
+        _gold = StartGold;
+        _lumber = StartLumber;
 
         _world = new MapWorldBuilder();
         Node3D worldRoot = _world.Build(map.Terrain, map.Doodads);
@@ -59,18 +78,16 @@ public sealed partial class GameScreen : Node3D
         FocusStartPosition();
 
         _hud = new Hud(this, map.Name);
+        _hud.DetailProvider = DescribeUnit;
         _hud.SetSelection(_selected);
         RefreshHud();
+        UpdateCommandCard();
         LogNearestCreep();
     }
 
     private void LogNearestCreep()
     {
-        UnitState hall = null;
-        foreach (UnitState unit in _own)
-        {
-            if (unit.IsBuilding) { hall = unit; break; }
-        }
+        UnitState hall = FindHall(0);
         if (hall == null) return;
 
         var nearest = new List<(float Distance, string Id)>();
@@ -87,8 +104,6 @@ public sealed partial class GameScreen : Node3D
         }
     }
 
-    private readonly List<UnitState> _allUnits = new();
-
     private void SpawnUnits()
     {
         float offsetX = _map.Terrain.OffsetX;
@@ -96,19 +111,19 @@ public sealed partial class GameScreen : Node3D
         int placed = 0;
         int missingType = 0;
         int missingScene = 0;
-    
+
         if (_map.Units != null)
         {
             foreach (UnitPlacement entry in _map.Units.Units)
             {
                 if (entry.IsStartingLocation) continue;
-        
+
                 float worldX = -(entry.X - offsetX);
                 float worldZ = entry.Y - offsetY;
                 var player = (int)Mathf.Clamp(entry.Player, 0, 15);
                 UnitState unit = Spawn(entry.Id, player, worldX, worldZ, Mathf.Pi + entry.Angle,
                     entry.Hitpoints > 0 ? entry.Hitpoints : 0f, entry.ScaleX, entry.Gold);
-        
+
                 if (unit != null) placed++;
                 else if (UnitCatalog.Get(entry.Id) == null) missingType++;
                 else missingScene++;
@@ -119,16 +134,16 @@ public sealed partial class GameScreen : Node3D
                 }
             }
         }
-    
+
         int melee = SpawnMeleeStarts(offsetX, offsetY);
-    
+
         GD.Print($"[GAME] 地图单位 {placed} 个（缺类型 {missingType} 缺模型 {missingScene}），开局单位 {melee} 个");
         if (placed + melee == 0)
         {
             _hud?.SetHint("没有生成任何单位：检查 extract.pck 是否挂载、Tables 是否齐全");
         }
     }
-    
+
     private static readonly (string TownHall, string Worker, int Workers)[] MeleeArchetypes =
     {
         ("htow", "hpea", 5),
@@ -136,7 +151,7 @@ public sealed partial class GameScreen : Node3D
         ("unpl", "uaco", 3),
         ("etol", "ewsp", 5),
     };
-    
+
     private int SpawnMeleeStarts(float offsetX, float offsetY)
     {
         int spawned = 0;
@@ -144,15 +159,20 @@ public sealed partial class GameScreen : Node3D
         {
             if (player.Id is < 0 or > 3) continue;
             if (player.StartX == 0f && player.StartY == 0f) continue;
-    
+
             float worldX = -(player.StartX - offsetX);
             float worldZ = player.StartY - offsetY;
             int race = Mathf.Clamp(player.Race, 1, 4);
             (string townHall, string worker, int workers) = MeleeArchetypes[race - 1];
             GD.Print($"[GAME] 开局 P{player.Id} 种族{race} 地图({player.StartX:0},{player.StartY:0}) 世界({worldX:0},{worldZ:0})");
-    
-            if (Spawn(townHall, player.Id, worldX, worldZ, 0f, 0f, 1f) != null) spawned++;
-    
+
+            UnitState hall = Spawn(townHall, player.Id, worldX, worldZ, 0f, 0f, 1f);
+            if (hall != null)
+            {
+                spawned++;
+                if (player.Id == 0) MarkBuildingKnown(townHall);
+            }
+
             for (int i = 0; i < workers; i++)
             {
                 float angle = Mathf.Tau * i / workers;
@@ -163,28 +183,28 @@ public sealed partial class GameScreen : Node3D
         }
         return spawned;
     }
-    
+
     private UnitState Spawn(string id, int player, float worldX, float worldZ, float yaw, float hp, float entryScale, int gold = 0)
     {
         UnitType type = UnitCatalog.Get(id);
         if (type == null) return null;
-    
+
         PackedScene scene = Assets.LoadScene(type.ModelPath);
         if (scene == null)
         {
             GD.PushWarning($"[GAME] 缺模型 {id} -> {type.ModelPath}");
             return null;
         }
-    
+
         float worldY = MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ);
         float scale = type.ModelScale * (entryScale > 0f ? entryScale : 1f);
-    
+
         UnitView view = UnitView.Create(scene, UnitView.ColorOf(player), scale, type.IsBuilding);
         view.Root.Position = new Vector3(worldX, worldY, worldZ);
         view.Root.Rotation = new Vector3(0f, yaw, 0f);
         view.Root.Name = $"{id}_{_allUnits.Count}";
         AddChild(view.Root);
-    
+
         float maxHp = type.Hp;
         if (hp > 0f) maxHp = hp <= 100f ? type.Hp * hp / 100f : hp;
         bool hostile = player == 12 || (player >= 1 && player <= 3);
@@ -203,14 +223,21 @@ public sealed partial class GameScreen : Node3D
             LeashRange = player >= 1 && player <= 3 ? 1e9f : 260f,
             View = view,
         };
-    
+
+        if (_sim != null && type.IsBuilding)
+        {
+            float multiplier = _sim.HpMultiplier(unit, player);
+            unit.MaxHp = maxHp * multiplier;
+            unit.Hp = unit.MaxHp;
+        }
+
         view.Play("Stand");
         view.SetHp(1f, true);
         _allUnits.Add(unit);
         if (player == 0) _own.Add(unit);
         return unit;
     }
-    
+
     public void SetCameraPreset(int preset)
     {
         _camera?.SetPreset(preset);
@@ -274,6 +301,20 @@ public sealed partial class GameScreen : Node3D
             RefreshHud();
             UpdateCommandCard();
         }
+    }
+
+    private string DescribeUnit(UnitState unit)
+    {
+        if (unit.IsUnderConstruction) return $"剩余 {Mathf.Max(0f, unit.BuildRemaining):0.0}s";
+
+        float bonus = _sim != null ? _sim.DamageBonus(unit) : 0f;
+        float armor = _sim != null ? _sim.ArmorOf(unit) : unit.Type.Armor;
+        if (unit.Type.CanAttack)
+        {
+            return $"攻击 {unit.Type.MinDamage + bonus:0}-{unit.Type.MaxDamage + bonus:0}    护甲 {armor:0}"
+                + $"    射程 {unit.Type.AttackRange:0}    速度 {unit.Type.Speed:0}";
+        }
+        return $"护甲 {armor:0}    速度 {unit.Type.Speed:0}    供给 {unit.Type.FoodMade}";
     }
 
     private void RefreshBars()
@@ -366,8 +407,9 @@ public sealed partial class GameScreen : Node3D
     public override void _PhysicsProcess(double delta)
     {
         _sim?.Advance();
-        TickTraining((float)delta);
+        TickOrders((float)delta);
         TickAiWaves((float)delta);
+        TickHousekeeping((float)delta);
     }
 
     private float _waveTimer;
@@ -400,7 +442,7 @@ public sealed partial class GameScreen : Node3D
             foreach (UnitState unit in _allUnits)
             {
                 if (!unit.Alive || unit.Player != player.Id) continue;
-                if (unit.IsBuilding && Trainables.ContainsKey(unit.Type.Id) && hall == null) hall = unit;
+                if (unit.IsBuilding && unit.Type.Trains.Length > 0 && hall == null) hall = unit;
                 if (!unit.IsBuilding) alive++;
             }
             if (hall == null || alive >= 8) continue;
@@ -703,11 +745,7 @@ public sealed partial class GameScreen : Node3D
 
     public void ScriptedGatherTest()
     {
-        UnitState worker = null;
-        foreach (UnitState unit in _own)
-        {
-            if (unit.IsWorker) { worker = unit; break; }
-        }
+        UnitState worker = FindWorker(0);
         if (worker == null)
         {
             GD.Print("[TEST] 没有农民");
@@ -743,14 +781,10 @@ public sealed partial class GameScreen : Node3D
 
     public void ScriptedTrainTest()
     {
-        UnitState hall = null;
-        foreach (UnitState unit in _own)
+        UnitState hall = FindHall(0);
+        if (hall == null || hall.Type.Trains.Length == 0)
         {
-            if (unit.IsBuilding && HallWorkers.ContainsKey(unit.Type.Id)) { hall = unit; break; }
-        }
-        if (hall == null)
-        {
-            GD.Print("[TEST] 没有主基地");
+            GD.Print("[TEST] 没有可训练的主基地");
             return;
         }
 
@@ -759,160 +793,164 @@ public sealed partial class GameScreen : Node3D
         hall.View?.SetSelected(true);
         _hud?.SetSelection(_selected);
         UpdateCommandCard();
-        StartTraining(hall, HallWorkers[hall.Type.Id]);
-        StartTraining(hall, HallWorkers[hall.Type.Id]);
-        GD.Print($"[TEST] 训练队列 {_trainQueue.Count} 个，金币 {_gold}");
+        StartTraining(hall, hall.Type.Trains[0]);
+        StartTraining(hall, hall.Type.Trains[0]);
+        GD.Print($"[TEST] 训练队列 {_orders.Count} 个，金币 {_gold}");
     }
 
     public void ScriptedMoveTo(float mapX, float mapY)
+    {
+        float worldX = -(mapX - _map.Terrain.OffsetX);
+        float worldZ = mapY - _map.Terrain.OffsetY;
+        var goal = new Vector3(worldX, MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ), worldZ);
+        GD.Print($"[TEST] 目标点 ({mapX},{mapY}) → 世界 {goal} 阻挡={_pathGrid?.IsBlockedWorld(worldX, worldZ)}");
+
+        int moved = 0;
+        ClearSelection();
+        foreach (UnitState unit in _own)
         {
-            float worldX = -(mapX - _map.Terrain.OffsetX);
-            float worldZ = mapY - _map.Terrain.OffsetY;
-            var goal = new Vector3(worldX, MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ), worldZ);
-            GD.Print($"[TEST] 目标点 ({mapX},{mapY}) → 世界 {goal} 阻挡={_pathGrid?.IsBlockedWorld(worldX, worldZ)}");
-    
-            int moved = 0;
+            if (unit.IsBuilding) continue;
+            unit.GoldMine = null;
+            unit.Target = null;
+            unit.Path = null;
+            unit.MoveTarget = goal;
+            _selected.Add(unit);
+            unit.View?.SetSelected(true);
+            moved++;
+            if (moved >= 6) break;
+        }
+        _hud?.SetSelection(_selected);
+        GD.Print($"[TEST] 移动测试单位 {moved} 个");
+    }
+
+    public void PathProbe()
+    {
+        if (_pathGrid == null || !_pathGrid.Ready)
+        {
+            GD.Print("[PROBE] 寻路网格为空");
+            return;
+        }
+
+        UnitState worker = FindWorker(0);
+        if (worker == null) return;
+
+        for (int i = 0; i < 8; i++)
+        {
+            float angle = Mathf.Tau * i / 8f;
+            Vector3 goal = worker.Position + new Vector3(Mathf.Cos(angle) * 600f, 0f, Mathf.Sin(angle) * 600f);
+            List<Vector3> path = _pathGrid.FindPath(worker.Position, goal, 28f);
+            GD.Print($"[PROBE] 方向{i} 终点{goal.X:0},{goal.Z:0} 阻挡={_pathGrid.IsBlockedWorld(goal.X, goal.Z)} 航点={path?.Count ?? -1}");
+        }
+    }
+
+    public void ScriptedLumberTest()
+    {
+        UnitState worker = FindWorker(0);
+        if (worker == null || _trees.Count == 0)
+        {
+            GD.Print("[TEST] 没有农民或树");
+            return;
+        }
+
+        TreeState tree = null;
+        float best = float.MaxValue;
+        foreach (TreeState candidate in _trees)
+        {
+            if (!candidate.Alive) continue;
+            float distance = new Vector2(worker.Position.X - candidate.Position.X, worker.Position.Z - candidate.Position.Z).Length();
+            if (distance < best) { best = distance; tree = candidate; }
+        }
+        if (tree == null) return;
+
+        ClearSelection();
+        _selected.Add(worker);
+        worker.View?.SetSelected(true);
+        _sim.SetChop(worker, tree);
+        _hud?.SetSelection(_selected);
+        _hud?.SetHint($"伐木测试：{worker.Type.Name} → 树 HP {tree.Hp:0} 距离 {best:0}");
+        GD.Print($"[TEST] 伐木 {worker.Type.Name} → 树 距离 {best:0} HP {tree.Hp:0}，树总数 {_trees.Count}");
+    }
+
+    public void ScriptedBuildTest()
+    {
+        UnitState worker = FindWorker(0);
+        UnitState hall = FindHall(0);
+        if (worker == null || hall == null)
+        {
+            GD.Print("[TEST] 缺少农民或基地");
+            return;
+        }
+
+        ClearSelection();
+        _selected.Add(worker);
+        worker.View?.SetSelected(true);
+        _hud?.SetSelection(_selected);
+
+        string buildingId = null;
+        foreach (string candidate in worker.Type.Builds)
+        {
+            UnitType type = UnitCatalog.Get(candidate);
+            if (type == null || type.IsBuilding == false) continue;
+            if (candidate == hall.Type.Id) continue;
+            buildingId = candidate;
+            break;
+        }
+        if (buildingId == null)
+        {
+            GD.Print("[TEST] 农民没有可建造项目");
+            return;
+        }
+
+        if (!TryFindBuildSpot(hall.Position, buildingId, out Vector3 ground))
+        {
+            GD.Print("[TEST] 找不到可建造位置");
+            return;
+        }
+
+        UnitState site = PlaceBuildingAt(buildingId, ground, true);
+        if (site == null) return;
+
+        GD.Print($"[TEST] {site.Type.Name} 开工 位置 {ground} 工期 {site.BuildTotal:0}s");
+        SceneTreeTimer timer = GetTree().CreateTimer(site.BuildTotal + 0.5f);
+        timer.Timeout += () =>
+        {
+            if (!site.Alive || site.IsUnderConstruction)
+            {
+                GD.Print($"[TEST] 未完工 进行中={site.IsUnderConstruction} 剩余 {site.BuildRemaining:0.0}s");
+                return;
+            }
+            GD.Print($"[TEST] {site.Type.Name} 完工，开始训练 {site.Type.Trains[0]}");
             ClearSelection();
-            foreach (UnitState unit in _own)
-            {
-                if (unit.IsBuilding) continue;
-                unit.GoldMine = null;
-                unit.Target = null;
-                unit.Path = null;
-                unit.MoveTarget = goal;
-                _selected.Add(unit);
-                unit.View?.SetSelected(true);
-                moved++;
-                if (moved >= 6) break;
-            }
+            _selected.Add(site);
+            site.View?.SetSelected(true);
             _hud?.SetSelection(_selected);
-            GD.Print($"[TEST] 移动测试单位 {moved} 个");
-        }
-    
-        public void PathProbe()
+            UpdateCommandCard();
+            StartTraining(site, site.Type.Trains[0]);
+        };
+    }
+
+    private UnitState FindWorker(int player)
+    {
+        foreach (UnitState unit in _own)
         {
-            if (_pathGrid == null || !_pathGrid.Ready)
-            {
-                GD.Print("[PROBE] 寻路网格为空");
-                return;
-            }
-        
-            UnitState worker = null;
-            foreach (UnitState unit in _own)
-            {
-                if (unit.IsWorker) { worker = unit; break; }
-            }
-            if (worker == null) return;
-        
-            for (int i = 0; i < 8; i++)
-            {
-                float angle = Mathf.Tau * i / 8f;
-                Vector3 goal = worker.Position + new Vector3(Mathf.Cos(angle) * 600f, 0f, Mathf.Sin(angle) * 600f);
-                List<Vector3> path = _pathGrid.FindPath(worker.Position, goal, 28f);
-                GD.Print($"[PROBE] 方向{i} 终点{goal.X:0},{goal.Z:0} 阻挡={_pathGrid.IsBlockedWorld(goal.X, goal.Z)} 航点={path?.Count ?? -1}");
-            }
+            if (unit.Alive && unit.Player == player && unit.IsWorker) return unit;
         }
-        
-        public void ScriptedLumberTest()
+        return null;
+    }
+
+    private UnitState FindHall(int player)
+    {
+        UnitState fallback = null;
+        foreach (UnitState unit in _own)
         {
-            UnitState worker = null;
-            foreach (UnitState unit in _own)
-            {
-                if (unit.IsWorker) { worker = unit; break; }
-            }
-            if (worker == null || _trees.Count == 0)
-            {
-                GD.Print("[TEST] 没有农民或树");
-                return;
-            }
-        
-            TreeState tree = null;
-            float best = float.MaxValue;
-            foreach (TreeState candidate in _trees)
-            {
-                if (!candidate.Alive) continue;
-                float distance = new Vector2(worker.Position.X - candidate.Position.X, worker.Position.Z - candidate.Position.Z).Length();
-                if (distance < best) { best = distance; tree = candidate; }
-            }
-            if (tree == null) return;
-        
-            ClearSelection();
-            _selected.Add(worker);
-            worker.View?.SetSelected(true);
-            _sim.SetChop(worker, tree);
-            _hud?.SetSelection(_selected);
-            _hud?.SetHint($"伐木测试：{worker.Type.Name} → 树 HP {tree.Hp:0} 距离 {best:0}");
-            GD.Print($"[TEST] 伐木 {worker.Type.Name} → 树 距离 {best:0} HP {tree.Hp:0}，树总数 {_trees.Count}");
+            if (!unit.Alive || unit.Player != player || !unit.IsBuilding) continue;
+            if (unit.Type.FoodMade > 0 && unit.Type.Trains.Length > 0) return unit;
+            if (fallback == null && unit.Type.Trains.Length > 0) fallback = unit;
         }
-        
-        public void ScriptedBuildTest()
-        {
-            UnitState worker = null;
-            UnitState hall = null;
-            foreach (UnitState unit in _own)
-            {
-                if (unit.IsWorker && worker == null) worker = unit;
-                if (unit.IsBuilding && HallWorkers.ContainsKey(unit.Type.Id)) hall = unit;
-            }
-            if (worker == null || hall == null)
-            {
-                GD.Print("[TEST] 缺少农民或基地");
-                return;
-            }
-        
-            ClearSelection();
-            _selected.Add(worker);
-            worker.View?.SetSelected(true);
-            _hud?.SetSelection(_selected);
-        
-            Vector3 ground = Vector3.Zero;
-            bool found = false;
-            for (int r = 300; r <= 1000 && !found; r += 100)
-            {
-                for (int a = 0; a < 16 && !found; a++)
-                {
-                    float angle = Mathf.Tau * a / 16f;
-                    var candidate = new Vector3(
-                        hall.Position.X + Mathf.Cos(angle) * r,
-                        0f,
-                        hall.Position.Z + Mathf.Sin(angle) * r);
-                    candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
-                    if (_pathGrid == null || _pathGrid.IsAreaFree(candidate, 96f))
-                    {
-                        ground = candidate;
-                        found = true;
-                    }
-                }
-            }
-            if (!found)
-            {
-                GD.Print("[TEST] 找不到可建造位置");
-                return;
-            }
-        
-            UnitState site = PlaceBuildingAt("hbar", ground, true);
-            if (site == null) return;
-        
-            GD.Print($"[TEST] 兵营开工 位置 {ground} 工期 {site.BuildTotal:0}s");
-            SceneTreeTimer timer = GetTree().CreateTimer(site.BuildTotal + 0.5f);
-            timer.Timeout += () =>
-            {
-                if (!site.Alive || site.IsUnderConstruction)
-                {
-                    GD.Print($"[TEST] 兵营未完工 进行中={site.IsUnderConstruction} 剩余 {site.BuildRemaining:0.0}s");
-                    return;
-                }
-                GD.Print("[TEST] 兵营完工，开始训练 hfoo");
-                ClearSelection();
-                _selected.Add(site);
-                site.View?.SetSelected(true);
-                _hud?.SetSelection(_selected);
-                UpdateCommandCard();
-                StartTraining(site, "hfoo");
-            };
-        }
-        
-        private void OnUnitDied(UnitState unit)
+        return fallback;
+    }
+
+    private void OnUnitDied(UnitState unit)
     {
         if (_selected.Remove(unit))
         {
@@ -922,22 +960,70 @@ public sealed partial class GameScreen : Node3D
         RefreshHud();
     }
 
-    private static readonly Dictionary<string, string> HallWorkers = new()
+    private void MarkBuildingKnown(string id)
     {
-        ["htow"] = "hpea",
-        ["ogre"] = "opeo",
-        ["unpl"] = "uaco",
-        ["etol"] = "ewsp",
-    };
+        if (string.IsNullOrEmpty(id)) return;
+        _knownBuildings.Add(id);
+    }
+
+    private bool HasBuilding(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return true;
+        if (_knownBuildings.Contains(id)) return true;
+        foreach (UnitState unit in _own)
+        {
+            if (!unit.Alive || unit.IsUnderConstruction) continue;
+            if (string.Equals(unit.Type.Id, id, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    private bool RequirementsMet(string[] requires)
+    {
+        if (requires == null) return true;
+        foreach (string id in requires)
+        {
+            if (!HasBuilding(id)) return false;
+        }
+        return true;
+    }
+
+    private int FoodUsed()
+    {
+        int used = 0;
+        foreach (UnitState unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != 0 || unit.IsBuilding) continue;
+            used += Mathf.Max(1, unit.Type.FoodUsed);
+        }
+        return used;
+    }
+
+    private int FoodCap()
+    {
+        int cap = 0;
+        foreach (UnitState unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != 0 || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+            cap += unit.Type.FoodMade;
+        }
+        return cap;
+    }
+
+    private int QueueLength(UnitState building)
+    {
+        int count = 0;
+        foreach (BuildingOrder order in _orders)
+        {
+            if (ReferenceEquals(order.Building, building)) count++;
+        }
+        return count;
+    }
 
     private void RefreshHud()
     {
-        int pop = 0;
-        foreach (UnitState unit in _allUnits)
-        {
-            if (unit.Alive && unit.Player == 0 && !unit.IsBuilding) pop++;
-        }
-        _hud?.SetResources(_gold, _lumber, pop, 100);
+        _hud?.SetResources(_gold, _lumber, FoodUsed(), FoodCap());
+        UpdateQueueLabel();
     }
 
     private void OnLumberDeposited(int player, int amount)
@@ -956,49 +1042,143 @@ public sealed partial class GameScreen : Node3D
         RefreshHud();
     }
 
-    private static readonly Dictionary<string, string> Trainables = new()
-    {
-        ["htow"] = "hpea",
-        ["hbar"] = "hfoo",
-        ["ogre"] = "opeo",
-        ["unpl"] = "uaco",
-        ["etol"] = "ewsp",
-    };
-
     private void UpdateCommandCard()
     {
         if (_hud == null) return;
 
-        UnitState single = _selected.Count == 1 ? _selected[0] : null;
-        if (single != null && single.Player == 0)
+        var commands = new List<CommandEntry>();
+        if (_selected.Count > 0 && _selected[0].Player == 0)
         {
-            if (single.IsBuilding && !single.IsUnderConstruction
-                && Trainables.TryGetValue(single.Type.Id, out string workerId))
+            UnitState single = _selected.Count == 1 ? _selected[0] : null;
+            if (single != null && single.IsBuilding && !single.IsUnderConstruction)
             {
-                UnitType worker = UnitCatalog.Get(workerId);
-                if (worker != null)
-                {
-                    bool afford = _gold >= worker.GoldCost && _lumber >= worker.LumberCost;
-                    _hud.ShowTrain($"训练 {worker.Name}  {worker.GoldCost}金", afford,
-                        () => StartTraining(single, workerId));
-                    return;
-                }
+                AddTrainingCommands(commands, single);
+                AddResearchCommands(commands, single);
+                AddUpgradeCommands(commands, single);
             }
-
-            if (single.IsWorker && single.Type.Id == "hpea")
+            else if (_selected[0].IsWorker)
             {
-                UnitType barracks = UnitCatalog.Get("hbar");
-                if (barracks != null)
-                {
-                    bool afford = _gold >= barracks.GoldCost && _lumber >= barracks.LumberCost;
-                    _hud.ShowTrain($"建造 {barracks.Name}  {barracks.GoldCost}金/{barracks.LumberCost}木", afford,
-                        () => BeginPlacement("hbar"));
-                    return;
-                }
+                AddBuildCommands(commands, _selected[0]);
             }
         }
 
-        _hud.HideTrain();
+        _hud.SetCommands(commands);
+    }
+
+    private void AddTrainingCommands(List<CommandEntry> commands, UnitState building)
+    {
+        foreach (string unitId in building.Type.Trains)
+        {
+            UnitType type = UnitCatalog.Get(unitId);
+            if (type == null) continue;
+
+            bool afford = _gold >= type.GoldCost && _lumber >= type.LumberCost;
+            bool food = FoodUsed() + type.FoodUsed <= FoodCap();
+            bool requires = RequirementsMet(type.Requires);
+            bool room = QueueLength(building) < 5;
+            bool enabled = afford && food && requires && room;
+
+            string cost = type.GoldCost > 0 ? $"{type.GoldCost}金" : "";
+            if (type.LumberCost > 0) cost += (cost.Length > 0 ? "/" : "") + $"{type.LumberCost}木";
+            if (type.FoodUsed > 0) cost += (cost.Length > 0 ? " " : "") + $"{type.FoodUsed}食";
+
+            UnitState target = building;
+            string id = unitId;
+            commands.Add(new CommandEntry
+            {
+                Id = id,
+                Name = $"训练 {type.Name}",
+                Cost = cost,
+                Tooltip = $"训练 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.TrainSeconds:0}s",
+                Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
+                Enabled = enabled,
+                Action = () => StartTraining(target, id),
+            });
+        }
+    }
+
+    private void AddResearchCommands(List<CommandEntry> commands, UnitState building)
+    {
+        foreach (string upgradeId in building.Type.Researches)
+        {
+            UpgradeType upgrade = TechTree.Upgrade(upgradeId);
+            if (upgrade == null) continue;
+
+            int level = ResearchLevel(upgradeId);
+            if (level >= upgrade.MaxLevel) continue;
+
+            int next = level + 1;
+            int gold = upgrade.GoldFor(next);
+            int lumber = upgrade.LumberFor(next);
+            bool afford = _gold >= gold && _lumber >= lumber;
+            bool busy = QueueLength(building) >= 3;
+            bool requires = RequirementsMet(upgrade.Requires);
+
+            string name = upgrade.NameFor(next);
+            UnitState target = building;
+            string id = upgradeId;
+            commands.Add(new CommandEntry
+            {
+                Id = id,
+                Name = $"研究 {name}",
+                Cost = $"{gold}金/{lumber}木",
+                Tooltip = $"{name}（{next}/{upgrade.MaxLevel}）\n{upgrade.Description}",
+                Icon = TechTree.Icon(upgrade.IconPath),
+                Enabled = afford && requires && !busy,
+                Action = () => StartResearch(target, id),
+            });
+        }
+    }
+
+    private void AddUpgradeCommands(List<CommandEntry> commands, UnitState building)
+    {
+        foreach (string targetId in building.Type.UpgradeTo)
+        {
+            UnitType target = UnitCatalog.Get(targetId);
+            if (target == null) continue;
+
+            bool afford = _gold >= target.GoldCost && _lumber >= target.LumberCost;
+            bool requires = RequirementsMet(target.Requires);
+            string buildingId = targetId;
+            UnitState source = building;
+            commands.Add(new CommandEntry
+            {
+                Id = buildingId,
+                Name = $"升级为 {target.Name}",
+                Cost = $"{target.GoldCost}金/{target.LumberCost}木",
+                Tooltip = $"升级为 {target.Name}  {target.GoldCost}金 {target.LumberCost}木  {target.BuildSeconds:0}s",
+                Icon = TechTree.Icon(TechTree.UnitIconArt(buildingId)),
+                Enabled = afford && requires,
+                Action = () => StartBuildingUpgrade(source, buildingId),
+            });
+        }
+    }
+
+    private void AddBuildCommands(List<CommandEntry> commands, UnitState worker)
+    {
+        foreach (string buildingId in worker.Type.Builds)
+        {
+            UnitType type = UnitCatalog.Get(buildingId);
+            if (type == null) continue;
+
+            bool afford = _gold >= type.GoldCost && _lumber >= type.LumberCost;
+            bool requires = RequirementsMet(type.Requires);
+            bool known = HasBuilding(buildingId);
+            string id = buildingId;
+            commands.Add(new CommandEntry
+            {
+                Id = id,
+                Name = $"建造 {type.Name}",
+                Cost = $"{type.GoldCost}金/{type.LumberCost}木",
+                Tooltip = $"建造 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.BuildSeconds:0}s"
+                    + (type.FoodMade > 0 ? $"  供给 +{type.FoodMade}" : "")
+                    + (known ? "  已有" : ""),
+                Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
+                Enabled = afford && requires,
+                Active = known,
+                Action = () => BeginPlacement(id),
+            });
+        }
     }
 
     private void BeginPlacement(string buildingId)
@@ -1055,7 +1235,7 @@ public sealed partial class GameScreen : Node3D
         {
             if (!other.Alive || !other.IsBuilding) continue;
             float distance = new Vector2(other.Position.X - ground.X, other.Position.Z - ground.Z).Length();
-            if (distance < 220f)
+            if (distance < 200f)
             {
                 if (report) _hud?.SetHint("离已有建筑太近");
                 return null;
@@ -1077,10 +1257,12 @@ public sealed partial class GameScreen : Node3D
         site.BuildTotal = Mathf.Max(2f, type.BuildSeconds * TimeScaleHint);
         site.BuildRemaining = site.BuildTotal;
         site.Hp = 1f;
+        site.MaxHp = type.Hp;
         site.View?.SetHp(0.01f, true);
         site.View?.Play("Birth");
         _sim.Units.Add(site);
         _pathGrid?.AddBlocker(ground, 96f);
+        _builtCounts[buildingId] = BuiltCount(buildingId) + 1;
 
         foreach (UnitState worker in _selected)
         {
@@ -1100,76 +1282,259 @@ public sealed partial class GameScreen : Node3D
         return site;
     }
 
-    private void StartTraining(UnitState hall, string workerId)
+    private int ResearchLevel(string upgradeId)
     {
-        UnitType worker = UnitCatalog.Get(workerId);
-        if (worker == null || hall == null || !hall.Alive) return;
-        if (_gold < worker.GoldCost || _lumber < worker.LumberCost)
+        return _researchLevels.TryGetValue(upgradeId, out int level) ? level : 0;
+    }
+
+    private bool StartTraining(UnitState building, string unitId)
+    {
+        UnitType type = UnitCatalog.Get(unitId);
+        if (type == null || building == null || !building.Alive) return false;
+        if (_gold < type.GoldCost || _lumber < type.LumberCost)
         {
-            _hud?.SetHint($"资源不足：需要 {worker.GoldCost} 金 / {worker.LumberCost} 木");
-            return;
+            _hud?.SetHint($"资源不足：需要 {type.GoldCost} 金 / {type.LumberCost} 木");
+            return false;
+        }
+        if (!RequirementsMet(type.Requires))
+        {
+            _hud?.SetHint($"缺少前置建筑：{MissingRequirement(type.Requires)}");
+            return false;
+        }
+        if (FoodUsed() + type.FoodUsed > FoodCap())
+        {
+            _hud?.SetHint("人口已满，先建农场");
+            return false;
         }
 
-        _gold -= worker.GoldCost;
-        _lumber -= worker.LumberCost;
-        _trainQueue.Enqueue(new TrainOrder
+        _gold -= type.GoldCost;
+        _lumber -= type.LumberCost;
+        _orders.Add(new BuildingOrder
         {
-            Hall = hall,
-            WorkerId = workerId,
-            Remaining = Mathf.Max(2f, worker.TrainSeconds * TimeScaleHint),
-            Total = Mathf.Max(2f, worker.TrainSeconds * TimeScaleHint),
+            Building = building,
+            Kind = OrderKind.Train,
+            Id = unitId,
+            Remaining = Mathf.Max(1f, type.TrainSeconds * TimeScaleHint),
+            Total = Mathf.Max(1f, type.TrainSeconds * TimeScaleHint),
         });
-        _hud?.SetHint($"开始训练 {worker.Name}（{worker.TrainSeconds:0}s）");
+        _hud?.SetHint($"开始训练 {type.Name}（{type.TrainSeconds:0}s）");
         RefreshHud();
-        UpdateQueueLabel();
+        UpdateCommandCard();
+        return true;
     }
 
-    private void TickTraining(float delta)
+    private bool StartResearch(UnitState building, string upgradeId)
     {
-        if (_trainQueue.Count == 0) return;
+        UpgradeType upgrade = TechTree.Upgrade(upgradeId);
+        if (upgrade == null || building == null || !building.Alive) return false;
 
-        TrainOrder order = _trainQueue.Peek();
-        if (order.Hall == null || !order.Hall.Alive)
+        int next = ResearchLevel(upgradeId) + CountResearchOrders(upgradeId) + 1;
+        if (next > upgrade.MaxLevel) return false;
+
+        int gold = upgrade.GoldFor(next);
+        int lumber = upgrade.LumberFor(next);
+        if (_gold < gold || _lumber < lumber)
         {
-            _trainQueue.Dequeue();
-            UpdateQueueLabel();
-            return;
+            _hud?.SetHint($"资源不足：需要 {gold} 金 / {lumber} 木");
+            return false;
+        }
+        if (!RequirementsMet(upgrade.Requires))
+        {
+            _hud?.SetHint($"缺少前置建筑：{MissingRequirement(upgrade.Requires)}");
+            return false;
         }
 
-        order.Remaining -= delta;
-        UpdateQueueLabel();
-        if (order.Remaining > 0f) return;
+        _gold -= gold;
+        _lumber -= lumber;
+        float seconds = Mathf.Max(1f, upgrade.SecondsFor(next) * TimeScaleHint);
+        _orders.Add(new BuildingOrder
+        {
+            Building = building,
+            Kind = OrderKind.Research,
+            Id = upgradeId,
+            Level = next,
+            Remaining = seconds,
+            Total = seconds,
+        });
+        GD.Print($"[内务] 研究入队 {upgradeId} 等级 {next} 于 {building.Type.Name}");
+        _hud?.SetHint($"开始研究 {upgrade.NameFor(next)}（{seconds:0}s）");
+        RefreshHud();
+        UpdateCommandCard();
+        return true;
+    }
 
-        _trainQueue.Dequeue();
-        SpawnTrainedWorker(order);
+    private bool StartBuildingUpgrade(UnitState building, string targetId)
+    {
+        UnitType target = UnitCatalog.Get(targetId);
+        if (target == null || building == null || !building.Alive) return false;
+        if (_gold < target.GoldCost || _lumber < target.LumberCost)
+        {
+            _hud?.SetHint($"资源不足：需要 {target.GoldCost} 金 / {target.LumberCost} 木");
+            return false;
+        }
+        if (!RequirementsMet(target.Requires))
+        {
+            _hud?.SetHint($"缺少前置建筑：{MissingRequirement(target.Requires)}");
+            return false;
+        }
+
+        _gold -= target.GoldCost;
+        _lumber -= target.LumberCost;
+        float seconds = Mathf.Max(1f, target.BuildSeconds * TimeScaleHint);
+        _orders.Add(new BuildingOrder
+        {
+            Building = building,
+            Kind = OrderKind.Upgrade,
+            Id = targetId,
+            Remaining = seconds,
+            Total = seconds,
+        });
+        _hud?.SetHint($"{building.Type.Name} 升级为 {target.Name}（{seconds:0}s）");
+        RefreshHud();
+        UpdateCommandCard();
+        return true;
+    }
+
+    private string MissingRequirement(string[] requires)
+    {
+        if (requires == null) return "";
+        foreach (string id in requires)
+        {
+            if (HasBuilding(id)) continue;
+            UnitType type = UnitCatalog.Get(id);
+            return type != null ? type.Name : id;
+        }
+        return "";
+    }
+
+    private void TickOrders(float delta)
+    {
+        for (int index = 0; index < _orders.Count; index++)
+        {
+            BuildingOrder order = _orders[index];
+            if (order.Building == null || !order.Building.Alive)
+            {
+                _orders.RemoveAt(index);
+                index--;
+                continue;
+            }
+
+            bool blocked = false;
+            for (int earlier = 0; earlier < index; earlier++)
+            {
+                if (ReferenceEquals(_orders[earlier].Building, order.Building))
+                {
+                    blocked = true;
+                    break;
+                }
+            }
+            if (blocked) continue;
+
+            order.Remaining -= delta;
+            if (order.Remaining > 0f) continue;
+
+            _orders.RemoveAt(index);
+            index--;
+            CompleteOrder(order);
+        }
         UpdateQueueLabel();
     }
 
-    private void SpawnTrainedWorker(TrainOrder order)
+    private void CompleteOrder(BuildingOrder order)
+    {
+        switch (order.Kind)
+        {
+            case OrderKind.Train:
+                SpawnTrainedUnit(order);
+                break;
+            case OrderKind.Research:
+                ApplyResearch(order);
+                break;
+            case OrderKind.Upgrade:
+                ReplaceBuilding(order.Building, order.Id);
+                break;
+        }
+    }
+
+    private void ApplyResearch(BuildingOrder order)
+    {
+        UpgradeType upgrade = TechTree.Upgrade(order.Id);
+        if (upgrade == null) return;
+
+        _researchLevels[order.Id] = order.Level;
+        _sim?.SetResearchLevel(0, order.Id, order.Level);
+        GD.Print($"[TECH] 研究完成 {upgrade.Id} {upgrade.NameFor(order.Level)} 等级 {order.Level}/{upgrade.MaxLevel}");
+        _hud?.SetHint($"研究完成：{upgrade.NameFor(order.Level)}");
+        RefreshHud();
+        UpdateCommandCard();
+    }
+
+    private void SpawnTrainedUnit(BuildingOrder order)
     {
         float angle = _allUnits.Count * 0.9f;
-        float worldX = order.Hall.Position.X + Mathf.Cos(angle) * 150f;
-        float worldZ = order.Hall.Position.Z + Mathf.Sin(angle) * 150f;
-        UnitState unit = Spawn(order.WorkerId, order.Hall.Player, worldX, worldZ, Mathf.Pi + angle, 0f, 1f);
+        float worldX = order.Building.Position.X + Mathf.Cos(angle) * 150f;
+        float worldZ = order.Building.Position.Z + Mathf.Sin(angle) * 150f;
+        UnitState unit = Spawn(order.Id, order.Building.Player, worldX, worldZ, Mathf.Pi + angle, 0f, 1f);
         if (unit == null) return;
 
-        _sim.Units.Add(unit);
-        GD.Print($"[TEST] 训练完成 {unit.Type.Name} 位于 {unit.Position}，金币 {_gold}");
+        _sim?.Units.Add(unit);
+        GD.Print($"[GAME] 训练完成 {unit.Type.Name} 位于 {unit.Position}，金币 {_gold}");
         RefreshHud();
+    }
+
+    private void ReplaceBuilding(UnitState building, string targetId)
+    {
+        Vector3 position = building.Position;
+        float facing = building.Facing;
+        bool selected = _selected.Contains(building);
+
+        if (selected)
+        {
+            _selected.Remove(building);
+            building.View?.SetSelected(false);
+        }
+
+        _sim?.Units.Remove(building);
+        _allUnits.Remove(building);
+        _own.Remove(building);
+        building.Alive = false;
+        building.View?.Root.QueueFree();
+
+        UnitState replacement = Spawn(targetId, 0, position.X, position.Z, facing, 0f, 1f);
+        if (replacement == null) return;
+
+        replacement.IsUnderConstruction = false;
+        _sim?.Units.Add(replacement);
+        MarkBuildingKnown(targetId);
+
+        if (selected)
+        {
+            _selected.Add(replacement);
+            replacement.View?.SetSelected(true);
+            _hud?.SetSelection(_selected);
+        }
+        GD.Print($"[GAME] 升级完成 {replacement.Type.Name} 位于 {position}");
+        RefreshHud();
+        UpdateCommandCard();
     }
 
     private void UpdateQueueLabel()
     {
         if (_hud == null) return;
-        if (_trainQueue.Count == 0)
+        if (_orders.Count == 0)
         {
-            _hud.SetQueue("");
+            _hud.SetQueue(Housekeeping ? "[内务] 进行中" : "");
             return;
         }
 
-        TrainOrder order = _trainQueue.Peek();
-        UnitType worker = UnitCatalog.Get(order.WorkerId);
-        _hud.SetQueue($"训练中：{worker?.Name} {Mathf.Max(0f, order.Remaining):0.0}s");
+        BuildingOrder order = _orders[0];
+        string label = order.Kind switch
+        {
+            OrderKind.Train => $"训练 {UnitCatalog.Get(order.Id)?.Name}",
+            OrderKind.Research => $"研究 {TechTree.Upgrade(order.Id)?.NameFor(order.Level)}",
+            _ => $"升级 {UnitCatalog.Get(order.Id)?.Name}",
+        };
+        _hud.SetQueue($"{order.Building.Type.Name}：{label} {Mathf.Max(0f, order.Remaining):0.0}s（队列 {_orders.Count}）");
     }
 
     private void Back()
@@ -1177,5 +1542,505 @@ public sealed partial class GameScreen : Node3D
         Input.MouseMode = Input.MouseModeEnum.Visible;
         QueueFree();
         _back?.Invoke();
+    }
+
+    private bool TryFindBuildSpot(Vector3 origin, string buildingId, out Vector3 spot)
+    {
+        spot = Vector3.Zero;
+        for (float radius = 260f; radius <= 3000f; radius += 130f)
+        {
+            int steps = radius < 700f ? 16 : 24;
+            for (int step = 0; step < steps; step++)
+            {
+                float angle = Mathf.Tau * step / steps;
+                var candidate = new Vector3(
+                    origin.X + Mathf.Cos(angle) * radius,
+                    0f,
+                    origin.Z + Mathf.Sin(angle) * radius);
+                candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
+                if (!IsSpotUsable(candidate)) continue;
+                spot = candidate;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private bool IsSpotUsable(Vector3 candidate)
+    {
+        if (_pathGrid != null && !_pathGrid.IsAreaFree(candidate, 96f)) return false;
+        foreach (UnitState other in _allUnits)
+        {
+            if (!other.Alive || !other.IsBuilding) continue;
+            float distance = new Vector2(other.Position.X - candidate.X, other.Position.Z - candidate.Z).Length();
+            if (distance < 210f) return false;
+        }
+        return true;
+    }
+
+    public bool Housekeeping;
+    private readonly HashSet<string> _hallFamily = new(StringComparer.OrdinalIgnoreCase);
+    private float _houseTimer;
+    private bool _houseDone;
+    private bool _houseAnnounced;
+
+    private sealed class InhouseTask
+    {
+        public string Kind;
+        public string Id;
+        public string Target;
+        public int Total = 1;
+        public string Label = "";
+    }
+
+    private readonly List<InhouseTask> _inhouse = new();
+
+    public void RunHousekeeping()
+    {
+        Housekeeping = true;
+        BuildHousekeepingPlan();
+        _hud?.SetHint("[内务] 开始：铺满基地建筑、升级、训练与科技");
+    }
+
+    private void BuildHousekeepingPlan()
+    {
+        _inhouse.Clear();
+        _houseDone = false;
+        _houseAnnounced = false;
+
+        UnitState hall = FindHall(0);
+        if (hall == null)
+        {
+            GD.Print("[内务] 找不到主基地，无法开始");
+            Housekeeping = false;
+            return;
+        }
+
+        string workerId = hall.Type.Trains.Length > 0 ? hall.Type.Trains[0] : null;
+        UnitType worker = UnitCatalog.Get(workerId);
+
+        _hallFamily.Clear();
+        CollectUpgradeFamily(hall.Type.Id, _hallFamily);
+
+        var buildable = new List<string>();
+        if (worker != null)
+        {
+            foreach (string id in worker.Builds)
+            {
+                if (_hallFamily.Contains(id)) continue;
+                buildable.Add(id);
+            }
+        }
+
+        foreach (string id in buildable)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) continue;
+            int total = Mathf.Max(1, type.UpgradeTo.Length);
+            if (type.FoodMade > 0) total = Mathf.Max(total, 2);
+            _inhouse.Add(new InhouseTask
+            {
+                Kind = "build",
+                Id = id,
+                Total = total,
+                Label = type.Name,
+            });
+        }
+
+        foreach (string id in buildable)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) continue;
+            foreach (string upgradeId in type.Researches)
+            {
+                UpgradeType upgrade = TechTree.Upgrade(upgradeId);
+                if (upgrade == null) continue;
+                _inhouse.Add(new InhouseTask
+                {
+                    Kind = "research",
+                    Id = upgradeId,
+                    Total = upgrade.MaxLevel,
+                    Label = upgrade.Name,
+                });
+            }
+        }
+
+        var trainSources = new List<string>(buildable) { hall.Type.Id };
+        var trained = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string id in trainSources)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) continue;
+            foreach (string unitId in type.Trains)
+            {
+                if (!trained.Add(unitId)) continue;
+                UnitType unit = UnitCatalog.Get(unitId);
+                if (unit == null) continue;
+                _inhouse.Add(new InhouseTask
+                {
+                    Kind = "train",
+                    Id = unitId,
+                    Total = unitId == workerId ? 6 : 1,
+                    Label = unit.Name,
+                });
+            }
+        }
+
+        int buildCount = 0;
+        int researchCount = 0;
+        foreach (InhouseTask task in _inhouse)
+        {
+            if (task.Kind == "build") buildCount++;
+            if (task.Kind == "research") researchCount++;
+        }
+        GD.Print($"[内务] 计划 {_inhouse.Count} 条：建筑 {buildCount} 种、科技 {researchCount} 项、其余为升级与训练");
+        foreach (InhouseTask task in _inhouse)
+        {
+            GD.Print($"[内务]   {task.Kind,-8} {task.Id,-6} x{task.Total}  {task.Label}");
+        }
+    }
+
+    private void TickHousekeeping(float delta)
+    {
+        if (!Housekeeping || _houseDone) return;
+        _houseTimer += delta;
+        if (_houseTimer < 0.3f) return;
+        _houseTimer = 0f;
+
+        UnitState hall = FindHall(0);
+        if (hall == null) return;
+
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            if (_orders.Count >= 4) break;
+            if (FoodCap() - FoodUsed() <= 4 && ActionFarm(hall)) continue;
+            if (ActionBuild(hall)) continue;
+            if (ActionUpgrade(hall)) continue;
+            if (ActionResearch(hall)) continue;
+            if (ActionTrain(hall)) continue;
+            break;
+        }
+
+        _houseStatusTimer += 0.3f;
+        if (_houseStatusTimer >= 8f)
+        {
+            _houseStatusTimer = 0f;
+            LogHousekeepingStatus();
+        }
+
+        if (_orders.Count > 0) return;
+
+        bool allDone = true;
+        foreach (InhouseTask task in _inhouse)
+        {
+            if (TaskDoneCount(task) < task.Total) { allDone = false; break; }
+        }
+        if (!allDone) return;
+
+        _houseDone = true;
+        Housekeeping = false;
+        if (!_houseAnnounced)
+        {
+            _houseAnnounced = true;
+            int buildings = 0;
+            int units = 0;
+            foreach (UnitState unit in _own)
+            {
+                if (!unit.Alive) continue;
+                if (unit.IsBuilding) buildings++;
+                else units++;
+            }
+            string summary = $"[内务] 完成：建筑 {buildings} 座，非建筑单位 {units} 个，资源 {_gold}/{_lumber}，人口 {FoodUsed()}/{FoodCap()}";
+            GD.Print(summary);
+            _hud?.SetHint(summary);
+            LogCombatStats();
+        }
+    }
+
+    private float _houseStatusTimer;
+
+    private void LogHousekeepingStatus()
+    {
+        int buildDone = 0;
+        int buildTotal = 0;
+        int researchDone = 0;
+        int researchTotal = 0;
+        int trainDone = 0;
+        int trainTotal = 0;
+        foreach (InhouseTask task in _inhouse)
+        {
+            int done = TaskDoneCount(task);
+            switch (task.Kind)
+            {
+                case "build":
+                    buildDone += Mathf.Min(done, task.Total);
+                    buildTotal += task.Total;
+                    break;
+                case "research":
+                    researchDone += Mathf.Min(done, task.Total);
+                    researchTotal += task.Total;
+                    break;
+                case "train":
+                    trainDone += Mathf.Min(done, task.Total);
+                    trainTotal += task.Total;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        GD.Print($"[内务] 进度 建筑 {buildDone}/{buildTotal}  科技 {researchDone}/{researchTotal}  兵种 {trainDone}/{trainTotal}"
+            + $"  队列 {_orders.Count}  人口 {FoodUsed()}/{FoodCap()}  资源 {_gold}/{_lumber}");
+    }
+
+    private void LogCombatStats()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (UnitState unit in _own)
+        {
+            if (!unit.Alive || unit.IsBuilding) continue;
+            if (!seen.Add(unit.Type.Id)) continue;
+
+            float bonus = _sim != null ? _sim.DamageBonus(unit) : 0f;
+            float armor = _sim != null ? _sim.ArmorOf(unit) : unit.Type.Armor;
+            GD.Print($"[战力] {unit.Type.Name,-8} 攻击 {unit.Type.MinDamage + bonus:0}-{unit.Type.MaxDamage + bonus:0}"
+                + $"（基础 {unit.Type.MinDamage:0}-{unit.Type.MaxDamage:0}）  护甲 {armor:0}  关联科技 {unit.Type.UpgradesApplied.Length}");
+        }
+    }
+
+    private int TaskDoneCount(InhouseTask task)
+    {
+        if (task == null) return 0;
+        switch (task.Kind)
+        {
+            case "build":
+                return Mathf.Max(CountBuildings(task.Id), BuiltCount(task.Id));
+            case "upgrade":
+                return CountBuildings(task.Target);
+            case "research":
+                return ResearchLevel(task.Id) + CountResearchOrders(task.Id);
+            case "train":
+                return CountUnits(task.Id) + CountOrders(task.Id);
+            default:
+                return 0;
+        }
+    }
+
+    private int CountBuildings(string id)
+    {
+        int count = 0;
+        foreach (UnitState unit in _own)
+        {
+            if (unit.Alive && unit.IsBuilding && string.Equals(unit.Type.Id, id, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
+    }
+
+    private int BuiltCount(string id)
+    {
+        return _builtCounts.TryGetValue(id, out int count) ? count : 0;
+    }
+
+    private int CountBuildingsUnderConstruction(string id)
+    {
+        int count = 0;
+        foreach (UnitState unit in _own)
+        {
+            if (!unit.Alive || !unit.IsBuilding || !unit.IsUnderConstruction) continue;
+            if (string.Equals(unit.Type.Id, id, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
+    }
+
+    private int CountUnits(string id)
+    {
+        int count = 0;
+        foreach (UnitState unit in _own)
+        {
+            if (unit.Alive && !unit.IsBuilding && string.Equals(unit.Type.Id, id, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
+    }
+
+    private int CountOrders(string id)
+    {
+        int count = 0;
+        foreach (BuildingOrder order in _orders)
+        {
+            if (order.Kind == OrderKind.Train && string.Equals(order.Id, id, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
+    }
+
+    private int CountResearchOrders(string id)
+    {
+        int count = 0;
+        foreach (BuildingOrder order in _orders)
+        {
+            if (order.Kind == OrderKind.Research && string.Equals(order.Id, id, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
+    }
+
+    private void CollectUpgradeFamily(string id, HashSet<string> family)
+    {
+        if (string.IsNullOrEmpty(id) || !family.Add(id)) return;
+        UnitType type = UnitCatalog.Get(id);
+        if (type == null) return;
+        foreach (string target in type.UpgradeTo) CollectUpgradeFamily(target, family);
+    }
+
+    private bool ActionFarm(UnitState hall)
+    {
+        UnitState worker = FindWorker(0);
+        if (worker == null) return false;
+
+        foreach (string id in worker.Type.Builds)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null || type.FoodMade <= 0) continue;
+            if (type.Trains.Length > 0) continue;
+            if (_hallFamily.Contains(id)) continue;
+            if (CountBuildings(id) >= 12) continue;
+            if (CountBuildingsUnderConstruction(id) > 0) continue;
+            if (!RequirementsMet(type.Requires)) continue;
+            return BuildOne(id, hall);
+        }
+        return false;
+    }
+
+    private bool ActionBuild(UnitState hall)
+    {
+        foreach (InhouseTask task in _inhouse)
+        {
+            if (task.Kind != "build") continue;
+            if (TaskDoneCount(task) >= task.Total) continue;
+            UnitType type = UnitCatalog.Get(task.Id);
+            if (type == null || !RequirementsMet(type.Requires)) continue;
+            return BuildOne(task.Id, hall);
+        }
+        return false;
+    }
+
+    private bool BuildOne(string buildingId, UnitState hall)
+    {
+        UnitType type = UnitCatalog.Get(buildingId);
+        if (type == null) return false;
+        if (_gold < type.GoldCost || _lumber < type.LumberCost) return false;
+
+        if (!TryFindBuildSpot(hall.Position, buildingId, out Vector3 spot))
+        {
+            GD.Print($"[内务] 找不到 {type.Name} 的位置");
+            return false;
+        }
+
+        UnitState site = PlaceBuildingAt(buildingId, spot, false);
+        if (site == null) return false;
+
+        UnitState worker = FindWorker(0);
+        if (worker != null)
+        {
+            worker.MoveTarget = spot + new Vector3(150f, 0f, 0f);
+            worker.Path = null;
+        }
+        GD.Print($"[内务] 建造 {type.Name} 位置 {spot.X:0},{spot.Z:0} 完成需 {site.BuildTotal:0}s");
+        return true;
+    }
+
+    private bool ActionUpgrade(UnitState hall)
+    {
+        foreach (UnitState unit in _own)
+        {
+            if (!unit.Alive || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+            if (unit.Type.UpgradeTo.Length == 0) continue;
+
+            string targetId = null;
+            foreach (string candidate in unit.Type.UpgradeTo)
+            {
+                if (CountBuildings(candidate) > 0) continue;
+                UnitType target = UnitCatalog.Get(candidate);
+                if (target == null || !RequirementsMet(target.Requires)) continue;
+                targetId = candidate;
+                break;
+            }
+            if (targetId == null) continue;
+
+            CancelTrainingOrders(unit);
+            if (QueueLength(unit) > 0) continue;
+            return StartBuildingUpgrade(unit, targetId);
+        }
+        return false;
+    }
+
+    private void CancelTrainingOrders(UnitState building)
+    {
+        for (int index = _orders.Count - 1; index >= 0; index--)
+        {
+            BuildingOrder order = _orders[index];
+            if (!ReferenceEquals(order.Building, building) || order.Kind != OrderKind.Train) continue;
+
+            UnitType type = UnitCatalog.Get(order.Id);
+            if (type != null)
+            {
+                _gold += type.GoldCost;
+                _lumber += type.LumberCost;
+            }
+            GD.Print($"[内务] 暂停训练 {type?.Name} 让位给 {building.Type.Name} 升级");
+            _orders.RemoveAt(index);
+        }
+    }
+
+    private bool HasPendingUpgrade(UnitState building)
+    {
+        foreach (string candidate in building.Type.UpgradeTo)
+        {
+            if (CountBuildings(candidate) > 0) continue;
+            return true;
+        }
+        return false;
+    }
+
+    private bool ActionResearch(UnitState hall)
+    {
+        foreach (InhouseTask task in _inhouse)
+        {
+            if (task.Kind != "research") continue;
+            if (TaskDoneCount(task) >= task.Total) continue;
+
+            UpgradeType upgrade = TechTree.Upgrade(task.Id);
+            if (upgrade == null || !RequirementsMet(upgrade.Requires)) continue;
+
+            foreach (UnitState unit in _own)
+            {
+                if (!unit.Alive || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+                if (Array.IndexOf(unit.Type.Researches, task.Id) < 0) continue;
+                if (QueueLength(unit) >= 2) continue;
+                return StartResearch(unit, task.Id);
+            }
+        }
+        return false;
+    }
+
+    private bool ActionTrain(UnitState hall)
+    {
+        foreach (InhouseTask task in _inhouse)
+        {
+            if (task.Kind != "train") continue;
+            if (TaskDoneCount(task) >= task.Total) continue;
+
+            UnitType type = UnitCatalog.Get(task.Id);
+            if (type == null || !RequirementsMet(type.Requires)) continue;
+            if (FoodUsed() + type.FoodUsed > FoodCap()) continue;
+
+            foreach (UnitState unit in _own)
+            {
+                if (!unit.Alive || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+                if (Array.IndexOf(unit.Type.Trains, task.Id) < 0) continue;
+                if (QueueLength(unit) >= 2) continue;
+                if (HasPendingUpgrade(unit)) continue;
+                return StartTraining(unit, task.Id);
+            }
+        }
+        return false;
     }
 }

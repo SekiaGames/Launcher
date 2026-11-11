@@ -9,6 +9,8 @@ public sealed class UnitType
 {
     public string Id;
     public string Name;
+    public string Tip;
+    public string IconPath;
     public string ModelPath;
     public float ModelScale = 1f;
     public float Hp = 100f;
@@ -20,10 +22,22 @@ public sealed class UnitType
     public float MinDamage = 5f;
     public float MaxDamage = 10f;
     public float AcquireRange = 500f;
+    public float Armor;
     public int GoldCost;
     public int LumberCost;
     public float TrainSeconds = 15f;
     public float BuildSeconds = 30f;
+    public int FoodUsed;
+    public int FoodMade;
+
+    public string[] Trains = Array.Empty<string>();
+    public string[] Builds = Array.Empty<string>();
+    public string[] Researches = Array.Empty<string>();
+    public string[] UpgradeTo = Array.Empty<string>();
+    public string[] Requires = Array.Empty<string>();
+    public string[] UpgradesApplied = Array.Empty<string>();
+
+    public bool IsWorkerType => Builds.Length > 0;
 }
 
 public static class UnitCatalog
@@ -56,6 +70,7 @@ public static class UnitCatalog
 
     public static UnitType Get(string id)
     {
+        if (string.IsNullOrEmpty(id)) return null;
         if (Cache.TryGetValue(id, out UnitType cached)) return cached;
         EnsureIndex();
 
@@ -85,11 +100,15 @@ public static class UnitCatalog
             SlkTable balance = War3Tables.UnitBalance();
             type.Hp = Number(balance.Get(balanceRow, "HP"), 100f);
             type.Speed = Number(balance.Get(balanceRow, "spd"), 270f);
+            type.Armor = Number(balance.Get(balanceRow, "def"), 0f);
             type.IsBuilding = balance.Get(balanceRow, "isbldg") == "1";
             type.GoldCost = balance.GetInt(balanceRow, "goldcost");
             type.LumberCost = balance.GetInt(balanceRow, "lumbercost");
             type.TrainSeconds = Number(balance.Get(balanceRow, "reptm"), 15f);
             type.BuildSeconds = Number(balance.Get(balanceRow, "bldtm"), 30f);
+            type.FoodUsed = Mathf.Max(0, balance.GetInt(balanceRow, "fused"));
+            type.FoodMade = Mathf.Max(0, balance.GetInt(balanceRow, "fmade"));
+            type.UpgradesApplied = SplitList(balance.Get(balanceRow, "upgrades"));
             string comment = balance.Get(balanceRow, "comment(s)");
             if (!string.IsNullOrWhiteSpace(comment)) type.Name = comment.Trim();
         }
@@ -107,7 +126,34 @@ public static class UnitCatalog
             type.AcquireRange = Number(weapons.Get(weaponRow, "acquire"), 500f);
         }
 
+        UnitFuncRow row = TechTree.Row(id);
+        if (row != null)
+        {
+            type.Trains = row.Trains;
+            type.Builds = row.Builds;
+            type.Researches = row.Researches;
+            type.UpgradeTo = row.UpgradeTo;
+            type.Requires = row.Requires;
+        }
+
+        string localized = TechTree.UnitName(id);
+        if (!string.IsNullOrWhiteSpace(localized)) type.Name = localized;
+        type.Tip = TechTree.UnitTip(id);
+        type.IconPath = PathResolve.IconPng(TechTree.UnitIconArt(id));
+
         return type;
+    }
+
+    private static string[] SplitList(string csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv)) return Array.Empty<string>();
+        var list = new List<string>();
+        foreach (string part in csv.Split(',', StringSplitOptions.TrimEntries))
+        {
+            if (string.IsNullOrWhiteSpace(part) || part == "_") continue;
+            list.Add(part);
+        }
+        return list.ToArray();
     }
 
     private static float Number(string text, float fallback)
