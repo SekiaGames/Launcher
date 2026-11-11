@@ -177,6 +177,27 @@ public sealed partial class War3GameScene
         };
     }
 
+    /// <summary>
+    /// 召唤回调：World 不知道场景，建单位这一步由这里做。
+    /// 召唤物继承施法者的玩家号，落在施法者身边。
+    /// </summary>
+    private Unit SummonUnitFor(Unit caster, string unitId, Vector3 position)
+    {
+        if (caster == null || string.IsNullOrEmpty(unitId)) return null;
+
+        Unit created = Spawn(unitId, caster.Player, position.X, position.Z, caster.Facing, 0f, 1f);
+        if (created == null)
+        {
+            GD.Print($"[SUMMON] 召唤失败：缺类型或模型 {unitId}");
+            return null;
+        }
+
+        created.AutoCast = caster.AutoCast;
+        _world?.Units.Add(created);
+        GD.Print($"[SUMMON] {caster.Type?.Name} 召唤出 {created.Type?.Name}（{unitId}）");
+        return created;
+    }
+
     private int _castLogBudget = 24;
 
     /// <summary>技能放出后：语音 + 一条带数值的日志（AI 自动施法也走这里）。</summary>

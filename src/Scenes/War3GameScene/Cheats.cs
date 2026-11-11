@@ -541,6 +541,29 @@ public sealed partial class War3GameScene
             GD.Print($"[SKILL] 圣光术自疗 {(cast ? "成功" : "失败（自身不是合法目标）")} {before:0}→{hero.Hp:0}");
         }
 
+        // 大法师演示召唤通道：水元素由场景层建出来，交给 World 管
+        Unit mage = Spawn("Hamg", ViewPlayer, creep.Position.X - 200f, creep.Position.Z + 260f, 0f, 0f, 1f);
+        if (mage != null)
+        {
+            _world.Units.Add(mage);
+            mage.Level = 6;
+            mage.SkillPoints = 1;
+            _world.RefreshHeroAttributes(mage);
+            mage.Hp = mage.MaxHp;
+            mage.Mana = mage.MaxMana;
+            _world.LearnAbility(mage, "AHwe");
+
+            Ability summon = mage.FindAbility("AHwe");
+            if (summon != null)
+            {
+                int before = _world.Units.Count;
+                bool cast = _world.TryCast(mage, summon, null, mage.Position + new Vector3(90f, 0f, 0f));
+                Unit elemental = _world.Units.Count > before ? _world.Units[^1] : null;
+                GD.Print($"[SKILL] 水元素召唤 {(cast ? "成功" : "失败")} 单位数 {before}→{_world.Units.Count}"
+                    + (elemental != null ? $" 存在 {elemental.SummonRemaining:0}s" : ""));
+            }
+        }
+
         GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
             + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
     }

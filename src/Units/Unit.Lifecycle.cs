@@ -24,6 +24,11 @@ public sealed partial class Unit
 
     public bool CanBeRevived => IsHero && !Alive;
 
+    /// <summary>召唤物剩余存在时间（秒）；&lt;= 0 表示不是召唤物。</summary>
+    public float SummonRemaining;
+    public Unit Summoner;
+    public bool IsSummon => SummonRemaining > 0f;
+
     /// <summary>进入死亡：清空指令与状态，留下尸体（建筑不留）。</summary>
     public void EnterDeath()
     {
@@ -62,6 +67,46 @@ public sealed partial class Unit
 
         IsCorpse = false;
         if (View != null) View.Root.Visible = false;
+    }
+
+    /// <summary>复活一个尸体（复活技能用）：满血起身，不再是尸体。</summary>
+    public void ReviveFromCorpse(Vector3 position, float lifeFactor = 1f)
+    {
+        Alive = true;
+        IsCorpse = false;
+        CorpseRemaining = 0f;
+        AwaitingRevive = false;
+        ReviveRemaining = 0f;
+        ReviveAltar = null;
+        Hp = Mathf.Max(1f, MaxHp * Mathf.Clamp(lifeFactor, 0.01f, 1f));
+        Position = position;
+        Home = position;
+        State.Clear();
+
+        if (View != null)
+        {
+            View.Root.Visible = true;
+            View.Root.Position = position;
+            View.Play("Stand");
+            View.SetHp(Hp / Mathf.Max(1f, MaxHp), true);
+        }
+    }
+
+    /// <summary>召唤物到期：直接散掉，不留尸、不给经验、不掉落。</summary>
+    public void ExpireSummon()
+    {
+        Alive = false;
+        Hp = 0f;
+        SummonRemaining = 0f;
+        Target = null;
+        MoveTarget = null;
+        Path = null;
+        State.Clear();
+        IsCorpse = true;
+        CorpseRemaining = 2f;
+        View?.SetSelected(false);
+        View?.SetHp(0f, false);
+        View?.Play("Death");
     }
 
     /// <summary>按 HeroReviveLifeFactor 与 HeroReviveManaStart/Factor 恢复上场。</summary>

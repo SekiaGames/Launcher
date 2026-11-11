@@ -24,6 +24,12 @@ public static class SkillRegistry
         ["AHav"] = () => new Avatar(),        // 天神下凡
         // —— 剑圣 ——
         ["AOcr"] = () => new CriticalStrike(),// 致命一击
+        // —— 召唤与复活 ——
+        ["AHwe"] = () => new SummonUnit(),     // 水元素
+        ["AEst"] = () => new SummonUnit(),     // 召唤树人
+        ["AOsf"] = () => new SummonUnit(),     // 幽灵狼
+        ["ANsg"] = () => new SummonUnit(),     // 熔岩怪
+        ["AHre"] = () => new Resurrection(),   // 复活
         // —— 通用治疗（牧师 / 野怪牧师，自动施法） ——
         ["Ahea"] = () => new Heal(),
         // —— 物品技能里与英雄同源的码 ——

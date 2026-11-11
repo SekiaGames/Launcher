@@ -265,6 +265,77 @@ public static partial class CombatProbe
                 + $"法力 {priest.Mana:0}）");
         }
 
+        // —— 召唤：水元素 ——
+        AbilityType summonType = AbilityCatalog.Get("AHwe");
+        UnitType archmageType = UnitCatalog.Get("Hamg");
+        if (summonType != null && archmageType != null && UnitCatalog.Get("hwat") != null)
+        {
+            var world10 = new World(null, null);
+            Unit mage = MakeHero(archmageType, 0, 6, world10);
+            world10.Units.Add(mage);
+
+            var summon = (SummonUnit)mage.GiveAbility("AHwe", 1);
+            summon.Level = 1;
+            mage.Mana = mage.MaxMana;
+
+            world10.SummonHandler = (caster, id, position) =>
+            {
+                UnitType created = UnitCatalog.Get(id);
+                if (created == null) return null;
+                return new Unit
+                {
+                    Type = created,
+                    Player = caster.Player,
+                    Position = position,
+                    Hp = created.Hp,
+                    MaxHp = created.Hp,
+                };
+            };
+
+            bool cast = world10.TryCast(mage, summon, null, mage.Position + new Vector3(100f, 0f, 0f));
+            Verify("水元素召唤成功", 1f, cast ? 1f : 0f, 0f);
+            Verify("召唤物进世界", 2f, world10.Units.Count, 0f);
+
+            Unit elemental = world10.Units[world10.Units.Count - 1];
+            Verify("召唤物存在 60s", 60f, elemental.SummonRemaining, 0.5f);
+
+            float lifeBefore = elemental.SummonRemaining;
+            for (int index = 0; index < 1300; index++) world10.TickAbilities();
+            Verify("召唤物到期消失", 0f, elemental.Alive ? 1f : 0f, 0f);
+            GD.Print($"[自检] 召唤 {summon.SummonId} 存在 {lifeBefore:0}s，期满后 alive={elemental.Alive}");
+        }
+
+        // —— 复活：把友军尸体拉起来 ——
+        AbilityType resType = AbilityCatalog.Get("AHre");
+        if (resType != null)
+        {
+            var world11 = new World(null, null);
+            Unit paladin2 = MakeHero(paladinType, 0, 6, world11);
+            world11.Units.Add(paladin2);
+
+            var corpses = new List<Unit>();
+            for (int index = 0; index < 3; index++)
+            {
+                Unit dead = MakeUnit(footmanType, 0);
+                dead.Position = new Vector3(120f + index * 60f, 0f, 0f);
+                dead.EnterDeath();
+                world11.Units.Add(dead);
+                corpses.Add(dead);
+            }
+
+            var revive = (Resurrection)paladin2.GiveAbility("AHre", 1);
+            revive.Level = 1;
+            paladin2.Mana = paladin2.MaxMana;
+
+            bool cast = world11.TryCast(paladin2, revive, null, paladin2.Position);
+            int back = 0;
+            foreach (Unit corpse in corpses) if (corpse.Alive) back++;
+            Verify("复活施放成功", 1f, cast ? 1f : 0f, 0f);
+            Verify("3 具尸体全部起身", 3f, back, 0f);
+            GD.Print($"[自检] 复活 拉起 {back} 个，血量 {corpses[0].Hp:0}/{corpses[0].MaxHp:0}"
+                + $"（上限 {revive.MaxTargets} 个 / 半径 {revive.Radius:0}）");
+        }
+
         CheckItemBonus();
     }
 

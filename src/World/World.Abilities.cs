@@ -16,6 +16,26 @@ public sealed partial class World
     /// <summary>英雄学会/升级技能。</summary>
     public event Action<Unit, Ability> AbilityLearned;
 
+    /// <summary>
+    /// 召唤通道：模拟层没有场景，建单位要靠对局层实现这个回调
+    /// （Scene 用 Spawn 造模型节点，再把单位交给 World）。
+    /// </summary>
+    public Func<Unit, string, Vector3, Unit> SummonHandler;
+
+    /// <summary>召唤一个单位：单位 id 来自技能的 UnitID{level} 列，lifetime 为持续时间。</summary>
+    public Unit Summon(Unit caster, string unitId, Vector3 position, float lifetime)
+    {
+        if (SummonHandler == null || string.IsNullOrEmpty(unitId)) return null;
+
+        Unit created = SummonHandler(caster, unitId, position);
+        if (created == null) return null;
+
+        created.Summoner = caster;
+        if (lifetime > 0f) created.SummonRemaining = lifetime;
+        if (!Units.Contains(created)) Units.Add(created);
+        return created;
+    }
+
     public bool AreAllied(int a, int b) => IsAllied(a, b);
 
     public bool RollPercent(float percent)
@@ -93,6 +113,12 @@ public sealed partial class World
                 {
                     ability.CooldownRemaining = Mathf.Max(0f, ability.CooldownRemaining - Tick);
                 }
+            }
+
+            if (unit.SummonRemaining > 0f)
+            {
+                unit.SummonRemaining -= Tick;
+                if (unit.SummonRemaining <= 0f) unit.ExpireSummon();
             }
 
             if (unit.SlowRemaining > 0f)
