@@ -32,6 +32,7 @@ public sealed partial class LauncherApp : Node
     private bool _stateProbe;
     private bool _reviveProbe;
     private bool _skillProbe;
+    private bool _morphProbe;
     private readonly List<string> _spawnItems = new();
     private bool _aggro;
     private bool _noAi;
@@ -181,6 +182,10 @@ public sealed partial class LauncherApp : Node
             {
                 _skillProbe = true;
             }
+            else if (argument == "--morph-probe")
+            {
+                _morphProbe = true;
+            }
             else if (argument.StartsWith("--spawn-item="))
             {
                 foreach (string item in argument["--spawn-item=".Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -326,6 +331,7 @@ public sealed partial class LauncherApp : Node
         if (_heroProbe) game.RunHeroProbe();
         if (_reviveProbe) game.RunReviveProbe();
         if (_skillProbe) game.RunSkillProbe();
+        if (_morphProbe) game.RunMorphProbe();
         if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);
         if (_pathProbe)
         {

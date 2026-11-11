@@ -91,6 +91,13 @@ public sealed partial class World
         return _random.NextDouble() * 100.0 < percent;
     }
 
+    /// <summary>随机取 [0, count) 的下标（妖术从一列小动物里随机挑一只）。</summary>
+    public int RandomIndex(int count)
+    {
+        if (count <= 0) return 0;
+        return _random.Next(count);
+    }
+
     /// <summary>
     /// 施法唯一入口：校验 → 扣法力 → 进冷却 → 交给技能效果。
     /// 技能效果返回 false 视为「没放出去」，不扣任何资源。
@@ -318,11 +325,18 @@ public sealed partial class World
     {
         if (hero?.Type == null || !hero.IsHero) return;
 
-        UnitType type = hero.Type;
+        // 变形期间按「原形态」算三围，生命上限交给 Morph 管（变身额外加成是它加上去的）
+        UnitType type = hero.Morphed && hero.MorphOrigin != null ? hero.MorphOrigin : hero.Type;
         int steps = Mathf.Max(0, hero.Level - 1);
         hero.Strength = type.Strength + Mathf.RoundToInt(type.StrengthGain * steps) + hero.BonusStrength;
         hero.Agility = type.Agility + Mathf.RoundToInt(type.AgilityGain * steps) + hero.BonusAgility;
         hero.Intelligence = type.Intelligence + Mathf.RoundToInt(type.IntelligenceGain * steps) + hero.BonusIntelligence;
+
+        if (hero.Morphed)
+        {
+            hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), hero.Alive);
+            return;
+        }
 
         float newMaxHp = HeroRules.MaxHpOf(type, hero.Strength) + hero.BonusMaxHp;
         hero.Hp = Mathf.Max(1f, Mathf.Min(newMaxHp, hero.Hp + Mathf.Max(0f, newMaxHp - hero.MaxHp)));

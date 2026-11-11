@@ -37,6 +37,8 @@ public sealed class AbilityType
     public readonly float[] CastRange = new float[MaxLevels];
     public readonly float[] Area = new float[MaxLevels];
     public readonly float[] Duration = new float[MaxLevels];
+    /// <summary>物编 HeroDur 列：英雄身上的持续时间（变身 60s、宁静/星落这类也是它）。</summary>
+    public readonly float[] HeroDuration = new float[MaxLevels];
     /// <summary>物编 Cast 列：暗影突袭的持续伤害间隔就写在这里。</summary>
     public readonly float[] Cast = new float[MaxLevels];
     /// <summary>DataA..DataI，每级 9 个。</summary>
@@ -56,6 +58,7 @@ public sealed class AbilityType
     public float RangeAt(int level) => Pick(CastRange, level);
     public float AreaAt(int level) => Pick(Area, level);
     public float DurationAt(int level) => Pick(Duration, level);
+    public float HeroDurationAt(int level) => Pick(HeroDuration, level);
     public float CastAt(int level) => Pick(Cast, level);
 
     /// <summary>Data 槽：'A'..'I'。</summary>
@@ -145,6 +148,13 @@ public static class AbilityCatalog
         ["AOae"] = @"ReplaceableTextures\CommandButtons\BTNGnollCommandAura",
         ["AOhw"] = @"ReplaceableTextures\CommandButtons\BTNHealingWave",
         ["AOsw"] = @"ReplaceableTextures\CommandButtons\BTNSerpentWard",
+        ["AOhx"] = @"ReplaceableTextures\CommandButtons\BTNHex",
+        ["Aply"] = @"ReplaceableTextures\CommandButtons\BTNPolymorph",
+        ["AOvd"] = @"ReplaceableTextures\CommandButtons\BTNBigBadVoodooSpell",
+        ["AEme"] = @"ReplaceableTextures\CommandButtons\BTNMetamorphosis",
+        ["AEtq"] = @"ReplaceableTextures\CommandButtons\BTNTranquility",
+        ["AEsf"] = @"ReplaceableTextures\CommandButtons\BTNStarfall",
+        ["AOww"] = @"ReplaceableTextures\CommandButtons\BTNWhirlwind",
         ["AEer"] = @"ReplaceableTextures\CommandButtons\BTNEntanglingRoots",
         ["AEah"] = @"ReplaceableTextures\CommandButtons\BTNThorns",
         ["AEar"] = @"ReplaceableTextures\CommandButtons\BTNTrueShot",
@@ -229,6 +239,7 @@ public static class AbilityCatalog
             type.CastRange[index] = Number(table.Get(row, "Rng" + level), 0f);
             type.Area[index] = Number(table.Get(row, "Area" + level), 0f);
             type.Duration[index] = Number(table.Get(row, "Dur" + level), 0f);
+            type.HeroDuration[index] = Number(table.Get(row, "HeroDur" + level), 0f);
             type.Cast[index] = Number(table.Get(row, "Cast" + level), 0f);
             type.SummonId[index] = (table.Get(row, "UnitID" + level) ?? "").Trim();
             type.BuffId[index] = (table.Get(row, "BuffID" + level) ?? "").Trim();

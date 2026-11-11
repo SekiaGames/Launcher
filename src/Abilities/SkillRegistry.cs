@@ -46,6 +46,9 @@ public static class SkillRegistry
         ["AOr2"] = () => new EnduranceAura(),
         ["AOhw"] = () => new HealingWave(),   // 医疗波
         ["AOsw"] = () => new SerpentWard(),   // 毒蛇守卫（基类码 AOwd）
+        ["AOhx"] = () => new Hex(),           // 妖术（变随机小动物）
+        ["Aply"] = () => new Polymorph(),     // 变形术（女巫，固定变羊）
+        ["AOvd"] = () => new BigBadVoodoo(),  // 巫毒（引导，友军无敌）
         // —— 丛林守护者 / 恶魔猎手 / 守望者 ——
         ["AEer"] = () => new EntanglingRoots(),// 纠缠根须
         ["AEah"] = () => new ThornsAura(),     // 荆棘光环
@@ -54,6 +57,10 @@ public static class SkillRegistry
         ["AEfk"] = () => new FanOfKnives(),    // 刀阵旋风
         ["AEsh"] = () => new ShadowStrike(),   // 暗影突袭
         ["AEar"] = () => new TrueshotAura(),   // 强击光环（只加远程攻击）
+        ["AEtq"] = () => new Tranquility(),    // 宁静（引导，友军持续回血）
+        ["AEsf"] = () => new Starfall(),       // 群星坠落（引导，AoE 每波）
+        ["AEme"] = () => new Metamorphosis(),  // 变身（恶魔形态）
+        ["AOww"] = () => new Bladestorm(),     // 剑刃风暴（引导，自身 AoE）
         // —— 大魔法师 ——
         ["AHab"] = () => new BrillianceAura(), // 辉煌光环
         // —— 大魔法师 / 巫妖 / 守望者 / 黑暗游侠 ——

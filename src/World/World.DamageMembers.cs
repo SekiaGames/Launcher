@@ -266,6 +266,7 @@ public sealed partial class World
     {
         if (!unit.Alive) return;
 
+        EndMorphBeforeDeath(unit);
         unit.CancelAttack();
         InterruptChannel(unit);
         unit.EnterDeath();

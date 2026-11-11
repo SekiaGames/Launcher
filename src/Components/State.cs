@@ -20,6 +20,8 @@ public enum StateMod
     Pause,
     RepairDisabled,
     PhysicalImmune,
+    /// <summary>变形（妖术变羊）：禁攻击禁施法，但仍能移动。</summary>
+    Morph,
 }
 
 public sealed class State
@@ -85,8 +87,8 @@ public sealed class State
 
     public bool Stunned => Has(StateMod.Stun) || Has(StateMod.Sleep) || Has(StateMod.Pause);
     public bool Snared => Has(StateMod.Snare);
-    public bool Disarmed => Has(StateMod.Disarm);
-    public bool Silenced => Has(StateMod.Silence) || Has(StateMod.Stun);
+    public bool Disarmed => Has(StateMod.Disarm) || Has(StateMod.Morph);
+    public bool Silenced => Has(StateMod.Silence) || Has(StateMod.Stun) || Has(StateMod.Morph);
     public bool Ethereal => Has(StateMod.Ethereal);
     public bool Invisible => Has(StateMod.Invisible);
     public bool Invulnerable => Has(StateMod.Invulnerable);

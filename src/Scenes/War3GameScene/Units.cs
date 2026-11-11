@@ -350,4 +350,44 @@ public sealed partial class War3GameScene
         _allUnits.Add(unit);
         return unit;
     }
+
+    private int _morphSerial;
+
+    /// <summary>
+    /// 变形后重建模型：旧节点丢掉，按新类型重新实例化，位置/朝向/选中状态/血条都接上。
+    /// 模型缺失时保持原样（只是外形不对，不至于把单位弄没）。
+    /// </summary>
+    private void OnUnitMorphed(Unit unit)
+    {
+        if (unit?.View == null || unit.Type == null) return;
+
+        PackedScene scene = Assets.LoadScene(unit.Type.ModelPath);
+        if (scene == null)
+        {
+            GD.PushWarning($"[MORPH] 缺模型 {unit.Type.Id} -> {unit.Type.ModelPath}");
+            return;
+        }
+
+        Vector3 position = unit.View.Root.Position;
+        float yaw = unit.View.Root.Rotation.Y;
+        bool selected = _selected.Contains(unit);
+
+        unit.View.Root.QueueFree();
+
+        UnitSceneComponent view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(unit.Player),
+            unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius);
+        view.Root.Position = position;
+        view.Root.Rotation = new Vector3(0f, yaw, 0f);
+        view.Root.Name = $"morph_{unit.Type.Id}_{_morphSerial++}";
+        AddChild(view.Root);
+
+        unit.View = view;
+        view.SetSelected(selected);
+        view.SetHp(unit.Hp / Mathf.Max(1f, unit.MaxHp), unit.Alive);
+        view.Play(unit.Alive ? "Stand" : "Death");
+
+        GD.Print($"[MORPH] {unit.Type.Id} 重建模型 {(selected ? "（选中中）" : "")}"
+            + $" 生命 {unit.Hp:0}/{unit.MaxHp:0}"
+            + (unit.Morphed ? $" 剩余变形 {unit.MorphRemaining:0.0}s" : " 已还原"));
+    }
 }

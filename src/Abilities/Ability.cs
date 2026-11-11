@@ -64,6 +64,9 @@ public abstract class Ability
     public float Duration => Type?.DurationAt(Level) ?? 0f;
     /// <summary>物编 Cast 列（暗影突袭的持续伤害间隔这类）。</summary>
     public float CastInterval => Type?.CastAt(Level) ?? 0f;
+    /// <summary>物编 HeroDur 列：英雄身上的持续时间（HeroDur 有值就以它为准）。</summary>
+    public float HeroDuration => Type?.HeroDurationAt(Level) ?? 0f;
+    public float EffectiveDuration => HeroDuration > 0f ? HeroDuration : Duration;
 
     public bool Learned => Level >= 1;
     public bool CanLevelUp => Type != null && Level < Type.MaxLevel;

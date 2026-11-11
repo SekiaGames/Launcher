@@ -715,4 +715,95 @@ public sealed partial class War3GameScene
             break;
         }
     }
+
+    /// <summary>
+    /// --morph-probe：妖术变羊 + 恶魔变身。验证「换类型 → 重建模型节点 → 到期还原」整条链路，
+    /// 每次变形都会打印新的模型节点名（morph_xxx），说明场景层确实重建过。
+    /// </summary>
+    public void RunMorphProbe()
+    {
+        Unit creep = null;
+        float bestDistance = float.MaxValue;
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != 12) continue;
+            float distance = new Vector2(unit.Position.X - origin.X, unit.Position.Z - origin.Z).Length();
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            creep = unit;
+        }
+        if (creep == null)
+        {
+            GD.Print("[MORPH] 没有野怪可打");
+            return;
+        }
+
+        Unit hexer = Spawn("Oshd", ViewPlayer, creep.Position.X + 240f, creep.Position.Z + 240f, 0f, 0f, 1f);
+        if (hexer == null)
+        {
+            GD.Print("[MORPH] 暗影猎手模型缺失");
+            return;
+        }
+
+        _world.Units.Add(hexer);
+        hexer.Level = 6;
+        hexer.SkillPoints = 3;
+        _world.RefreshHeroAttributes(hexer);
+        hexer.Hp = hexer.MaxHp;
+        hexer.Mana = hexer.MaxMana;
+        _world.LearnAbility(hexer, "AOhx");
+        _world.LearnAbility(hexer, "AOhx");
+
+        Ability hex = hexer.FindAbility("AOhx");
+        string originId = creep.Type.Id;
+        string originModel = creep.View?.Root?.Name ?? "无";
+        float originRatio = creep.Hp / Mathf.Max(1f, creep.MaxHp);
+        bool cast = hex != null && _world.TryCast(hexer, hex, creep, creep.Position);
+        GD.Print($"[MORPH] 妖术 {(cast ? "成功" : "失败")} {originId} → {creep.Type.Id}（{creep.Type.Name}）"
+            + $" 模型 {originModel} → {creep.View?.Root?.Name}"
+            + $" 生命比例 {originRatio:0.00}→{creep.Hp / Mathf.Max(1f, creep.MaxHp):0.00}"
+            + $" 可攻击={creep.State.CanAttack} 可施法={creep.State.CanCast}");
+
+        SceneTreeTimer restoreTimer = GetTree().CreateTimer(4.0);
+        restoreTimer.Timeout += () =>
+        {
+            _world.EndMorph(creep);
+            GD.Print($"[MORPH] 妖术手动还原 → {creep.Type.Id}（{creep.Type.Name}）模型 {creep.View?.Root?.Name}"
+                + $" 生命 {creep.Hp:0}/{creep.MaxHp:0} 可攻击={creep.State.CanAttack}");
+        };
+
+        Unit demon = Spawn("Edem", ViewPlayer, creep.Position.X - 240f, creep.Position.Z + 240f, 0f, 0f, 1f);
+        if (demon == null)
+        {
+            GD.Print("[MORPH] 恶魔猎手模型缺失");
+            return;
+        }
+
+        _world.Units.Add(demon);
+        demon.Level = 6;
+        demon.SkillPoints = 3;
+        _world.RefreshHeroAttributes(demon);
+        demon.Hp = demon.MaxHp;
+        demon.Mana = demon.MaxMana;
+        _world.LearnAbility(demon, "AEme");
+
+        Ability transform = demon.FindAbility("AEme");
+        float demonHp = demon.MaxHp;
+        bool morphed = transform != null && _world.TryCast(demon, transform, null, demon.Position);
+        GD.Print($"[MORPH] 变身 {(morphed ? "成功" : "失败")} Edem → {demon.Type.Id}（{demon.Type.Name}）"
+            + $" 生命上限 {demonHp:0}→{demon.MaxHp:0} 模型 {demon.View?.Root?.Name}"
+            + $" 可攻击={demon.State.CanAttack} 剩余 {demon.MorphRemaining:0}s");
+
+        SceneTreeTimer demonTimer = GetTree().CreateTimer(6.0);
+        demonTimer.Timeout += () =>
+        {
+            GD.Print($"[MORPH] 变身到期前 类型={demon.Type.Id} 生命 {demon.Hp:0}/{demon.MaxHp:0}"
+                + $" 剩余 {demon.MorphRemaining:0.0}s");
+            _world.EndMorph(demon);
+            GD.Print($"[MORPH] 变身还原 → {demon.Type.Id} 生命上限 {demon.MaxHp:0}"
+                + $" 英雄={demon.IsHero} 模型 {demon.View?.Root?.Name}");
+        };
+    }
 }
