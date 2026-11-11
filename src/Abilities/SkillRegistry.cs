@@ -206,6 +206,15 @@ public static class SkillRegistry
         ["Aoar"] = () => new RegenerationAura(), // 再生光环（治疗守卫）
         ["Aabr"] = () => new RegenerationAura(), // 再生光环（黑曜石雕像）
         ["Aap1"] = () => new PlagueAura(),       // 瘟疫光环（憎恶）
+        // —— 夜视、抗性皮肤与物品光环 ——
+        ["Ault"] = () => new Ultravision(),       // 夜视（暗夜单位）
+        ["AIuv"] = () => new Ultravision(),       // 物品夜视
+        ["Arsk"] = () => new ResistantSkin(),     // 抗性皮肤（山岭巨人）
+        ["AIba"] = () => new ItemAura(),          // 辉煌光环（物品）
+        ["AIav"] = () => new ItemAura(),          // 吸血光环（物品）
+        ["AIar"] = () => new ItemAura(),          // 强击光环（物品）
+        ["AIae"] = () => new ItemAura(),          // 耐久光环（物品）
+        ["AIau"] = () => new ItemAura(),          // 邪恶光环（物品）
         // —— 物品技能里与英雄同源的码 ——
         ["AIbx"] = () => new Bash(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击

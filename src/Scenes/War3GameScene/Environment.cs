@@ -21,8 +21,23 @@ public sealed partial class War3GameScene
 
     private bool IsNight => _todHours < 6f || _todHours >= 18f;
 
-    /// <summary>白天用 sight、夜里用 nsight（UnitBalance 的两列）。</summary>
-    private float SightOf(Unit unit) => unit?.Type == null ? 800f : (IsNight ? unit.Type.SightNight : unit.Type.SightDay) + unit.BonusSight;
+    /// <summary>白天用 sight、夜里用 nsight（UnitBalance 的两列）；夜视与物品视野在这里叠加。</summary>
+    private float SightOf(Unit unit)
+    {
+        if (unit?.Type == null) return 800f;
+
+        float bonus = unit.BonusSight;
+        bool nightSight = false;
+        foreach (Ability ability in unit.Abilities)
+        {
+            if (!ability.Learned) continue;
+            bonus += ability.PassiveSightBonus;
+            nightSight |= ability.NightSight;
+        }
+
+        float sight = IsNight && !nightSight ? unit.Type.SightNight : unit.Type.SightDay;
+        return sight + bonus;
+    }
 
     private string ClockText()
     {

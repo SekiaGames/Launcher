@@ -29,6 +29,12 @@ public sealed class State
     private readonly Dictionary<StateMod, int> _counts = new();
     private readonly Dictionary<StateMod, float> _remaining = new();
 
+    /// <summary>负面状态的时长缩放（抗性皮肤 = 0.5）。</summary>
+    public float DebuffScale = 1f;
+
+    private static bool IsDebuff(StateMod mod) => mod is StateMod.Stun or StateMod.Snare or StateMod.Sleep
+        or StateMod.Disarm or StateMod.Silence or StateMod.Ethereal or StateMod.Morph or StateMod.Pause;
+
     public bool Has(StateMod mod) => _counts.TryGetValue(mod, out int count) && count > 0;
 
     public int Count(StateMod mod) => _counts.TryGetValue(mod, out int count) ? count : 0;
@@ -39,6 +45,7 @@ public sealed class State
     {
         _counts[mod] = Count(mod) + 1;
         if (seconds <= 0f) return;
+        if (IsDebuff(mod)) seconds *= Math.Max(0.1f, DebuffScale);
         float current = Remaining(mod);
         _remaining[mod] = Math.Max(current, seconds);
     }

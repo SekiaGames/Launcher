@@ -201,12 +201,16 @@ public sealed partial class World
 
             if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
 
+            float debuffScale = 1f;
             for (int upkeepIndex = 0; upkeepIndex < unit.Abilities.Count; upkeepIndex++)
             {
                 Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
-                if (kept.Learned) kept.OnWorldTick(this, Tick);
+                if (!kept.Learned) continue;
+                kept.OnWorldTick(this, Tick);
+                debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
             }
+            unit.State.DebuffScale = debuffScale;
 
             for (int buffIndex = unit.Buffs.Count - 1; buffIndex >= 0; buffIndex--)
             {
@@ -392,6 +396,8 @@ public sealed partial class World
     {
         if (unit == null || item?.Type == null) return;
 
+        GrantItemAbilities(unit, item);
+
         ItemBonus bonus = ItemBonus.ForItem(item.Type);
         if (bonus.IsZero) return;
 
@@ -410,6 +416,51 @@ public sealed partial class World
         RebuildOrb(unit, item, null);
 
         RefreshHeroAttributes(unit);
+    }
+
+    private static readonly string[] ItemAbilityCodes = { "AIba", "AIav", "AIar", "AIae", "AIau", "AIcd", "AIuv" };
+
+    private void GrantItemAbilities(Unit unit, Item item)
+    {
+        if (unit == null || string.IsNullOrWhiteSpace(item?.Type?.AbilList)) return;
+
+        foreach (string raw in item.Type.AbilList.Split(',', ';', StringSplitOptions.TrimEntries))
+        {
+            if (raw.Length < 4) continue;
+            string code = raw[..4];
+            if (System.Array.IndexOf(ItemAbilityCodes, code) < 0) continue;
+            if (unit.GiveAbility(code, 1) == null) continue;
+            item.GrantedAbilities.Add(code);
+        }
+    }
+
+    private void RevokeItemAbilities(Unit unit, Item item)
+    {
+        if (unit == null || item == null) return;
+
+        foreach (string code in item.GrantedAbilities)
+        {
+            bool stillGranted = false;
+            foreach (Item other in unit.Inventory)
+            {
+                if (other == null || other == item) continue;
+                foreach (string otherCode in other.GrantedAbilities)
+                {
+                    if (!string.Equals(otherCode, code, StringComparison.OrdinalIgnoreCase)) continue;
+                    stillGranted = true;
+                    break;
+                }
+                if (stillGranted) break;
+            }
+            if (stillGranted) continue;
+
+            for (int index = unit.Abilities.Count - 1; index >= 0; index--)
+            {
+                if (!string.Equals(unit.Abilities[index].Id, code, StringComparison.OrdinalIgnoreCase)) continue;
+                unit.Abilities.RemoveAt(index);
+            }
+        }
+        item.GrantedAbilities.Clear();
     }
 
     /// <summary>重新汇总身上的法球（装备/丢弃/转交后重算，不叠多件）。</summary>
@@ -443,6 +494,8 @@ public sealed partial class World
     public void RemoveItemBonus(Unit unit, Item item)
     {
         if (unit == null || item == null) return;
+
+        RevokeItemAbilities(unit, item);
 
         ItemBonus bonus = item.Bonus;
         if (bonus.IsZero) return;

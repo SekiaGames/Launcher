@@ -223,6 +223,15 @@ public abstract class Ability
     /// <summary>被动提供的反隐半径（真实视域）：0 表示没有。</summary>
     public virtual float PassiveDetectRadius => 0f;
 
+    /// <summary>被动提供的额外视野（夜视/远视物品）。</summary>
+    public virtual float PassiveSightBonus => 0f;
+
+    /// <summary>夜间也按白天视距（夜视 Ault / 物品夜视 AIuv）。</summary>
+    public virtual bool NightSight => false;
+
+    /// <summary>负面状态的时长缩放（抗性皮肤 0.5）。</summary>
+    public virtual float DebuffDurationScale => 1f;
+
     public virtual void OnLearned() { }
 
     /// <summary>持有者死亡时（镜像分身要把幻象一起收掉）。</summary>

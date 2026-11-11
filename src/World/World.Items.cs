@@ -32,6 +32,13 @@ public sealed partial class World
         if (unit == null || item?.Type == null || !unit.Alive) return false;
         if (!item.Type.Usable) return false;
 
+        if (ItemUseEffect.TryUse(this, unit, item))
+        {
+            ConsumeItem(item);
+            ItemUsed?.Invoke(unit, item);
+            return true;
+        }
+
         ItemConsumable effect = item.Type.Consumable;
         if (effect.IsEmpty) return false;
 

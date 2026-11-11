@@ -16,6 +16,9 @@ public sealed class Item
     /// <summary>已经加到持有者身上的加成，丢弃时按这份扣除。</summary>
     public ItemBonus Bonus;
 
+    /// <summary>这件物品授予的被动/光环技能（装备时给，卸下时收回）。</summary>
+    public readonly System.Collections.Generic.List<string> GrantedAbilities = new();
+
     public bool OnGround => Owner == null;
 
     public void SetOnGround(Vector3 position)
