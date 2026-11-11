@@ -10,6 +10,10 @@ public sealed partial class War3GameScene
     private void OnUnitDied(Unit unit)
     {
         if (unit != null) PlayVoice(unit, "Death");
+        if (unit != null && unit.IsHero)
+        {
+            _log?.Add($"{PlayerName(unit.Player)} 的 {unit.Type?.Name} 阵亡");
+        }
 
         if (_selected.Remove(unit))
         {

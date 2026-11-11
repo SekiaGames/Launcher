@@ -40,6 +40,8 @@ public sealed partial class LauncherApp : Node
     private int _viewPlayer = -1;
     private bool _fogOff;
     private bool _musicOff;
+    private bool _damageNumbers;
+    private int _aiDifficulty;
     private float _daySeconds = -1f;
     private int _players;
     private readonly List<int> _slots = new();
@@ -198,6 +200,14 @@ public sealed partial class LauncherApp : Node
                     _spawnItems.Add(item.Trim());
                 }
             }
+            else if (argument == "--damage-numbers")
+            {
+                _damageNumbers = true;
+            }
+            else if (argument.StartsWith("--ai-difficulty=") && int.TryParse(argument["--ai-difficulty=".Length..], out int difficulty))
+            {
+                _aiDifficulty = Mathf.Clamp(difficulty, 0, 2);
+            }
             else if (argument == "--dump-units")
             {
                 _dumpUnits = true;
@@ -324,6 +334,8 @@ public sealed partial class LauncherApp : Node
         if (_viewPlayer >= 0) game.ViewPlayer = _viewPlayer;
         game.FogEnabled = !_fogOff;
         game.MusicEnabled = !_musicOff;
+        game.ShowDamageNumbers = _damageNumbers;
+        game.AiDifficulty = _aiDifficulty;
         if (_daySeconds > 0f) game.DaySeconds = _daySeconds;
         foreach (int slot in _slots) game.ActiveSlots.Add(slot);
         foreach (List<int> team in _teams) game.Teams.Add(team);

@@ -204,6 +204,7 @@ public sealed partial class War3GameScene
 
         slot.Gold += gold;
         RefreshHud();
+        if (victim != null && player == ViewPlayer) ShowResourceFloat(victim, gold, false, true);
         if (_bountyLogBudget > 0)
         {
             _bountyLogBudget--;
@@ -218,6 +219,7 @@ public sealed partial class War3GameScene
         if (Slot(player) == null) return;
         Slot(player).Lumber += amount;
         RefreshHud();
+        if (player == ViewPlayer) ShowResourceFloat(FindHall(player), amount, true, false);
     }
 
     private void OnGoldDeposited(int player, int amount)
@@ -225,6 +227,7 @@ public sealed partial class War3GameScene
         if (Slot(player) == null) return;
         Slot(player).Gold += amount;
         RefreshHud();
+        if (player == ViewPlayer) ShowResourceFloat(FindHall(player), amount, false, false);
     }
 
     private void UpdateCommandCard()

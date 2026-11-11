@@ -41,6 +41,8 @@ public sealed partial class War3GameScene : Node3D
 
     private float _todHours = MeleeRules.StartingTod;
     public bool AiEnabled = true;
+    /// <summary>0=简单 1=普通 2=困难：只影响波次间隔、编成厚度与后撤阈值。</summary>
+    public int AiDifficulty = 1;
 
     /// <summary>0 表示自动：w3i 里 controller 为玩家/电脑且有出生点的座位全部参战。</summary>
     public int ActivePlayers;
@@ -86,6 +88,7 @@ public sealed partial class War3GameScene : Node3D
         if (_weather != null) GD.Print($"[WEATHER] {map.Info?.Environment?.GlobalWeather} 已加载");
 
         _skybox = SkyboxRenderer.TryCreate(this, map.Info);
+        _skyDome = SkyDomeRenderer.TryCreate(this, map.Info);
 
         _fog = new FogOfWar { Name = "Fog" };
         AddChild(_fog);
@@ -97,6 +100,7 @@ public sealed partial class War3GameScene : Node3D
         _pathGrid = PathGrid.Build(map.Pathing, map.Terrain);
         _trees = _terrainBuilder.Trees;
         _world = new World(map.Terrain, _pathGrid, _trees);
+        _world.ShowDamageNumbers = ShowDamageNumbers;
         foreach (Unit unit in _allUnits) _world.Units.Add(unit);
         _world.Died += OnUnitDied;
         _world.GoldDeposited += OnGoldDeposited;
@@ -104,6 +108,9 @@ public sealed partial class War3GameScene : Node3D
         _world.MissileFired += OnMissileFired;
         _world.Allied = AreAllied;
         _world.AttackLanded += OnAttackLanded;
+        _world.DamageApplied += OnDamageApplied;
+        _world.ManaBurned += ShowManaBurnFloat;
+        _world.TreeChopped += OnTreeChopped;
         _world.ConstructionFinished += OnConstructionFinished;
         _world.BountyAwarded += OnBountyAwarded;
         _world.ItemSpawned += OnItemSpawned;
@@ -153,6 +160,10 @@ public sealed partial class War3GameScene : Node3D
             unit => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
         _hud.MinimapFrame.SetFogTexture(_fog.Texture);
         _hud.MinimapFrame.SetTexture(MinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader()));
+        _heroBar = new HeroBarController(this);
+        _heroBar.HeroClicked = SelectHeroFromBar;
+        _log = new GameLogPanel(this);
+        _log.Add("Enter 输入消息");
         _hud.SetSelection(_selected);
         RefreshHud();
         UpdateCommandCard();
@@ -168,9 +179,13 @@ public sealed partial class War3GameScene : Node3D
 
     private bool _musicPending;
     private WeatherRenderer _weather;
+    private HeroBarController _heroBar;
+    private readonly List<Unit> _heroScratch = new();
+    private GameLogPanel _log;
     private EscMenu _escMenu;
     private LoadingScreen _loadingScreen;
     private SkyboxRenderer _skybox;
+    private SkyDomeRenderer _skyDome;
     private Node3D _worldRoot;
     private readonly RallyFlagView _rallyFlags = new();
     private float _rallyTimer;
@@ -216,13 +231,47 @@ public sealed partial class War3GameScene : Node3D
 
     private bool IsReignOfChaos => _map.Info == null || _map.Info.FormatVersion < 25;
 
+    private void RefreshHeroBar()
+    {
+        if (_heroBar == null) return;
+        _heroScratch.Clear();
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.IsHero || unit.Player != ViewPlayer) continue;
+            _heroScratch.Add(unit);
+        }
+        Unit selected = _selected.Count == 1 ? _selected[0] : null;
+        _heroBar.Update(_heroScratch, selected);
+    }
+
+    private void SelectHeroFromBar(Unit hero)
+    {
+        if (hero == null || !hero.Alive || hero.Player != ViewPlayer) return;
+
+        if (_selected.Count == 1 && ReferenceEquals(_selected[0], hero))
+        {
+            _camera.Focus(hero.Position);
+            return;
+        }
+
+        ClearSelection();
+        _selected.Add(hero);
+        hero.View?.SetSelected(true);
+        _hud.SetSelection(_selected);
+        UpdateCommandCard();
+        PlaySelectionVoice();
+    }
+
     public override void _Process(double delta)
     {
         HandleKeyboardPan((float)delta);
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);
         TickSceneEffects((float)delta);
+        TickFloatingLabels((float)delta);
+        TickFadingViews((float)delta);
         _weather?.Tick(_camera.Target);
+        _skyDome?.Tick(_camera.Target);
         _loadingScreen?.Tick((float)delta);
 
         _rallyTimer -= (float)delta;
@@ -234,6 +283,7 @@ public sealed partial class War3GameScene : Node3D
 
         TickFog((float)delta);
         TickVictoryCheck((float)delta);
+        RefreshHeroBar();
 
         _hudTimer += (float)delta;
         if (_hudTimer >= 0.2f)

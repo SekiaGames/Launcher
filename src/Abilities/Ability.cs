@@ -202,6 +202,8 @@ public abstract class Ability
     /// <summary>AI 自动施法钩子：返回 true 表示这次真的放出去了。</summary>
     public virtual bool TryAutoCast(World world) => false;
 
+    public virtual bool MarksCriticalStrike => false;
+
     public bool AutoCastEnabled = true;
 
     private bool? _supportsAutoCast;

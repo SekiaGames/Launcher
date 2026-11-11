@@ -26,4 +26,6 @@ public sealed class DamageInfo
     public bool Cancelled;
     /// <summary>反伤造成的二次伤害：不再触发反伤与吸血，避免互相反弹。</summary>
     public bool Reflected;
+    /// <summary>这一下被致命一击放大过：飘字用红色大字加感叹号。</summary>
+    public bool IsCritical;
 }

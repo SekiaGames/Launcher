@@ -90,6 +90,7 @@ public sealed partial class World
         raw = ApplyLaunchModifiers(unit, target, raw);
         if (unit.IsIllusion) raw *= unit.IllusionDamageDealt;
         DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
+        info.IsCritical = LastAttackWasCritical;
 
         bool flies = weapon.MissileScene != null && weapon.MissileSpeed > 0f;
         if (flies)

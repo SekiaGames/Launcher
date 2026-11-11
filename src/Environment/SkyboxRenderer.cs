@@ -50,7 +50,7 @@ public sealed class SkyboxRenderer
         _world.Environment = enabled ? _environment : null;
     }
 
-    private static string SkyNameFor(char tileset)
+    public static string SkyNameFor(char tileset)
     {
         return char.ToUpperInvariant(tileset) switch
         {

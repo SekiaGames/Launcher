@@ -169,16 +169,28 @@ public sealed partial class War3GameScene
 
     private void OnChannelWave(Unit caster, Ability ability)
     {
-        // 波次表现：圆盘闪一下（原版是每波下落一套冰锥/腐化地面动画）
+        if (caster == null || ability == null) return;
         if (!_channelEffects.TryGetValue(caster, out ChannelEffect effect)) return;
-        if (effect.Node?.MaterialOverride is not StandardMaterial3D material) return;
 
-        material.AlbedoColor = new Color(0.85f, 0.95f, 1f, 0.45f);
-        SceneTreeTimer flash = GetTree().CreateTimer(0.15);
-        flash.Timeout += () =>
+        // 波次表现：圆盘闪一下，并在范围内随机落一颗技能特效（原版每波下落一套冰锥/腐化地面）
+        if (effect.Node?.MaterialOverride is StandardMaterial3D material)
         {
-            if (IsInstanceValid(material)) material.AlbedoColor = new Color(0.55f, 0.75f, 1f, 0.28f);
-        };
+            material.AlbedoColor = new Color(0.85f, 0.95f, 1f, 0.45f);
+            SceneTreeTimer flash = GetTree().CreateTimer(0.15);
+            flash.Timeout += () =>
+            {
+                if (IsInstanceValid(material)) material.AlbedoColor = new Color(0.55f, 0.75f, 1f, 0.28f);
+            };
+        }
+
+        if (!EffectArtTable.TryResolve(ability.Id, out string resPath, out _, out _)) return;
+
+        float radius = Mathf.Max(60f, ability.Area);
+        float angle = (float)GD.RandRange(0d, Math.PI * 2d);
+        float distance = (float)GD.RandRange(0d, radius);
+        Vector3 point = effect.Point + new Vector3(Mathf.Cos(angle) * distance, 0f, Mathf.Sin(angle) * distance);
+        point.Y = MapWorldBuilder.HeightAt(_map.Terrain, point.X, point.Z) + 2f;
+        PlayGroundEffect(point, resPath, 1.1f);
     }
 
     private void OnChannelEnded(Unit caster, Ability ability, bool interrupted)
@@ -241,10 +253,23 @@ public sealed partial class War3GameScene
         _audio.Play(name, unit.Position + new Vector3(0f, 80f, 0f));
     }
 
-    /// <summary>只看得到的地方才听得到（迷雾外的战斗音不播）。</summary>
+    /// <summary>只看得见的地方才听得到（迷雾外的战斗音不播）。</summary>
     private bool IsAudible(Vector3 position)
     {
         return _fog == null || !_fog.Enabled || _fog.IsVisible(position);
+    }
+
+    private void OnTreeChopped(Unit worker)
+    {
+        if (worker == null || !IsAudible(worker.Position)) return;
+        if (!War3SoundTables.Has("MetalLightChopWood")) return;
+        _audio?.Play("MetalLightChopWood", worker.Position + new Vector3(0f, 40f, 0f), 0.8f);
+    }
+
+    private void PlayPlacementSound(Vector3 ground)
+    {
+        if (!War3SoundTables.Has("PlaceBuildingDefault")) return;
+        _audio?.Play("PlaceBuildingDefault", ground + new Vector3(0f, 40f, 0f));
     }
 
     /// <summary>命中音：UnitWeapons.weapType1 + 目标材质（单位 Flesh / 建筑 Wood）。</summary>
@@ -268,6 +293,7 @@ public sealed partial class War3GameScene
     {
         if (site?.Type == null) return;
         PlayVoice(site, "Ready", null);
+        if (site.Player == ViewPlayer) _log?.Add($"{site.Type.Name} 建造完成");
     }
 
     /// <summary>英雄复活：回到场上时播 Ready 语音（客户端同口径）。</summary>

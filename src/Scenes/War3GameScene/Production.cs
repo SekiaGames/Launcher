@@ -97,6 +97,7 @@ public sealed partial class War3GameScene
         site.MaxHp = type.Hp;
         site.View?.SetHp(0.01f, true);
         site.View?.Play("Birth");
+        PlayPlacementSound(ground);
         _world.Units.Add(site);
         _pathGrid?.AddBlocker(ground, footprint);
         slot.BuiltCounts[buildingId] = slot.BuiltCount(buildingId) + 1;
@@ -185,7 +186,7 @@ public sealed partial class War3GameScene
         _allUnits.Remove(building);
         if (_selected.Remove(building)) _hud?.SetSelection(_selected);
         building.Alive = false;
-        building.View?.Root.QueueFree();
+        FadeOutUnitView(building.View?.Root);
 
         GD.Print($"[BUILD] P{building.Player} 拆除 {building.Type.Name}");
         RefreshHud();

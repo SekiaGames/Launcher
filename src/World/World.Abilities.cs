@@ -329,13 +329,17 @@ public sealed partial class World
 
     /// <summary>普攻伤害钩子：致命一击、重击这类被动在这里改伤害或挂状态。</summary>
     public float ApplyAttackModifiers(Unit attacker, Unit target, float raw)
-    {        if (attacker == null || attacker.Abilities.Count == 0) return raw;
+    {
+        LastAttackWasCritical = false;
+        if (attacker == null || attacker.Abilities.Count == 0) return raw;
 
         float result = raw;
         foreach (Ability ability in attacker.Abilities)
         {
             if (!ability.Learned || !ability.IsPassive) continue;
+            float before = result;
             result = ability.ModifyOutgoingAttack(this, target, result);
+            if (ability.MarksCriticalStrike && result > before) LastAttackWasCritical = true;
         }
         return result;
     }

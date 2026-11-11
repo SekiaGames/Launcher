@@ -28,6 +28,7 @@ public sealed class ManaBurn : Ability
 
         target.Mana -= burned;
         world.DealDamage(World.MakeAbilityDamage(Owner, target, burned, AttackType.Spells, DamageType.Magic));
+        world.ReportManaBurned(target, burned);
         return true;
     }
 

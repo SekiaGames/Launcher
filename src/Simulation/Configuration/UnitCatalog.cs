@@ -70,6 +70,7 @@ public sealed class UnitType
 
     // —— 英雄字段（UnitBalance 的 STR/AGI/INT + 成长 + Primary） ——
     public bool IsHero;
+    public bool HideInHeroBar;
     public int Strength;
     public int Agility;
     public int Intelligence;
@@ -209,6 +210,7 @@ public static class UnitCatalog
             ShadowHeight = Number(ui.Get(uiRow, "shadowH"), 0f),
             ShadowOffsetX = Number(ui.Get(uiRow, "shadowX"), 0f),
             ShadowOffsetY = Number(ui.Get(uiRow, "shadowY"), 0f),
+            HideInHeroBar = Number(ui.Get(uiRow, "hideHeroBar"), 0f) > 0.5f,
         };
 
         if (BalanceRows.TryGetValue(id, out int balanceRow))

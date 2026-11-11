@@ -10,6 +10,8 @@ public sealed class CriticalStrike : Ability
 {
     public override bool IsPassive => true;
 
+    public override bool MarksCriticalStrike => true;
+
     public float Chance => Data('A');
     public float Multiplier => Mathf.Max(1f, Data('B'));
 

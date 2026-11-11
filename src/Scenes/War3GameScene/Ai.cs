@@ -20,7 +20,13 @@ public sealed partial class War3GameScene
     private void TickAiWaves(float delta)
     {
         _waveTimer += delta;
-        float interval = 90f * (TimeScaleHint < 1f ? TimeScaleHint : 1f);
+        float interval = AiDifficulty switch
+        {
+            0 => 130f,
+            2 => 62f,
+            _ => 90f,
+        };
+        interval *= TimeScaleHint < 1f ? TimeScaleHint : 1f;
         if (_waveTimer < interval) return;
         _waveTimer = 0f;
         SpawnWave();
@@ -37,32 +43,37 @@ public sealed partial class War3GameScene
 
             int race = Mathf.Clamp(player.Race, 1, 4);
             List<string> wave = WaveComposition(player.Id, race);
+            int repeat = AiDifficulty >= 2 ? 2 : 1;
             float angle = Mathf.Pi;
             if (_waveLogBudget > 0)
             {
                 _waveLogBudget--;
                 var names = new List<string>();
                 foreach (string id in wave) names.Add(UnitCatalog.Get(id)?.Name ?? id);
-                GD.Print($"[WAVE] P{player.Id} 出兵 {wave.Count} 个：{string.Join("、", names)}"
+                GD.Print($"[WAVE] P{player.Id} 出兵 {wave.Count * repeat} 个：{string.Join("、", names)}"
                     + $"（{AiCounters.Describe(AiCounters.Analyze(_allUnits, player.Id, AreAllied))}）");
             }
+            _log?.Add($"[AI] {PlayerName(player.Id)} 出兵 {wave.Count * repeat} 个");
 
             int slot = 0;
-            foreach (string unitId in wave)
+            for (int copy = 0; copy < repeat; copy++)
             {
-                float ring = 220f + (slot / 4) * 90f;
-                float spread = Mathf.Cos(angle) * ring;
-                float lateral = Mathf.Sin((float)(slot * 0.9)) * 60f;
-                Unit attacker = Spawn(unitId, player.Id,
-                    hall.Position.X + spread + lateral,
-                    hall.Position.Z + Mathf.Sin(angle) * ring,
-                    Mathf.Pi + angle, 0f, 1f);
-                slot++;
-                if (attacker == null) continue;
+                foreach (string unitId in wave)
+                {
+                    float ring = 220f + (slot / 4) * 90f;
+                    float spread = Mathf.Cos(angle) * ring;
+                    float lateral = Mathf.Sin((float)(slot * 0.9)) * 60f;
+                    Unit attacker = Spawn(unitId, player.Id,
+                        hall.Position.X + spread + lateral,
+                        hall.Position.Z + Mathf.Sin(angle) * ring,
+                        Mathf.Pi + angle, 0f, 1f);
+                    slot++;
+                    if (attacker == null) continue;
 
-                _world.Units.Add(attacker);
-                attacker.Target = NearestTargetOf(ViewPlayer, hall.Position);
-                attacker.RetreatOrdered = false;
+                    _world.Units.Add(attacker);
+                    attacker.Target = NearestTargetOf(ViewPlayer, hall.Position);
+                    attacker.RetreatOrdered = false;
+                }
             }
 
             // 有活着的英雄就一起上（英雄自己会施法/治疗）
@@ -107,7 +118,8 @@ public sealed partial class War3GameScene
         options.Sort((left, right) =>
             AiCounters.Score(UnitCatalog.Get(right), enemy).CompareTo(AiCounters.Score(UnitCatalog.Get(left), enemy)));
 
-        if (options.Count > 3) options.RemoveRange(3, options.Count - 3);
+        int breadth = AiDifficulty >= 2 ? 4 : AiDifficulty == 0 ? 2 : 3;
+        if (options.Count > breadth) options.RemoveRange(breadth, options.Count - breadth);
         return options;
     }
 
@@ -141,7 +153,7 @@ public sealed partial class War3GameScene
                 continue;
             }
 
-            if (ratio > 0.3f || distance < 700f) continue;
+            if (ratio > 0.3f + (AiDifficulty >= 2 ? 0f : 0.1f) || distance < 700f) continue;
 
             unit.RetreatOrdered = true;
             unit.Target = null;
@@ -256,7 +268,7 @@ public sealed partial class War3GameScene
     }
 
     private int _focusLogBudget = 8;
-    
+
     /// <summary>
     /// 派工修理：己方有建筑掉到 95% 以下时，找一个没在采集/建造/修理的工人去修；
     /// 修理本身按物编 DataA 速率回血、按 DataC 扣金（World.TickRepairs）。

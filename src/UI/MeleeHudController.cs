@@ -46,6 +46,8 @@ public sealed class MeleeHudController
     private readonly List<Label> _slotCosts = new();
     private readonly List<Label> _slotHotkeys = new();
     private readonly List<CommandEntry> _commands = new();
+    private readonly Panel _detailPanel;
+    private readonly Label _detailText;
 
     public Func<Unit, string> DetailProvider;
     public MinimapFrame MinimapFrame { get; }
@@ -189,6 +191,31 @@ public sealed class MeleeHudController
 
         BuildSelectionSlots(layer);
 
+        _detailPanel = new Panel
+        {
+            Name = "CommandDetail",
+            Position = new Vector2(1058f, 552f),
+            Size = new Vector2(524f, 124f),
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _detailPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.05f, 0.06f, 0.08f, 0.92f),
+            BorderColor = new Color(0.42f, 0.38f, 0.26f),
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+        });
+        layer.AddChild(_detailPanel);
+
+        _detailText = Label("", 14, new Vector2(1068f, 560f), new Color(0.86f, 0.89f, 0.94f));
+        _detailText.Size = new Vector2(504f, 108f);
+        _detailText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _detailText.VerticalAlignment = VerticalAlignment.Top;
+        layer.AddChild(_detailText);
+
         _box = new Panel { Name = "SelectionBox", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
         _box.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
@@ -229,6 +256,8 @@ public sealed class MeleeHudController
                 button.AddThemeStyleboxOverride("pressed", SlotStyle(new Color(0.28f, 0.32f, 0.26f)));
                 button.AddThemeStyleboxOverride("disabled", SlotStyle(new Color(0.08f, 0.08f, 0.09f)));
                 button.Pressed += () => Press(index);
+                button.MouseEntered += () => ShowDetail(index);
+                button.MouseExited += HideDetail;
                 button.GuiInput += @event =>
                 {
                     if (@event is not InputEventMouseButton mouse) return;
@@ -272,6 +301,30 @@ public sealed class MeleeHudController
             CornerRadiusBottomLeft = 2,
             CornerRadiusBottomRight = 2,
         };
+    }
+
+    private void ShowDetail(int index)
+    {
+        if (index < 0 || index >= _commands.Count)
+        {
+            HideDetail();
+            return;
+        }
+
+        CommandEntry entry = _commands[index];
+        if (entry == null)
+        {
+            HideDetail();
+            return;
+        }
+
+        _detailText.Text = BuildTooltip(entry);
+        _detailPanel.Visible = true;
+    }
+
+    private void HideDetail()
+    {
+        _detailPanel.Visible = false;
     }
 
     private void Press(int index)
@@ -357,6 +410,7 @@ public sealed class MeleeHudController
 
     public void ClearCommands()
     {
+        HideDetail();
         SetCommands(null);
     }
 

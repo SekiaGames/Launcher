@@ -11,6 +11,10 @@ public sealed partial class World
 
     /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
     public bool IsNight;
+    /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>
+    public bool ShowDamageNumbers;
+    /// <summary>ApplyAttackModifiers 刚刚判定出致命一击，FireWeapon 据此打标。</summary>
+    public bool LastAttackWasCritical;
     private const float GatherRange = 190f;
     private const float WorkSeconds = 2.2f;
 
@@ -32,6 +36,12 @@ public sealed partial class World
     public event Action<DamageInfo> DamagePreview;
     /// <summary>结算后钩子：吸血、荆棘、伤害数字都挂这里。</summary>
     public event Action<DamageInfo> DamageApplied;
+    /// <summary>法力燃烧抽掉的量（客户端专门的紫色数字）。</summary>
+    public event Action<Unit, float> ManaBurned;
+
+    public void ReportManaBurned(Unit target, float amount) => ManaBurned?.Invoke(target, amount);
+    /// <summary>工人砍下一下木材（循环伐木音的触发点）。</summary>
+    public event Action<Unit> TreeChopped;
 
     /// <summary>同盟判定由对局层注入（w3i 队伍），模拟层不假设玩家号顺序。</summary>
     public Func<int, int, bool> Allied;

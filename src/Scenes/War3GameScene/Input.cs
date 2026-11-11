@@ -63,9 +63,16 @@ public sealed partial class War3GameScene
             {
                 if (keyEvent.Keycode == Key.Escape)
                 {
-                    if (CastPending) CancelCast();
+                    if (_log != null && _log.InputActive) _log.CancelInput();
+                    else if (CastPending) CancelCast();
                     else if (_escMenu != null && _escMenu.Visible) _escMenu.Close();
                     else _escMenu?.Open();
+                    return;
+                }
+
+                if (keyEvent.Keycode is Key.Enter or Key.KpEnter)
+                {
+                    _log?.BeginInput();
                     return;
                 }
 

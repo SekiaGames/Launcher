@@ -95,6 +95,25 @@ public sealed partial class War3GameScene
         };
     }
 
+    private void PlayGroundEffect(Vector3 point, string resPath, float seconds)
+    {
+        if (string.IsNullOrEmpty(resPath) || _sceneEffects.Count >= MaxSceneEffects) return;
+
+        PackedScene scene = Assets.LoadScene(resPath);
+        if (scene == null) return;
+
+        Node3D node = scene.Instantiate<Node3D>();
+        if (node == null) return;
+
+        MapWorldBuilder.ApplyUnitTextureFilter(node);
+        node.Name = "Effect_" + System.IO.Path.GetFileNameWithoutExtension(resPath);
+        node.Position = point;
+        (_worldRoot ?? this).AddChild(node);
+
+        PlayFirstAnimation(node);
+        _sceneEffects.Add(new SceneEffect { Node = node, Remaining = Mathf.Max(0.2f, seconds) });
+    }
+
     private static void PlayFirstAnimation(Node3D node)
     {
         var player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
