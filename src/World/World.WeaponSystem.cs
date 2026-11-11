@@ -58,29 +58,35 @@ public sealed partial class World
     {
         if (target == null || !target.Alive) return;
         if (!unit.ReadyToAttack) return;
-        unit.AttackCooldown = AttackCooldownOf(unit);
-        unit.BeginAttack(target, unit.Type.DamagePoint);
+
+        WeaponProfile weapon = unit.Type.WeaponFor(target.Type.Kind);
+        if (weapon == null) return;
+
+        unit.ActiveWeapon = weapon;
+        unit.AttackCooldown = AttackCooldownOf(unit, weapon);
+        unit.BeginAttack(target, weapon.DamagePoint);
     }
 
     /// <summary>伤害点：算伤害、决定是立刻结算还是抛出投射物。</summary>
     private void FireWeapon(Unit unit)
     {
         Unit target = unit.WindupTarget;
+        WeaponProfile weapon = unit.ActiveWeapon ?? unit.Type.Weapon;
         unit.EndWindup();
 
-        unit.Backswing = Mathf.Max(0f, unit.Type.Backswing);
+        unit.Backswing = Mathf.Max(0f, weapon.Backswing);
 
         if (target == null || !target.Alive) return;
 
-        float raw = Mathf.Lerp(unit.Type.MinDamage, unit.Type.MaxDamage, (float)_random.NextDouble())
+        float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
             + DamageBonus(unit);
-        DamageInfo info = MakeAttackDamage(unit, target, raw);
+        DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
 
-        bool flies = unit.Type.MissileScene != null && unit.Type.MissileSpeed > 0f;
+        bool flies = weapon.MissileScene != null && weapon.MissileSpeed > 0f;
         if (flies)
         {
             MissileFired?.Invoke(unit, target);
-            float travel = Mathf.Max(Tick, unit.DistanceTo(target) / unit.Type.MissileSpeed);
+            float travel = Mathf.Max(Tick, unit.DistanceTo(target) / weapon.MissileSpeed);
             _pendingHits.Add(new PendingHit { Info = info, Remaining = travel });
             return;
         }
@@ -105,9 +111,10 @@ public sealed partial class World
         Unit center = primary.Target;
         if (attacker?.Type == null || center == null) return;
 
-        float full = attacker.Type.SplashFull;
-        float half = attacker.Type.SplashHalf;
-        float quarter = attacker.Type.SplashQuarter;
+        WeaponProfile weapon = primary.Weapon ?? attacker.Type.Weapon;
+        float full = weapon.SplashFull;
+        float half = weapon.SplashHalf;
+        float quarter = weapon.SplashQuarter;
         if (quarter <= 0f) return;
 
         var victims = new List<(Unit Unit, float Ratio, float Distance)>();
@@ -128,7 +135,7 @@ public sealed partial class World
         victims.Sort((left, right) => left.Distance.CompareTo(right.Distance));
         foreach ((Unit victim, float ratio, float _) in victims)
         {
-            DealDamage(MakeAttackDamage(attacker, victim, primary.Raw * ratio));
+            DealDamage(MakeAttackDamage(attacker, victim, primary.Raw * ratio, weapon));
         }
     }
 }

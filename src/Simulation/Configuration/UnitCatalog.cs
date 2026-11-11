@@ -16,12 +16,6 @@ public sealed class UnitType
     public float Hp = 100f;
     public float Speed = 270f;
     public bool IsBuilding;
-    public bool CanAttack;
-    public float AttackRange = 100f;
-    public float AttackCooldown = 1.5f;
-    public float MinDamage = 5f;
-    public float MaxDamage = 10f;
-    public float AcquireRange = 500f;
     public float Armor;
     public int GoldCost;
     public int LumberCost;
@@ -30,29 +24,18 @@ public sealed class UnitType
     public int FoodUsed;
     public int FoodMade;
 
-    // —— 战斗结算字段（UnitWeapons.atkType1 + UnitBalance.defType/collision/bounty*） ——
-    public AttackType AttackType = AttackType.Normal;
+    /// <summary>第一套武器（UnitWeapons 的 *1 列）。</summary>
+    public WeaponProfile Weapon = new();
+    /// <summary>第二套武器（*2 列），null 表示没有。打第一武器打不到的目标类别时切换。</summary>
+    public WeaponProfile Weapon2;
+
     public DefenseType DefenseType = DefenseType.Unarmored;
-    /// <summary>本单位能打的目标类别（UnitWeapons.targs1）。</summary>
-    public TargetKind Targets = TargetKind.Ground | TargetKind.Structure;
-    /// <summary>UnitData.targType，本单位被索敌时匹配对方的 Targets。</summary>
+    /// <summary>UnitData.targType，本单位被索敌时匹配对方的武器 TargetKind。</summary>
     public TargetKind Kind = TargetKind.Ground;
     /// <summary>UnitBalance.collision，真实碰撞/推挤半径（不是 footprint）。</summary>
     public float CollisionRadius = 16f;
     /// <summary>UnitData.movetp=fly，空中单位不吃地面路径阻挡。</summary>
     public bool Flying;
-
-    // —— 攻击时序（UnitWeapons.castpt/dmgpt1/backSw1） ——
-    /// <summary>起手到伤害点的秒数。</summary>
-    public float DamagePoint = 0.5f;
-    /// <summary>伤害点之后的后摇秒数。</summary>
-    public float Backswing = 0.5f;
-
-    // —— 溅射（UnitWeapons.Farea1/Harea1/Qarea1/targCount1，三档：全伤/半伤/四分之一） ——
-    public float SplashFull;
-    public float SplashHalf;
-    public float SplashQuarter;
-    public int SplashTargets = 1;
 
     public int Level = 1;
     public int BountyDice = 1;
@@ -67,8 +50,6 @@ public sealed class UnitType
     public string[] UpgradesApplied = Array.Empty<string>();
     public string[] Abilities = Array.Empty<string>();
     public string SoundSet = "";
-    /// <summary>UnitWeapons.weapType1，如 MetalMediumSlice（战斗音效前缀）。</summary>
-    public string WeaponSound = "";
 
     // —— 英雄字段（UnitBalance 的 STR/AGI/INT + 成长 + Primary） ——
     public bool IsHero;
@@ -84,18 +65,50 @@ public sealed class UnitType
     /// <summary>转身角速度（弧度/秒）。UnitData.turnRate 是原版字段，这里按每 tick 0.1 的量纲折算。</summary>
     public float TurnSpeed = 3.6f;
     public float SightNight = 800f;
+    /// <summary>UnitBalance.regenHP，生命恢复（点/秒）；regenType=none 的单位不回血。</summary>
+    public float RegenHp;
+    /// <summary>UnitBalance.regenType：always / none / night / blight。</summary>
+    public string RegenType = "always";
     public int FootprintCells = 2;
-    public string MissileScene;
-    public float MissileSpeed = 900f;
-    public float MissileArc;
+
+    // —— 武器参数转发（外部按第一武器读；真正开火时用 WeaponFor 选中的那套） ——
+    public bool CanAttack => Weapon.Enabled;
+    public float AttackRange => Weapon.Range;
+    public float AttackCooldown => Weapon.Cooldown;
+    public float MinDamage => Weapon.MinDamage;
+    public float MaxDamage => Weapon.MaxDamage;
+    public float AcquireRange => Weapon.AcquireRange;
+    public AttackType AttackType => Weapon.AttackType;
+    public TargetKind Targets => Weapon.Targets;
+    public string WeaponSound => Weapon.Sound;
+    public float DamagePoint => Weapon.DamagePoint;
+    public float Backswing => Weapon.Backswing;
+    public float SplashFull => Weapon.SplashFull;
+    public float SplashHalf => Weapon.SplashHalf;
+    public float SplashQuarter => Weapon.SplashQuarter;
+    public int SplashTargets => Weapon.SplashTargets;
+    public string MissileScene => Weapon.MissileScene;
+    public float MissileSpeed => Weapon.MissileSpeed;
+    public float MissileArc => Weapon.MissileArc;
+
+    /// <summary>两套武器合起来能打的目标类别。</summary>
+    public TargetKind AllTargets => Weapon2 == null ? Weapon.Targets : Weapon.Targets | Weapon2.Targets;
+
+    /// <summary>选武器：先看第一套能不能打，再退到第二套；两套都不行就是打不到。</summary>
+    public WeaponProfile WeaponFor(TargetKind kind)
+    {
+        if (Weapon.Enabled && Weapon.CanTarget(kind)) return Weapon;
+        if (Weapon2 != null && Weapon2.Enabled && Weapon2.CanTarget(kind)) return Weapon2;
+        return null;
+    }
 
     public bool IsWorkerType => Builds.Length > 0;
     public bool CanGatherGold => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Aaha");
     public bool EntersMine => HasAbility("Aaha");
     public float FootprintRadius => FootprintCells * 32f * 0.5f;
     public bool CanGatherLumber => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Ahrl");
-    /// <summary>能打到某类目标：本地图/表未给出掩码时按全地面处理，避免误判成不能还手。</summary>
-    public bool CanTarget(TargetKind kind) => Targets == TargetKind.None || (Targets & kind) != 0;
+    /// <summary>能打到某类目标：两套武器任一能打即可。</summary>
+    public bool CanTarget(TargetKind kind) => WeaponFor(kind) != null;
 
     private bool HasAbility(string code)
     {
@@ -192,6 +205,8 @@ public static class UnitCatalog
                 if (turnRate > 0f) type.TurnSpeed = Mathf.Clamp(turnRate * 6f, 1.5f, 14f);
             }
             type.SightNight = Number(balance.Get(balanceRow, "nsight"), 800f);
+            type.RegenHp = Number(balance.Get(balanceRow, "regenHP"), 0f);
+            type.RegenType = (balance.Get(balanceRow, "regenType") ?? "always").Trim();
             type.Armor = Number(balance.Get(balanceRow, "def"), 0f);
             type.DefenseType = CombatCodes.ParseDefense(balance.Get(balanceRow, "defType"));
             float collision = Number(balance.Get(balanceRow, "collision"), 0f);
@@ -215,30 +230,9 @@ public static class UnitCatalog
         if (WeaponRows.TryGetValue(id, out int weaponRow))
         {
             SlkTable weapons = War3Tables.UnitWeapons();
-            string weaponSound = weapons.Get(weaponRow, "weapType1")?.Trim();
-            if (!string.IsNullOrEmpty(weaponSound) && weaponSound != "_" && weaponSound != "-")
-            {
-                type.WeaponSound = weaponSound;
-            }
-
-            string kind = weapons.Get(weaponRow, "weapTp1")?.Trim();
-            type.CanAttack = !string.IsNullOrEmpty(kind)
-                && kind != "_" && kind != "-"
-                && !kind.Equals("none", StringComparison.OrdinalIgnoreCase);
-            type.AttackRange = Number(weapons.Get(weaponRow, "rangeN1"), 90f);
-            type.AttackCooldown = Number(weapons.Get(weaponRow, "cool1"), 1.5f);
-            type.MinDamage = Number(weapons.Get(weaponRow, "mindmg1"), 5f);
-            type.MaxDamage = Number(weapons.Get(weaponRow, "maxdmg1"), 10f);
-            type.AcquireRange = Number(weapons.Get(weaponRow, "acquire"), 500f);
-            type.AttackType = CombatCodes.ParseAttack(weapons.Get(weaponRow, "atkType1"));
-            type.DamagePoint = Number(weapons.Get(weaponRow, "dmgpt1"), 0.5f);
-            type.Backswing = Number(weapons.Get(weaponRow, "backSw1"), 0.5f);
-            type.SplashFull = Number(weapons.Get(weaponRow, "Farea1"), 0f);
-            type.SplashHalf = Number(weapons.Get(weaponRow, "Harea1"), 0f);
-            type.SplashQuarter = Number(weapons.Get(weaponRow, "Qarea1"), 0f);
-            type.SplashTargets = Mathf.Max(1, weapons.GetInt(weaponRow, "targCount1", 1));
-            TargetKind targets = CombatCodes.ParseTargets(weapons.Get(weaponRow, "targs1"));
-            if (targets != TargetKind.None) type.Targets = targets;
+            WeaponProfile first = ReadWeapon(weapons, weaponRow, "1");
+            if (first != null) type.Weapon = first;
+            type.Weapon2 = ReadWeapon(weapons, weaponRow, "2");
         }
 
         if (DataRows.TryGetValue(id, out int dataRow))
@@ -246,10 +240,7 @@ public static class UnitCatalog
             SlkTable data = War3Tables.UnitData();
             type.FootprintCells = FootprintFromPathTexture(data.Get(dataRow, "pathTex"), type.FootprintCells);
             TargetKind kind = CombatCodes.ParseTargets(data.Get(dataRow, "targType"));
-            if (kind == TargetKind.None) kind = type.IsBuilding ? TargetKind.Structure : TargetKind.Ground;
-            // 建筑同时具备「地面」身份：迫击炮/投石车的 targs1 只写 ground 不写 structure，原版照样能砸房子。
-            if (type.IsBuilding) kind |= TargetKind.Ground;
-            type.Kind = kind;
+            type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim();
             type.Flying = string.Equals(moveType, "fly", StringComparison.OrdinalIgnoreCase);
         }
@@ -268,9 +259,16 @@ public static class UnitCatalog
             type.Researches = row.Researches;
             type.UpgradeTo = row.UpgradeTo;
             type.Requires = row.Requires;
-            type.MissileScene = PathResolve.ModelScene(row.MissileArt);
-            type.MissileArc = row.MissileArc;
-            if (row.MissileSpeed > 0f) type.MissileSpeed = row.MissileSpeed;
+            string missileScene = PathResolve.ModelScene(row.MissileArt);
+            type.Weapon.MissileScene = missileScene;
+            type.Weapon.MissileArc = row.MissileArc;
+            if (row.MissileSpeed > 0f) type.Weapon.MissileSpeed = row.MissileSpeed;
+            if (type.Weapon2 != null)
+            {
+                type.Weapon2.MissileScene = missileScene;
+                type.Weapon2.MissileArc = type.Weapon.MissileArc;
+                type.Weapon2.MissileSpeed = type.Weapon.MissileSpeed;
+            }
         }
 
         string localized = TechTree.UnitName(id);
@@ -279,6 +277,36 @@ public static class UnitCatalog
         type.IconPath = PathResolve.IconPng(TechTree.UnitIconArt(id));
 
         return type;
+    }
+
+    private static WeaponProfile ReadWeapon(SlkTable weapons, int row, string slot)
+    {
+        string kind = weapons.Get(row, "weapTp" + slot)?.Trim();
+        bool enabled = !string.IsNullOrEmpty(kind)
+            && kind != "_" && kind != "-"
+            && !kind.Equals("none", StringComparison.OrdinalIgnoreCase);
+        if (!enabled) return null;
+
+        var weapon = new WeaponProfile { Enabled = true };
+
+        string sound = weapons.Get(row, "weapType" + slot)?.Trim();
+        if (!string.IsNullOrEmpty(sound) && sound != "_" && sound != "-") weapon.Sound = sound;
+
+        weapon.AttackType = CombatCodes.ParseAttack(weapons.Get(row, "atkType" + slot));
+        TargetKind targets = CombatCodes.ParseTargets(weapons.Get(row, "targs" + slot));
+        weapon.Targets = targets != TargetKind.None ? targets : TargetKind.Ground | TargetKind.Structure;
+        weapon.Range = Number(weapons.Get(row, "rangeN" + slot), slot == "1" ? 90f : 500f);
+        weapon.Cooldown = Number(weapons.Get(row, "cool" + slot), 1.5f);
+        weapon.MinDamage = Number(weapons.Get(row, "mindmg" + slot), 5f);
+        weapon.MaxDamage = Number(weapons.Get(row, "maxdmg" + slot), 10f);
+        weapon.AcquireRange = Number(weapons.Get(row, "acquire"), 500f);
+        weapon.DamagePoint = Number(weapons.Get(row, "dmgpt" + slot), 0.5f);
+        weapon.Backswing = Number(weapons.Get(row, "backSw" + slot), 0.5f);
+        weapon.SplashFull = Number(weapons.Get(row, "Farea" + slot), 0f);
+        weapon.SplashHalf = Number(weapons.Get(row, "Harea" + slot), 0f);
+        weapon.SplashQuarter = Number(weapons.Get(row, "Qarea" + slot), 0f);
+        weapon.SplashTargets = Mathf.Max(1, weapons.GetInt(row, "targCount" + slot, 1));
+        return weapon;
     }
 
     private static string[] SplitList(string csv)

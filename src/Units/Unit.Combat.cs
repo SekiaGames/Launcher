@@ -16,6 +16,9 @@ public sealed partial class Unit
 
     public Unit WindupTarget;
 
+    /// <summary>本次出手选中的武器（第一或第二套），冷却与伤害都按它算。</summary>
+    public WeaponProfile ActiveWeapon;
+
     public bool ReadyToAttack => !AttackWindupActive && Backswing <= 0f && AttackCooldown <= 0f;
 
     public void BeginAttack(Unit target, float damagePoint)

@@ -9,6 +9,8 @@ public sealed class DamageInfo
     public float Raw;
     public float Amount;
 
+    /// <summary>开火用的那套武器（第一或第二套），溅射与命中音都按它来。</summary>
+    public WeaponProfile Weapon;
     public AttackType AttackType = AttackType.Normal;
     public DefenseType DefenseType = DefenseType.Unarmored;
     public DamageType DamageType = DamageType.Normal;

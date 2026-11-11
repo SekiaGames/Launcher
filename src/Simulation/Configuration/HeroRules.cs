@@ -18,6 +18,8 @@ public static class HeroRules
 
     public static readonly float StrHpBonus = Value("Misc.StrHitPointBonus", 25f);
     public static readonly float IntManaBonus = Value("Misc.IntManaBonus", 15f);
+    public static readonly float StrRegenBonus = Value("Misc.StrRegenBonus", 0.05f);
+    public static readonly float IntRegenBonus = Value("Misc.IntRegenBonus", 0.05f);
     public static readonly float AgiDefenseBonus = Value("Misc.AgiDefenseBonus", 0.30f);
     public static readonly float AgiDefenseBase = Value("Misc.AgiDefenseBase", -2f);
     public static readonly float AgiAttackSpeedBonus = Value("Misc.AgiAttackSpeedBonus", 0.02f);

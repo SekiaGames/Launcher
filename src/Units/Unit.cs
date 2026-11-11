@@ -22,6 +22,10 @@ public sealed partial class Unit
     public Unit GoldMine;
     public Unit HomeHall;
     public TreeState Tree;
+    /// <summary>建筑的集结点：三选一，点/单位/树。新训练出来的单位出生后往这里去。</summary>
+    public Vector3? RallyPoint;
+    public Unit RallyTarget;
+    public TreeState RallyTree;
     public int Carry;
     public int CarryLumber;
     public float WorkTimer = 0f;

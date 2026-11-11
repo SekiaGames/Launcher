@@ -57,19 +57,48 @@ public sealed partial class World
         return multiplier;
     }
 
-    public DamageInfo MakeAttackDamage(Unit source, Unit target, float raw)
+    /// <summary>
+    /// 自然恢复：对标客户端 Components/Health 的 regen。
+    /// 生命 = UnitBalance.regenHP（英雄再叠加 力量×StrRegenBonus）；法力 = 智力×IntRegenBonus。
+    /// regenType=none 的单位不回血；night / blight 两种条件暂时按 always 处理。
+    /// </summary>
+    public void TickRegeneration()
+    {
+        foreach (Unit unit in Units)
+        {
+            if (!unit.Alive || unit.IsUnderConstruction) continue;
+            if (string.Equals(unit.Type.RegenType, "none", StringComparison.OrdinalIgnoreCase)) continue;
+
+            if (unit.Hp < unit.MaxHp)
+            {
+                float hpPerSecond = unit.Type.RegenHp;
+                if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
+                if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
+            }
+
+            if (unit.IsHero && unit.Mana < unit.MaxMana)
+            {
+                float manaPerSecond = unit.Intelligence * HeroRules.IntRegenBonus + unit.Type.ManaRegen;
+                if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * Tick);
+            }
+        }
+    }
+
+    public DamageInfo MakeAttackDamage(Unit source, Unit target, float raw, WeaponProfile weapon = null)
     {
         bool underConstruction = target.IsUnderConstruction;
         DefenseType defense = underConstruction ? DefenseType.Unarmored : target.Type.DefenseType;
         float armor = underConstruction ? 0f : ArmorOf(target);
+        weapon ??= source.Type.Weapon;
 
         return new DamageInfo
         {
             Source = source,
             Target = target,
+            Weapon = weapon,
             Raw = raw,
             Amount = raw,
-            AttackType = source.Type.AttackType,
+            AttackType = weapon.AttackType,
             DefenseType = defense,
             DamageType = DamageType.Normal,
             Armor = armor,

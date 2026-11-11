@@ -41,7 +41,7 @@ public static class CombatProbe
 
             GD.Print($"[档] {id,-5} {type.Name,-8} 攻击{type.AttackType,-6} 护甲{type.DefenseType,-8}({type.Armor:0.0})"
                 + $" 伤害{type.MinDamage:0}-{type.MaxDamage:0} 间隔{type.AttackCooldown:0.00}s"
-                + $" 碰撞{type.CollisionRadius:0} 自身{CombatCodes.Describe(type.Kind)} 可打{CombatCodes.Describe(type.Targets)}"
+                + $" 碰撞{type.CollisionRadius:0} 自身{CombatCodes.Describe(type.Kind)} 可打{CombatCodes.Describe(type.AllTargets)}"
                 + (type.Flying ? " 飞行" : ""));
         }
 
@@ -104,6 +104,9 @@ public static class CombatProbe
         CheckDuel();
         CheckBounty();
         CheckSplash();
+        CheckRegeneration();
+        CheckRally();
+        CheckSecondWeapon();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
@@ -255,6 +258,87 @@ public static class CombatProbe
         Verify("超出 Qarea 不受伤", 0f, farLoss, 0.01f);
     }
 
+    private static void CheckRegeneration()
+    {
+        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType blacksmith = UnitCatalog.Get("hbla");
+        if (footman == null || blacksmith == null) return;
+
+        var world = new World(null, null);
+        Unit unit = MakeUnit(footman, 0);
+        unit.Hp = 100f;
+        Unit noRegen = MakeUnit(blacksmith, 0);
+        noRegen.Hp = 100f;
+        noRegen.IsBuilding = true;
+        world.Units.Add(unit);
+        world.Units.Add(noRegen);
+
+        int ticks = 400;
+        for (int tick = 0; tick < ticks; tick++) world.Advance();
+
+        float seconds = ticks * World.Tick;
+        float healed = unit.Hp - 100f;
+        Verify("步兵按 regenHP 回血", footman.RegenHp * seconds, healed, 0.5f);
+        Verify("regenType=none 不回血", 0f, noRegen.Hp - 100f, 0.01f);
+        GD.Print($"[自检] 恢复 步兵 regenHP={footman.RegenHp:0.00}/s，{seconds:0}s 回 {healed:0.00}"
+            + $"；铁匠铺 regenType={blacksmith.RegenType} 不回血");
+    }
+
+    private static void CheckRally()
+    {
+        UnitType hall = UnitCatalog.Get("htow");
+        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType peasant = UnitCatalog.Get("hpea");
+        UnitType mine = UnitCatalog.Get("ngol");
+        if (hall == null || footman == null || peasant == null || mine == null) return;
+
+        var world = new World(null, null);
+        Unit building = MakeUnit(hall, 0);
+        building.IsBuilding = true;
+        world.Units.Add(building);
+
+        world.SetRally(building, new Vector3(500f, 0f, 500f));
+        Unit fresh = MakeUnit(footman, 0);
+        world.Units.Add(fresh);
+        world.SendToRally(fresh, building);
+        Verify("集结点：新单位走向地面点", 1f, fresh.MoveTarget.HasValue ? 1f : 0f, 0f);
+
+        Unit goldMine = MakeUnit(mine, 12);
+        goldMine.Gold = 500;
+        world.Units.Add(goldMine);
+        world.SetRally(building, goldMine);
+        Unit worker = MakeUnit(peasant, 0);
+        world.Units.Add(worker);
+        world.SendToRally(worker, building);
+        Verify("集结点：农民转去采金", 1f, ReferenceEquals(worker.GoldMine, goldMine) ? 1f : 0f, 0f);
+
+        Unit soldier = MakeUnit(footman, 0);
+        world.Units.Add(soldier);
+        world.SendToRally(soldier, building);
+        Verify("集结点：非工人不会被派去采金", 1f, soldier.GoldMine == null ? 1f : 0f, 0f);
+    }
+
+    /// <summary>双武器：英雄第一套打不到空中、第二套能；迫击炮砸建筑走第二套。</summary>
+    private static void CheckSecondWeapon()
+    {
+        UnitType hero = UnitCatalog.Get("Hpal");
+        UnitType gyro = UnitCatalog.Get("hgyr");
+        UnitType mortar = UnitCatalog.Get("hmtm");
+        UnitType blacksmith = UnitCatalog.Get("hbla");
+        if (hero?.Weapon2 == null || gyro == null || mortar?.Weapon2 == null || blacksmith == null) return;
+
+        Verify("英雄第一套打不到空中", 0f, hero.Weapon.CanTarget(gyro.Kind) ? 1f : 0f, 0f);
+        Verify("英雄第二套打得到空中", 1f, hero.Weapon2.CanTarget(gyro.Kind) ? 1f : 0f, 0f);
+        Verify("对空自动选第二套", 1f, ReferenceEquals(hero.WeaponFor(gyro.Kind), hero.Weapon2) ? 1f : 0f, 0f);
+        Verify("第二套射程 500", 500f, hero.Weapon2.Range, 0.01f);
+
+        Verify("迫击炮第一套不含建筑", 0f, mortar.Weapon.CanTarget(blacksmith.Kind) ? 1f : 0f, 0f);
+        Verify("迫击炮砸建筑选第二套", 1f, ReferenceEquals(mortar.WeaponFor(blacksmith.Kind), mortar.Weapon2) ? 1f : 0f, 0f);
+        Verify("迫击炮第二套射程 1150", 1150f, mortar.Weapon2.Range, 0.01f);
+        GD.Print($"[自检] 双武器 圣骑士 主{hero.Weapon.Range:0}/副{hero.Weapon2.Range:0}"
+            + $" 迫击炮 主{mortar.Weapon.Range:0}/副{mortar.Weapon2.Range:0}");
+    }
+
     private static void ReportHit(string attackerId, string victimId, float raw)
     {
         UnitType attacker = UnitCatalog.Get(attackerId);
@@ -272,7 +356,8 @@ public static class CombatProbe
         if (attacker == null || victim == null) return;
 
         bool can = attacker.CanTarget(victim.Kind);
-        GD.Print($"[掩码] {attackerId}(可打 {CombatCodes.Describe(attacker.Targets)}) → {victimId}(属于 {CombatCodes.Describe(victim.Kind)}) = {(can ? "能打" : "打不到")}");
+        string second = attacker.Weapon2 != null ? " +第二武器" : "";
+        GD.Print($"[掩码] {attackerId}(可打 {CombatCodes.Describe(attacker.AllTargets)}{second}) → {victimId}(属于 {CombatCodes.Describe(victim.Kind)}) = {(can ? "能打" : "打不到")}");
     }
 
     private static void CheckRatio(string label, AttackType attack, DefenseType defense, float expected)

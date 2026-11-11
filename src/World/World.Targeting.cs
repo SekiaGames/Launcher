@@ -146,18 +146,18 @@ public sealed partial class World
         }
     }
 
-    /// <summary>攻击间隔：英雄按 AgiAttackSpeedBonus 提速（敏捷 20 → 冷却 /1.4）。</summary>
-    public static float AttackCooldownOf(Unit unit)
+    /// <summary>攻击间隔：按实际使用的那套武器算，英雄再吃 AgiAttackSpeedBonus 提速。</summary>
+    public static float AttackCooldownOf(Unit unit, WeaponProfile weapon = null)
     {
-        float cooldown = unit.Type.AttackCooldown;
+        float cooldown = (weapon ?? unit.Type.Weapon).Cooldown;
         if (unit.IsHero) cooldown /= 1f + unit.Agility * HeroRules.AgiAttackSpeedBonus;
         return Mathf.Max(0.15f, cooldown);
     }
 
-    /// <summary>目标掩码判定：UnitWeapons.targs1 对 UnitData.targType，地面兵打不到空中。</summary>
+    /// <summary>目标掩码判定：两套武器任一能打这个类别就能打（地面兵打不到空中，迫击炮靠第二武器砸建筑）。</summary>
     public static bool CanStrike(Unit attacker, Unit target)
     {
         if (attacker?.Type == null || target?.Type == null) return false;
-        return attacker.Type.CanTarget(target.Type.Kind);
+        return attacker.Type.WeaponFor(target.Type.Kind) != null;
     }
 }

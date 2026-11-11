@@ -375,6 +375,7 @@ public sealed partial class War3GameScene
         if (unit == null) return;
 
         _world?.Units.Add(unit);
+        _world?.SendToRally(unit, order.Building);
         PlayVoice(unit, "Ready", null);
         RefreshHud();
     }

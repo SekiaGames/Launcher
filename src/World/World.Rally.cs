@@ -60,4 +60,70 @@ public sealed partial class World
         unit.PathIndex = 0;
         unit.View?.Play("Stand");
     }
+
+    /// <summary>建筑设集结点：点 / 单位 / 树 三选一，互相覆盖。</summary>
+    public void SetRally(Unit building, Vector3 point)
+    {
+        if (building == null || !building.IsBuilding) return;
+        building.RallyPoint = point;
+        building.RallyTarget = null;
+        building.RallyTree = null;
+    }
+
+    public void SetRally(Unit building, Unit target)
+    {
+        if (building == null || !building.IsBuilding || target == null) return;
+        building.RallyPoint = null;
+        building.RallyTarget = target;
+        building.RallyTree = null;
+    }
+
+    public void SetRally(Unit building, TreeState tree)
+    {
+        if (building == null || !building.IsBuilding || tree == null) return;
+        building.RallyPoint = null;
+        building.RallyTarget = null;
+        building.RallyTree = tree;
+    }
+
+    /// <summary>新单位出生：按产出建筑的集结点决定去哪（采集 / 伐木 / 攻击 / 走位）。</summary>
+    public void SendToRally(Unit fresh, Unit building)
+    {
+        if (fresh == null || building == null) return;
+
+        Unit target = building.RallyTarget;
+        if (target != null && target.Alive)
+        {
+            if (target.Gold > 0 && fresh.Type.CanGatherGold)
+            {
+                SetGather(fresh, target);
+                return;
+            }
+            if (fresh.Type.CanAttack && !IsAllied(fresh.Player, target.Player))
+            {
+                fresh.GoldMine = null;
+                fresh.Tree = null;
+                fresh.MoveTarget = null;
+                fresh.Path = null;
+                fresh.Target = target;
+                return;
+            }
+        }
+
+        TreeState tree = building.RallyTree;
+        if (tree != null && tree.Alive && fresh.Type.CanGatherLumber)
+        {
+            SetChop(fresh, tree);
+            return;
+        }
+
+        if (building.RallyPoint.HasValue)
+        {
+            fresh.Target = null;
+            fresh.GoldMine = null;
+            fresh.Tree = null;
+            fresh.Path = null;
+            fresh.MoveTarget = building.RallyPoint.Value;
+        }
+    }
 }
