@@ -80,9 +80,12 @@ public sealed partial class War3GameScene : Node3D
         _terrainBuilder = new MapWorldBuilder();
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads);
         AddChild(worldRoot);
+        _worldRoot = worldRoot;
 
         _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather);
         if (_weather != null) GD.Print($"[WEATHER] {map.Info?.Environment?.GlobalWeather} 已加载");
+
+        _skybox = SkyboxRenderer.TryCreate(this, map.Info);
 
         _fog = new FogOfWar { Name = "Fog" };
         AddChild(_fog);
@@ -167,6 +170,10 @@ public sealed partial class War3GameScene : Node3D
     private WeatherRenderer _weather;
     private EscMenu _escMenu;
     private LoadingScreen _loadingScreen;
+    private SkyboxRenderer _skybox;
+    private Node3D _worldRoot;
+    private readonly RallyFlagView _rallyFlags = new();
+    private float _rallyTimer;
 
     public override void _Ready()
     {
@@ -217,6 +224,13 @@ public sealed partial class War3GameScene : Node3D
         TickSceneEffects((float)delta);
         _weather?.Tick(_camera.Target);
         _loadingScreen?.Tick((float)delta);
+
+        _rallyTimer -= (float)delta;
+        if (_rallyTimer <= 0f && _worldRoot != null)
+        {
+            _rallyTimer = 0.3f;
+            _rallyFlags.Tick(_worldRoot, _allUnits, unit => AreAllied(unit.Player, ViewPlayer), UnitSceneComponent.ColorOf);
+        }
 
         TickFog((float)delta);
         TickVictoryCheck((float)delta);

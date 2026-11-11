@@ -185,6 +185,15 @@ public sealed partial class MinimapFrame : Control
                     ? palette[corner.GroundTexture]
                     : new Color(0.25f, 0.3f, 0.25f);
 
+                if (corner.Blight)
+                {
+                    color = new Color(
+                        Mathf.Lerp(color.R, 0.32f, 0.55f),
+                        Mathf.Lerp(color.G, 0.24f, 0.55f),
+                        Mathf.Lerp(color.B, 0.36f, 0.55f),
+                        color.A);
+                }
+
                 float height = Mathf.Clamp(corner.HeightWorld / 320f, -1f, 3f);
                 float shade = Mathf.Clamp(1f + height * 0.28f, 0.45f, 1.5f);
                 color = new Color(
