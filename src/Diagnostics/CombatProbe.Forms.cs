@@ -15,6 +15,10 @@ public static partial class CombatProbe
         CheckAncestralSpirit();
         CheckMeatCargo();
         CheckBurrowGarrison();
+        CheckTransportCargo();
+        CheckBlightRadii();
+        CheckParasite();
+        CheckRainOfChaos();
     }
 
     private static World MakeSummonWorld()
@@ -202,5 +206,91 @@ public static partial class CombatProbe
         Verify("两个苦工回到场上", 4f, world.Units.Count, 0f);
         Verify("苦工脱离驻军状态", 0f, peonA.IsCargoed || peonB.IsCargoed ? 1f : 0f, 0f);
         Verify("人走空后停火", 0f, World.CanStrike(burrow, enemy) ? 1f : 0f, 0f);
+    }
+
+    /// <summary>运输船：点友军装人、卸货时摆回船周，且载具本身不受驻军限制开火。</summary>
+    private static void CheckTransportCargo()
+    {
+        var world = new World(null, null);
+        Unit ship = ProbeUnit(world, "nzep", 0, Vector3.Zero, "Aloa", "Adro", "Sch3");
+        Unit grunt = ProbeUnit(world, "ogru", 0, new Vector3(60f, 0f, 0f));
+        if (ship == null || grunt == null) return;
+
+        AbilityType hold = AbilityCatalog.Get("Sch3");
+        if (hold != null) Verify("飞艇容量 =DataA", (int)hold.DataAt(1, 'A'), ship.CargoCapacity, 0f);
+        Verify("载具不限制开火", 0f, ship.GarrisonOnly ? 1f : 0f, 0f);
+
+        bool loaded = world.TryCast(ship, ship.FindAbility("Aloa"), grunt, grunt.Position);
+        Verify("装载施放成功", 1f, loaded ? 1f : 0f, 0f);
+        Verify("兽人步兵已上船", 1f, ship.Cargo.Count, 0f);
+        Verify("乘客不再在场上", 1f, world.Units.Count, 0f);
+
+        Ability drop = ship.FindAbility("Adro");
+        if (drop != null) drop.CooldownRemaining = 0f;
+        bool unloaded = world.TryCast(ship, drop, null, ship.Position);
+        Verify("卸载施放成功", 1f, unloaded ? 1f : 0f, 0f);
+        Verify("步兵回到场上", 2f, world.Units.Count, 0f);
+    }
+
+    /// <summary>腐地：亡灵建筑按物编 Area 铺（Abgl 大），暗夜建筑按 Abds 压掉。</summary>
+    private static void CheckBlightRadii()
+    {
+        AbilityType grow = AbilityCatalog.Get("Abgl");
+        AbilityType dispel = AbilityCatalog.Get("Abds");
+        if (grow == null || dispel == null) return;
+
+        var world = new World(null, null);
+        Unit hall = ProbeUnit(world, "unpl", 0, Vector3.Zero, "Abgl");
+        if (hall == null) return;
+
+        Verify("腐地半径 =Abgl Area", grow.AreaAt(1), hall.BlightRadius, 0.5f);
+        Verify("半径内是腐地", 1f, world.IsBlighted(new Vector3(grow.AreaAt(1) * 0.5f, 0f, 0f)) ? 1f : 0f, 0f);
+        Verify("半径外不是腐地", 0f, world.IsBlighted(new Vector3(grow.AreaAt(1) * 1.2f, 0f, 0f)) ? 1f : 0f, 0f);
+
+        Unit ancient = ProbeUnit(world, "etol", 0, new Vector3(grow.AreaAt(1) * 0.4f, 0f, 0f), "Abds");
+        if (ancient == null) return;
+        Verify("净化半径 =Abds Area", dispel.AreaAt(1), ancient.BlightSuppressRadius, 0.5f);
+        Verify("净化圈内不算腐地", 0f, world.IsBlighted(ancient.Position) ? 1f : 0f, 0f);
+    }
+
+    /// <summary>寄生虫：鞭子目标挂 DoT，目标死亡时爆出小虫。</summary>
+    private static void CheckParasite()
+    {
+        World world = MakeSummonWorld();
+        Unit caster = ProbeUnit(world, "nnsu", 0, Vector3.Zero, "ANpa");
+        Unit victim = ProbeUnit(world, "hfoo", 1, new Vector3(200f, 0f, 0f));
+        if (caster == null || victim == null) return;
+
+        caster.Mana = 500f;
+        bool cast = world.TryCast(caster, caster.FindAbility("ANpa"), victim, victim.Position);
+        Verify("寄生虫施放成功", 1f, cast ? 1f : 0f, 0f);
+        Verify("目标带寄生虫 Buff", 1f, victim.FindBuff<ParasiteBuff>() != null ? 1f : 0f, 0f);
+
+        float before = victim.Hp;
+        for (int index = 0; index < 40; index++) world.TickAbilities();
+        Verify("寄生虫每秒掉血", 1f, victim.Hp < before ? 1f : 0f, 0f);
+
+        world.KillUnit(victim, caster);
+        int parasites = 0;
+        foreach (Unit unit in world.Units)
+        {
+            if (unit.Type != null && string.Equals(unit.Type.Id, "ncfs", System.StringComparison.OrdinalIgnoreCase)) parasites++;
+        }
+        Verify("死亡后爆出寄生虫", 1f, parasites, 0f);
+    }
+
+    /// <summary>混乱之雨：一次砸下 DataB 只地狱火。</summary>
+    private static void CheckRainOfChaos()
+    {
+        World world = MakeSummonWorld();
+        AbilityType type = AbilityCatalog.Get("Anrc");
+        if (type == null) return;
+
+        Unit archimonde = ProbeUnit(world, "Uwar", 0, Vector3.Zero, "Anrc");
+        if (archimonde == null) return;
+
+        bool cast = world.TryCast(archimonde, archimonde.FindAbility("Anrc"), null, archimonde.Position);
+        Verify("混乱之雨施放成功", 1f, cast ? 1f : 0f, 0f);
+        Verify("地狱火数量 =DataB", type.DataAt(1, 'B'), world.Units.Count - 1, 0f);
     }
 }

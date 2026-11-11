@@ -41,7 +41,8 @@ public sealed partial class War3GameScene
             foreach (Unit unit in _selected)
             {
                 if (!unit.IsWorker || unit.IsBuilding) continue;
-                if (unit.FindAbility("Ahrp") == null && unit.FindAbility("Arep") == null) continue;
+                if (unit.FindAbility("Ahrp") == null && unit.FindAbility("Arep") == null
+                    && unit.FindAbility("Aren") == null && unit.FindAbility("Arst") == null) continue;
 
                 unit.RepairTarget = damagedAlly;
                 unit.Repairing = false;

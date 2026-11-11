@@ -503,6 +503,75 @@ public static class SkillRegistry
         ["Abun"] = () => new BunkerHold(),       // 地洞装/卸苦工
         ["Abtl"] = () => new Battlestations(),   // 战斗平台（驻军才开火）
         ["Astd"] = () => new StandDown(),        // 放人出来
+        ["Sbtl"] = () => new Battlestations(),   // 战斗平台（混乱兽族地洞）
+        // —— 载具货舱（客户端 RuntimeCargoHoldAbility） ——
+        ["Sch2"] = () => new TransportHold(),    // 绞肉车尸体舱
+        ["Sch3"] = () => new TransportHold(),    // 运输船 / 飞艇
+        ["Sch5"] = () => new TransportHold(),    // 战船
+        ["Advc"] = () => new TransportHold(),    // 吞噬者货舱
+        ["Aenc"] = () => new TransportHold(),    // 金矿装载
+        ["Achd"] = () => new TransportHold(),    // 尸体舱
+        ["Slo2"] = () => new TransportHold(),    // 缠绕金矿装载
+        ["Aloa"] = () => new LoadCargoOrder(),   // 装载
+        ["Slo3"] = () => new LoadCargoOrder(),   // 战船装载
+        ["Adro"] = () => new DropCargoOrder(),   // 卸载全部
+        ["Sdro"] = () => new DropCargoOrder(),   // 战船卸载
+        ["Adri"] = () => new DropCargoOrder(),   // 瞬时卸载
+        // —— 腐地（铺/压） ——
+        ["Abgl"] = () => new BlightGrowth(),     // 腐地扩散（大）
+        ["Abgs"] = () => new BlightGrowth(),     // 腐地扩散（小）
+        ["Abdl"] = () => new BlightDispel(),     // 腐地净化（大）
+        ["Abds"] = () => new BlightDispel(),     // 腐地净化（小）
+        ["Abgm"] = () => new BlightedMine(),     // 被腐化的金矿
+        // —— 修理变体与纳迦驱散 ——
+        ["Aren"] = () => new RepairBuilding(),   // 更新（机械单位修理）
+        ["Arst"] = () => new RepairBuilding(),   // 恢复（机械单位修理）
+        ["Andm"] = () => new MassDispel(),       // 驱除魔法（纳迦）
+        // —— 野怪/召唤物/战役 ——
+        ["Awan"] = () => new Wander(),           // 漫游
+        ["Agyd"] = () => new Graveyard(),        // 坟场产尸
+        ["Anrc"] = () => new RainOfChaos(),      // 混乱之雨
+        ["ANr3"] = () => new RainOfChaos(),      // 混乱之雨（按钮版）
+        ["Andp"] = () => new DarkPortal(),       // 黑暗之门
+        ["Anpa"] = () => new Parasite(),         // 寄生虫
+        ["ACpa"] = () => new Parasite(),         // 寄生虫（艾瑞达）
+        // —— 内部管线与标记（客户端同为内部被动对象，行为由订单/UI/世界系统承担） ——
+        ["Ahar"] = () => new InternalAbility(),  // 采集（农民）
+        ["Ahrl"] = () => new InternalAbility(),  // 伐木
+        ["Awha"] = () => new InternalAbility(),  // 采集（小精灵）
+        ["Aaha"] = () => new InternalAbility(),  // 采矿（侍僧）
+        ["Anha"] = () => new InternalAbility(),  // 采集（纳迦）
+        ["Ahr3"] = () => new InternalAbility(),  // 伐木（粉碎机）
+        ["Argl"] = () => new InternalAbility(),  // 返还金/木
+        ["Arlm"] = () => new InternalAbility(),  // 返还木材
+        ["Aall"] = () => new InternalAbility(),  // 共享商店/联盟建筑
+        ["Ane2"] = () => new InternalAbility(),  // 中立建筑（任意单位）
+        ["Aneu"] = () => new InternalAbility(),  // 中立建筑
+        ["Apit"] = () => new InternalAbility(),  // 商店购买
+        ["Asid"] = () => new InternalAbility(),  // 出售物品
+        ["Asud"] = () => new InternalAbility(),  // 出售单位
+        ["Aral"] = () => new InternalAbility(),  // 集结点
+        ["Aegm"] = () => new InternalAbility(),  // 缠绕金矿
+        ["Agld"] = () => new InternalAbility(),  // 金矿
+        ["Aeth"] = () => new InternalAbility(),  // 幽灵（可见）
+        ["Aloc"] = () => new InternalAbility(),  // 蝗虫
+        ["Aspa"] = () => new InternalAbility(),  // 蜘蛛攻击
+        ["Asp1"] = () => new InternalAbility(),  // 球体（复仇之魂 1 级）
+        ["Asph"] = () => new InternalAbility(),  // 球体
+        ["Avng"] = () => new InternalAbility(),  // 复仇
+        ["Arng"] = () => new InternalAbility(),  // 复仇（野怪）
+        ["Arbr"] = () => new InternalAbility(),  // 加强型地洞
+        ["Awrp"] = () => new InternalAbility(),  // 传送门
+        ["Atol"] = () => new InternalAbility(),  // 生命之树挂接美术
+        ["Aawa"] = () => new InternalAbility(),  // 立即复活英雄
+        ["Agyb"] = () => new InternalAbility(),  // 飞行机器炸弹
+        ["Asac"] = () => new InternalAbility(),  // 牺牲（牺牲深渊）
+        ["Alam"] = () => new InternalAbility(),  // 牺牲（侍僧）
+        ["Ahnl"] = () => new InternalAbility(),  // 空吼声（召唤者）
+        ["Abdt"] = () => new InternalAbility(),  // 地穴反隐（飞行）
+        ["Atsp"] = () => new InternalAbility(),  // 龙卷风旋转
+        ["Atwa"] = () => new InternalAbility(),  // 龙卷风游走
+        ["ANcl"] = () => new InternalAbility(),  // 伊利丹引导（战役）
     };
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);

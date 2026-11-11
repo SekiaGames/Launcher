@@ -103,4 +103,10 @@ public sealed partial class Unit
     public bool IsCargoed => CargoHolder != null;
     /// <summary>地洞类驻军建筑：只有装了人才开火。</summary>
     public bool GarrisonOnly;
+
+    // —— 腐地（Abgl/Abgs 铺、Abdl/Abds 压） ——
+    /// <summary>自己铺出去的腐地半径；0 表示按种族默认半径算。</summary>
+    public float BlightRadius;
+    /// <summary>自己压制腐地的半径（建筑周围这一圈不算腐地）。</summary>
+    public float BlightSuppressRadius;
 }
