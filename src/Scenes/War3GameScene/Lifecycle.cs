@@ -206,6 +206,7 @@ public sealed partial class War3GameScene : Node3D
         HandleKeyboardPan((float)delta);
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);
+        TickSceneEffects((float)delta);
 
         TickFog((float)delta);
         TickVictoryCheck((float)delta);

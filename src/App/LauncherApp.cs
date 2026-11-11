@@ -30,6 +30,7 @@ public sealed partial class LauncherApp : Node
     private bool _heroProbe;
     private bool _combatProbe;
     private bool _stateProbe;
+    private bool _effectProbe;
     private bool _reviveProbe;
     private bool _skillProbe;
     private bool _morphProbe;
@@ -170,6 +171,10 @@ public sealed partial class LauncherApp : Node
             {
                 _combatProbe = true;
             }
+            else if (argument == "--effect-probe")
+            {
+                _effectProbe = true;
+            }
             else if (argument == "--state-probe")
             {
                 _stateProbe = true;
@@ -254,6 +259,13 @@ public sealed partial class LauncherApp : Node
         {
             int code = CombatProbe.RunStates();
             GetTree().Quit(code);
+            return;
+        }
+
+        if (_effectProbe)
+        {
+            RunEffectProbe();
+            GetTree().Quit(0);
             return;
         }
 
@@ -342,6 +354,24 @@ public sealed partial class LauncherApp : Node
         _current = game;
         _elapsed = 0f;
         _shotTaken = false;
+    }
+
+    private static void RunEffectProbe()
+    {
+        int hit = 0;
+        int missing = 0;
+        foreach (string code in EffectArtTable.Codes)
+        {
+            if (EffectArtTable.TryResolve(code, out string path, out string mount))
+            {
+                hit++;
+                GD.Print($"[FX] {code,-6} → {path.Replace("res://extract/", "")}（挂点 {mount}）");
+                continue;
+            }
+            missing++;
+            GD.Print($"[FX] {code,-6} 缺资源");
+        }
+        GD.Print($"[FX] 表内 {EffectArtTable.Count} 条，命中 {hit}，缺 {missing}");
     }
 
     private static void DumpUnits(string gmapPath)

@@ -517,6 +517,7 @@ public sealed partial class War3GameScene
     {
         if (caster == null || ability == null) return;
         PlayVoice(caster, "What", null);
+        PlayAbilityEffects(caster, ability, target);
 
         if (_castLogBudget <= 0) return;
         _castLogBudget--;
