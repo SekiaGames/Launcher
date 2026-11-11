@@ -27,9 +27,16 @@ public sealed partial class LauncherApp : Node
     private bool _housekeeping;
     private bool _dumpUnits;
     private bool _creepProbe;
+    private bool _heroProbe;
+    private bool _combatProbe;
+    private bool _stateProbe;
+    private bool _reviveProbe;
     private bool _aggro;
     private bool _noAi;
     private int _viewPlayer = -1;
+    private bool _fogOff;
+    private bool _musicOff;
+    private float _daySeconds = -1f;
     private int _players;
     private readonly List<int> _slots = new();
     private readonly List<List<int>> _teams = new();
@@ -132,13 +139,41 @@ public sealed partial class LauncherApp : Node
             {
                 _viewPlayer = Mathf.Clamp(view, 0, 11);
             }
+            else if (argument.StartsWith("--day-seconds=") && float.TryParse(argument["--day-seconds=".Length..], out float daySeconds))
+            {
+                _daySeconds = Mathf.Clamp(daySeconds, 60f, 100000f);
+            }
+            else if (argument == "--no-music")
+            {
+                _musicOff = true;
+            }
+            else if (argument == "--fog-off")
+            {
+                _fogOff = true;
+            }
             else if (argument == "--no-ai")
             {
                 _noAi = true;
             }
+            else if (argument == "--hero-probe")
+            {
+                _heroProbe = true;
+            }
             else if (argument == "--creep-probe")
             {
                 _creepProbe = true;
+            }
+            else if (argument == "--combat-probe")
+            {
+                _combatProbe = true;
+            }
+            else if (argument == "--state-probe")
+            {
+                _stateProbe = true;
+            }
+            else if (argument == "--revive-probe")
+            {
+                _reviveProbe = true;
             }
             else if (argument == "--dump-units")
             {
@@ -190,9 +225,23 @@ public sealed partial class LauncherApp : Node
             return;
         }
 
+        if (_combatProbe)
+        {
+            int code = CombatProbe.Run();
+            GetTree().Quit(code);
+            return;
+        }
+
+        if (_stateProbe)
+        {
+            int code = CombatProbe.RunStates();
+            GetTree().Quit(code);
+            return;
+        }
+
         if (_simTest)
         {
-            int code = BattleSimTest.Run(playPath);
+            int code = WorldTest.Run(playPath);
             GetTree().Quit(code);
             return;
         }
@@ -211,7 +260,7 @@ public sealed partial class LauncherApp : Node
     {
         Clear();
 
-        var screen = new MapListScreen { Name = "MapList" };
+        var screen = new MapBrowser { Name = "MapList" };
         screen.OnPick += name => StartGame(Assets.WorkspaceDir + "/" + name);
         AddChild(screen);
         _current = screen;
@@ -235,7 +284,7 @@ public sealed partial class LauncherApp : Node
 
         Clear();
 
-        var game = new GameScreen { Name = "Game" };
+        var game = new War3GameScene { Name = "Game" };
         game.TimeScaleHint = _fast ? Mathf.Min(0.15f, _timeScale) : _timeScale;
         game.StartGold = _startGold;
         game.StartLumber = _startLumber;
@@ -243,6 +292,9 @@ public sealed partial class LauncherApp : Node
         game.AiEnabled = !_noAi;
         game.ActivePlayers = _players;
         if (_viewPlayer >= 0) game.ViewPlayer = _viewPlayer;
+        game.FogEnabled = !_fogOff;
+        game.MusicEnabled = !_musicOff;
+        if (_daySeconds > 0f) game.DaySeconds = _daySeconds;
         foreach (int slot in _slots) game.ActiveSlots.Add(slot);
         foreach (List<int> team in _teams) game.Teams.Add(team);
         game.Setup(map, ShowMapList);
@@ -258,6 +310,8 @@ public sealed partial class LauncherApp : Node
         if (_buildTest) game.ScriptedBuildTest();
         if (_housekeeping) game.RunHousekeeping();
         if (_creepProbe) game.RunCreepProbe();
+        if (_heroProbe) game.RunHeroProbe();
+        if (_reviveProbe) game.RunReviveProbe();
         if (_pathProbe)
         {
             game.PathProbe();
@@ -288,6 +342,13 @@ public sealed partial class LauncherApp : Node
 
         System.IO.File.WriteAllBytes("/tmp/war3map.w3e", Assets.ReadBytes("res://gmap/map/war3map.w3e") ?? Array.Empty<byte>());
         System.IO.File.WriteAllBytes("/tmp/war3map.wts", Assets.ReadBytes("res://gmap/map/war3map.wts") ?? Array.Empty<byte>());
+        foreach (string name in new[] { "FootmanWhat", "PeasantYes", "TownHallWhat", "GruntYes" })
+        {
+            AudioStream stream = War3SoundTables.Pick(name, out float volume);
+            string detail = stream is AudioStreamWav wav ? $"{wav.Data.Length} 字节 {wav.MixRate}Hz" : "缺失";
+            GD.Print($"[DUMP] 音效 {name} 音量{volume:0.00} -> {detail}");
+        }
+
         foreach (string candidate in new[] { "war3mapMap.tga", "war3mapMap.blp", "war3mapMap.b00" })
         {
             byte[] data = Assets.ReadBytes("res://gmap/map/" + candidate);
