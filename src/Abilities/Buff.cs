@@ -17,11 +17,38 @@ public class Buff
 
     public virtual void OnRemove(World world) { }
 
+    /// <summary>持有者被普攻命中后（霜冻护甲减速攻击者、荆棘反伤这类挂这里）。</summary>
+    public virtual void OnAttacked(World world, Unit attacker, DamageInfo info) { }
+
     /// <summary>返回 true 表示可以继续存在。</summary>
     public virtual bool OnTick(World world, float delta)
     {
         Remaining -= delta;
         return Remaining > 0f;
+    }
+}
+
+/// <summary>霜冻护甲：+护甲，被普攻命中时让攻击者减速。</summary>
+public sealed class FrostArmorBuff : Buff
+{
+    public float ArmorBonus;
+    public float SlowMovePct = 0.3f;
+    public float SlowSeconds = 5f;
+
+    public override void OnApply(World world)
+    {
+        if (Owner != null) Owner.BonusArmor += ArmorBonus;
+    }
+
+    public override void OnRemove(World world)
+    {
+        if (Owner != null) Owner.BonusArmor -= ArmorBonus;
+    }
+
+    public override void OnAttacked(World world, Unit attacker, DamageInfo info)
+    {
+        if (attacker == null || !attacker.Alive || attacker.IsBuilding) return;
+        attacker.ApplySlow(SlowMovePct, 0f, SlowSeconds);
     }
 }
 

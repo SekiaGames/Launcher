@@ -64,15 +64,19 @@ public sealed partial class Unit
         return true;
     }
 
-    // —— 商店库存。对标 ItemData 的 stockMax/stockRegen/stockStart：
-    //    每件商品按上限铺货，卖光后按 stockRegen 秒补一件。库存挂在商店单位上。 ——
+    // —— 商店库存。对标 ItemData 的 stockMax / stockRegen / stockStart：
+    //    开局按 stockMax 铺满；每件商品各自按自己的 stockRegen 补货（不是整店一个节奏）；
+    //    stockStart 是「开店后多久才开始补货」的初始延迟。 ——
 
     public readonly Dictionary<string, int> ShopStock = new(StringComparer.OrdinalIgnoreCase);
-    public float ShopRestockTimer;
+    /// <summary>每件商品各自累积的补货秒数。</summary>
+    public readonly Dictionary<string, float> ShopRestockTimers = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>开店至今的秒数，用来判 stockStart。</summary>
+    public float ShopAge;
 
     public bool IsShop => Type != null && Type.IsShop;
 
-    /// <summary>补一件货要多少秒：取店里所有商品里最短的那个 stockRegen。</summary>
+    /// <summary>店里最短的补货周期（只用于显示与探针；实际按每件商品自己的节奏走）。</summary>
     public float RestockInterval
     {
         get
@@ -92,7 +96,8 @@ public sealed partial class Unit
     public void InitShopStock()
     {
         ShopStock.Clear();
-        ShopRestockTimer = 0f;
+        ShopRestockTimers.Clear();
+        ShopAge = 0f;
         if (!IsShop) return;
 
         foreach (string id in Type.SellItems)
@@ -100,6 +105,7 @@ public sealed partial class Unit
             ItemType type = ItemCatalog.Get(id);
             if (type == null) continue;
             ShopStock[id] = Mathf.Max(0, type.StockMax);
+            ShopRestockTimers[id] = 0f;
         }
     }
 
@@ -124,7 +130,7 @@ public sealed partial class Unit
         return true;
     }
 
-    /// <summary>卖回/补货：不超过上限就 +1。</summary>
+    /// <summary>卖回：不超过上限就 +1。</summary>
     public void AddStock(string id)
     {
         int max = StockMaxOf(id);
@@ -132,17 +138,38 @@ public sealed partial class Unit
         ShopStock[id] = Mathf.Min(max, StockOf(id) + 1);
     }
 
-    /// <summary>每格补货周期到了：所有低于上限的商品各补一件。</summary>
-    public void RestockOne()
+    /// <summary>
+    /// 推进补货：每件商品单独计时，到自己的 stockRegen 且已过 stockStart 就补一件。
+    /// 返回这次补上的商品种类数（0 表示什么都没补）。
+    /// </summary>
+    public int TickShop(float delta)
     {
-        if (!IsShop) return;
+        if (!IsShop) return 0;
+
+        ShopAge += delta;
+        int restocked = 0;
+
         foreach (string id in Type.SellItems)
         {
-            int max = StockMaxOf(id);
-            if (max <= 0) continue;
-            if (StockOf(id) >= max) continue;
+            ItemType type = ItemCatalog.Get(id);
+            if (type == null || type.StockMax <= 0) continue;
+            if (StockOf(id) >= type.StockMax) continue;
+            if (ShopAge < type.StockStart) continue;
+
+            float interval = Mathf.Max(5f, type.StockRegen);
+            float elapsed = (ShopRestockTimers.TryGetValue(id, out float value) ? value : 0f) + delta;
+            if (elapsed < interval)
+            {
+                ShopRestockTimers[id] = elapsed;
+                continue;
+            }
+
+            ShopRestockTimers[id] = elapsed - interval;
             ShopStock[id] = StockOf(id) + 1;
+            restocked++;
         }
+
+        return restocked;
     }
 
     public Item RemoveSlot(int slot)

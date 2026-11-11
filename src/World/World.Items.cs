@@ -99,16 +99,16 @@ public sealed partial class World
         foreach (Unit shop in Units)
         {
             if (!shop.Alive || !shop.IsShop) continue;
-
-            float interval = shop.RestockInterval;
-            if (interval <= 0f) continue;
-
-            shop.ShopRestockTimer += Tick;
-            if (shop.ShopRestockTimer < interval) continue;
-            shop.ShopRestockTimer = 0f;
-            shop.RestockOne();
+            int restocked = shop.TickShop(Tick);
+            if (restocked > 0 && _shopStockLogBudget > 0)
+            {
+                _shopStockLogBudget--;
+                GD.Print($"[SHOP] {shop.Type.Name} 补货 {restocked} 件（开店 {shop.ShopAge:0}s）");
+            }
         }
     }
+
+    private int _shopStockLogBudget = 6;
 
     /// <summary>
     /// 把物品卖给商店：按原版对战口径给**半价**（`goldcost / 2`，至少 1 金），

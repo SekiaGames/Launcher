@@ -123,6 +123,15 @@ public sealed partial class World
 
         Unit target = info.Target;
 
+        // 受击钩子：闪避这类被动在这里把伤害取消掉（护甲/免疫都还没算，所以是最省的一层）
+        if (!PassesDefensiveHooks(info))
+        {
+            info.Amount = 0f;
+            info.Cancelled = true;
+            DamageApplied?.Invoke(info);
+            return;
+        }
+
         if (target.State.Invulnerable)
         {
             info.Amount = 0f;
@@ -147,6 +156,15 @@ public sealed partial class World
         target.Hp -= info.Amount;
         target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), target.Alive);
         DamageApplied?.Invoke(info);
+
+        // 被攻击回调：霜冻护甲减速攻击者、荆棘反伤将来也挂这里
+        if (info.IsAttack && info.Amount > 0f && info.Source != null && target.Buffs.Count > 0)
+        {
+            for (int index = 0; index < target.Buffs.Count; index++)
+            {
+                target.Buffs[index].OnAttacked(this, info.Source, info);
+            }
+        }
 
         if (target.Hp <= 0f) Kill(target, info.Source);
     }
@@ -188,6 +206,7 @@ public sealed partial class World
         if (!unit.Alive) return;
 
         unit.CancelAttack();
+        InterruptChannel(unit);
         unit.EnterDeath();
         DropLootOnDeath(unit);
         GrantKillExperience(killer, unit);

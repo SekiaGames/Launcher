@@ -495,6 +495,8 @@ public static partial class CombatProbe
                 + $"法力剩 {necro.Mana:0}，召唤物存在 {world16.Units[^1].SummonRemaining:0}s");
         }
 
+        CheckChannelsAndPointSkills();
+
         CheckShopAndTrade();
 
         CheckItemBonus();
@@ -522,9 +524,14 @@ public static partial class CombatProbe
         Verify("买空后为 0", 0f, shop.StockOf("phea"), 0f);
         Verify("没货买不了", 0f, shop.TakeStock("phea") ? 1f : 0f, 0f);
 
-        int steps = (int)(shop.RestockInterval / World.Tick) + 2;
+        // 补货要等 stockStart（开店初始延迟）过了才开始按 stockRegen 计时
+        ItemType potionType = ItemCatalog.Get("phea");
+        float need = (potionType != null ? potionType.StockStart + potionType.StockRegen : shop.RestockInterval) + 5f;
+        int steps = (int)(need / World.Tick) + 4;
         for (int index = 0; index < steps; index++) world.TickShops();
-        Verify("过一个补货周期补回 1", 1f, shop.StockOf("phea"), 0f);
+        Verify("过了 stockStart + 补货周期后补回 1", 1f, shop.StockOf("phea"), 0f);
+        Verify("补货时刻已越过 stockStart", 1f,
+            shop.ShopAge >= (potionType?.StockStart ?? 0f) ? 1f : 0f, 0f);
 
         // 卖：王冠 1000 金，半价 500；加成要撤回
         ItemType crown = ItemCatalog.Get("ckng");

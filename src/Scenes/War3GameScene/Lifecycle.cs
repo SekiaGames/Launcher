@@ -104,6 +104,9 @@ public sealed partial class War3GameScene : Node3D
         _world.AbilityCast += OnAbilityCast;
         _world.SummonHandler = SummonUnitFor;
         _world.AbilityMissileFired += OnAbilityMissileFired;
+        _world.ChannelStarted += OnChannelStarted;
+        _world.ChannelWave += OnChannelWave;
+        _world.ChannelEnded += OnChannelEnded;
         _world.HeroRevived += OnHeroRevived;
         _world.TrySpendGold = (player, amount) =>
         {

@@ -124,9 +124,74 @@ public sealed partial class War3GameScene
         }
     }
 
-    private void TickProjectiles(float delta)
+    /// <summary>引导中的范围盘：一个半透明圆盘放在落点上，半径取技能 Area。</summary>
+    private sealed class ChannelEffect
     {
-        for (int index = _projectiles.Count - 1; index >= 0; index--)
+        public MeshInstance3D Node;
+        public Ability Ability;
+        public Vector3 Point;
+    }
+
+    private readonly Dictionary<Unit, ChannelEffect> _channelEffects = new();
+    private static int _channelLogBudget = 12;
+
+    private void OnChannelStarted(Unit caster, Ability ability, Vector3 point)
+    {
+        if (caster == null || ability == null) return;
+
+        float radius = Mathf.Max(40f, ability.Area);
+        float groundY = MapWorldBuilder.HeightAt(_map.Terrain, point.X, point.Z) + 4f;
+        var node = new MeshInstance3D
+        {
+            Name = $"Channel_{ability.Id}",
+            Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 1.5f, RadialSegments = 40 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                AlbedoColor = new Color(0.55f, 0.75f, 1f, 0.28f),
+            },
+            Position = new Vector3(point.X, groundY, point.Z),
+        };
+        AddChild(node);
+        _channelEffects[caster] = new ChannelEffect { Node = node, Ability = ability, Point = point };
+
+        if (_channelLogBudget <= 0) return;
+        _channelLogBudget--;
+        GD.Print($"[CHANNEL] {caster.Type?.Name} 开始引导 {ability.Name} Lv{ability.Level}"
+            + $" 落点({point.X:0},{point.Z:0}) 半径{radius:0} 时长{ability.ChannelTotal:0}s"
+            + $" 每{ability.ChannelWaveInterval:0.0}s一波");
+    }
+
+    private void OnChannelWave(Unit caster, Ability ability)
+    {
+        // 波次表现：圆盘闪一下（原版是每波下落一套冰锥/腐化地面动画）
+        if (!_channelEffects.TryGetValue(caster, out ChannelEffect effect)) return;
+        if (effect.Node?.MaterialOverride is not StandardMaterial3D material) return;
+
+        material.AlbedoColor = new Color(0.85f, 0.95f, 1f, 0.45f);
+        SceneTreeTimer flash = GetTree().CreateTimer(0.15);
+        flash.Timeout += () =>
+        {
+            if (IsInstanceValid(material)) material.AlbedoColor = new Color(0.55f, 0.75f, 1f, 0.28f);
+        };
+    }
+
+    private void OnChannelEnded(Unit caster, Ability ability, bool interrupted)
+    {
+        if (caster == null || !_channelEffects.TryGetValue(caster, out ChannelEffect effect)) return;
+
+        if (effect.Node != null && IsInstanceValid(effect.Node)) effect.Node.QueueFree();
+        _channelEffects.Remove(caster);
+
+        if (interrupted && _channelLogBudget >= 0)
+        {
+            GD.Print($"[CHANNEL] {caster.Type?.Name} 的 {ability?.Name} 被打断");
+        }
+    }
+
+    private void TickProjectiles(float delta)
+    {        for (int index = _projectiles.Count - 1; index >= 0; index--)
         {
             Projectile projectile = _projectiles[index];
             if (projectile.Node == null || !IsInstanceValid(projectile.Node))

@@ -606,11 +606,12 @@ public sealed partial class War3GameScene
         {
             _world.Units.Add(mage);
             mage.Level = 6;
-            mage.SkillPoints = 1;
+            mage.SkillPoints = 3;
             _world.RefreshHeroAttributes(mage);
             mage.Hp = mage.MaxHp;
             mage.Mana = mage.MaxMana;
             _world.LearnAbility(mage, "AHwe");
+            _world.LearnAbility(mage, "AHbz");
 
             Ability summon = mage.FindAbility("AHwe");
             if (summon != null)
@@ -620,6 +621,65 @@ public sealed partial class War3GameScene
                 Unit elemental = _world.Units.Count > before ? _world.Units[^1] : null;
                 GD.Print($"[SKILL] 水元素召唤 {(cast ? "成功" : "失败")} 单位数 {before}→{_world.Units.Count}"
                     + (elemental != null ? $" 存在 {elemental.SummonRemaining:0}s" : ""));
+            }
+            // 暴风雪：点目标 + 引导，落点就放野怪脚下
+            Ability blizzard = mage.FindAbility("AHbz");
+            if (blizzard != null)
+            {
+                mage.Mana = mage.MaxMana;
+                Vector3 spot = new(creep.Position.X, creep.Position.Y, creep.Position.Z);
+                float hpBefore = creep.Hp;
+                bool started = _world.TryCast(mage, blizzard, null, spot);
+                GD.Print($"[SKILL] 暴风雪 {(started ? "开始引导" : "施放失败")} 落点({spot.X:0},{spot.Z:0})"
+                    + $" 波数{(blizzard as Blizzard)?.Waves} 半径{(blizzard as Blizzard)?.Radius:0}"
+                    + $" 引导{blizzard.Duration:0}s 野怪血量 {hpBefore:0}");
+
+                SceneTreeTimer waveTimer = GetTree().CreateTimer(3.4);
+                waveTimer.Timeout += () =>
+                {
+                    GD.Print($"[SKILL] 暴风雪结束 野怪 {hpBefore:0}→{creep.Hp:0}"
+                        + $" 引导中={mage.IsChanneling} 剩余引导任务={_world.ChannelCount}");
+                };
+            }
+
+        }
+
+        // 守望者：点地面闪烁（点目标 + 瞬移 + 0.8×上限钳制）
+        Unit warden = Spawn("Ewar", ViewPlayer, hero.Position.X - 260f, hero.Position.Z - 120f, 0f, 0f, 1f);
+        if (warden != null)
+        {
+            _world.Units.Add(warden);
+            warden.Level = 6;
+            warden.SkillPoints = 2;
+            _world.RefreshHeroAttributes(warden);
+            warden.Hp = warden.MaxHp;
+            warden.Mana = warden.MaxMana;
+            _world.LearnAbility(warden, "AEbl");
+
+            Ability blink = warden.FindAbility("AEbl");
+            var blinkAbility = blink as Blink;
+            if (blinkAbility != null)
+            {
+                // 落点必须能站人，绕一圈找一个合法方向再闪（不能站就原地不动）
+                Vector3 from = warden.Position;
+                Vector3 spot = from;
+                bool found = false;
+                for (int step = 0; step < 8 && !found; step++)
+                {
+                    float angle = Mathf.Tau * step / 8f;
+                    var candidate = new Vector3(
+                        from.X + Mathf.Cos(angle) * 420f,
+                        from.Y,
+                        from.Z + Mathf.Sin(angle) * 420f);
+                    if (!blinkAbility.CheckTarget(_world, null, candidate)) continue;
+                    spot = candidate;
+                    found = true;
+                }
+
+                bool cast = found && _world.TryCast(warden, blink, null, spot);
+                GD.Print($"[SKILL] 闪烁 {(cast ? "成功" : "无合法落点")}"
+                    + $" 实移 ({warden.Position.X - from.X:0},{warden.Position.Z - from.Z:0})"
+                    + $"（上限 {blinkAbility.MaximumRange:0} 最近 {blinkAbility.MinimumRange:0}，绕 8 个方向找落点）");
             }
         }
 

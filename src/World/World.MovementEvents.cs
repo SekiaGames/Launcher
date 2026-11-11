@@ -94,6 +94,18 @@ public sealed partial class World
         }
     }
 
+    /// <summary>瞬移/落点定位：改模拟坐标的同时把节点也挪过去（对标客户端 World.SetUnitPosition）。</summary>
+    public void MoveUnitTo(Unit unit, Vector3 position)
+    {
+        if (unit == null) return;
+
+        unit.Position = position;
+        unit.Path = null;
+        unit.PathIndex = 0;
+        unit.RepathTimer = 0f;
+        if (unit.View != null) unit.View.Root.Position = position;
+    }
+
     /// <summary>按 UnitData.turnRate 折算的角速度转向目标朝向（建筑不动）。</summary>
     private static void ApplyFacing(Unit unit)
     {

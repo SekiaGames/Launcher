@@ -107,6 +107,9 @@ public sealed partial class World
         if (!ability.CheckTarget(this, target, point)) return false;
         if (!ability.OnCast(this, target, point)) return false;
 
+        // 施放别的技能会打断正在进行的引导（引导型技能自己刚开的不能打断）
+        if (!ability.IsChanneled) InterruptChannel(caster);
+
         caster.Mana = Mathf.Max(0f, caster.Mana - cost);
         ability.CooldownRemaining = ability.Cooldown;
         AbilityCast?.Invoke(caster, ability, target);
@@ -266,10 +269,23 @@ public sealed partial class World
         }
     }
 
+    /// <summary>受击钩子：只要有一个已学被动要取消这次伤害（闪避），就整体取消。</summary>
+    public bool PassesDefensiveHooks(DamageInfo info)
+    {
+        Unit target = info?.Target;
+        if (target?.Abilities == null || target.Abilities.Count == 0) return true;
+
+        foreach (Ability ability in target.Abilities)
+        {
+            if (!ability.Learned) continue;
+            if (!ability.CanBeHitBy(this, info)) return false;
+        }
+        return true;
+    }
+
     /// <summary>普攻伤害钩子：致命一击、重击这类被动在这里改伤害或挂状态。</summary>
     public float ApplyAttackModifiers(Unit attacker, Unit target, float raw)
-    {
-        if (attacker == null || attacker.Abilities.Count == 0) return raw;
+    {        if (attacker == null || attacker.Abilities.Count == 0) return raw;
 
         float result = raw;
         foreach (Ability ability in attacker.Abilities)

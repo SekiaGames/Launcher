@@ -24,6 +24,14 @@ public static class SkillRegistry
         ["AHav"] = () => new Avatar(),        // 天神下凡
         // —— 剑圣 ——
         ["AOcr"] = () => new CriticalStrike(),// 致命一击
+        ["AOcl"] = () => new ChainLightning(),// 闪电链（先知/暗影猎手/纳迦）
+        // —— 大魔法师 / 巫妖 / 守望者 / 黑暗游侠 ——
+        ["AHbz"] = () => new Blizzard(),      // 暴风雪（引导 + 点目标）
+        ["AUdd"] = () => new DeathAndDecay(), // 死亡腐烂（引导 + 百分比）
+        ["AEbl"] = () => new Blink(),         // 闪烁（守望者，点目标瞬移）
+        ["ANsi"] = () => new Silence(),       // 沉默（点目标 AoE）
+        ["AEev"] = () => new Evasion(),       // 闪避（被动）
+        ["AUfa"] = () => new FrostArmor(),    // 霜冻护甲
         // —— 召唤与复活 ——
         ["AHwe"] = () => new SummonUnit(),     // 水元素
         ["AEst"] = () => new SummonUnit(),     // 召唤树人

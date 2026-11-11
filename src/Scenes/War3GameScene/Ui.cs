@@ -75,8 +75,7 @@ public sealed partial class War3GameScene
     private string DescribeUnit(Unit unit)
     {
         if (unit.IsUnderConstruction) return $"剩余 {Mathf.Max(0f, unit.BuildRemaining):0.0}s";
-
-
+        if (unit.IsChanneling) return $"引导 {unit.ChannelAbility?.Name}    剩余 {unit.ChannelRemaining:0.0}s";
 
         if (unit.IsHero)
         {

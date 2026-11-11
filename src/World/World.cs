@@ -65,6 +65,7 @@ public sealed partial class World
 
         TickWeapons();
         TickAbilityMissiles();
+        TickChannels();
         TickAbilities();
         TickRegeneration();
         TickItemPickup();
@@ -80,6 +81,13 @@ public sealed partial class World
         if (unit.State.Stunned)
         {
             unit.View?.Play("Stand");
+            return;
+        }
+
+        // 引导中站着不动，也不能顺势普攻（客户端 Unit.Step:70 同口径）
+        if (unit.IsChanneling)
+        {
+            unit.View?.Play("Spell");
             return;
         }
 

@@ -106,6 +106,13 @@ public static class AbilityCatalog
         ["AHav"] = @"ReplaceableTextures\CommandButtons\BTNAvatar",
         ["AInv"] = @"ReplaceableTextures\CommandButtons\BTNSelectHeroOn",
         ["AHre"] = @"ReplaceableTextures\CommandButtons\BTNResurrection",
+        ["AHbz"] = @"ReplaceableTextures\CommandButtons\BTNBlizzard",
+        ["AUdd"] = @"ReplaceableTextures\CommandButtons\BTNDeathAndDecay",
+        ["AOcl"] = @"ReplaceableTextures\CommandButtons\BTNChainLightning",
+        ["AHbl"] = @"ReplaceableTextures\CommandButtons\BTNBlink",
+        ["ANsi"] = @"ReplaceableTextures\CommandButtons\BTNSilence",
+        ["AEev"] = @"ReplaceableTextures\CommandButtons\BTNEvasion",
+        ["AUfa"] = @"ReplaceableTextures\CommandButtons\BTNFrostArmor",
     };
 
     private static readonly Dictionary<string, AbilityType> Cache = new(StringComparer.OrdinalIgnoreCase);

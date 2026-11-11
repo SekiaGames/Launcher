@@ -10,6 +10,7 @@ public sealed partial class World
     public void SetBuild(Unit worker, Unit site)
     {
         if (worker == null || site == null) return;
+        InterruptChannel(worker);
         worker.BuildSite = site;
         worker.BuildingNow = false;
         worker.Tree = null;
@@ -24,6 +25,7 @@ public sealed partial class World
     public void SetChop(Unit worker, TreeState tree)
     {
         if (worker == null || tree == null || !worker.Type.CanGatherLumber) return;
+        InterruptChannel(worker);
         worker.Tree = tree;
         worker.GoldMine = null;
         worker.Target = null;
@@ -37,6 +39,7 @@ public sealed partial class World
     public void SetGather(Unit worker, Unit mine)
     {
         if (worker == null || mine == null || !worker.Type.CanGatherGold) return;
+        InterruptChannel(worker);
         worker.GoldMine = mine;
         worker.Tree = null;
         worker.HomeHall = null;
@@ -50,6 +53,8 @@ public sealed partial class World
 
     public void ClearOrders(Unit unit)
     {
+        // 下令（移动/停止/攻击）都会打断引导，客户端同理
+        InterruptChannel(unit);
         unit.Target = null;
         unit.MoveTarget = null;
         unit.GoldMine = null;
