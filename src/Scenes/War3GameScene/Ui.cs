@@ -242,6 +242,8 @@ public sealed partial class War3GameScene
                 AddResearchCommands(commands, slot, single);
                 AddUpgradeCommands(commands, slot, single);
                 if (single.Type.IsShop) AddShopCommands(commands, slot, single);
+                // 古树的扎根/拔根、神像这类建筑主动技能也挂在命令卡上
+                AddUnitAbilityCommands(commands, single);
             }
             else if (single != null && single.IsHero)
             {

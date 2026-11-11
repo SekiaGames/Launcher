@@ -96,7 +96,7 @@ public sealed partial class World
     public DamageInfo MakeAttackDamage(Unit source, Unit target, float raw, WeaponProfile weapon = null)
     {
         bool underConstruction = target.IsUnderConstruction;
-        DefenseType defense = underConstruction ? DefenseType.Unarmored : target.Type.DefenseType;
+        DefenseType defense = underConstruction ? DefenseType.Unarmored : target.DefenseTypeOrDefault;
         float armor = underConstruction ? 0f : ArmorOf(target);
         weapon ??= source.Type.Weapon;
 
@@ -303,7 +303,7 @@ public sealed partial class World
             Raw = amount,
             Amount = amount,
             AttackType = attack,
-            DefenseType = underConstruction ? DefenseType.Unarmored : target.Type.DefenseType,
+            DefenseType = underConstruction ? DefenseType.Unarmored : target.DefenseTypeOrDefault,
             DamageType = type,
             Armor = 0f,
             UnderConstruction = underConstruction,

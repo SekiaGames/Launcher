@@ -23,6 +23,37 @@ public static partial class CombatProbe
         CheckPermanentItemCooldown();
         CheckItemCharges();
         CheckReincarnationCharm();
+        CheckMineItem();
+    }
+
+    /// <summary>地精地雷：点落点埋一颗，敌人靠近就引爆（Amnx 结算范围伤害）。</summary>
+    private static void CheckMineItem()
+    {
+        var world = new World(null, null);
+        world.SummonHandler = (caster, id, position) =>
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) return null;
+            Unit created = MakeUnit(type, caster.Player);
+            created.Position = position;
+            foreach (string abilityId in type.Abilities) created.GiveAbility(abilityId, 1);
+            return created;
+        };
+
+        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        world.Units.Add(hero);
+
+        bool placed = world.UseItem(hero, GiveItem(hero, "gobm"), null, new Vector3(300f, 0f, 0f));
+        Unit mine = world.Units.Find(unit => string.Equals(unit.Type?.Id, "nglm", StringComparison.OrdinalIgnoreCase));
+        Verify("地雷可埋", 1f, placed && mine != null ? 1f : 0f, 0f);
+        if (mine == null) return;
+
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
+        Verify("敌人踩雷前活着", 1f, mine.Alive ? 1f : 0f, 0f);
+        for (int index = 0; index < 20; index++) world.TickAbilities();
+
+        Verify("踩雷后地雷炸掉", 0f, mine.Alive ? 1f : 0f, 0f);
+        Verify("踩雷的人吃到爆炸伤害", 1f, enemy.Hp < enemy.MaxHp ? 1f : 0f, 0f);
     }
 
     /// <summary>重生十字章：装备时授重生，死亡后 7s 原地满血复活，十字章一次性吃掉。</summary>

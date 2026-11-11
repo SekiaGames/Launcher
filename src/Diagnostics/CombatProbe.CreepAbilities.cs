@@ -14,6 +14,29 @@ public static partial class CombatProbe
         CheckPermanentImmolationAbility();
         CheckTornadoDamageAbility();
         CheckGrabTreeAbility();
+        CheckRootAbility();
+    }
+
+    /// <summary>扎根/拔根（Aro1）：拔根后不再是建筑、护甲类型换 DataD，再按一次扎根回来。</summary>
+    private static void CheckRootAbility()
+    {
+        AbilityType type = AbilityCatalog.Get("Aro1");
+        if (type == null) return;
+
+        var world = new World(null, null);
+        Unit ancient = ProbeUnit(world, "etoa", 0, Vector3.Zero, "Aro1");
+        if (ancient == null) return;
+
+        Ability root = ancient.FindAbility("Aro1");
+        bool uprooted = world.TryCast(ancient, root, null, ancient.Position);
+        Verify("拔根可用", 1f, uprooted ? 1f : 0f, 0f);
+        Verify("拔根后不再是建筑", 0f, ancient.IsBuilding ? 1f : 0f, 0f);
+        Verify("拔根后护甲类型 =DataD", type.DataAt(1, 'D'), (float)ancient.DefenseTypeOrDefault, 0f);
+
+        root.CooldownRemaining = 0f;
+        bool planted = world.TryCast(ancient, root, null, ancient.Position);
+        Verify("再按一次扎根", 1f, planted && ancient.IsBuilding ? 1f : 0f, 0f);
+        Verify("扎根后护甲类型还原", 0f, ancient.DefenseTypeOverride.HasValue ? 1f : 0f, 0f);
     }
 
     /// <summary>战棍（Agra）：拔树后攻击变攻城、射程 +DataE，挥满 DataE 次恢复。</summary>

@@ -32,7 +32,8 @@ public sealed partial class War3GameScene
             bool hasBuilding = false;
             foreach (Unit unit in _allUnits)
             {
-                if (!unit.Alive || unit.Player != id || !unit.IsBuilding) continue;
+                // 用类型级 IsBuilding：古树拔根后运行时不再是建筑，但仍然算「还有建筑」
+                if (!unit.Alive || unit.Player != id || unit.Type == null || !unit.Type.IsBuilding) continue;
                 hasBuilding = true;
                 break;
             }

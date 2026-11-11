@@ -44,6 +44,11 @@ public sealed partial class Unit
     public float AttackRangeBonus;
     /// <summary>手里抓着树（战棍生效中，不能重复拔树）。</summary>
     public bool GrabbedTree;
+    /// <summary>护甲类型覆盖（古树拔根后换成物编 DataD 指定的类型）。null 表示用单位类型自带的。</summary>
+    public DefenseType? DefenseTypeOverride;
+
+    /// <summary>护甲类型：有覆盖先看覆盖。</summary>
+    public DefenseType DefenseTypeOrDefault => DefenseTypeOverride ?? (Type?.DefenseType ?? DefenseType.Unarmored);
 
     /// <summary>实际攻击射程 = 武器射程 + 加成（取目标判定与逼近距离都用它）。</summary>
     public float AttackReach => (Type?.AttackRange ?? 0f) + AttackRangeBonus;

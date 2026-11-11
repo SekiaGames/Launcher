@@ -325,6 +325,9 @@ public sealed partial class War3GameScene
             }
             if (blocked) continue;
 
+            // 古树拔根期间停产：扎根回来继续倒数
+            if (!order.Building.IsBuilding) continue;
+
             order.Remaining -= delta;
             if (order.Remaining > 0f) continue;
 

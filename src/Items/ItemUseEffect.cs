@@ -93,6 +93,7 @@ public static class ItemUseEffect
         ["ANSE"] = (world, unit, type, target, point) => ShieldAllies(world, unit, type),
         ["AIDB"] = (world, unit, type, target, point) => ArmorAndHealAllies(world, unit, type),
         ["AIMT"] = (world, unit, type, target, point) => TeleportToTarget(world, unit, target),
+        ["AIPM"] = (world, unit, type, target, point) => PlaceMine(world, unit, type, point),
 
         // —— 驱散 / 护盾 / 守卫 ——
         ["AIDI"] = (world, unit, type, target, point) => DispelAround(world, unit, type),
@@ -189,6 +190,7 @@ public static class ItemUseEffect
         ["ANPR"] = ItemTargetMode.Unit,
         ["ANSA"] = ItemTargetMode.Unit,
         ["AIMT"] = ItemTargetMode.Unit,
+        ["AIPM"] = ItemTargetMode.Point,
     };
 
     public static bool Handles(string code) => code != null && Handlers.ContainsKey(code);
@@ -411,6 +413,14 @@ public static class ItemUseEffect
             any = true;
         }
         return any;
+    }
+
+    /// <summary>地精地雷：在落点埋一颗（UnitID 读物编，默认 nglm）。</summary>
+    private static bool PlaceMine(World world, Unit unit, AbilityType type, Vector3 point)
+    {
+        string mineId = type.SummonAt(1);
+        if (mineId.Length < 4) mineId = "nglm";
+        return world.Summon(unit, mineId, point, 0f) != null;
     }
 
     /// <summary>传送法杖：把携带者送到目标友军/建筑身边。</summary>

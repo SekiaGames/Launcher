@@ -460,6 +460,10 @@ public static class SkillRegistry
         ["Apig"] = () => new PermanentImmolation(), // 永久献祭（图形版）
         ["Atdg"] = () => new TornadoDamage(),  // 龙卷风每秒伤害（Atsp/Atwa 仍为占位）
         ["Agra"] = () => new GrabTree(),       // 战棍（山岭巨人拔树：攻城攻击 + 射程）
+        ["Aro1"] = () => new Root(),           // 扎根/拔根（古树）
+        ["Aro2"] = () => new Root(),           // 扎根/拔根（远古守护者）
+        ["Amin"] = () => new Mine(),           // 地精地雷（踩到就引爆）
+        ["Amnx"] = () => new MineBlast(),      // 地雷爆炸伤害（死亡触发）
         ["ANen"] = () => new Ensnare(),        // 诱捕（纳迦）
         ["Acny"] = () => new Cyclone(),        // 旋风（纳迦）
         ["ACfu"] = () => new FrostArmor(),     // 霜冻护甲（纳迦自动施法）

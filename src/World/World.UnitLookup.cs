@@ -51,6 +51,20 @@ public sealed partial class World
         _pathGrid?.ClearArea(tree.Position, 24f);
     }
 
+    /// <summary>古树拔根：放开自己占的格子（半径取拔根前的建筑足迹）。</summary>
+    public void ReleaseFootprint(Unit unit, float radius)
+    {
+        if (unit == null) return;
+        _pathGrid?.RemoveBlocker(unit.Position, radius);
+    }
+
+    /// <summary>古树扎根：重新占住脚下的格子。</summary>
+    public void OccupyFootprint(Unit unit)
+    {
+        if (unit == null) return;
+        _pathGrid?.AddBlocker(unit.Position, unit.Radius);
+    }
+
     private Unit NearestHall(Unit worker)
     {
         Unit best = null;

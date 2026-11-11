@@ -11,6 +11,7 @@ public sealed class PathGrid
 
     private readonly bool[] _blocked;
     private readonly bool[] _cleared;
+    private readonly bool[] _dynamic;
     private readonly int _width;
     private readonly int _height;
     private readonly float _offsetX;
@@ -26,6 +27,7 @@ public sealed class PathGrid
         _offsetY = terrain.OffsetY;
         _blocked = new bool[_width * _height];
         _cleared = new bool[_width * _height];
+        _dynamic = new bool[_width * _height];
 
         for (int y = 0; y < _height; y++)
         {
@@ -62,6 +64,7 @@ public sealed class PathGrid
         return true;
     }
 
+    /// <summary>建筑物占格子（动态层）：古树扎根/拔根就靠这一层开关，不动地形阻挡。</summary>
     public void AddBlocker(Vector3 world, float radiusWorld)
     {
         int cells = Mathf.Max(1, Mathf.CeilToInt(radiusWorld / CellWorld));
@@ -73,7 +76,24 @@ public sealed class PathGrid
                 int x = cx + dx;
                 int y = cy + dz;
                 if (x < 0 || y < 0 || x >= _width || y >= _height) continue;
-                _blocked[y * _width + x] = true;
+                _dynamic[y * _width + x] = true;
+            }
+        }
+    }
+
+    /// <summary>放开建筑物占的格子（拔根、建筑物被拆）。</summary>
+    public void RemoveBlocker(Vector3 world, float radiusWorld)
+    {
+        int cells = Mathf.Max(1, Mathf.CeilToInt(radiusWorld / CellWorld));
+        WorldToCell(world.X, world.Z, out int cx, out int cy);
+        for (int dz = -cells; dz <= cells; dz++)
+        {
+            for (int dx = -cells; dx <= cells; dx++)
+            {
+                int x = cx + dx;
+                int y = cy + dz;
+                if (x < 0 || y < 0 || x >= _width || y >= _height) continue;
+                _dynamic[y * _width + x] = false;
             }
         }
     }
@@ -100,6 +120,7 @@ public sealed class PathGrid
         if (x < 0 || y < 0 || x >= _width || y >= _height) return true;
         int index = y * _width + x;
         if (_cleared[index]) return false;
+        if (_dynamic[index]) return true;
         return _blocked[index];
     }
 
