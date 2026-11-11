@@ -64,6 +64,7 @@ public sealed partial class World
         }
 
         TickWeapons();
+        ResolveRepulse();
         TickHeroRevive(Tick);
     }
 

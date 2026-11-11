@@ -103,6 +103,7 @@ public static class CombatProbe
         CheckImmunity();
         CheckDuel();
         CheckBounty();
+        CheckSplash();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
@@ -213,6 +214,45 @@ public static class CombatProbe
         sim.Units.Add(enemyVictim);
         sim.DealDamage(World.MakeAbilityDamage(enemyKiller, enemyVictim, 100000f, AttackType.Spells, DamageType.Universal));
         Verify("击杀敌方玩家单位不给赏金", 0f, awards, 0f);
+    }
+
+    /// <summary>迫击炮 Farea=25 / Harea=150 / Qarea=250：全伤、半伤、四分之一、圈外不受伤。</summary>
+    private static void CheckSplash()
+    {
+        UnitType mortar = UnitCatalog.Get("hmtm");
+        UnitType footman = UnitCatalog.Get("hfoo");
+        if (mortar == null || footman == null) return;
+
+        var world = new World(null, null);
+        Unit attacker = MakeUnit(mortar, 0);
+        Unit center = MakeUnit(footman, 1);
+        Unit near = MakeUnit(footman, 1);
+        Unit mid = MakeUnit(footman, 1);
+        Unit far = MakeUnit(footman, 1);
+        near.Position = new Vector3(100f, 0f, 0f);
+        mid.Position = new Vector3(200f, 0f, 0f);
+        far.Position = new Vector3(400f, 0f, 0f);
+
+        world.Units.Add(attacker);
+        world.Units.Add(center);
+        world.Units.Add(near);
+        world.Units.Add(mid);
+        world.Units.Add(far);
+
+        DamageInfo primary = world.MakeAttackDamage(attacker, center, 100f);
+        world.DealDamage(primary);
+        world.ApplySplash(primary);
+
+        float centerLoss = center.MaxHp - center.Hp;
+        float nearLoss = near.MaxHp - near.Hp;
+        float midLoss = mid.MaxHp - mid.Hp;
+        float farLoss = far.MaxHp - far.Hp;
+
+        GD.Print($"[自检] 溅射 主目标{centerLoss:0.0} 100距离{nearLoss:0.0} 200距离{midLoss:0.0} 400距离{farLoss:0.0}"
+            + $"（Farea={mortar.SplashFull:0} Harea={mortar.SplashHalf:0} Qarea={mortar.SplashQuarter:0}）");
+        Verify("溅射半伤档", 0.5f, centerLoss <= 0f ? 0f : nearLoss / centerLoss, 0.02f);
+        Verify("溅射四分之一档", 0.25f, centerLoss <= 0f ? 0f : midLoss / centerLoss, 0.02f);
+        Verify("超出 Qarea 不受伤", 0f, farLoss, 0.01f);
     }
 
     private static void ReportHit(string attackerId, string victimId, float raw)

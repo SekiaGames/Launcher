@@ -52,6 +52,7 @@ public sealed partial class World
                 unit.WorkTimer = 0f;
                 unit.CarryLumber = 10;
                 tree.Chop(10f);
+                if (!tree.Alive) _pathGrid?.ClearArea(tree.Position, 24f);
                 unit.HomeHall = NearestHall(unit);
             }
         }

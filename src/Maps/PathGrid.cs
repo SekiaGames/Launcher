@@ -10,6 +10,7 @@ public sealed class PathGrid
     private const float CellWorld = 32f;
 
     private readonly bool[] _blocked;
+    private readonly bool[] _cleared;
     private readonly int _width;
     private readonly int _height;
     private readonly float _offsetX;
@@ -24,6 +25,7 @@ public sealed class PathGrid
         _offsetX = terrain.OffsetX;
         _offsetY = terrain.OffsetY;
         _blocked = new bool[_width * _height];
+        _cleared = new bool[_width * _height];
 
         for (int y = 0; y < _height; y++)
         {
@@ -76,10 +78,29 @@ public sealed class PathGrid
         }
     }
 
+    /// <summary>树被砍倒后把这一小圈覆盖成可走（只解锁 doodad 占的格子，不动地形阻挡）。</summary>
+    public void ClearArea(Vector3 world, float radiusWorld)
+    {
+        int cells = Mathf.Max(1, Mathf.CeilToInt(radiusWorld / CellWorld));
+        WorldToCell(world.X, world.Z, out int cx, out int cy);
+        for (int dz = -cells; dz <= cells; dz++)
+        {
+            for (int dx = -cells; dx <= cells; dx++)
+            {
+                int x = cx + dx;
+                int y = cy + dz;
+                if (x < 0 || y < 0 || x >= _width || y >= _height) continue;
+                _cleared[y * _width + x] = true;
+            }
+        }
+    }
+
     private bool Blocked(int x, int y)
     {
         if (x < 0 || y < 0 || x >= _width || y >= _height) return true;
-        return _blocked[y * _width + x];
+        int index = y * _width + x;
+        if (_cleared[index]) return false;
+        return _blocked[index];
     }
 
     private void WorldToCell(float worldX, float worldZ, out int x, out int y)

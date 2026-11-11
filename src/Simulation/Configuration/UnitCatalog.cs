@@ -41,6 +41,19 @@ public sealed class UnitType
     public float CollisionRadius = 16f;
     /// <summary>UnitData.movetp=fly，空中单位不吃地面路径阻挡。</summary>
     public bool Flying;
+
+    // —— 攻击时序（UnitWeapons.castpt/dmgpt1/backSw1） ——
+    /// <summary>起手到伤害点的秒数。</summary>
+    public float DamagePoint = 0.5f;
+    /// <summary>伤害点之后的后摇秒数。</summary>
+    public float Backswing = 0.5f;
+
+    // —— 溅射（UnitWeapons.Farea1/Harea1/Qarea1/targCount1，三档：全伤/半伤/四分之一） ——
+    public float SplashFull;
+    public float SplashHalf;
+    public float SplashQuarter;
+    public int SplashTargets = 1;
+
     public int Level = 1;
     public int BountyDice = 1;
     public int BountySides;
@@ -218,6 +231,12 @@ public static class UnitCatalog
             type.MaxDamage = Number(weapons.Get(weaponRow, "maxdmg1"), 10f);
             type.AcquireRange = Number(weapons.Get(weaponRow, "acquire"), 500f);
             type.AttackType = CombatCodes.ParseAttack(weapons.Get(weaponRow, "atkType1"));
+            type.DamagePoint = Number(weapons.Get(weaponRow, "dmgpt1"), 0.5f);
+            type.Backswing = Number(weapons.Get(weaponRow, "backSw1"), 0.5f);
+            type.SplashFull = Number(weapons.Get(weaponRow, "Farea1"), 0f);
+            type.SplashHalf = Number(weapons.Get(weaponRow, "Harea1"), 0f);
+            type.SplashQuarter = Number(weapons.Get(weaponRow, "Qarea1"), 0f);
+            type.SplashTargets = Mathf.Max(1, weapons.GetInt(weaponRow, "targCount1", 1));
             TargetKind targets = CombatCodes.ParseTargets(weapons.Get(weaponRow, "targs1"));
             if (targets != TargetKind.None) type.Targets = targets;
         }
