@@ -491,12 +491,46 @@ public sealed partial class War3GameScene
                 + $"（{type.MaxLevel} 级，法力 {type.CostAt(1):0} 冷却 {type.CooldownAt(1):0}s）");
         }
 
+        // 摆两件物品让英雄自己捡（顺便验装备加成），再演示 使用/丢弃
+        foreach (string itemId in new[] { "ckng", "phea" })
+        {
+            ItemType itemType = ItemCatalog.Get(itemId);
+            if (itemType == null) continue;
+            var spot = new Vector3(hero.Position.X + 40f, hero.Position.Y, hero.Position.Z + 40f);
+            SpawnItem(itemId, spot);
+        }
+        _world.TickItemPickup();
+
         _selected.Clear();
         _selected.Add(hero);
         hero.View?.SetSelected(true);
         _hud?.SetSelection(_selected);
         UpdateCommandCard();
         GD.Print($"[SKILL] 命令卡：{DescribeCommandCard(hero)}");
+
+        foreach (Item picked in hero.Inventory)
+        {
+            if (picked?.Type == null) continue;
+            if (!picked.Type.Consumable.IsEmpty)
+            {
+                hero.Hp = Mathf.Max(1f, hero.Hp - 300f);
+                float hpBefore = hero.Hp;
+                bool used = _world.UseItem(hero, picked);
+                GD.Print($"[SKILL] 使用 {picked.Type.Name} {(used ? "成功" : "失败")} {hpBefore:0}→{hero.Hp:0}"
+                    + $" 剩余 {hero.ItemCount} 件");
+            }
+        }
+
+        for (int slot = 0; slot < Unit.InventorySize; slot++)
+        {
+            Item held = hero.Inventory[slot];
+            if (held?.Type == null) continue;
+            int strengthBefore = hero.Strength;
+            bool dropped = _world.DropItemFromSlot(hero, slot);
+            GD.Print($"[SKILL] 丢弃 {held.Type.Name} {(dropped ? "成功" : "失败")}"
+                + $" 力量 {strengthBefore}→{hero.Strength} 地面 {_world.GroundItems.Count} 件");
+            break;
+        }
 
         // 山丘之王演示 单体伤害+眩晕 / 自身 AoE 减速
         Unit mountain = Spawn("Hmkg", ViewPlayer, creep.Position.X + 120f, creep.Position.Z + 120f, 0f, 0f, 1f);
@@ -515,8 +549,14 @@ public sealed partial class War3GameScene
             {
                 float before = creep.Hp;
                 bool cast = _world.TryCast(mountain, bolt, creep, creep.Position);
-                GD.Print($"[SKILL] 风暴之锤 → {creep.Type.Name} {(cast ? "命中" : "失败")}"
-                    + $" {before:0}→{creep.Hp:0} 眩晕{creep.State.Remaining(StateMod.Stun):0.0}s 法力{mountain.Mana:0}");
+                GD.Print($"[SKILL] 风暴之锤 {(cast ? "弹道出手" : "失败")} 出手时血量 {before:0}"
+                    + $"（飞行中不结算） 法力{mountain.Mana:0}");
+                SceneTreeTimer hitTimer = GetTree().CreateTimer(1.2);
+                hitTimer.Timeout += () =>
+                {
+                    GD.Print($"[SKILL] 风暴之锤命中 {creep.Type.Name} {before:0}→{creep.Hp:0}"
+                        + $" 眩晕{creep.State.Remaining(StateMod.Stun):0.0}s");
+                };
             }
 
             Ability clap = mountain.FindAbility("AHtc");

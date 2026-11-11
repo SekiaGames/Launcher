@@ -140,6 +140,66 @@ public sealed partial class War3GameScene
         }
 
         foreach (CommandEntry entry in upgrades) commands.Add(entry);
+
+        AddInventoryCommands(commands, hero);
+    }
+
+    /// <summary>
+    /// 物品格：原版是英雄面板右下 2×3 的格子，这里先并到命令卡上（一物一格）。
+    /// 可用的（药水/卷轴）点一下就用掉，其余点一下丢到地上。
+    /// </summary>
+    private void AddInventoryCommands(System.Collections.Generic.List<CommandEntry> commands, Unit hero)
+    {
+        for (int slot = 0; slot < Unit.InventorySize; slot++)
+        {
+            Item item = hero.Inventory[slot];
+            if (item?.Type == null) continue;
+
+            int captured = slot;
+            bool usable = item.Type.Usable && !item.Type.Consumable.IsEmpty;
+            commands.Add(new CommandEntry
+            {
+                Id = item.Type.Id,
+                Name = item.Type.Name,
+                Cost = $"格 {slot + 1}",
+                Tooltip = ItemTooltip(item.Type, usable),
+                Icon = TechTree.Icon(item.Type.IconArt),
+                Enabled = true,
+                Action = () => UseOrDropItem(hero, item, captured, usable),
+            });
+        }
+    }
+
+    private void UseOrDropItem(Unit hero, Item item, int slot, bool usable)
+    {
+        if (_world == null || item?.Type == null) return;
+
+        if (usable)
+        {
+            if (_world.UseItem(hero, item))
+            {
+                _hud?.SetHint($"{hero.Type.Name} 使用了 {item.Type.Name}（{item.Type.Consumable}）");
+            }
+            else
+            {
+                _hud?.SetHint($"{item.Type.Name} 现在用不了");
+            }
+        }
+        else if (_world.DropItemFromSlot(hero, slot))
+        {
+            _hud?.SetHint($"{hero.Type.Name} 丢下了 {item.Type.Name}");
+        }
+
+        RefreshHud();
+        UpdateCommandCard();
+    }
+
+    private static string ItemTooltip(ItemType type, bool usable)
+    {
+        var text = $"{type.Name}（等级 {type.Level} {type.Class}）";
+        if (!string.IsNullOrEmpty(type.BonusText) && type.BonusText != "-") text += "\n" + type.BonusText;
+        text += usable ? "\n左键：使用" : "\n左键：丢到地上";
+        return text;
     }
 
     /// <summary>学习/升级格：技能点 + 英雄等级 双重门槛。</summary>

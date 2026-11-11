@@ -26,6 +26,14 @@ public sealed class ItemType
     public bool PowerUp;
     public bool PickRandom;
     public string AbilList = "";
+    public int Uses;
+    public bool Perishable;
+    /// <summary>图标。物编的 Art 列没导出，按 abilList 的基类码给原版图标名。</summary>
+    public string IconArt = @"ReplaceableTextures\CommandButtons\BTNGoldRing";
+
+    public ItemBonus Bonus => ItemBonus.ForItem(this);
+    public ItemConsumable Consumable => ItemConsumable.Of(this);
+    public string BonusText => Bonus.IsZero ? Consumable.ToString() : Bonus.ToString();
 }
 
 public static class ItemCatalog
@@ -79,6 +87,8 @@ public static class ItemCatalog
             GoldCost = table.GetInt(row, "goldcost"),
             LumberCost = table.GetInt(row, "lumbercost"),
             Droppable = table.Get(row, "droppable") == "1",
+            Uses = Mathf.Max(0, table.GetInt(row, "uses", 0)),
+            Perishable = table.Get(row, "perishable") == "1",
             Usable = table.Get(row, "usable") == "1",
             PowerUp = table.Get(row, "powerup") == "1",
             PickRandom = table.Get(row, "pickRandom") == "1",
@@ -88,10 +98,38 @@ public static class ItemCatalog
         string localized = String(id, "Name");
         if (!string.IsNullOrWhiteSpace(localized)) type.Name = localized;
         type.Tip = String(id, "Tip") ?? "";
+        type.IconArt = IconFor(type);
 
         Cache[id] = type;
         return type;
     }
+
+    /// <summary>物编 Art 列没导出，按 abilList 的基类码挑原版图标（都对得上 extract 里实际存在的 png）。</summary>
+    private static string IconFor(ItemType item)
+    {
+        if (string.IsNullOrWhiteSpace(item.AbilList)) return DefaultIcon;
+
+        foreach (string id in item.AbilList.Split(',', ';', StringSplitOptions.TrimEntries))
+        {
+            if (id.Length < 4) continue;
+            AbilityType ability = AbilityCatalog.Get(id[..4]);
+            string icon = ability?.Code?.ToUpperInvariant() switch
+            {
+                "AIHE" => @"ReplaceableTextures\CommandButtons\BTNPotionGreen",
+                "AIMA" or "AIMR" => @"ReplaceableTextures\CommandButtons\BTNPotionBlue",
+                "AIRG" => @"ReplaceableTextures\CommandButtons\BTNMinorRejuvPotion",
+                "AIAB" => @"ReplaceableTextures\CommandButtons\BTNPeriapt",
+                "AIAT" => @"ReplaceableTextures\CommandButtons\BTNClawsOfAttack",
+                "AIDE" => @"ReplaceableTextures\CommandButtons\BTNRingGreen",
+                "AIAS" => @"ReplaceableTextures\CommandButtons\BTNGauntletsOfOgrePower",
+                _ => null,
+            };
+            if (icon != null) return icon;
+        }
+        return DefaultIcon;
+    }
+
+    private const string DefaultIcon = @"ReplaceableTextures\CommandButtons\BTNGoldRing";
 
     /// <summary>按等级挑一个可掉落物品（掉落表接上之前的替身，只用于调试）。</summary>
     public static ItemType RandomByLevel(int level)

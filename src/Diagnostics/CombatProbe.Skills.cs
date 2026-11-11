@@ -87,9 +87,14 @@ public static partial class CombatProbe
             float hpBefore = victim.Hp;
             bool cast = world2.TryCast(hero, bolt, victim, victim.Position);
             Verify("风暴之锤施放成功", 1f, cast ? 1f : 0f, 0f);
-            Verify("风暴之锤扣血", 0f, victim.Hp < hpBefore ? 0f : 1f, 0f);
+            Verify("锤子还没飞到时不结算", hpBefore, victim.Hp, 0.01f);
+            Verify("弹道已排进队列", 1f, world2.PendingAbilityHitCount, 0f);
+
+            // 200 距离 / 900 速度 ≈ 0.22s，跑 10 tick 必然命中
+            for (int index = 0; index < 10; index++) world2.TickAbilityMissiles();
+            Verify("弹道命中后扣血", 1f, victim.Hp < hpBefore ? 1f : 0f, 0f);
             Verify("风暴之锤眩晕 5s", 5f, victim.State.Remaining(StateMod.Stun), 0.01f);
-            GD.Print($"[自检] 风暴之锤 {hpBefore:0}→{victim.Hp:0}，眩晕 {victim.State.Remaining(StateMod.Stun):0.0}s");
+            GD.Print($"[自检] 风暴之锤 飞行后 {hpBefore:0}→{victim.Hp:0}，眩晕 {victim.State.Remaining(StateMod.Stun):0.0}s");
         }
 
         // —— 雷霆一击：AoE + 减速 ——
@@ -334,6 +339,80 @@ public static partial class CombatProbe
             Verify("3 具尸体全部起身", 3f, back, 0f);
             GD.Print($"[自检] 复活 拉起 {back} 个，血量 {corpses[0].Hp:0}/{corpses[0].MaxHp:0}"
                 + $"（上限 {revive.MaxTargets} 个 / 半径 {revive.Radius:0}）");
+        }
+
+        // —— AI 英雄自己加点 ——
+        if (paladinType != null)
+        {
+            var world14 = new World(null, null);
+            Unit aiHero = MakeHero(paladinType, 1, 6, world14);
+            aiHero.AutoCast = true;
+            aiHero.SkillPoints = 2;
+            foreach (string id in paladinType.HeroAbilList) aiHero.GiveAbility(id, 0);
+            world14.Units.Add(aiHero);
+
+            for (int index = 0; index < 5; index++) world14.TickAbilities();
+
+            int learned = 0;
+            var names = new List<string>();
+            foreach (Ability ability in aiHero.Abilities)
+            {
+                if (!ability.Learned) continue;
+                learned++;
+                names.Add($"{ability.Name}{ability.Level}");
+            }
+            Verify("AI 英雄自动花掉 2 点", 2f, learned, 0f);
+            Verify("AI 英雄技能点用完", 0f, aiHero.SkillPoints, 0f);
+            GD.Print($"[自检] AI 英雄加点 {string.Join("、", names)}（剩 {aiHero.SkillPoints} 点）");
+        }
+
+        // —— 物品使用与丢弃 ——
+        ItemType potion = ItemCatalog.Get("phea");
+        if (potion != null && paladinType != null)
+        {
+            var world12 = new World(null, null);
+            Unit hero2 = MakeHero(paladinType, 0, 3, world12);
+            world12.Units.Add(hero2);
+
+            var flask = new Item { Type = potion };
+            hero2.AddItem(flask);
+            hero2.Hp = 100f;
+            bool used = world12.UseItem(hero2, flask);
+            Verify("药水可用", 1f, used ? 1f : 0f, 0f);
+            Verify("药水回 250 生命", 350f, hero2.Hp, 1f);
+            Verify("用完后格子空出来", 0f, hero2.ItemCount, 0f);
+
+            ItemType manaPotion = ItemCatalog.Get("pman");
+            if (manaPotion != null)
+            {
+                var blue = new Item { Type = manaPotion };
+                hero2.AddItem(blue);
+                hero2.Mana = 20f;
+                world12.UseItem(hero2, blue);
+                Verify("法力药水回 150 法力", 170f, hero2.Mana, 1f);
+            }
+
+            GD.Print($"[自检] 消耗品 {potion.Name} {potion.Consumable}，用后生命 {hero2.Hp:0}，格子 {hero2.ItemCount}");
+        }
+
+        ItemType crown2 = ItemCatalog.Get("ckng");
+        if (crown2 != null && paladinType != null)
+        {
+            var world13 = new World(null, null);
+            Unit hero3 = MakeHero(paladinType, 0, 3, world13);
+            world13.Units.Add(hero3);
+
+            int baseStrength = hero3.Strength;
+            var treasure = new Item { Type = crown2 };
+            hero3.AddItem(treasure);
+            world13.ApplyItemBonus(hero3, treasure);
+            Verify("戴上王冠 +5 力量", baseStrength + 5, hero3.Strength, 0f);
+
+            bool dropped = world13.DropItemFromSlot(hero3, treasure.Slot);
+            Verify("丢弃成功", 1f, dropped ? 1f : 0f, 0f);
+            Verify("丢弃后力量还原", baseStrength, hero3.Strength, 0f);
+            Verify("物品回到地面", 1f, world13.GroundItems.Count, 0f);
+            GD.Print($"[自检] 丢弃 {crown2.Name}：力量 {baseStrength}+5 → {hero3.Strength}，地面物品 {world13.GroundItems.Count}");
         }
 
         CheckItemBonus();

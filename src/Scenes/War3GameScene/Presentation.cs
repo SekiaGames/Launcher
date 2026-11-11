@@ -73,6 +73,57 @@ public sealed partial class War3GameScene
 
     private static int _missileLogBudget = 6;
 
+    /// <summary>技能投射物：与武器共用 Projectile 飞行列表，只是模型与速度来自技能。</summary>
+    private void OnAbilityMissileFired(Unit caster, Ability ability, Unit target)
+    {
+        if (caster?.View == null || target == null || ability == null) return;
+
+        Node3D node = null;
+        PackedScene scene = Assets.LoadScene(PathResolve.ModelScene(ability.MissileArt));
+        if (scene != null)
+        {
+            node = scene.Instantiate<Node3D>();
+            MapWorldBuilder.ApplyUnitTextureFilter(node);
+        }
+        else
+        {
+            node = new MeshInstance3D
+            {
+                Mesh = new SphereMesh { Radius = 14f, Height = 28f },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    AlbedoColor = new Color(1f, 0.95f, 0.55f),
+                },
+            };
+        }
+
+        Vector3 from = caster.Position + new Vector3(0f, caster.View.Height * 0.6f, 0f);
+        Vector3 to = target.Position + new Vector3(0f, (target.View?.Height ?? 100f) * 0.5f, 0f);
+        node.Position = from;
+        node.Name = $"AbilityMissile_{ability.Id}";
+        AddChild(node);
+
+        _projectiles.Add(new Projectile
+        {
+            Node = node,
+            From = from,
+            To = to,
+            Arc = 0f,
+            Speed = Mathf.Max(200f, ability.MissileSpeed),
+            Length = Mathf.Max(1f, from.DistanceTo(to)),
+            Target = target,
+            TargetHeight = (target.View?.Height ?? 100f) * 0.5f,
+        });
+
+        if (_missileLogBudget > 0)
+        {
+            _missileLogBudget--;
+            GD.Print($"[MISSILE] 技能 {ability.Name} → {target.Type?.Id} 距离 {from.DistanceTo(to):0}"
+                + $" 速度 {ability.MissileSpeed:0} 模型 {(scene != null ? ability.MissileArt : "占位球")}");
+        }
+    }
+
     private void TickProjectiles(float delta)
     {
         for (int index = _projectiles.Count - 1; index >= 0; index--)

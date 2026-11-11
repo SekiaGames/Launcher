@@ -45,6 +45,21 @@ public sealed partial class War3GameScene
 
             _world.Units.Add(attacker);
             attacker.Target = NearestTargetOf(ViewPlayer, hall.Position);
+
+            // 有活着的英雄就一起上（英雄自己会施法/治疗）
+            Unit hero = null;
+            foreach (Unit unit in _allUnits)
+            {
+                if (!unit.Alive || unit.Player != player.Id || !unit.IsHero) continue;
+                hero = unit;
+                break;
+            }
+            if (hero != null)
+            {
+                hero.Target = NearestTargetOf(ViewPlayer, hall.Position);
+                hero.MoveTarget = null;
+                hero.Path = null;
+            }
         }
     }
 

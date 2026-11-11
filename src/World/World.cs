@@ -64,6 +64,7 @@ public sealed partial class World
         }
 
         TickWeapons();
+        TickAbilityMissiles();
         TickAbilities();
         TickRegeneration();
         TickItemPickup();

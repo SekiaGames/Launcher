@@ -20,6 +20,65 @@ public sealed partial class World
     public event Action<Unit, Item> ItemPickedUp;
     /// <summary>新物品落地（野怪掉落 / 脚本生成），场景层据此建模型。</summary>
     public event Action<Item> ItemSpawned;
+    /// <summary>物品被使用掉（药水/卷轴）。</summary>
+    public event Action<Unit, Item> ItemUsed;
+
+    /// <summary>
+    /// 使用物品：只处理消耗品（回血/回蓝），效果取 abilList 的能力数值，
+    /// 用完从格子里移除并销毁模型。非消耗品返回 false。
+    /// </summary>
+    public bool UseItem(Unit unit, Item item)
+    {
+        if (unit == null || item?.Type == null || !unit.Alive) return false;
+        if (!item.Type.Usable) return false;
+
+        ItemConsumable effect = item.Type.Consumable;
+        if (effect.IsEmpty) return false;
+
+        if (effect.Heal > 0f) unit.Heal(effect.Heal);
+        if (effect.Mana > 0f && unit.MaxMana > 0f)
+        {
+            unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + effect.Mana);
+        }
+
+        ConsumeItem(item);
+        ItemUsed?.Invoke(unit, item);
+        return true;
+    }
+
+    /// <summary>把物品从格子里拿掉并销毁模型（用掉/被吞）。</summary>
+    private void ConsumeItem(Item item)
+    {
+        Unit owner = item.Owner;
+        if (owner != null && item.Slot >= 0) owner.RemoveSlot(item.Slot);
+        else item.SetOnGround(item.Position);
+
+        if (item.Node != null)
+        {
+            item.Node.QueueFree();
+            item.Node = null;
+        }
+    }
+
+    /// <summary>丢弃格子里的物品：扣除加成、落在英雄旁边、重新可拾取。</summary>
+    public bool DropItemFromSlot(Unit unit, int slot)
+    {
+        if (unit == null) return false;
+        Item item = unit.RemoveSlot(slot);
+        if (item == null) return false;
+
+        RemoveItemBonus(unit, item);
+
+        float angle = (float)(_random.NextDouble() * Mathf.Tau);
+        var position = new Vector3(
+            unit.Position.X + Mathf.Cos(angle) * 64f,
+            unit.Position.Y,
+            unit.Position.Z + Mathf.Sin(angle) * 64f);
+
+        DropItem(item, position);
+        if (item.Node == null) ItemSpawned?.Invoke(item);
+        return true;
+    }
 
     /// <summary>落地一件物品；场景层负责先建好 Item.Node 再交给这里。</summary>
     public void DropItem(Item item, Vector3 position)

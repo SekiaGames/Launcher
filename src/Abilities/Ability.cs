@@ -51,6 +51,16 @@ public abstract class Ability
     /// <summary>执行技能效果；返回 false 表示没放出去（不扣法力、不进冷却）。被动技能用默认实现。</summary>
     public virtual bool OnCast(World world, Unit target, Vector3 point) => false;
 
+    // —— 投射物：想「飞过去再结算」的技能覆盖这三个 + OnMissileHit ——
+    /// <summary>是否走投射物。</summary>
+    public virtual bool UsesMissile => false;
+    public virtual float MissileSpeed => 900f;
+    /// <summary>弹道模型（war3 路径）。物编 Missileart 列没导出，按原版路径补。</summary>
+    public virtual string MissileArt => "";
+
+    /// <summary>投射物命中时结算（只有 UsesMissile 的技能会被调用）。</summary>
+    public virtual void OnMissileHit(World world, Unit target) { }
+
     /// <summary>AI 自动施法钩子：返回 true 表示这次真的放出去了。</summary>
     public virtual bool TryAutoCast(World world) => false;
 

@@ -16,6 +16,53 @@ public sealed partial class World
     /// <summary>英雄学会/升级技能。</summary>
     public event Action<Unit, Ability> AbilityLearned;
 
+    /// <summary>技能投射物出手（场景层据此建弹道模型）。</summary>
+    public event Action<Unit, Ability, Unit> AbilityMissileFired;
+
+    private sealed class PendingAbilityHit
+    {
+        public Unit Caster;
+        public Ability Ability;
+        public Unit Target;
+        public float Remaining;
+    }
+
+    private readonly System.Collections.Generic.List<PendingAbilityHit> _pendingAbilityHits = new();
+
+    public int PendingAbilityHitCount => _pendingAbilityHits.Count;
+
+    /// <summary>技能要求「飞一会儿再命中」时调这个：到点才 OnMissileHit。</summary>
+    public bool ScheduleAbilityHit(Unit caster, Ability ability, Unit target, float delay)
+    {
+        if (caster == null || ability == null || target == null) return false;
+
+        _pendingAbilityHits.Add(new PendingAbilityHit
+        {
+            Caster = caster,
+            Ability = ability,
+            Target = target,
+            Remaining = Mathf.Max(Tick, delay),
+        });
+        AbilityMissileFired?.Invoke(caster, ability, target);
+        return true;
+    }
+
+    /// <summary>推进技能投射物；目标在飞行途中死亡就落空。</summary>
+    public void TickAbilityMissiles()
+    {
+        for (int index = _pendingAbilityHits.Count - 1; index >= 0; index--)
+        {
+            PendingAbilityHit hit = _pendingAbilityHits[index];
+            hit.Remaining -= Tick;
+            if (hit.Remaining > 0f) continue;
+
+            _pendingAbilityHits.RemoveAt(index);
+            Unit target = hit.Target;
+            if (target == null || !target.Alive) continue;
+            hit.Ability.OnMissileHit(this, target);
+        }
+    }
+
     /// <summary>
     /// 召唤通道：模拟层没有场景，建单位要靠对局层实现这个回调
     /// （Scene 用 Spawn 造模型节点，再把单位交给 World）。
@@ -131,6 +178,8 @@ public sealed partial class World
                 }
             }
 
+            if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
+
             for (int index = unit.Buffs.Count - 1; index >= 0; index--)
             {
                 Buff buff = unit.Buffs[index];
@@ -164,6 +213,29 @@ public sealed partial class World
             if (unit.Mana < ability.ManaCost) continue;
             if (ability.TryAutoCast(this)) return;
         }
+    }
+
+    /// <summary>
+    /// AI 英雄加点：优先补等级最低、且等级需求已满足的那个技能（谁低补谁，同高按表顺序），
+    /// 这样 AI 英雄不会把所有点都堆在同一个技能上。玩家英雄走命令卡，不会进这里。
+    /// </summary>
+    private void AutoLearnHeroSkills(Unit hero)
+    {
+        Ability best = null;
+        foreach (string id in hero.Type.HeroAbilList)
+        {
+            Ability ability = hero.FindAbility(id) ?? hero.GiveAbility(id, 0);
+            if (ability?.Type == null || !ability.CanLevelUp) continue;
+
+            int next = ability.Level + 1;
+            int skip = Mathf.Max(1, ability.Type.LevelSkip);
+            int need = (next - 1) * skip + Mathf.Max(1, ability.Type.RequiredLevel);
+            if (hero.Level < need) continue;
+
+            if (best == null || ability.Level < best.Level) best = ability;
+        }
+
+        if (best != null) LearnAbility(hero, best.Id);
     }
 
     /// <summary>光环：同源取最大，不叠加；施法者阵亡立即失效。</summary>
@@ -247,6 +319,7 @@ public sealed partial class World
         ItemBonus bonus = ItemBonus.ForItem(item.Type);
         if (bonus.IsZero) return;
 
+        item.Bonus = bonus;
         unit.BonusStrength += bonus.Strength;
         unit.BonusAgility += bonus.Agility;
         unit.BonusIntelligence += bonus.Intelligence;
@@ -254,6 +327,26 @@ public sealed partial class World
         unit.BonusArmor += bonus.Armor;
         unit.BonusAttackSpeedPct += bonus.AttackSpeedPct;
         unit.BonusMoveSpeedFlat += bonus.MoveSpeed;
+
+        RefreshHeroAttributes(unit);
+    }
+
+    /// <summary>扣除一件物品已经生效的加成（丢弃/被抢时用）。</summary>
+    public void RemoveItemBonus(Unit unit, Item item)
+    {
+        if (unit == null || item == null) return;
+
+        ItemBonus bonus = item.Bonus;
+        if (bonus.IsZero) return;
+
+        unit.BonusStrength -= bonus.Strength;
+        unit.BonusAgility -= bonus.Agility;
+        unit.BonusIntelligence -= bonus.Intelligence;
+        unit.BonusDamageFlat -= bonus.Damage;
+        unit.BonusArmor -= bonus.Armor;
+        unit.BonusAttackSpeedPct -= bonus.AttackSpeedPct;
+        unit.BonusMoveSpeedFlat -= bonus.MoveSpeed;
+        item.Bonus = ItemBonus.Zero;
 
         RefreshHeroAttributes(unit);
     }
