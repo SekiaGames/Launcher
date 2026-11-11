@@ -32,6 +32,14 @@ public sealed partial class War3GameScene
                 if (entry.IsStartingLocation) continue;
 
                 Vector3 world = ToWorld(entry.X, entry.Y);
+
+                if (ItemCatalog.Exists(entry.Id))
+                {
+                    if (SpawnItem(entry.Id, world) != null) placed++;
+                    else missingScene++;
+                    continue;
+                }
+
                 var player = (int)Mathf.Clamp(entry.Player, 0, 15);
                 Unit unit = Spawn(entry.Id, player, world.X, world.Z, Mathf.Pi + entry.Angle,
                     entry.Hitpoints > 0 ? entry.Hitpoints : 0f, entry.ScaleX, entry.Gold);
@@ -207,6 +215,31 @@ public sealed partial class War3GameScene
             || id.StartsWith("egol", StringComparison.OrdinalIgnoreCase)
             || id.StartsWith("ugol", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>在地图上放一件物品：建模型节点后交给 World 管理拾取。</summary>
+    private Item SpawnItem(string id, Vector3 position)
+    {
+        ItemType type = ItemCatalog.Get(id);
+        if (type == null) return null;
+
+        var item = new Item { Type = type, Position = position };
+
+        PackedScene scene = Assets.LoadScene(type.ModelPath);
+        if (scene != null)
+        {
+            var node = scene.Instantiate<Node3D>();
+            node.Position = position;
+            node.Scale = Vector3.One * type.Scale;
+            node.Name = $"item_{id}_{_itemSerial++}";
+            AddChild(node);
+            item.Node = node;
+        }
+
+        _world.DropItem(item, position);
+        return item;
+    }
+
+    private int _itemSerial;
 
     private Unit Spawn(string id, int player, float worldX, float worldZ, float yaw, float hp, float entryScale, int gold = 0)
     {

@@ -31,6 +31,7 @@ public sealed partial class LauncherApp : Node
     private bool _combatProbe;
     private bool _stateProbe;
     private bool _reviveProbe;
+    private readonly List<string> _spawnItems = new();
     private bool _aggro;
     private bool _noAi;
     private int _viewPlayer = -1;
@@ -175,6 +176,13 @@ public sealed partial class LauncherApp : Node
             {
                 _reviveProbe = true;
             }
+            else if (argument.StartsWith("--spawn-item="))
+            {
+                foreach (string item in argument["--spawn-item=".Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    _spawnItems.Add(item.Trim());
+                }
+            }
             else if (argument == "--dump-units")
             {
                 _dumpUnits = true;
@@ -312,6 +320,7 @@ public sealed partial class LauncherApp : Node
         if (_creepProbe) game.RunCreepProbe();
         if (_heroProbe) game.RunHeroProbe();
         if (_reviveProbe) game.RunReviveProbe();
+        if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);
         if (_pathProbe)
         {
             game.PathProbe();

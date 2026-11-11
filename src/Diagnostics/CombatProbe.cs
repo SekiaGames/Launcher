@@ -108,6 +108,7 @@ public static class CombatProbe
         CheckRally();
         CheckSecondWeapon();
         CheckCorpse();
+        CheckItems();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
@@ -362,6 +363,40 @@ public static class CombatProbe
             soldier.CorpseRemaining > 0f && soldier.CorpseRemaining <= Unit.CorpseSeconds ? 1f : 0f, 0f);
         GD.Print($"[自检] 尸体 步兵 deathType={footman.DeathType} 衰减={footman.CorpseDecays}"
             + $" 倒计时={soldier.CorpseRemaining:0}s；建筑 deathType={hall.DeathType} 不留尸");
+    }
+
+    /// <summary>物品：英雄走近自动拾取、非英雄不捡、地上清单同步。</summary>
+    private static void CheckItems()
+    {
+        ItemType crown = ItemCatalog.Get("ckng");
+        UnitType paladinType = UnitCatalog.Get("Hpal");
+        UnitType footmanType = UnitCatalog.Get("hfoo");
+        if (crown == null || paladinType == null || footmanType == null) return;
+
+        var world = new World(null, null);
+        Unit paladin = MakeUnit(paladinType, 0);
+        paladin.IsHero = true;
+        world.Units.Add(paladin);
+
+        var first = new Item { Type = crown, Position = new Vector3(50f, 0f, 0f) };
+        world.DropItem(first, first.Position);
+        world.TickItemPickup();
+
+        Verify("英雄走近自动拾取", 1f, paladin.ItemCount == 1 ? 1f : 0f, 0f);
+        Verify("物品离地", 0f, first.OnGround ? 1f : 0f, 0f);
+        Verify("地上清单清空", 0f, world.GroundItems.Count, 0f);
+
+        paladin.Position = new Vector3(10000f, 0f, 0f);
+        Unit soldier = MakeUnit(footmanType, 0);
+        world.Units.Add(soldier);
+        var second = new Item { Type = crown, Position = new Vector3(30f, 0f, 0f) };
+        world.DropItem(second, second.Position);
+        world.TickItemPickup();
+
+        Verify("非英雄不会拾取", 0f, soldier.ItemCount, 0f);
+        Verify("物品仍留在地上", 1f, second.OnGround ? 1f : 0f, 0f);
+        GD.Print($"[自检] 物品 {crown.Name} Lv{crown.Level} 可掉落={crown.Droppable}，"
+            + $"英雄栏位 {paladin.ItemCount}/{Unit.InventorySize}");
     }
 
     private static void ReportHit(string attackerId, string victimId, float raw)

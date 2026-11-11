@@ -367,6 +367,29 @@ public sealed partial class War3GameScene
         first.Timeout += TickProbe;
     }
 
+    /// <summary>--spawn-item=xxx,yyy：在开局焦点附近摆几件物品，方便手测拾取与物品栏。</summary>
+    public void SpawnDebugItems(IReadOnlyList<string> ids)
+    {
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+
+        int index = 0;
+        foreach (string id in ids)
+        {
+            if (!ItemCatalog.Exists(id))
+            {
+                GD.Print($"[ITEM] 未知物品 {id}");
+                continue;
+            }
+            var position = new Vector3(origin.X + 60f + index * 70f, 0f, origin.Z + 140f);
+            position.Y = MapWorldBuilder.HeightAt(_map.Terrain, position.X, position.Z);
+            Item item = SpawnItem(id, position);
+            if (item == null) continue;
+            GD.Print($"[ITEM] 摆放 {item.Type.Name}({id}) Lv{item.Type.Level} 于 ({position.X:0},{position.Z:0})");
+            index++;
+        }
+    }
+
     /// <summary>
     /// --revive-probe：在自家基地摆一个祭坛与一个圣骑士，当场击杀，
     /// 验证「英雄阵亡 → 排队扣金 → 倒计时 → 祭坛旁满血复活」整条链路。

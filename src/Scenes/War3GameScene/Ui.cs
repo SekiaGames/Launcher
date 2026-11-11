@@ -31,6 +31,18 @@ public sealed partial class War3GameScene
         }
     }
 
+    private string InventoryText(Unit hero)
+    {
+        if (hero.ItemCount == 0) return "空";
+        var names = new List<string>();
+        for (int slot = 0; slot < Unit.InventorySize; slot++)
+        {
+            Item item = hero.Inventory[slot];
+            if (item != null) names.Add(item.Type.Name);
+        }
+        return $"{hero.ItemCount}/{Unit.InventorySize} " + string.Join("、", names);
+    }
+
     private string RallyText(Unit building)
     {
         if (building.RallyTarget != null)
@@ -58,7 +70,8 @@ public sealed partial class War3GameScene
             return $"等级 {unit.Level}   力量 {unit.Strength}  敏捷 {unit.Agility}  智力 {unit.Intelligence}"
                 + $"   攻击 {unit.Type.MinDamage + bonusDamage:0}-{unit.Type.MaxDamage + bonusDamage:0}（{CombatCodes.AttackLabel(unit.Type.AttackType)}）"
                 + $"   法力 {unit.Mana:0}/{unit.MaxMana:0}   (主属性 {unit.Type.Primary})"
-                + (unit.Level >= HeroRules.MaxLevel ? "   经验 满级" : $"   经验 {unit.Xp:0}/{next}  技能点 {unit.SkillPoints}");
+                + (unit.Level >= HeroRules.MaxLevel ? "   经验 满级" : $"   经验 {unit.Xp:0}/{next}  技能点 {unit.SkillPoints}")
+                + $"   物品 {InventoryText(unit)}";
         }
 
         float bonus = _world != null ? _world.DamageBonus(unit) : 0f;
