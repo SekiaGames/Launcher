@@ -41,23 +41,11 @@ public sealed partial class World
         }
     }
 
-    /// <summary>升级：属性按成长值累加，生命/法力按 力量*25 / 智力*15 重算并补上差额。</summary>
+    /// <summary>升级：属性按成长值累加（含装备/技能加成），生命/法力按 力量*25 / 智力*15 重算并补差额。</summary>
     private void ApplyHeroLevel(Unit hero)
     {
         UnitType type = hero.Type;
-        int steps = hero.Level - 1;
-        hero.Strength = type.Strength + Mathf.RoundToInt(type.StrengthGain * steps);
-        hero.Agility = type.Agility + Mathf.RoundToInt(type.AgilityGain * steps);
-        hero.Intelligence = type.Intelligence + Mathf.RoundToInt(type.IntelligenceGain * steps);
-
-        float newMaxHp = HeroRules.MaxHpOf(type, hero.Strength);
-        hero.Hp = Mathf.Min(newMaxHp, hero.Hp + Mathf.Max(0f, newMaxHp - hero.MaxHp));
-        hero.MaxHp = newMaxHp;
-
-        float newMaxMana = HeroRules.MaxManaOf(hero.Intelligence);
-        hero.Mana = Mathf.Min(newMaxMana, hero.Mana + Mathf.Max(0f, newMaxMana - hero.MaxMana));
-        hero.MaxMana = newMaxMana;
-
+        RefreshHeroAttributes(hero);
         hero.SkillPoints++;
         hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), true);
         if (_heroLogBudget > 0)

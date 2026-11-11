@@ -57,7 +57,8 @@ public sealed partial class War3GameScene
         {
             if (key.Keycode == Key.Escape)
             {
-                Back();
+                if (CastPending) CancelCast();
+                else Back();
                 return;
             }
 
@@ -105,6 +106,7 @@ public sealed partial class War3GameScene
             else if (button.ButtonIndex == MouseButton.Right && button.Pressed)
             {
                 if (_placingId != null) CancelPlacement();
+                else if (CastPending) CancelCast();
                 else OrderAt(button.Position);
             }
             return;
@@ -140,6 +142,8 @@ public sealed partial class War3GameScene
 
     private void HandleClick(Vector2 position, bool additive)
     {
+        if (TryCastAt(position)) return;
+
         float now = Time.GetTicksMsec() / 1000f;
         Unit picked = PickUnit(position, ViewPlayer);
 
@@ -286,7 +290,8 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
-    private Unit PickUnit(Vector2 screenPosition, int player)
+    /// <summary>指针下的单位；anyPlayer=true 时不限阵营（技能选目标用）。</summary>
+    private Unit PickUnit(Vector2 screenPosition, int player, bool anyPlayer = false)
     {
         Camera3D camera = _camera.Camera;
         Unit best = null;
@@ -294,7 +299,8 @@ public sealed partial class War3GameScene
 
         foreach (Unit unit in _allUnits)
         {
-            if (!unit.Alive || unit.Player != player) continue;
+            if (!unit.Alive) continue;
+            if (!anyPlayer && unit.Player != player) continue;
 
             Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
             if (camera.IsPositionBehind(point)) continue;

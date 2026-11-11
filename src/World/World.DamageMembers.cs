@@ -10,6 +10,7 @@ public sealed partial class World
     public float DamageBonus(Unit unit)
     {
         float bonus = unit.IsHero ? PrimaryAttributeOf(unit) : 0f;
+        bonus += unit.BonusDamageFlat;
         foreach (string upgradeId in unit.Type.UpgradesApplied)
         {
             UpgradeType upgrade = TechTree.Upgrade(upgradeId);
@@ -36,6 +37,7 @@ public sealed partial class World
     {
         float armor = unit.Type.Armor;
         if (unit.IsHero) armor += HeroRules.AgilityArmor(unit.Agility);
+        armor += unit.BonusArmor + unit.AuraArmor;
         foreach (string upgradeId in unit.Type.UpgradesApplied)
         {
             UpgradeType upgrade = TechTree.Upgrade(upgradeId);

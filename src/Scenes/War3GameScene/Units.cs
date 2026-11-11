@@ -224,7 +224,7 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>地图上单位自带的背包物品（war3mapUnits.doo 的 Inventory）。</summary>
-    private static void ApplyPlacementInventory(Unit unit, UnitPlacement entry)
+    private void ApplyPlacementInventory(Unit unit, UnitPlacement entry)
     {
         if (entry.Inventory.Count == 0 || !unit.CanCarryItems) return;
 
@@ -242,6 +242,7 @@ public sealed partial class War3GameScene
             {
                 unit.AddItem(item);
             }
+            _world?.ApplyItemBonus(unit, item);
         }
     }
 
@@ -318,6 +319,7 @@ public sealed partial class War3GameScene
             Agility = type.Agility,
             Intelligence = type.Intelligence,
             AutoAcquire = Aggression && (player <= 3 || player == 12),
+            AutoCast = player != ViewPlayer,
             LeashRange = player is >= 1 and <= 3 ? 1e9f : 260f,
             View = view,
         };
@@ -337,6 +339,10 @@ public sealed partial class War3GameScene
             unit.MaxHp = maxHp * multiplier;
             unit.Hp = unit.MaxHp;
         }
+
+        // 自带技能（abilList）直接 1 级；英雄技能（heroAbilList）从 0 级开始等加点
+        foreach (string abilityId in type.Abilities) unit.GiveAbility(abilityId, 1);
+        foreach (string abilityId in type.HeroAbilList) unit.GiveAbility(abilityId, 0);
 
         view.Play("Stand");
         view.SetHp(1f, true);

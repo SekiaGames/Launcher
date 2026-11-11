@@ -1,0 +1,234 @@
+using Godot;
+using System;
+
+namespace Launcher;
+
+/// <summary>
+/// 技能系统。对标客户端 Src/Abilities/* + Src/Components/Stats.cs：
+/// 一个入口 <see cref="TryCast"/> 管法力/冷却/目标校验，一个 <see cref="TickAbilities"/>
+/// 推进冷却、减速与 Buff，一个 <see cref="RefreshAuras"/> 每 tick 重算光环。
+/// </summary>
+public sealed partial class World
+{
+    /// <summary>技能放出后通知场景层（音效、投射物表现）。</summary>
+    public event Action<Unit, Ability, Unit> AbilityCast;
+
+    /// <summary>英雄学会/升级技能。</summary>
+    public event Action<Unit, Ability> AbilityLearned;
+
+    public bool AreAllied(int a, int b) => IsAllied(a, b);
+
+    public bool RollPercent(float percent)
+    {
+        if (percent <= 0f) return false;
+        return _random.NextDouble() * 100.0 < percent;
+    }
+
+    /// <summary>
+    /// 施法唯一入口：校验 → 扣法力 → 进冷却 → 交给技能效果。
+    /// 技能效果返回 false 视为「没放出去」，不扣任何资源。
+    /// </summary>
+    public bool TryCast(Unit caster, Ability ability, Unit target, Vector3 point)
+    {
+        if (caster == null || ability == null || !caster.Alive) return false;
+        if (!ability.Learned || !ability.Ready) return false;
+        if (!caster.State.CanCast) return false;
+        if (caster.IsUnderConstruction) return false;
+
+        float cost = ability.ManaCost;
+        if (caster.Mana < cost) return false;
+        if (!ability.CheckTarget(this, target, point)) return false;
+        if (!ability.OnCast(this, target, point)) return false;
+
+        caster.Mana = Mathf.Max(0f, caster.Mana - cost);
+        ability.CooldownRemaining = ability.Cooldown;
+        AbilityCast?.Invoke(caster, ability, target);
+        return true;
+    }
+
+    /// <summary>英雄学技能：花 1 点技能点，等级需求按 levelSkip / reqLevel 递推。</summary>
+    public bool LearnAbility(Unit hero, string id)
+    {
+        if (hero == null || !hero.IsHero || !hero.Alive) return false;
+        if (hero.SkillPoints <= 0) return false;
+        if (!IsHeroSkill(hero, id)) return false;
+
+        Ability ability = hero.GiveAbility(id, 0);
+        if (ability?.Type == null) return false;
+        if (ability.Level >= ability.Type.MaxLevel) return false;
+
+        int next = ability.Level + 1;
+        int skip = Mathf.Max(1, ability.Type.LevelSkip);
+        int need = (next - 1) * skip + Mathf.Max(1, ability.Type.RequiredLevel);
+        if (hero.Level < need) return false;
+
+        ability.Level = next;
+        hero.SkillPoints--;
+        ability.OnLearned();
+        AbilityLearned?.Invoke(hero, ability);
+        return true;
+    }
+
+    public static bool IsHeroSkill(Unit hero, string id)
+    {
+        if (hero?.Type == null || string.IsNullOrEmpty(id)) return false;
+        foreach (string known in hero.Type.HeroAbilList)
+        {
+            if (string.Equals(known, id, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>每 tick：技能冷却、减速倒计时、Buff 到期、光环重算。</summary>
+    public void TickAbilities()
+    {
+        foreach (Unit unit in Units)
+        {
+            if (!unit.Alive) continue;
+
+            for (int index = 0; index < unit.Abilities.Count; index++)
+            {
+                Ability ability = unit.Abilities[index];
+                if (ability.CooldownRemaining > 0f)
+                {
+                    ability.CooldownRemaining = Mathf.Max(0f, ability.CooldownRemaining - Tick);
+                }
+            }
+
+            if (unit.SlowRemaining > 0f)
+            {
+                unit.SlowRemaining -= Tick;
+                if (unit.SlowRemaining <= 0f)
+                {
+                    unit.SlowMovePct = 0f;
+                    unit.SlowAttackPct = 0f;
+                }
+            }
+
+            for (int index = unit.Buffs.Count - 1; index >= 0; index--)
+            {
+                Buff buff = unit.Buffs[index];
+                if (buff.OnTick(this, Tick)) continue;
+                unit.Buffs.RemoveAt(index);
+                buff.OnRemove(this);
+            }
+        }
+
+        RefreshAuras();
+    }
+
+    /// <summary>
+    /// AI 自动施法：每 0.5 秒试一次，按技能自己挑目标（治疗找最虚弱的友军、伤害技能打当前目标）。
+    /// 冷却与法力由 <see cref="TryCast"/> 统一管，所以不会刷。
+    /// </summary>
+    private void TickAutoCast(Unit unit)
+    {
+        if (unit.Abilities.Count == 0) return;
+
+        if (unit.AutoCastTimer > 0f)
+        {
+            unit.AutoCastTimer -= Tick;
+            return;
+        }
+        unit.AutoCastTimer = 0.5f;
+
+        foreach (Ability ability in unit.Abilities)
+        {
+            if (!ability.Learned || ability.IsPassive || !ability.Ready) continue;
+            if (unit.Mana < ability.ManaCost) continue;
+            if (ability.TryAutoCast(this)) return;
+        }
+    }
+
+    /// <summary>光环：同源取最大，不叠加；施法者阵亡立即失效。</summary>
+    public void RefreshAuras()
+    {
+        foreach (Unit unit in Units) unit.AuraArmor = 0f;
+
+        foreach (Unit source in Units)
+        {
+            if (!source.Alive) continue;
+
+            foreach (Ability ability in source.Abilities)
+            {
+                if (ability is not DevotionAura aura || !aura.Learned) continue;
+
+                float value = aura.ArmorBonus;
+                if (value <= 0f) continue;
+
+                float radius = aura.AuraArea;
+                foreach (Unit unit in Units)
+                {
+                    if (!unit.Alive) continue;
+                    if (!AreAllied(source.Player, unit.Player)) continue;
+                    if (source.DistanceTo(unit) > radius) continue;
+                    unit.AuraArmor = Mathf.Max(unit.AuraArmor, value);
+                }
+            }
+        }
+    }
+
+    /// <summary>普攻伤害钩子：致命一击、重击这类被动在这里改伤害或挂状态。</summary>
+    public float ApplyAttackModifiers(Unit attacker, Unit target, float raw)
+    {
+        if (attacker == null || attacker.Abilities.Count == 0) return raw;
+
+        float result = raw;
+        foreach (Ability ability in attacker.Abilities)
+        {
+            if (!ability.Learned || !ability.IsPassive) continue;
+            result = ability.ModifyOutgoingAttack(this, target, result);
+        }
+        return result;
+    }
+
+    /// <summary>按 基础 + 等级成长 + 装备/技能加成 重算英雄三围与生命法力。</summary>
+    public void RefreshHeroAttributes(Unit hero)
+    {
+        if (hero?.Type == null || !hero.IsHero) return;
+
+        UnitType type = hero.Type;
+        int steps = Mathf.Max(0, hero.Level - 1);
+        hero.Strength = type.Strength + Mathf.RoundToInt(type.StrengthGain * steps) + hero.BonusStrength;
+        hero.Agility = type.Agility + Mathf.RoundToInt(type.AgilityGain * steps) + hero.BonusAgility;
+        hero.Intelligence = type.Intelligence + Mathf.RoundToInt(type.IntelligenceGain * steps) + hero.BonusIntelligence;
+
+        float newMaxHp = HeroRules.MaxHpOf(type, hero.Strength) + hero.BonusMaxHp;
+        hero.Hp = Mathf.Max(1f, Mathf.Min(newMaxHp, hero.Hp + Mathf.Max(0f, newMaxHp - hero.MaxHp)));
+        hero.MaxHp = newMaxHp;
+
+        float newMaxMana = HeroRules.MaxManaOf(hero.Intelligence);
+        hero.Mana = Mathf.Max(0f, Mathf.Min(newMaxMana, hero.Mana + Mathf.Max(0f, newMaxMana - hero.MaxMana)));
+        hero.MaxMana = newMaxMana;
+
+        hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), hero.Alive);
+    }
+
+    /// <summary>移动速度：基础 + 装备，再乘减速。</summary>
+    public static float SpeedOf(Unit unit)
+    {
+        if (unit?.Type == null) return 0f;
+        float speed = unit.Type.Speed + unit.BonusMoveSpeedFlat;
+        if (unit.Slowed) speed *= 1f - unit.SlowMovePct;
+        return Mathf.Max(40f, speed);
+    }
+
+    /// <summary>装备加成落地：加字段并立刻重算英雄派生值。</summary>
+    public void ApplyItemBonus(Unit unit, Item item)
+    {
+        if (unit == null || item?.Type == null) return;
+
+        ItemBonus bonus = ItemBonus.ForItem(item.Type);
+        if (bonus.IsZero) return;
+
+        unit.BonusStrength += bonus.Strength;
+        unit.BonusAgility += bonus.Agility;
+        unit.BonusIntelligence += bonus.Intelligence;
+        unit.BonusDamageFlat += bonus.Damage;
+        unit.BonusArmor += bonus.Armor;
+        unit.BonusAttackSpeedPct += bonus.AttackSpeedPct;
+        unit.BonusMoveSpeedFlat += bonus.MoveSpeed;
+
+        RefreshHeroAttributes(unit);
+    }
+}

@@ -436,4 +436,112 @@ public sealed partial class War3GameScene
                 + $" 祭坛={(hero.ReviveAltar != null ? hero.ReviveAltar.Type.Name : "无")}");
         };
     }
+
+    /// <summary>
+    /// --skill-probe：在最近野怪旁放一个圣骑士，学 3 个技能并当场施放，
+    /// 验证 技能点→学习→命令卡→施法 整条链路。
+    /// </summary>
+    public void RunSkillProbe()
+    {
+        Unit creep = null;
+        float bestDistance = float.MaxValue;
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != 12) continue;
+            float distance = new Vector2(unit.Position.X - origin.X, unit.Position.Z - origin.Z).Length();
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                creep = unit;
+            }
+        }
+
+        if (creep == null)
+        {
+            GD.Print("[SKILL] 没有野怪可打");
+            return;
+        }
+
+        Unit hero = Spawn("Hpal", ViewPlayer, creep.Position.X + 260f, creep.Position.Z + 260f, 0f, 0f, 1f);
+        if (hero == null)
+        {
+            GD.Print("[SKILL] 英雄模型缺失");
+            return;
+        }
+
+        _world.Units.Add(hero);
+        hero.Level = 6;
+        hero.SkillPoints = 2;
+        _world.RefreshHeroAttributes(hero);
+        hero.Hp = hero.MaxHp;
+        hero.Mana = hero.MaxMana;
+
+        GD.Print($"[SKILL] 圣骑士 Lv{hero.Level} 法力{hero.Mana:0}/{hero.MaxMana:0} 技能点{hero.SkillPoints}"
+            + $" 可学 [{string.Join(",", hero.Type.HeroAbilList)}]");
+
+        foreach (string id in hero.Type.HeroAbilList)
+        {
+            AbilityType type = AbilityCatalog.Get(id);
+            if (type == null) continue;
+            bool ok = _world.LearnAbility(hero, id);
+            Ability ability = hero.FindAbility(id);
+            GD.Print($"[SKILL] 学习 {id} {type.Name} → {(ok ? $"Lv{ability.Level}" : "失败")}"
+                + $"（{type.MaxLevel} 级，法力 {type.CostAt(1):0} 冷却 {type.CooldownAt(1):0}s）");
+        }
+
+        _selected.Clear();
+        _selected.Add(hero);
+        hero.View?.SetSelected(true);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        GD.Print($"[SKILL] 命令卡：{DescribeCommandCard(hero)}");
+
+        // 山丘之王演示 单体伤害+眩晕 / 自身 AoE 减速
+        Unit mountain = Spawn("Hmkg", ViewPlayer, creep.Position.X + 120f, creep.Position.Z + 120f, 0f, 0f, 1f);
+        if (mountain != null)
+        {
+            _world.Units.Add(mountain);
+            mountain.Level = 6;
+            mountain.SkillPoints = 4;
+            _world.RefreshHeroAttributes(mountain);
+            mountain.Hp = mountain.MaxHp;
+            mountain.Mana = mountain.MaxMana;
+            foreach (string id in mountain.Type.HeroAbilList) _world.LearnAbility(mountain, id);
+
+            Ability bolt = mountain.FindAbility("AHtb");
+            if (bolt != null)
+            {
+                float before = creep.Hp;
+                bool cast = _world.TryCast(mountain, bolt, creep, creep.Position);
+                GD.Print($"[SKILL] 风暴之锤 → {creep.Type.Name} {(cast ? "命中" : "失败")}"
+                    + $" {before:0}→{creep.Hp:0} 眩晕{creep.State.Remaining(StateMod.Stun):0.0}s 法力{mountain.Mana:0}");
+            }
+
+            Ability clap = mountain.FindAbility("AHtc");
+            if (clap != null)
+            {
+                bool cast = _world.TryCast(mountain, clap, null, mountain.Position);
+                GD.Print($"[SKILL] 雷霆一击 {(cast ? "施放" : "失败")} 半径{clap.Area:0}"
+                    + $" 命中野怪 {creep.Hp:0}/{creep.MaxHp:0} 减速{creep.SlowMovePct * 100f:0}%");
+            }
+
+            GD.Print($"[SKILL] 山丘技能栏 " + string.Join("、",
+                mountain.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
+        }
+
+        Ability holy = hero.FindAbility("AHhb");
+        if (holy != null)
+        {
+            holy.CooldownRemaining = 0f;
+            hero.Hp = Mathf.Max(1f, hero.Hp - 300f);
+            float before = hero.Hp;
+            bool cast = _world.TryCast(hero, holy, hero, hero.Position);
+            GD.Print($"[SKILL] 圣光术自疗 {(cast ? "成功" : "失败（自身不是合法目标）")} {before:0}→{hero.Hp:0}");
+        }
+
+        GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
+            + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
+    }
 }

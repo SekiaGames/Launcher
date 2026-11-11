@@ -81,6 +81,7 @@ public sealed partial class World
 
         float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
             + DamageBonus(unit);
+        raw = ApplyAttackModifiers(unit, target, raw);
         DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
 
         bool flies = weapon.MissileScene != null && weapon.MissileSpeed > 0f;

@@ -64,6 +64,7 @@ public sealed partial class World
         }
 
         TickWeapons();
+        TickAbilities();
         TickRegeneration();
         TickItemPickup();
         ResolveRepulse();
@@ -79,6 +80,8 @@ public sealed partial class World
             unit.View?.Play("Stand");
             return;
         }
+
+        if (unit.AutoCast) TickAutoCast(unit);
 
         if (unit.IsUnderConstruction)
         {

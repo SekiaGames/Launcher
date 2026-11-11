@@ -31,6 +31,21 @@ public sealed partial class War3GameScene
         }
     }
 
+    /// <summary>技能行：只列已学与可学，带等级。</summary>
+    private static string AbilityText(Unit hero)
+    {
+        if (hero.Abilities.Count == 0) return "-";
+
+        var names = new List<string>();
+        foreach (Ability ability in hero.Abilities)
+        {
+            if (ability.Type == null) continue;
+            if (ability.IsPassive && !ability.Learned) continue;
+            names.Add(ability.Learned ? $"{ability.Name}{ability.Level}" : $"{ability.Name}(未学)");
+        }
+        return names.Count == 0 ? "-" : string.Join("、", names);
+    }
+
     private string InventoryText(Unit hero)
     {
         if (hero.ItemCount == 0) return "空";
@@ -71,7 +86,8 @@ public sealed partial class War3GameScene
                 + $"   攻击 {unit.Type.MinDamage + bonusDamage:0}-{unit.Type.MaxDamage + bonusDamage:0}（{CombatCodes.AttackLabel(unit.Type.AttackType)}）"
                 + $"   法力 {unit.Mana:0}/{unit.MaxMana:0}   (主属性 {unit.Type.Primary})"
                 + (unit.Level >= HeroRules.MaxLevel ? "   经验 满级" : $"   经验 {unit.Xp:0}/{next}  技能点 {unit.SkillPoints}")
-                + $"   物品 {InventoryText(unit)}";
+                + $"   物品 {InventoryText(unit)}"
+                + $"\n技能 {AbilityText(unit)}";
         }
 
         float bonus = _world != null ? _world.DamageBonus(unit) : 0f;
@@ -226,6 +242,10 @@ public sealed partial class War3GameScene
                 AddTrainingCommands(commands, slot, single);
                 AddResearchCommands(commands, slot, single);
                 AddUpgradeCommands(commands, slot, single);
+            }
+            else if (single != null && single.IsHero)
+            {
+                AddAbilityCommands(commands, single);
             }
             else if (_selected[0].IsWorker)
             {

@@ -80,7 +80,7 @@ public sealed partial class World
         if (distance < 0.001f) return;
 
         Vector2 direction = delta / distance;
-        float step = Mathf.Min(unit.Type.Speed * Tick, distance);
+        float step = Mathf.Min(SpeedOf(unit) * Tick, distance);
         Vector2 next = from + direction * step;
 
         unit.Position = new Vector3(next.X, MapWorldBuilder.HeightAt(_terrain, next.X, next.Y), next.Y);

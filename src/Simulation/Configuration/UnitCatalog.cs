@@ -53,6 +53,10 @@ public sealed class UnitType
     public string[] Requires = Array.Empty<string>();
     public string[] UpgradesApplied = Array.Empty<string>();
     public string[] Abilities = Array.Empty<string>();
+    /// <summary>UnitAbilities.heroAbilList：可学技能，等级从 0 开始（技能点加点）。</summary>
+    public string[] HeroAbilList = Array.Empty<string>();
+    /// <summary>UnitData.race：human / orc / undead / nightelf / creeps / critters…（圣光术判定亡灵要用）。</summary>
+    public string Race = "";
     public string SoundSet = "";
 
     // —— 英雄字段（UnitBalance 的 STR/AGI/INT + 成长 + Primary） ——
@@ -246,6 +250,7 @@ public static class UnitCatalog
             TargetKind kind = CombatCodes.ParseTargets(data.Get(dataRow, "targType"));
             type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
             type.DeathType = data.GetInt(dataRow, "deathType", 3);
+            type.Race = (data.Get(dataRow, "race") ?? "").Trim();
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim();
             type.Flying = string.Equals(moveType, "fly", StringComparison.OrdinalIgnoreCase);
         }
@@ -254,6 +259,7 @@ public static class UnitCatalog
         {
             SlkTable abilities = War3Tables.UnitAbilities();
             type.Abilities = SplitList(abilities.Get(abilityRow, "abilList"));
+            type.HeroAbilList = SplitList(abilities.Get(abilityRow, "heroAbilList"));
         }
 
         UnitFuncRow row = TechTree.Row(id);

@@ -42,6 +42,7 @@ public sealed partial class World
             if (!picker.AddItem(item)) continue;
 
             _groundItems.RemoveAt(index);
+            ApplyItemBonus(picker, item);
             ItemPickedUp?.Invoke(picker, item);
             if (_logItemBudget > 0)
             {
