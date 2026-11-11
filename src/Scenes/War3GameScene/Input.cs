@@ -62,8 +62,8 @@ public sealed partial class War3GameScene
                 return;
             }
 
-            // 英雄热键：小键盘 1~6 用物品，字母键按物编热键施法（主键盘 1~0 仍是编队）
-            if (TryHeroHotkey(key.Keycode)) return;
+            // 选中单位热键：小键盘 1~6 用物品（英雄），字母键按物编热键施法（主键盘 1~0 仍是编队）
+            if (TrySelectionHotkey(key.Keycode)) return;
 
             int group = (int)(key.Keycode - Key.Key0);
             if (group is >= 0 and <= 9)

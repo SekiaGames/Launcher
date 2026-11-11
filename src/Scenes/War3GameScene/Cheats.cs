@@ -927,5 +927,49 @@ public sealed partial class War3GameScene
             GD.Print($"[MORPH] 变身还原 → {demon.Type.Id} 生命上限 {demon.MaxHp:0}"
                 + $" 英雄={demon.IsHero} 模型 {demon.View?.Root?.Name}");
         };
+
+        DemoDruidForm(creep);
+    }
+
+    /// <summary>
+    /// 德鲁伊形态（永久）：换类型 → 模型重建 → 技能栏换成新形态 → 再放一次变回。
+    /// 全程看模型节点名与技能列表，不截图。
+    /// </summary>
+    private void DemoDruidForm(Unit creep)
+    {
+        Unit druid = Spawn("edoc", ViewPlayer, creep.Position.X + 420f, creep.Position.Z - 420f, 0f, 0f, 1f);
+        if (druid == null)
+        {
+            GD.Print("[MORPH] 缺德鲁伊模型，跳过形态验证");
+            return;
+        }
+
+        _world.Units.Add(druid);
+        druid.MaxMana = 200f;
+        druid.Mana = 200f;
+        Ability form = druid.GiveAbility("Abrf", 1);
+        if (form == null)
+        {
+            GD.Print("[MORPH] 熊形态技能没挂上");
+            return;
+        }
+
+        string druidModel = druid.View?.Root?.Name ?? "无";
+        bool toBear = _world.TryCast(druid, form, null, druid.Position);
+        string bearModel = druid.View?.Root?.Name ?? "无";
+        string bearSkills = DescribeUnitSkillIds(druid);
+
+        Ability back = druid.FindAbility("Abrf");
+        bool restored = back != null && _world.TryCast(druid, back, null, druid.Position);
+        GD.Print($"[MORPH] 德鲁伊 {(toBear ? "变熊" : "失败")} {druidModel} → {bearModel}"
+            + $" 技能[{bearSkills}]；{(restored ? "变回" : "回退失败")} → {druid.Type.Id} 模型 {druid.View?.Root?.Name}"
+            + $" 技能[{DescribeUnitSkillIds(druid)}] 法力 {druid.Mana:0}/200");
+    }
+
+    private static string DescribeUnitSkillIds(Unit unit)
+    {
+        var ids = new List<string>();
+        foreach (Ability ability in unit.Abilities) ids.Add(ability.Id);
+        return ids.Count == 0 ? "空" : string.Join(",", ids);
     }
 }

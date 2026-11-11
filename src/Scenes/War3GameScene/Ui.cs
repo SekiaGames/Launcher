@@ -251,6 +251,10 @@ public sealed partial class War3GameScene
             {
                 AddBuildCommands(commands, slot, _selected[0]);
             }
+            else if (single != null)
+            {
+                AddUnitAbilityCommands(commands, single);
+            }
         }
 
         _hud.SetCommands(commands);

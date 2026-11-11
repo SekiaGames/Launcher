@@ -1,13 +1,16 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 namespace Launcher;
 
 /// <summary>
-/// 变形系统。对标客户端 Units/Unit.Morph.cs + Game/Scenes/War3GameScene 的模型重建：
+/// 变形系统。对标客户端 Units/Unit.Morph.cs + Unit.TypeChange.cs 的 ApplyUnitTypeTemplate：
 /// 模拟层只换 <see cref="Unit.Type"/> 与生命上限，模型重建由对局层监听 <see cref="UnitMorphed"/> 完成。
-/// 两种形态：disable=true 是妖术这种「变羊」（禁攻击禁施法但仍能移动），
-/// disable=false 是变身（恶魔形态、德鲁伊形态，照常战斗）。
+/// 三种形态：disable=true 是妖术这种「变羊」（禁攻击禁施法但仍能移动）；
+/// disable=false 且 seconds>0 是变身（恶魔形态，照常战斗、到期还原）；
+/// seconds<=0 是永久形态（德鲁伊熊/乌鸦），由技能自己再施放一次变回来。
+/// 非英雄换类型时技能栏同步换成新类型自己的 abilList（客户端 AbilityContainer 保留实例、重读类型字段）。
 /// 生命上限始终以原单位为准（bonusHp 是变身额外加的那部分），所以变羊不会把血条变成小动物的血量。
 /// </summary>
 public sealed partial class World
@@ -18,7 +21,7 @@ public sealed partial class World
     {
         if (unit == null || unit.Type == null || morphType == null || !unit.Alive) return false;
         if (unit.IsBuilding || unit.IsUnderConstruction) return false;
-        if (seconds <= 0f) return false;
+        if (seconds < 0f) return false;
 
         if (unit.Morphed) EndMorph(unit, notify: false);
 
@@ -26,7 +29,8 @@ public sealed partial class World
         unit.MorphOriginMaxHp = unit.MaxHp;
         unit.MorphOriginHero = unit.IsHero;
         unit.MorphHpRatio = Mathf.Clamp(unit.Hp / Mathf.Max(1f, unit.MaxHp), 0.01f, 1f);
-        unit.MorphRemaining = seconds;
+        unit.MorphPermanent = seconds <= 0f;
+        unit.MorphRemaining = seconds > 0f ? seconds : 0f;
 
         unit.Type = morphType;
         unit.MaxHp = Mathf.Max(1f, unit.MorphOriginMaxHp + bonusHp);
@@ -36,17 +40,37 @@ public sealed partial class World
         unit.Target = null;
         unit.MoveTarget = null;
         unit.Path = null;
-        if (disable) unit.State.Add(StateMod.Morph, seconds);
+        if (disable) unit.State.Add(StateMod.Morph, seconds > 0f ? seconds : float.PositiveInfinity);
 
+        SyncAbilitiesToType(unit);
         UnitMorphed?.Invoke(unit);
         return true;
+    }
+
+    /// <summary>非英雄换类型时把技能栏换成新类型的 abilList（英雄保留已学技能，与客户端一致）。</summary>
+    private static void SyncAbilitiesToType(Unit unit)
+    {
+        if (unit.Type == null || unit.IsHero) return;
+
+        var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string id in unit.Type.Abilities)
+        {
+            if (!string.IsNullOrWhiteSpace(id) && id.Length >= 4) wanted.Add(id[..4]);
+        }
+
+        unit.Abilities.RemoveAll(ability => !wanted.Contains(ability.Id));
+        foreach (string raw in unit.Type.Abilities)
+        {
+            if (string.IsNullOrWhiteSpace(raw) || raw.Length < 4) continue;
+            unit.GiveAbility(raw[..4], 1);
+        }
     }
 
     public void TickMorph()
     {
         foreach (Unit unit in Units)
         {
-            if (!unit.Morphed) continue;
+            if (!unit.Morphed || unit.MorphPermanent) continue;
             unit.MorphRemaining -= Tick;
             if (unit.MorphRemaining <= 0f) EndMorph(unit, notify: true);
         }
@@ -66,9 +90,11 @@ public sealed partial class World
         unit.Hp = Mathf.Clamp(unit.MaxHp * ratio, 1f, unit.MaxHp);
 
         unit.MorphOrigin = null;
+        unit.MorphPermanent = false;
         unit.MorphRemaining = 0f;
         unit.State.RemoveAll(StateMod.Morph);
 
+        SyncAbilitiesToType(unit);
         if (notify) UnitMorphed?.Invoke(unit);
     }
 

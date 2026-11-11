@@ -6,10 +6,13 @@ namespace Launcher;
 /// </summary>
 public sealed partial class Unit
 {
-    public bool Morphed => MorphRemaining > 0f;
+    public bool Morphed => MorphPermanent || MorphRemaining > 0f;
 
-    /// <summary>剩余变形时间（秒）。</summary>
+    /// <summary>剩余变形时间（秒）；永久形态不用这个。</summary>
     public float MorphRemaining;
+
+    /// <summary>永久形态（德鲁伊熊/乌鸦）：不会自己到期，再施放一次才变回来。</summary>
+    public bool MorphPermanent;
 
     /// <summary>变形前的单位类型（非空即处于变形中）。</summary>
     public UnitType MorphOrigin;

@@ -138,6 +138,22 @@ public sealed partial class War3GameScene
                 continue;
             }
 
+            // 已学的被动（重击/闪避/重生这类）：占一格但不给点
+            if (ability.IsPassive)
+            {
+                commands.Add(new CommandEntry
+                {
+                    Id = id,
+                    Name = ability.Name,
+                    Cost = "被动",
+                    Hotkey = ability.Hotkey,
+                    Tooltip = AbilityTooltip(ability, ability.Level),
+                    Icon = TechTree.Icon(ability.IconArt),
+                    Enabled = false,
+                });
+                continue;
+            }
+
             // 开关型技能开着时角标显示「开启」，关掉不花法力所以法力不足也能点
             bool toggledOn = ability.IsToggle && ability.ToggledOn;
             string cost = toggledOn
@@ -160,6 +176,36 @@ public sealed partial class War3GameScene
         }
 
         AddInventoryCommands(commands, hero);
+    }
+
+    /// <summary>
+    /// 非英雄单位的技能格（德鲁伊熊/乌鸦形态这类）：等级固定、没有技能点，点一下就是施放。
+    /// </summary>
+    private void AddUnitAbilityCommands(System.Collections.Generic.List<CommandEntry> commands, Unit unit)
+    {
+        foreach (Ability ability in unit.Abilities)
+        {
+            if (!ability.Learned || ability.IsPassive || ability.IsAura) continue;
+
+            bool toggledOn = ability.IsToggle && ability.ToggledOn;
+            string cost = toggledOn
+                ? "开启"
+                : ability.Ready
+                    ? $"{ability.ManaCost:0} 法力"
+                    : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
+
+            commands.Add(new CommandEntry
+            {
+                Id = ability.Id,
+                Name = ability.Name,
+                Cost = cost,
+                Hotkey = ability.Hotkey,
+                Tooltip = AbilityTooltip(ability, ability.Level),
+                Icon = TechTree.Icon(ability.IconArt),
+                Enabled = ability.Ready && (toggledOn || unit.Mana >= ability.ManaCost),
+                Action = () => BeginCast(unit, ability),
+            });
+        }
     }
 
     private static bool LevelRequirementMet(Unit hero, Ability ability)
@@ -211,32 +257,29 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>
-    /// 英雄热键：小键盘 1~6 用物品（原版物品格快捷键），技能按物编的 Hotkey（T/C/D/V…）。
-    /// 主键盘 1~0 仍是编队，不抢。
-    /// </summary>
-    public bool TryHeroHotkey(Key keycode)
+    /// <summary>选中单位的热键：小键盘 1~6 用物品（仅英雄），字母键按物编热键施法（英雄与德鲁伊这类单位都算）。</summary>
+    public bool TrySelectionHotkey(Key keycode)
     {
-        Unit hero = _selected.Count == 1 ? _selected[0] : null;
-        if (hero == null || !hero.IsHero) return false;
+        Unit picked = _selected.Count == 1 ? _selected[0] : null;
+        if (picked == null) return false;
 
         int slot = (int)(keycode - Key.Kp1);
-        if (slot is >= 0 and < Unit.InventorySize)
+        if (slot is >= 0 and < Unit.InventorySize && picked.IsHero)
         {
-            Item item = hero.Inventory[slot];
+            Item item = picked.Inventory[slot];
             if (item?.Type == null) return false;
-            UseOrDropItem(hero, item, slot, item.Type.Usable && !item.Type.Consumable.IsEmpty);
+            UseOrDropItem(picked, item, slot, item.Type.Usable && !item.Type.Consumable.IsEmpty);
             return true;
         }
 
-        foreach (Ability ability in hero.Abilities)
+        foreach (Ability ability in picked.Abilities)
         {
             if (!ability.Learned || ability.IsPassive) continue;
             if (string.IsNullOrEmpty(ability.Hotkey)) continue;
             char pressed = KeyToLetter(keycode);
             if (pressed == '\0') continue;
             if (char.ToUpperInvariant(ability.Hotkey[0]) != pressed) continue;
-            BeginCast(hero, ability);
+            BeginCast(picked, ability);
             return true;
         }
         return false;

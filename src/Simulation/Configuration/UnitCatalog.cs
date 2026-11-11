@@ -69,6 +69,10 @@ public sealed class UnitType
     public float IntelligenceGain;
     public string Primary = "";
     public float ManaRegen;
+    /// <summary>UnitBalance.manaN：最大法力（非英雄法师也有蓝池）。</summary>
+    public float ManaMax;
+    /// <summary>UnitBalance.mana0：出生法力。</summary>
+    public float ManaStart;
     public float SightDay = 1400f;
     /// <summary>转身角速度（弧度/秒）。UnitData.turnRate 是原版字段，这里按每 tick 0.1 的量纲折算。</summary>
     public float TurnSpeed = 3.6f;
@@ -209,8 +213,10 @@ public static class UnitCatalog
                 type.StrengthGain = Number(balance.Get(balanceRow, "STRplus"), 0f);
                 type.AgilityGain = Number(balance.Get(balanceRow, "AGIplus"), 0f);
                 type.IntelligenceGain = Number(balance.Get(balanceRow, "INTplus"), 0f);
-                type.ManaRegen = Number(balance.Get(balanceRow, "regenMana"), 0f);
             }
+            type.ManaRegen = Number(balance.Get(balanceRow, "regenMana"), 0f);
+            type.ManaMax = Number(balance.Get(balanceRow, "manaN"), 0f);
+            type.ManaStart = Number(balance.Get(balanceRow, "mana0"), 0f);
             if (DataRows.TryGetValue(id, out int turnRow) && !type.IsBuilding)
             {
                 float turnRate = Number(War3Tables.UnitData().Get(turnRow, "turnRate"), 0f);

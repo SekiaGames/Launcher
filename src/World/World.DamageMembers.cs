@@ -74,19 +74,19 @@ public sealed partial class World
         foreach (Unit unit in Units)
         {
             if (!unit.Alive || unit.IsUnderConstruction) continue;
-            if (string.Equals(unit.Type.RegenType, "none", StringComparison.OrdinalIgnoreCase)) continue;
+            bool noHpRegen = string.Equals(unit.Type.RegenType, "none", StringComparison.OrdinalIgnoreCase);
 
-            if (unit.Hp < unit.MaxHp)
+            if (!noHpRegen && unit.Hp < unit.MaxHp)
             {
                 float hpPerSecond = unit.Type.RegenHp + unit.AuraHpRegenPerSecond;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
                 if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
             }
 
-            if (unit.IsHero && unit.Mana < unit.MaxMana)
+            if (unit.MaxMana > 0f && unit.Mana < unit.MaxMana)
             {
-                float manaPerSecond = unit.Intelligence * HeroRules.IntRegenBonus + unit.Type.ManaRegen
-                    + unit.AuraManaRegenPerSecond;
+                float manaPerSecond = unit.Type.ManaRegen + unit.AuraManaRegenPerSecond;
+                if (unit.IsHero) manaPerSecond += unit.Intelligence * HeroRules.IntRegenBonus;
                 if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * Tick);
             }
         }
@@ -273,13 +273,17 @@ public sealed partial class World
         unit.CancelAttack();
         InterruptChannel(unit);
         unit.EnterDeath();
-        DropLootOnDeath(unit);
-        GrantKillExperience(killer, unit);
-
-        if (killer != null && killer.Player != unit.Player && !IsAllied(killer.Player, unit.Player) && GivesBounty(unit))
+        bool reincarnating = TryDeathTriggers(unit);
+        if (!reincarnating)
         {
-            int bounty = BountyGoldOf(unit);
-            if (bounty > 0) BountyAwarded?.Invoke(killer.Player, bounty, unit);
+            DropLootOnDeath(unit);
+            GrantKillExperience(killer, unit);
+
+            if (killer != null && killer.Player != unit.Player && !IsAllied(killer.Player, unit.Player) && GivesBounty(unit))
+            {
+                int bounty = BountyGoldOf(unit);
+                if (bounty > 0) BountyAwarded?.Invoke(killer.Player, bounty, unit);
+            }
         }
 
         Died?.Invoke(unit);

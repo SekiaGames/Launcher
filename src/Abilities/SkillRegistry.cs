@@ -73,6 +73,11 @@ public static class SkillRegistry
         ["ANsl"] = () => new SoulPreservation(), // 灵魂保存（玛尔加尼斯，到期接管并死亡）
         ["ANdc"] = () => new DarkConversion(),   // 黑暗转换（玛尔加尼斯，沉睡后换单位）
         ["AOfs"] = () => new FarSight(),      // 远视（先知，点地面揭示）
+        ["Abrf"] = () => new DruidForm(),     // 熊形态（利爪德鲁伊，永久形态）
+        ["Arav"] = () => new DruidForm(),     // 乌鸦形态（猛禽德鲁伊，永久形态）
+        ["AOre"] = () => new Reincarnation(), // 重生（牛头人酋长，死亡后 7s 原地复活）
+        ["AEsv"] = () => new SpiritOfVengeance(), // 复仇之魂（守望者，死亡召魂）
+        ["AHmt"] = () => new MassTeleport(),  // 群体传送（大法师，点全图）
         ["AEev"] = () => new Evasion(),       // 闪避（被动）
         ["AUfa"] = () => new FrostArmor(),    // 霜冻护甲
         // —— 召唤与复活 ——

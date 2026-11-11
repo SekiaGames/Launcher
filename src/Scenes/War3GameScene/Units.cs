@@ -333,6 +333,11 @@ public sealed partial class War3GameScene
             unit.Mana = unit.MaxMana;
             unit.SkillPoints = 1;
         }
+        else if (type.ManaMax > 0f)
+        {
+            unit.MaxMana = type.ManaMax;
+            unit.Mana = Mathf.Min(type.ManaMax, type.ManaStart);
+        }
 
         if (_world != null && type.IsBuilding)
         {

@@ -77,6 +77,7 @@ public sealed partial class World
         TickShops();
         ResolveRepulse();
         TickHeroRevive(Tick);
+        TickReincarnation();
     }
 
     private void Step(Unit unit)
