@@ -236,7 +236,11 @@ public sealed partial class War3GameScene
         if (_selected.Count > 0 && _selected[0].Player == slot.Id)
         {
             Unit single = _selected.Count == 1 ? _selected[0] : null;
-            if (single != null && single.IsBuilding && !single.IsUnderConstruction)
+            if (single != null && single.IsBuilding && single.IsUnderConstruction)
+            {
+                AddCancelConstructionCommand(commands, single);
+            }
+            else if (single != null && single.IsBuilding && !single.IsUnderConstruction)
             {
                 AddTrainingCommands(commands, slot, single);
                 AddResearchCommands(commands, slot, single);
@@ -247,19 +251,50 @@ public sealed partial class War3GameScene
             }
             else if (single != null && single.IsHero)
             {
+                AddStandardCommands(commands, true, compact: true);
                 AddAbilityCommands(commands, single);
             }
             else if (_selected[0].IsWorker)
             {
+                AddStandardCommands(commands, true);
                 AddBuildCommands(commands, slot, _selected[0]);
             }
             else if (single != null)
             {
-                AddUnitAbilityCommands(commands, single);
+                AddStandardCommands(commands, !single.IsBuilding);
+                if (!single.IsBuilding) AddUnitAbilityCommands(commands, single);
+            }
+            else
+            {
+                foreach (Unit unit in _selected)
+                {
+                    if (unit.IsBuilding) continue;
+                    AddStandardCommands(commands, true);
+                    break;
+                }
             }
         }
 
         _hud.SetCommands(commands);
+    }
+
+    private void AddCancelConstructionCommand(List<CommandEntry> commands, Unit site)
+    {
+        Unit target = site;
+        bool sealedByMine = site.Gold > 0;
+        commands.Add(new CommandEntry
+        {
+            Id = "cmd-cancel-build",
+            Name = "取消建造",
+            SlotIndex = 8,
+            Cost = sealedByMine ? "" : $"+{site.Type.GoldCost}金",
+            Tooltip = sealedByMine
+                ? "已占住金矿，不能取消"
+                : $"取消建造并退回 {site.Type.GoldCost}金/{site.Type.LumberCost}木",
+            Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNCancel.blp"),
+            Enabled = !sealedByMine,
+            Action = () => CancelConstruction(target),
+        });
     }
 
     private void AddTrainingCommands(List<CommandEntry> commands, PlayerSlot slot, Unit building)
@@ -281,15 +316,17 @@ public sealed partial class War3GameScene
 
             Unit target = building;
             string id = unitId;
+            bool queued = QueueLength(building) > 0;
             commands.Add(new CommandEntry
             {
                 Id = id,
-                Name = $"训练 {type.Name}",
+                Name = queued ? $"训练 {type.Name}（队列）" : $"训练 {type.Name}",
                 Cost = cost,
-                Tooltip = $"训练 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.TrainSeconds:0}s",
+                Tooltip = $"训练 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.TrainSeconds:0}s\n右键：取消该建筑最后一个订单并退钱",
                 Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
                 Enabled = enabled,
                 Action = () => StartTraining(target, id),
+                RightAction = () => CancelBuildingOrder(target, id),
             });
         }
     }
@@ -319,10 +356,11 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = $"研究 {name}",
                 Cost = $"{gold}金/{lumber}木",
-                Tooltip = $"{name}（{next}/{upgrade.MaxLevel}）\n{upgrade.Description}",
+                Tooltip = $"{name}（{next}/{upgrade.MaxLevel}）\n{upgrade.Description}\n右键：取消该建筑最后一个订单并退钱",
                 Icon = TechTree.Icon(upgrade.IconPath),
                 Enabled = afford && requires && !busy,
                 Action = () => StartResearch(target, id),
+                RightAction = () => CancelBuildingOrder(target, id),
             });
         }
     }
@@ -343,10 +381,11 @@ public sealed partial class War3GameScene
                 Id = buildingId,
                 Name = $"升级为 {target.Name}",
                 Cost = $"{target.GoldCost}金/{target.LumberCost}木",
-                Tooltip = $"升级为 {target.Name}  {target.GoldCost}金 {target.LumberCost}木  {target.BuildSeconds:0}s",
+                Tooltip = $"升级为 {target.Name}  {target.GoldCost}金 {target.LumberCost}木  {target.BuildSeconds:0}s\n右键：取消该建筑最后一个订单并退钱",
                 Icon = TechTree.Icon(TechTree.UnitIconArt(buildingId)),
                 Enabled = afford && requires,
                 Action = () => StartBuildingUpgrade(source, buildingId),
+                RightAction = () => CancelBuildingOrder(source, buildingId),
             });
         }
     }

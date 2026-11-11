@@ -202,6 +202,21 @@ public abstract class Ability
     /// <summary>AI 自动施法钩子：返回 true 表示这次真的放出去了。</summary>
     public virtual bool TryAutoCast(World world) => false;
 
+    public bool AutoCastEnabled = true;
+
+    private bool? _supportsAutoCast;
+
+    public bool SupportsAutoCast
+    {
+        get
+        {
+            if (_supportsAutoCast.HasValue) return _supportsAutoCast.Value;
+            bool overridden = GetType().GetMethod(nameof(TryAutoCast))?.DeclaringType != typeof(Ability);
+            _supportsAutoCast = overridden && !IsPassive && !IsAura;
+            return _supportsAutoCast.Value;
+        }
+    }
+
     /// <summary>普攻伤害钩子：暴击、重击这类被动改这里。</summary>
     public virtual float ModifyOutgoingAttack(World world, Unit target, float raw) => raw;
 

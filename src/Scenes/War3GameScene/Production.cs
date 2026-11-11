@@ -127,6 +127,49 @@ public sealed partial class War3GameScene
         return site;
     }
 
+    private bool CancelConstruction(Unit site)
+    {
+        if (site == null || !site.Alive || !site.IsUnderConstruction) return false;
+
+        if (site.Gold > 0)
+        {
+            _hud?.SetHint($"{site.Type.Name} 已经占住金矿，不能取消");
+            return false;
+        }
+
+        UnitType type = site.Type;
+        PlayerSlot slot = Slot(site.Player);
+        if (slot != null)
+        {
+            slot.Gold += type.GoldCost;
+            slot.Lumber += type.LumberCost;
+            slot.BuiltCounts[type.Id] = Mathf.Max(0, slot.BuiltCount(type.Id) - 1);
+        }
+
+        foreach (Unit worker in _allUnits)
+        {
+            if (worker == null || !ReferenceEquals(worker.BuildSite, site)) continue;
+            worker.BuildSite = null;
+            worker.BuildingNow = false;
+            worker.Path = null;
+            worker.View?.Play("Stand");
+        }
+
+        float footprint = Mathf.Max(32f, type.FootprintRadius);
+        _pathGrid?.RemoveBlocker(site.Position, footprint);
+        _world?.Units.Remove(site);
+        _allUnits.Remove(site);
+        if (_selected.Remove(site)) _hud?.SetSelection(_selected);
+        site.Alive = false;
+        site.IsUnderConstruction = false;
+        site.View?.Root.QueueFree();
+
+        GD.Print($"[BUILD] P{site.Player} 取消建造 {type.Name}，退回 {type.GoldCost}金/{type.LumberCost}木");
+        RefreshHud();
+        UpdateCommandCard();
+        return true;
+    }
+
     private void AssignBuilders(Unit site, PlayerSlot slot, int wanted)
     {
         int assigned = 0;
@@ -499,6 +542,75 @@ public sealed partial class War3GameScene
             if (distance < spacing) return false;
         }
         return true;
+    }
+
+    private bool CancelBuildingOrder(Unit building, string preferredId)
+    {
+        if (building == null) return false;
+
+        int found = -1;
+        for (int index = _orders.Count - 1; index >= 0; index--)
+        {
+            BuildingOrder order = _orders[index];
+            if (!ReferenceEquals(order.Building, building)) continue;
+            if (found < 0) found = index;
+            if (string.IsNullOrEmpty(preferredId)
+                || !string.Equals(order.Id, preferredId, StringComparison.OrdinalIgnoreCase)) continue;
+            found = index;
+            break;
+        }
+        if (found < 0)
+        {
+            _hud?.SetHint($"{building.Type.Name} 没有可取消的订单");
+            return false;
+        }
+
+        BuildingOrder cancelled = _orders[found];
+        _orders.RemoveAt(found);
+        RefundOrder(cancelled);
+        _hud?.SetHint($"取消 {DescribeBuildingOrder(cancelled)}，已退款");
+        RefreshHud();
+        UpdateCommandCard();
+        UpdateQueueLabel();
+        return true;
+    }
+
+    private void RefundOrder(BuildingOrder order)
+    {
+        PlayerSlot slot = Slot(order.Player);
+        if (slot == null) return;
+
+        switch (order.Kind)
+        {
+            case OrderKind.Train:
+            case OrderKind.Upgrade:
+            {
+                UnitType type = UnitCatalog.Get(order.Id);
+                if (type == null) return;
+                slot.Gold += type.GoldCost;
+                slot.Lumber += type.LumberCost;
+                break;
+            }
+            case OrderKind.Research:
+            {
+                UpgradeType upgrade = TechTree.Upgrade(order.Id);
+                if (upgrade == null) return;
+                slot.Gold += upgrade.GoldFor(order.Level);
+                slot.Lumber += upgrade.LumberFor(order.Level);
+                break;
+            }
+        }
+        GD.Print($"[ORDER] P{order.Player} 取消 {DescribeBuildingOrder(order)} 退款：{slot.Gold}/{slot.Lumber}");
+    }
+
+    private static string DescribeBuildingOrder(BuildingOrder order)
+    {
+        return order.Kind switch
+        {
+            OrderKind.Train => $"训练 {UnitCatalog.Get(order.Id)?.Name}",
+            OrderKind.Research => $"研究 {TechTree.Upgrade(order.Id)?.NameFor(order.Level)}",
+            _ => $"升级 {UnitCatalog.Get(order.Id)?.Name}",
+        };
     }
 
     private void CancelTrainingOrders(Unit building)

@@ -108,6 +108,7 @@ public static partial class CombatProbe
         CheckSplash();
         CheckRegeneration();
         CheckRally();
+        CheckOrders();
         CheckSecondWeapon();
         CheckCorpse();
         CheckItems();

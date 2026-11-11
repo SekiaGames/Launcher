@@ -83,7 +83,8 @@ public sealed partial class World
         float step = Mathf.Min(SpeedOf(unit) * Tick, distance);
         Vector2 next = from + direction * step;
 
-        unit.Position = new Vector3(next.X, MapWorldBuilder.HeightAt(_terrain, next.X, next.Y), next.Y);
+        float groundY = _terrain != null ? MapWorldBuilder.HeightAt(_terrain, next.X, next.Y) : unit.Position.Y;
+        unit.Position = new Vector3(next.X, groundY, next.Y);
         unit.TargetFacing = Mathf.Pi + Mathf.Atan2(-direction.X, direction.Y);
 
         if (unit.View != null)

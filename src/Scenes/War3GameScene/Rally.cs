@@ -7,7 +7,7 @@ namespace Launcher;
 
 public sealed partial class War3GameScene
 {
-    private void OrderAt(Vector2 screenPosition)
+    private void OrderAt(Vector2 screenPosition, bool queue)
     {
         if (_selected.Count == 0) return;
 
@@ -44,15 +44,13 @@ public sealed partial class War3GameScene
                 if (unit.FindAbility("Ahrp") == null && unit.FindAbility("Arep") == null
                     && unit.FindAbility("Aren") == null && unit.FindAbility("Arst") == null) continue;
 
+                _world.ClearOrders(unit);
                 unit.RepairTarget = damagedAlly;
                 unit.Repairing = false;
                 unit.RepairGoldDebt = 0f;
                 unit.BuildSite = null;
                 unit.Tree = null;
                 unit.GoldMine = null;
-                unit.Target = null;
-                unit.MoveTarget = null;
-                unit.Path = null;
                 repairers++;
             }
             _hud?.SetHint(repairers > 0
@@ -101,13 +99,10 @@ public sealed partial class War3GameScene
             foreach (Unit unit in _selected)
             {
                 if (!unit.Type.CanAttack) continue;
-                unit.GoldMine = null;
-                unit.Tree = null;
-                unit.Target = enemy;
-                unit.MoveTarget = null;
-                unit.Path = null;
+                _world.ClearOrders(unit);
+                _world.IssueOrder(unit, UnitOrder.Attack(enemy), queue);
             }
-            _hud?.SetHint($"攻击 {enemy.Type.Name}");
+            _hud?.SetHint(queue ? $"追加攻击 {enemy.Type.Name}" : $"攻击 {enemy.Type.Name}");
             return;
         }
 
@@ -129,29 +124,7 @@ public sealed partial class War3GameScene
         }
 
         if (!TryGroundPoint(screenPosition, out Vector3 ground)) return;
-
-        var movers = new List<Unit>();
-        Vector3 centroid = Vector3.Zero;
-        foreach (Unit unit in _selected)
-        {
-            if (unit.IsBuilding || !unit.Alive) continue;
-            movers.Add(unit);
-            centroid += unit.Position;
-        }
-        if (movers.Count == 0) return;
-        centroid /= movers.Count;
-
-        // 按物编 formation 分层排队：近战在前、远程/法师在后（对标客户端 MovementFormationOffsets）
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
-        foreach (Unit unit in movers)
-        {
-            unit.Target = null;
-            unit.GoldMine = null;
-            unit.Tree = null;
-            unit.MoveTarget = slots.TryGetValue(unit, out Vector3 spot) ? spot : ground;
-            unit.Path = null;
-        }
-        _hud?.SetHint($"移动到 ({ground.X:0}, {ground.Z:0})，{movers.Count} 个单位按阵型展开");
+        IssueMoveOrders(ground, queue);
     }
 
     /// <summary>选中建筑时右键 = 设集结点：指针下是单位/树就绑目标，否则设地面点。</summary>

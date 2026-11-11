@@ -180,7 +180,7 @@ public sealed class MeleeHudController
         _queueLabel = Label("", 14, new Vector2(222f, 758f), new Color(0.85f, 0.85f, 0.85f));
         layer.AddChild(_queueLabel);
 
-        _hint = Label("左键选中/框选  双击选同类  Ctrl+数字编队  右键移动/攻击/采集  中键拖拽  滚轮缩放  WASD 平移  ESC 返回",
+        _hint = Label("左键选中/框选  双击选同类  Ctrl+数字编队  右键移动/攻击/采集  Shift+右键排队  M移动 S停 H据守 A攻击 P巡逻  中键拖拽  滚轮缩放  WASD 平移  ESC 返回",
             14, new Vector2(222f, 862f), new Color(0.7f, 0.72f, 0.75f));
         layer.AddChild(_hint);
 
@@ -286,7 +286,7 @@ public sealed class MeleeHudController
     {
         if (index < 0 || index >= _commands.Count) return;
         CommandEntry entry = _commands[index];
-        if (entry == null || !entry.Enabled || entry.RightAction == null) return;
+        if (entry == null || entry.RightAction == null) return;
         entry.RightAction();
     }
 

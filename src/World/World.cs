@@ -138,14 +138,28 @@ public sealed partial class World
             return;
         }
 
+        if (unit.HoldingPosition)
+        {
+            StepHoldPosition(unit);
+            return;
+        }
+
         if (unit.AutoAcquire)
         {
             StepCreep(unit);
             return;
         }
 
-        if (unit.Target != null && !unit.Target.Alive) unit.Target = null;
-        if (unit.Target != null && !CanStrike(unit, unit.Target)) unit.Target = null;
+        if (unit.Target != null && !unit.Target.Alive)
+        {
+            unit.Target = null;
+            AdvanceOrder(unit);
+        }
+        if (unit.Target != null && !CanStrike(unit, unit.Target))
+        {
+            unit.Target = null;
+            AdvanceOrder(unit);
+        }
 
         if (unit.Target != null && unit.Type.CanAttack && unit.State.CanAttack)
         {
@@ -174,9 +188,21 @@ public sealed partial class World
             }
             if (Advance(unit, unit.MoveTarget.Value, 12f))
             {
+                if (unit.Patrolling)
+                {
+                    TickPatrolEndpoint(unit);
+                    return;
+                }
                 unit.MoveTarget = null;
                 unit.View?.Play("Stand");
+                AdvanceOrder(unit);
             }
+            return;
+        }
+
+        if (unit.Patrolling)
+        {
+            TickPatrolEndpoint(unit);
             return;
         }
 

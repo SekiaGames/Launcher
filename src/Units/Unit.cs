@@ -17,6 +17,12 @@ public sealed partial class Unit
     public bool IsBuilding;
     public Unit Target;
     public Vector3? MoveTarget;
+    public bool HoldingPosition;
+    public bool Patrolling;
+    public Vector3 PatrolFrom;
+    public Vector3 PatrolTo;
+    public readonly List<UnitOrder> PendingOrders = new();
+    public int OrderLogBudget = 3;
     public float AttackCooldown;
     public UnitSceneComponent View;
 

@@ -26,11 +26,17 @@ public sealed partial class World
     {
         if (unit == null || !unit.IsHero) return false;
 
-        bool reincarnating = false;
+        var triggering = new List<Ability>();
         foreach (Ability ability in unit.Abilities)
         {
             if (!ability.Learned || !ability.Ready) continue;
+            if (ability is Reincarnation || ability is SpiritOfVengeance) triggering.Add(ability);
+        }
+        if (triggering.Count == 0) return false;
 
+        bool reincarnating = false;
+        foreach (Ability ability in triggering)
+        {
             if (ability is Reincarnation reincarnation)
             {
                 reincarnation.CooldownRemaining = reincarnation.Cooldown;

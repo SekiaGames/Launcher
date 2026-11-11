@@ -34,9 +34,9 @@ public sealed partial class War3GameScene
         float forwardInput = 0f;
         float rightInput = 0f;
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) forwardInput += 1f;
-        if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) forwardInput -= 1f;
+        if (Input.IsKeyPressed(Key.S) && PanKeyAvailable(Key.S) || Input.IsKeyPressed(Key.Down)) forwardInput -= 1f;
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) rightInput += 1f;
-        if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left)) rightInput -= 1f;
+        if (Input.IsKeyPressed(Key.A) && PanKeyAvailable(Key.A) || Input.IsKeyPressed(Key.Left)) rightInput -= 1f;
         if (forwardInput == 0f && rightInput == 0f) return;
 
         Vector3 forward = -_camera.Camera.GlobalTransform.Basis.Z;
@@ -53,23 +53,29 @@ public sealed partial class War3GameScene
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is InputEventKey key && key.Pressed && !key.Echo)
+        if (@event is InputEventKey keyEvent)
         {
-            if (key.Keycode == Key.Escape)
+            if (!keyEvent.Pressed)
             {
-                if (CastPending) CancelCast();
-                else Back();
-                return;
+                ReleaseCommandKey(keyEvent.Keycode);
             }
-
-            // 选中单位热键：小键盘 1~6 用物品（英雄），字母键按物编热键施法（主键盘 1~0 仍是编队）
-            if (TrySelectionHotkey(key.Keycode)) return;
-
-            int group = (int)(key.Keycode - Key.Key0);
-            if (group is >= 0 and <= 9)
+            else if (!keyEvent.Echo)
             {
-                HandleGroupKey(group, key.CtrlPressed);
-                return;
+                if (keyEvent.Keycode == Key.Escape)
+                {
+                    if (CastPending) CancelCast();
+                    else Back();
+                    return;
+                }
+
+                if (TrySelectionHotkey(keyEvent.Keycode)) return;
+
+                int group = (int)(keyEvent.Keycode - Key.Key0);
+                if (group is >= 0 and <= 9)
+                {
+                    HandleGroupKey(group, keyEvent.CtrlPressed);
+                    return;
+                }
             }
         }
 
@@ -110,7 +116,7 @@ public sealed partial class War3GameScene
             {
                 if (_placingId != null) CancelPlacement();
                 else if (CastPending) CancelCast();
-                else OrderAt(button.Position);
+                else OrderAt(button.Position, button.ShiftPressed);
             }
             return;
         }
@@ -145,6 +151,7 @@ public sealed partial class War3GameScene
 
     private void HandleClick(Vector2 position, bool additive)
     {
+        if (TryCommandAt(position)) return;
         if (TryCastAt(position)) return;
 
         float now = Time.GetTicksMsec() / 1000f;

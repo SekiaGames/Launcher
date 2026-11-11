@@ -319,7 +319,7 @@ public sealed partial class LauncherApp : Node
         if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
         if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
         AddChild(game);
-        if (_orderTest) game.ScriptedMoveTest();
+        if (_orderTest) game.ScriptedOrderTest();
         if (_clickTest) game.RunClickTest();
         if (_gatherTest) game.ScriptedGatherTest();
         if (_trainTest) game.ScriptedTrainTest();

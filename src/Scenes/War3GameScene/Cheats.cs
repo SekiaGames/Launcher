@@ -7,6 +7,53 @@ namespace Launcher;
 
 public sealed partial class War3GameScene
 {
+    public void ScriptedOrderTest()
+    {
+        var movers = new List<Unit>();
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != ViewPlayer || unit.IsBuilding || unit.IsWorker) continue;
+            movers.Add(unit);
+            if (movers.Count >= 3) break;
+        }
+        if (movers.Count == 0)
+        {
+            foreach (Unit unit in _allUnits)
+            {
+                if (!unit.Alive || unit.Player != ViewPlayer || unit.IsBuilding) continue;
+                movers.Add(unit);
+                if (movers.Count >= 3) break;
+            }
+        }
+        if (movers.Count == 0)
+        {
+            GD.Print("[ORDER] 演示：没有可用单位");
+            return;
+        }
+
+        ClearSelection();
+        foreach (Unit unit in movers)
+        {
+            _selected.Add(unit);
+            unit.View?.SetSelected(true);
+        }
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+
+        Vector3 center = _camera.Target;
+        Vector3 first = new(center.X + 420f, 0f, center.Z);
+        Vector3 second = new(center.X - 420f, 0f, center.Z + 320f);
+        first.Y = MapWorldBuilder.HeightAt(_map.Terrain, first.X, first.Z);
+        second.Y = MapWorldBuilder.HeightAt(_map.Terrain, second.X, second.Z);
+
+        IssueMoveOrders(first, false);
+        IssueMoveOrders(second, true);
+
+        GD.Print($"[ORDER] 演示：{movers.Count} 个单位先到 A({first.X:0},{first.Z:0})"
+            + $" 再到 B({second.X:0},{second.Z:0})，队列 {movers[0].PendingOrders.Count} 条");
+        _hud?.SetHint("订单演示：先走 A，到达后自动拐去排队的 B；按 S 可随时停止");
+    }
+
     public void ScriptedMoveTest()
     {
         int moved = 0;
@@ -769,7 +816,7 @@ public sealed partial class War3GameScene
         _hud?.SetSelection(_selected);
 
         Vector2 screen = _camera.Camera.UnprojectPosition(destination + new Vector3(0f, 40f, 0f));
-        OrderAt(screen);
+        OrderAt(screen, false);
 
         SceneTreeTimer timer = GetTree().CreateTimer(2.5);
         timer.Timeout += () =>

@@ -140,7 +140,8 @@ public static partial class CombatProbe
         Verify("沉默权杖可用", 1f, silenced ? 1f : 0f, 0f);
         Verify("沉默权杖按住敌人", 1f, enemy.State.Silenced ? 1f : 0f, 0f);
 
-        Unit flyer = ProbeUnit(world, "hgry", 1, new Vector3(-500f, 0f, 0f));
+        world.MoveUnitTo(hero, Vector3.Zero);
+        Unit flyer = ProbeUnit(world, "hgyr", 1, new Vector3(-360f, 0f, 0f));
         if (flyer != null)
         {
             bool webbed = world.UseItem(hero, GiveItem(hero, "silk"), flyer, flyer.Position);

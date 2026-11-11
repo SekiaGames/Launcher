@@ -22,6 +22,7 @@ public sealed partial class World
         worker.Path = null;
         worker.PathIndex = 0;
         worker.WorkTimer = 0f;
+        ClearQueuedOrders(worker);
     }
 
     public void SetChop(Unit worker, TreeState tree)
@@ -38,6 +39,7 @@ public sealed partial class World
         worker.WorkTimer = 0f;
         worker.Path = null;
         worker.PathIndex = 0;
+        ClearQueuedOrders(worker);
     }
 
     public void SetGather(Unit worker, Unit mine)
@@ -55,6 +57,7 @@ public sealed partial class World
         worker.MoveTarget = null;
         worker.Path = null;
         worker.PathIndex = 0;
+        ClearQueuedOrders(worker);
     }
 
     public void ClearOrders(Unit unit)
@@ -71,6 +74,7 @@ public sealed partial class World
         unit.Repairing = false;
         unit.Path = null;
         unit.PathIndex = 0;
+        ClearQueuedOrders(unit);
         unit.View?.Play("Stand");
     }
 

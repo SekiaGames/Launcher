@@ -245,6 +245,7 @@ public sealed partial class World
         foreach (Ability ability in unit.Abilities)
         {
             if (!ability.Learned || ability.IsPassive || !ability.Ready) continue;
+            if (!ability.AutoCastEnabled) continue;
             bool turningOff = ability.IsToggle && ability.ToggledOn;
             if (!turningOff && unit.Mana < ability.ManaCost) continue;
 

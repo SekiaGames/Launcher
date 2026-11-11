@@ -15,13 +15,14 @@ public sealed partial class War3GameScene
     private Unit _pendingItemHero;
     private int _pendingItemSlot = -1;
 
-    public bool CastPending => _pendingCast != null || _pendingItem != null;
+    public bool CastPending => _pendingCast != null || _pendingItem != null || CommandPending;
 
     /// <summary>命令卡点技能：无目标技能立刻放，有目标的进入待施放。</summary>
     public void BeginCast(Unit caster, Ability ability)
     {
         if (caster == null || ability == null) return;
         if (_pendingItem != null) CancelCast();
+        ClearPendingCommand();
         if (!ability.Learned || !ability.Ready)
         {
             _hud?.SetHint(ability.Learned ? $"{ability.Name} 冷却中（{ability.CooldownRemaining:0.0}s）" : "技能还没学会");
@@ -56,6 +57,7 @@ public sealed partial class War3GameScene
         _pendingItem = null;
         _pendingItemHero = null;
         _pendingItemSlot = -1;
+        ClearPendingCommand();
         if (had) _hud?.SetHint("");
     }
 
@@ -246,11 +248,14 @@ public sealed partial class War3GameScene
 
             // 开关型技能开着时角标显示「开启」，关掉不花法力所以法力不足也能点
             bool toggledOn = ability.IsToggle && ability.ToggledOn;
+            bool autoOn = ability.SupportsAutoCast && ability.AutoCastEnabled && hero.AutoCast;
             string cost = toggledOn
                 ? "开启"
-                : ability.Ready
-                    ? $"{ability.ManaCost:0} 法力"
-                    : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
+                : autoOn
+                    ? "自动"
+                    : ability.Ready
+                        ? $"{ability.ManaCost:0} 法力"
+                        : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
 
             commands.Add(new CommandEntry
             {
@@ -258,10 +263,11 @@ public sealed partial class War3GameScene
                 Name = ability.Name,
                 Cost = cost,
                 Hotkey = ability.Hotkey,
-                Tooltip = AbilityTooltip(ability, ability.Level),
+                Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
                 Icon = TechTree.Icon(ability.IconArt),
                 Enabled = ability.Ready && (toggledOn || hero.Mana >= ability.ManaCost),
                 Action = () => BeginCast(hero, ability),
+                RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(hero, ability) : null,
             });
         }
 
@@ -278,11 +284,14 @@ public sealed partial class War3GameScene
             if (!ability.Learned || ability.IsPassive || ability.IsAura) continue;
 
             bool toggledOn = ability.IsToggle && ability.ToggledOn;
+            bool autoOn = ability.SupportsAutoCast && ability.AutoCastEnabled && unit.AutoCast;
             string cost = toggledOn
                 ? "开启"
-                : ability.Ready
-                    ? $"{ability.ManaCost:0} 法力"
-                    : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
+                : autoOn
+                    ? "自动"
+                    : ability.Ready
+                        ? $"{ability.ManaCost:0} 法力"
+                        : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
 
             commands.Add(new CommandEntry
             {
@@ -290,10 +299,11 @@ public sealed partial class War3GameScene
                 Name = ability.Name,
                 Cost = cost,
                 Hotkey = ability.Hotkey,
-                Tooltip = AbilityTooltip(ability, ability.Level),
+                Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
                 Icon = TechTree.Icon(ability.IconArt),
                 Enabled = ability.Ready && (toggledOn || unit.Mana >= ability.ManaCost),
                 Action = () => BeginCast(unit, ability),
+                RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(unit, ability) : null,
             });
         }
     }
@@ -305,6 +315,11 @@ public sealed partial class War3GameScene
         int skip = Mathf.Max(1, ability.Type.LevelSkip);
         int need = (next - 1) * skip + Mathf.Max(1, ability.Type.RequiredLevel);
         return hero.Level >= need;
+    }
+
+    private static string AutoCastHint(Ability ability)
+    {
+        return ability != null && ability.SupportsAutoCast ? "\n右键：开/关自动施法" : "";
     }
 
     /// <summary>
@@ -350,9 +365,15 @@ public sealed partial class War3GameScene
     /// <summary>选中单位的热键：小键盘 1~6 用物品（仅英雄），字母键按物编热键施法（英雄与德鲁伊这类单位都算）。</summary>
     public bool TrySelectionHotkey(Key keycode)
     {
+        if (_selected.Count == 0) return false;
         Unit picked = _selected.Count == 1 ? _selected[0] : null;
-        if (picked == null) return false;
 
+        if (picked != null && TrySelectionItemOrAbilityHotkey(picked, keycode)) return true;
+        return TryStandardCommandHotkey(_selected[0], keycode);
+    }
+
+    private bool TrySelectionItemOrAbilityHotkey(Unit picked, Key keycode)
+    {
         int slot = (int)(keycode - Key.Kp1);
         if (slot is >= 0 and < Unit.InventorySize && picked.IsHero)
         {
@@ -372,6 +393,7 @@ public sealed partial class War3GameScene
             BeginCast(picked, ability);
             return true;
         }
+
         return false;
     }
 
