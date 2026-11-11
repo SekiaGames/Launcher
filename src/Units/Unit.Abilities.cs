@@ -38,6 +38,15 @@ public sealed partial class Unit
     public OrbEffect OrbEffectKind = OrbEffect.None;
     public float OrbSeconds;
     public float BonusMaxHp;
+    /// <summary>攻击类型覆盖（战棍：攻城）。null 表示用武器自带的类型。</summary>
+    public AttackType? AttackTypeOverride;
+    /// <summary>射程加成（战棍 +DataE）。</summary>
+    public float AttackRangeBonus;
+    /// <summary>手里抓着树（战棍生效中，不能重复拔树）。</summary>
+    public bool GrabbedTree;
+
+    /// <summary>实际攻击射程 = 武器射程 + 加成（取目标判定与逼近距离都用它）。</summary>
+    public float AttackReach => (Type?.AttackRange ?? 0f) + AttackRangeBonus;
     /// <summary>装备给的法力上限（不随智力重算清零）。</summary>
     public float BonusMaxMana;
     /// <summary>魔法伤害减免（符文护腕 0.33）。</summary>
@@ -126,6 +135,19 @@ public sealed partial class Unit
             if (string.Equals(ability.Id, id, System.StringComparison.OrdinalIgnoreCase)) return ability;
         }
         return null;
+    }
+
+    /// <summary>按码摘掉一个技能实例（工程升级会把旧码换成升级后的码）。</summary>
+    public bool RemoveAbility(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return false;
+        for (int index = Abilities.Count - 1; index >= 0; index--)
+        {
+            if (!string.Equals(Abilities[index].Id, id, System.StringComparison.OrdinalIgnoreCase)) continue;
+            Abilities.RemoveAt(index);
+            return true;
+        }
+        return false;
     }
 
     public T FindBuff<T>() where T : Buff

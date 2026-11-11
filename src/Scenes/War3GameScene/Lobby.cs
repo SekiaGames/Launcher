@@ -24,6 +24,8 @@ public sealed partial class War3GameScene
         public float FormationTimer;
         /// <summary>AI 派工修理的节流计时。</summary>
         public float RepairTimer;
+        /// <summary>AI 英雄喝药的节流计时。</summary>
+        public float ItemTimer;
         /// <summary>最近一次统计的对手阵容（每 2 秒刷新），出兵与波次编成按它打分。</summary>
         public EnemyComposition Enemy = new();
         public float EnemyTimer;

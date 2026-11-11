@@ -148,7 +148,7 @@ public sealed partial class World
         if (unit.Target != null && unit.Type.CanAttack && unit.State.CanAttack)
         {
             float distance = unit.DistanceTo(unit.Target);
-            if (distance <= unit.Type.AttackRange + unit.Target.Radius)
+            if (distance <= unit.AttackReach + unit.Target.Radius)
             {
                 FaceTarget(unit, unit.Target);
                 BeginAttack(unit, unit.Target);
@@ -159,7 +159,7 @@ public sealed partial class World
                 unit.Target = null;
                 return;
             }
-            Advance(unit, unit.Target.Position, unit.Type.AttackRange + unit.Target.Radius);
+            Advance(unit, unit.Target.Position, unit.AttackReach + unit.Target.Radius);
             return;
         }
 

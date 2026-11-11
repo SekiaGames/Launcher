@@ -13,6 +13,35 @@ public static partial class CombatProbe
         CheckSlowAuraAbility();
         CheckPermanentImmolationAbility();
         CheckTornadoDamageAbility();
+        CheckGrabTreeAbility();
+    }
+
+    /// <summary>战棍（Agra）：拔树后攻击变攻城、射程 +DataE，挥满 DataE 次恢复。</summary>
+    private static void CheckGrabTreeAbility()
+    {
+        AbilityType type = AbilityCatalog.Get("Agra");
+        if (type == null) return;
+
+        var trees = new List<TreeState> { new() { Position = new Vector3(40f, 0f, 0f), Hp = 50f } };
+        var world = new World(null, null, trees);
+        Unit giant = ProbeUnit(world, "emtg", 0, Vector3.Zero, "Agra");
+        if (giant == null) return;
+
+        float baseReach = giant.AttackReach;
+        bool cast = world.TryCast(giant, giant.FindAbility("Agra"), null, giant.Position);
+
+        Verify("战棍可用", 1f, cast ? 1f : 0f, 0f);
+        Verify("拔树后树消失", 0f, trees[0].Alive ? 1f : 0f, 0f);
+        Verify("拔树后是攻城攻击", (float)AttackType.Siege, (float)(giant.AttackTypeOverride ?? AttackType.Normal), 0f);
+        Verify("拔树后射程 +DataE", baseReach + type.DataAt(1, 'E'), giant.AttackReach, 0.01f);
+
+        int charges = Mathf.RoundToInt(type.DataAt(1, 'E'));
+        Unit victim = ProbeUnit(world, "hfoo", 1, new Vector3(200f, 0f, 0f));
+        for (int index = 0; index < charges; index++) world.ApplyLaunchModifiers(giant, victim, 10f);
+        world.TickAbilities();
+
+        Verify("挥满次数恢复普通攻击", (float)AttackType.Normal, (float)(giant.AttackTypeOverride ?? AttackType.Normal), 0f);
+        Verify("战棍射程加成收回", 0f, giant.AttackRangeBonus, 0.01f);
     }
 
     private static void CheckEatTreeAbility()

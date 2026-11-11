@@ -107,7 +107,7 @@ public sealed partial class World
             Weapon = weapon,
             Raw = raw,
             Amount = raw,
-            AttackType = weapon.AttackType,
+            AttackType = source.AttackTypeOverride ?? weapon.AttackType,
             DefenseType = defense,
             DamageType = DamageType.Normal,
             Armor = armor,

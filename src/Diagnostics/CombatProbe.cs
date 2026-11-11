@@ -122,6 +122,7 @@ public static partial class CombatProbe
         CheckBloodMageAndUltimates();
         CheckIllusionSkills();
         CheckTavernSkills();
+        CheckTinkerSkills();
         CheckFormation();
         CheckAiTactics();
         CheckMeleeUnitSkills();

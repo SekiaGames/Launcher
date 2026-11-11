@@ -459,9 +459,27 @@ public static class SkillRegistry
         ["ANpi"] = () => new PermanentImmolation(), // 永久献祭（地狱火）
         ["Apig"] = () => new PermanentImmolation(), // 永久献祭（图形版）
         ["Atdg"] = () => new TornadoDamage(),  // 龙卷风每秒伤害（Atsp/Atwa 仍为占位）
+        ["Agra"] = () => new GrabTree(),       // 战棍（山岭巨人拔树：攻城攻击 + 射程）
         ["ANen"] = () => new Ensnare(),        // 诱捕（纳迦）
         ["Acny"] = () => new Cyclone(),        // 旋风（纳迦）
         ["ACfu"] = () => new FrostArmor(),     // 霜冻护甲（纳迦自动施法）
+        // —— 酒馆英雄：地精修补匠（客户端 Runtime*Ability 同款） ——
+        ["ANrg"] = () => new RoboGoblin(),     // 机器人地精（Lv0）
+        ["ANg1"] = () => new RoboGoblin(),     // 机器人地精（Lv1，工程升级后）
+        ["ANg2"] = () => new RoboGoblin(),
+        ["ANg3"] = () => new RoboGoblin(),
+        ["ANeg"] = () => new EngineeringUpgrade(), // 工程升级（移速/攻击 + 技能升级）
+        ["ANde"] = () => new Demolish(),       // 粉碎（对建筑倍率）
+        ["ANd1"] = () => new Demolish(),
+        ["ANd2"] = () => new Demolish(),
+        ["ANd3"] = () => new Demolish(),
+        ["ANsy"] = () => new SummonFactory(),  // 口袋工厂（Lv0）
+        ["ANs1"] = () => new SummonFactory(),
+        ["ANs2"] = () => new SummonFactory(),
+        ["ANs3"] = () => new SummonFactory(),
+        ["ANc1"] = () => new ClusterRockets(), // 火箭群（工程升级后的码）
+        ["ANc2"] = () => new ClusterRockets(),
+        ["ANc3"] = () => new ClusterRockets(),
     };
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);

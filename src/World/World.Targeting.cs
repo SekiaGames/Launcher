@@ -60,14 +60,14 @@ public sealed partial class World
             }
 
             float distance = unit.DistanceTo(unit.Target);
-            if (distance <= unit.Type.AttackRange + unit.Target.Radius)
+            if (distance <= unit.AttackReach + unit.Target.Radius)
             {
                 FaceTarget(unit, unit.Target);
                 BeginAttack(unit, unit.Target);
             }
             else
             {
-                Advance(unit, unit.Target.Position, unit.Type.AttackRange + unit.Target.Radius);
+                Advance(unit, unit.Target.Position, unit.AttackReach + unit.Target.Radius);
             }
             return;
         }

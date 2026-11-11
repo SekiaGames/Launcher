@@ -477,6 +477,47 @@ public sealed partial class War3GameScene
 
     private int _shopLogBudget = 8;
 
+    /// <summary>
+    /// AI 英雄喝药：血低于 60% 喝回血、蓝低于 40% 喝回蓝，只动「点了即用」的药水，
+    /// 目标型物品不进这里（AI 不选目标）。
+    /// </summary>
+    private void TickAiItems(PlayerSlot slot)
+    {
+        if (_world == null) return;
+
+        foreach (Unit hero in _allUnits)
+        {
+            if (!hero.Alive || hero.Player != slot.Id || !hero.IsHero || hero.Inventory == null) continue;
+
+            for (int slotIndex = 0; slotIndex < hero.Inventory.Length; slotIndex++)
+            {
+                Item item = hero.Inventory[slotIndex];
+                ItemType type = item?.Type;
+                if (type == null || item.CooldownRemaining > 0f) continue;
+
+                ItemUsePlan plan = ItemUseRules.PlanFor(type);
+                if (!plan.Usable || plan.TargetMode != ItemTargetMode.None) continue;
+
+                ItemConsumable effect = type.Consumable;
+                if (effect.IsEmpty) continue;
+
+                bool needHeal = effect.Heal > 0f && hero.Hp < hero.MaxHp * 0.6f;
+                bool needMana = effect.Mana > 0f && hero.MaxMana > 0f && hero.Mana < hero.MaxMana * 0.4f;
+                if (!needHeal && !needMana) continue;
+
+                if (!_world.UseItem(hero, item)) continue;
+                if (_itemLogBudget > 0)
+                {
+                    _itemLogBudget--;
+                    GD.Print($"[AI] P{slot.Id} 英雄喝了 {type.Name}（{hero.Hp:0}/{hero.MaxHp:0} 血 {hero.Mana:0}/{hero.MaxMana:0} 蓝）");
+                }
+                return;
+            }
+        }
+    }
+
+    private int _itemLogBudget = 6;
+
     private Unit NearestTargetOf(int player, Vector3 from)
     {
         Unit best = null;
@@ -647,6 +688,13 @@ public sealed partial class War3GameScene
         {
             slot.ShopTimer = 0f;
             TickAiShopping(slot);
+        }
+
+        slot.ItemTimer += 0.3f;
+        if (slot.ItemTimer >= 3f)
+        {
+            slot.ItemTimer = 0f;
+            TickAiItems(slot);
         }
 
         slot.FormationTimer += 0.3f;
