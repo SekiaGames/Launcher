@@ -13,6 +13,7 @@ public static partial class CombatProbe
         CheckSubmerge();
         CheckHardenedSkinChance();
         CheckAncestralSpirit();
+        CheckMeatCargo();
     }
 
     private static World MakeSummonWorld()
@@ -143,5 +144,33 @@ public static partial class CombatProbe
         Verify("祖灵施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("牛头人已复活", 1f, tauren.Alive ? 1f : 0f, 0f);
         Verify("复活血量为 DataA 比例", tauren.MaxHp, tauren.Hp, 1f);
+    }
+
+    /// <summary>绞肉车：装尸体暂停衰减、卸货倒回车周围、掘尸定时补货。</summary>
+    private static void CheckMeatCargo()
+    {
+        World world = MakeSummonWorld();
+        Unit cart = ProbeUnit(world, "umtw", 0, Vector3.Zero, "Amel", "Amed", "Aexh");
+        Unit victim = ProbeUnit(world, "hfoo", 1, new Vector3(80f, 0f, 0f));
+        if (cart == null || victim == null) return;
+
+        world.KillUnit(victim, cart);
+        Verify("步兵已阵亡留尸", 1f, victim.IsCorpse ? 1f : 0f, 0f);
+
+        MeatCargo cargo = cart.FindPassive<MeatCargo>() as MeatCargo;
+        bool loaded = world.TryCast(cart, cart.FindAbility("Amel"), null, cart.Position);
+        Verify("装尸体施放成功", 1f, loaded ? 1f : 0f, 0f);
+        Verify("货舱里有一具尸体", 1f, cargo != null ? cargo.CorpseCount : 0f, 0f);
+        Verify("尸体归到车名下", 1f, victim.CorpseCarrier == cart ? 1f : 0f, 0f);
+
+        victim.TickCorpse(120f);
+        Verify("货舱内尸体不衰减", 1f, victim.IsCorpse ? 1f : 0f, 0f);
+
+        bool dropped = world.TryCast(cart, cart.FindAbility("Amed"), null, cart.Position);
+        Verify("卸尸体施放成功", 1f, dropped ? 1f : 0f, 0f);
+        Verify("卸货后尸体仍在场", 1f, victim.IsCorpse && victim.CorpseCarrier == null ? 1f : 0f, 0f);
+
+        for (int index = 0; index < 400; index++) world.TickAbilities();
+        Verify("掘尸定时补货", 1f, cargo != null ? cargo.CorpseCount : 0f, 0f);
     }
 }

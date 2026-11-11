@@ -495,6 +495,10 @@ public static class SkillRegistry
         ["Asb3"] = () => new Submerge(),       // 潜水（飞龙）
         ["Ansk"] = () => new HardenedSkin(),   // 硬化皮肤（龙龟）
         ["Aast"] = () => new AncestralSpirit(),// 牛头人祖灵（灵魂行者）
+        // —— 绞肉车尸体货舱（客户端 RuntimeMeatCargoAbilities） ——
+        ["Amel"] = () => new MeatCargo(),        // 装尸体（自动收半径内最近的尸体）
+        ["Amed"] = () => new MeatDrop(),         // 卸尸体（倒回车周围）
+        ["Aexh"] = () => new Exhume(),           // 掘尸（定时产一具尸体进货舱）
     };
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);

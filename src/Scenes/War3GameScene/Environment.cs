@@ -60,8 +60,14 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.View == null) continue;
+            // 进矿的侍僧与装进货舱的尸体都不显示模型
+            if (unit.InMine || unit.CorpseCarrier != null)
+            {
+                unit.View.Root.Visible = false;
+                continue;
+            }
             bool own = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
-            bool visible = !unit.InMine && (own || _fog.IsVisible(unit.Position));
+            bool visible = own || _fog.IsVisible(unit.Position);
             // 隐身（疾风步）：敌方看不见（有反隐单位/岗哨在附近时照常显示）；自己/盟友能看见，但只能看到一个淡影
             if (unit.State.Invisible) visible = own || (_fog.IsVisible(unit.Position) && _world != null && _world.IsDetectedBy(ViewPlayer, unit));
             unit.View.Root.Visible = visible;

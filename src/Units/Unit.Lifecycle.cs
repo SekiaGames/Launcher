@@ -12,6 +12,8 @@ public sealed partial class Unit
 
     public bool IsCorpse;
     public float CorpseRemaining;
+    /// <summary>尸体被绞肉车装进货舱时指向携带者：非空时尸体不衰减、模型隐藏、位置跟随携带者。</summary>
+    public Unit CorpseCarrier;
 
     /// <summary>英雄阵亡后等待复活（没钱或没祭坛时保持这个状态）。</summary>
     public bool AwaitingRevive;
@@ -61,6 +63,7 @@ public sealed partial class Unit
     public void TickCorpse(float delta)
     {
         if (!IsCorpse) return;
+        if (CorpseCarrier != null) return;
 
         CorpseRemaining -= delta;
         if (CorpseRemaining > 0f) return;
@@ -72,6 +75,7 @@ public sealed partial class Unit
     /// <summary>复活一个尸体（复活技能用）：满血起身，不再是尸体。</summary>
     public void ReviveFromCorpse(Vector3 position, float lifeFactor = 1f)
     {
+        CorpseCarrier = null;
         Alive = true;
         IsCorpse = false;
         CorpseRemaining = 0f;
