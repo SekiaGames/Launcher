@@ -79,8 +79,10 @@ public sealed partial class World
 
         if (target == null || !target.Alive) return;
 
+        if (unit.AttackMissChance > 0f && _random.NextDouble() < unit.AttackMissChance) return;
+
         float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
-            + DamageBonus(unit);
+            + DamageBonus(unit) + unit.OrbDamage;
         raw *= 1f + unit.BonusDamagePct + unit.AuraDamagePct;
         // 强击光环只加远程攻击（物编 AEar 的 DataA 是百分比）
         if (!string.IsNullOrEmpty(weapon.MissileScene)) raw *= 1f + unit.AuraRangedDamagePct;
@@ -106,9 +108,66 @@ public sealed partial class World
     private void ResolveHit(DamageInfo info)
     {
         DealDamage(info);
+        ApplyOrbEffect(info);
         ApplyLandedModifiers(info);
         ApplySplash(info);
         AttackLanded?.Invoke(info.Source, info.Target);
+    }
+
+    /// <summary>法球命中后的附加效果：火焰溅射、腐化减甲、霜冻/冰冻减速、闪电净化、法术抽蓝、毒液中毒。</summary>
+    public void ApplyOrbEffect(DamageInfo info)
+    {
+        Unit attacker = info?.Source;
+        Unit target = info?.Target;
+        if (attacker == null || target == null || !target.Alive || info.Reflected) return;
+        if (attacker.OrbEffectKind == OrbEffect.None) return;
+
+        float seconds = attacker.OrbSeconds > 0f ? attacker.OrbSeconds : 5f;
+        float secondary = attacker.OrbSecondary > 0f ? attacker.OrbSecondary : attacker.OrbDamage;
+
+        switch (attacker.OrbEffectKind)
+        {
+            case OrbEffect.Fire:
+                foreach (Unit victim in EnemiesInRange(attacker, target.Position, 140f))
+                {
+                    DealDamage(MakeAbilityDamage(attacker, victim, attacker.OrbDamage, AttackType.Spells, DamageType.Magic));
+                }
+                break;
+            case OrbEffect.Corruption:
+                ApplyBuff(target, new FaerieFireBuff { ArmorPenalty = 2f }, seconds);
+                break;
+            case OrbEffect.Freezing:
+                target.ApplySlow(0.5f, 0.25f, seconds);
+                break;
+            case OrbEffect.Frost:
+                target.ApplySlow(0.3f, 0.3f, seconds);
+                break;
+            case OrbEffect.Lightning:
+                target.ApplySlow(0.5f, 0f, seconds);
+                if (target.IsSummon)
+                {
+                    DealDamage(MakeAbilityDamage(attacker, target, secondary, AttackType.Spells, DamageType.Magic));
+                }
+                break;
+            case OrbEffect.Spells:
+            {
+                float drained = Mathf.Min(target.Mana, secondary);
+                target.Mana -= drained;
+                if (drained > 0f)
+                {
+                    DealDamage(MakeAbilityDamage(attacker, target, drained, AttackType.Spells, DamageType.Magic));
+                }
+                break;
+            }
+            case OrbEffect.Venom:
+                ApplyBuff(target, new VenomBuff
+                {
+                    DamageSource = attacker,
+                    DamagePerTick = attacker.OrbDamage,
+                    Interval = 1f,
+                }, seconds);
+                break;
+        }
     }
 
     /// <summary>普攻命中钩子：腐蚀吐息/液体火焰/毒矛/月刃这类「中了之后再生数」的被动。</summary>

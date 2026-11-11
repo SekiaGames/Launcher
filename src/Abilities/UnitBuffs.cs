@@ -23,7 +23,7 @@ public sealed class InvisibilityBuff : Buff, IAttackLaunchBuff
     }
 }
 
-public sealed class StatBuff : Buff
+public class StatBuff : Buff
 {
     public float AttackSpeedPct;
     public float MoveSpeedPct;
@@ -31,6 +31,9 @@ public sealed class StatBuff : Buff
     public float DamageTakenPct;
     public float Armor;
     public float MoveSpeedFlat;
+    public float MissChance;
+    /// <summary>醉酒云雾的火焰易伤（喷火对它额外加伤并点燃）。</summary>
+    public float FireDamageIncrease;
 
     public override bool IsHarmful => false;
 
@@ -42,6 +45,7 @@ public sealed class StatBuff : Buff
         Owner.BonusDamageTakenPct += DamageTakenPct;
         Owner.BonusArmor += Armor;
         Owner.BonusMoveSpeedFlat += MoveSpeedFlat + (Owner.Type != null ? Owner.Type.Speed * MoveSpeedPct : 0f);
+        Owner.AttackMissChance = Mathf.Clamp(Owner.AttackMissChance + MissChance, 0f, 0.95f);
     }
 
     public override void OnRemove(World world)
@@ -52,6 +56,7 @@ public sealed class StatBuff : Buff
         Owner.BonusDamageTakenPct -= DamageTakenPct;
         Owner.BonusArmor -= Armor;
         Owner.BonusMoveSpeedFlat -= MoveSpeedFlat + (Owner.Type != null ? Owner.Type.Speed * MoveSpeedPct : 0f);
+        Owner.AttackMissChance = Mathf.Clamp(Owner.AttackMissChance - MissChance, 0f, 0.95f);
     }
 }
 
@@ -183,5 +188,51 @@ public sealed class VenomBuff : Buff
                 AttackType.Spells, DamageType.Magic));
         }
         return alive;
+    }
+}
+
+public sealed class HazeBuff : StatBuff
+{
+    public override bool IsHarmful => true;
+}
+
+public sealed class CurseBuff : StatBuff
+{
+    public override bool IsHarmful => true;
+}
+
+public sealed class DoomBuff : Buff
+{
+    public Unit Caster;
+    public string SummonUnitId = "";
+    public int SummonCount;
+    public float SummonSeconds;
+    public float DamagePerTick;
+    public float Interval = 1f;
+
+    private float _accumulator;
+
+    public override bool OnTick(World world, float delta)
+    {
+        bool alive = base.OnTick(world, delta);
+        if (world == null || Owner == null || !Owner.Alive) return false;
+
+        _accumulator += delta;
+        while (_accumulator >= Interval && Owner.Alive)
+        {
+            _accumulator -= Interval;
+            world.DealDamage(World.MakeAbilityDamage(Caster, Owner, DamagePerTick,
+                AttackType.Spells, DamageType.Magic));
+        }
+        return alive && Owner.Alive;
+    }
+
+    public override void OnDeath(World world)
+    {
+        if (world == null || Caster == null || string.IsNullOrEmpty(SummonUnitId)) return;
+        for (int index = 0; index < SummonCount; index++)
+        {
+            world.Summon(Caster, SummonUnitId, Owner.Position, SummonSeconds);
+        }
     }
 }

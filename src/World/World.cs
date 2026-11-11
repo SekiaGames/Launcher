@@ -8,6 +8,9 @@ namespace Launcher;
 public sealed partial class World
 {
     public const float Tick = 0.05f;
+
+    /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
+    public bool IsNight;
     private const float GatherRange = 190f;
     private const float WorkSeconds = 2.2f;
 

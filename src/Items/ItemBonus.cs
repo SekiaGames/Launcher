@@ -4,19 +4,8 @@ using System.Collections.Generic;
 namespace Launcher;
 
 /// <summary>
-/// 装备属性加成。对标客户端 Src/Items/ItemBonus.cs：
-/// 物品本身不含数值，效果写在 ItemData.abilList 指向的能力里，
+/// 装备属性加成。物品本身不含数值，效果写在 ItemData.abilList 指向的能力里，
 /// 这里按能力的基类码把它们翻译成一批可累加的字段。
-///
-/// 码的含义由实际物品反查确认（Extract 的 ItemData + AbilityData 交叉验证）：
-/// <list type="bullet">
-/// <item>AIab —— 英雄三围（DataA=力量 DataB=敏捷 DataC=智力）：ckng 5/5/5、rst1 0/0/3</item>
-/// <item>AIat —— 攻击力（DataA）：ratc +12、stwa +5</item>
-/// <item>AIde —— 护甲（DataA）：rde1 +2</item>
-/// <item>AIas —— 攻击速度（DataA，比例）：gcel 0.15</item>
-/// <item>AIms —— 移动速度（DataA，绝对值）：ms 类鞋子</item>
-/// <item>AIva —— 攻击吸血（DataA 比例）：modt 50%、klmm 50%</item>
-/// </list>
 /// </summary>
 public readonly struct ItemBonus
 {
@@ -28,9 +17,18 @@ public readonly struct ItemBonus
     public readonly float AttackSpeedPct;
     public readonly float MoveSpeed;
     public readonly float LifestealPct;
+    public readonly float ManaRegen;
+    public readonly float EvasionPct;
+    public readonly float Sight;
+    public readonly float OrbDamage;
+    public readonly float OrbSecondary;
+    public readonly OrbEffect OrbEffect;
+    public readonly float OrbSeconds;
 
     public ItemBonus(int strength, int agility, int intelligence,
-        float damage, float armor, float attackSpeedPct, float moveSpeed, float lifestealPct)
+        float damage, float armor, float attackSpeedPct, float moveSpeed, float lifestealPct,
+        float manaRegen = 0f, float evasionPct = 0f, float sight = 0f,
+        float orbDamage = 0f, float orbSecondary = 0f, OrbEffect orbEffect = OrbEffect.None, float orbSeconds = 0f)
     {
         Strength = strength;
         Agility = agility;
@@ -40,6 +38,13 @@ public readonly struct ItemBonus
         AttackSpeedPct = attackSpeedPct;
         MoveSpeed = moveSpeed;
         LifestealPct = lifestealPct;
+        ManaRegen = manaRegen;
+        EvasionPct = evasionPct;
+        Sight = sight;
+        OrbDamage = orbDamage;
+        OrbSecondary = orbSecondary;
+        OrbEffect = orbEffect;
+        OrbSeconds = orbSeconds;
     }
 
     public static readonly ItemBonus Zero = new(0, 0, 0, 0f, 0f, 0f, 0f, 0f);
@@ -54,11 +59,20 @@ public readonly struct ItemBonus
             a.Armor + b.Armor,
             a.AttackSpeedPct + b.AttackSpeedPct,
             a.MoveSpeed + b.MoveSpeed,
-            a.LifestealPct + b.LifestealPct);
+            a.LifestealPct + b.LifestealPct,
+            a.ManaRegen + b.ManaRegen,
+            a.EvasionPct + b.EvasionPct,
+            a.Sight + b.Sight,
+            a.OrbDamage + b.OrbDamage,
+            Math.Max(a.OrbSecondary, b.OrbSecondary),
+            a.OrbEffect != OrbEffect.None ? a.OrbEffect : b.OrbEffect,
+            Math.Max(a.OrbSeconds, b.OrbSeconds));
     }
 
     public bool IsZero => Strength == 0 && Agility == 0 && Intelligence == 0
-        && Damage == 0f && Armor == 0f && AttackSpeedPct == 0f && MoveSpeed == 0f && LifestealPct == 0f;
+        && Damage == 0f && Armor == 0f && AttackSpeedPct == 0f && MoveSpeed == 0f && LifestealPct == 0f
+        && ManaRegen == 0f && EvasionPct == 0f && Sight == 0f
+        && OrbDamage == 0f && OrbSecondary == 0f && OrbEffect == OrbEffect.None && OrbSeconds == 0f;
 
     /// <summary>把一件物品的 abilList 逐条翻译成加成。</summary>
     public static ItemBonus ForItem(ItemType item)
@@ -80,28 +94,71 @@ public readonly struct ItemBonus
     {
         if (ability == null) return Zero;
 
+        float dataA = ability.DataAt(1, 'A');
+        float dataB = ability.DataAt(1, 'B');
+        float duration = ability.DurationAt(1) > 0f ? ability.DurationAt(1) : 0f;
+
+        switch ((ability.Id ?? "").ToUpperInvariant())
+        {
+            case "AILL":
+            case "AILX":
+                return Orb(OrbEffect.Lightning, dataA, dataB, 5f);
+            case "AISB":
+                return Orb(OrbEffect.Spells, dataA, dataB, 5f);
+            case "AISZ":
+            case "AIPB":
+                return Orb(OrbEffect.Venom, dataA, 0f, duration > 0f ? duration : 5f);
+            case "APO2":
+                return Orb(OrbEffect.Venom, dataA, 0f, duration > 0f ? duration : 6f);
+            case "AIFB":
+            case "AIFW":
+                return Orb(OrbEffect.Fire, dataA, 0f, 2f);
+            case "AIGD":
+                return Orb(OrbEffect.Corruption, dataA, 0f, 5f);
+            case "AIZB":
+                return Orb(OrbEffect.Freezing, dataA, 0f, 5f);
+            case "AIOB":
+            case "AIFT":
+                return Orb(OrbEffect.Frost, dataA, 0f, duration > 0f ? duration : 3f);
+            case "AIEV":
+            case "AEEV":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, evasionPct: dataA);
+            case "AIRN":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, manaRegen: dataA);
+            case "AISI":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, sight: dataA);
+            case "AISX":
+                return new ItemBonus(0, 0, 0, 0f, 0f, dataA, 0f, 0f);
+        }
+
         switch (ability.Code?.ToUpperInvariant())
         {
             case "AIAB":
                 return new ItemBonus(
-                    (int)MathF.Round(ability.DataAt(1, 'A')),
-                    (int)MathF.Round(ability.DataAt(1, 'B')),
+                    (int)MathF.Round(dataA),
+                    (int)MathF.Round(dataB),
                     (int)MathF.Round(ability.DataAt(1, 'C')),
                     0f, 0f, 0f, 0f, 0f);
             case "AIAT":
-                return new ItemBonus(0, 0, 0, ability.DataAt(1, 'A'), 0f, 0f, 0f, 0f);
+                return new ItemBonus(0, 0, 0, dataA, 0f, 0f, 0f, 0f);
             case "AIDE":
-                return new ItemBonus(0, 0, 0, 0f, ability.DataAt(1, 'A'), 0f, 0f, 0f);
+                return new ItemBonus(0, 0, 0, 0f, dataA, 0f, 0f, 0f);
             case "AIAS":
-                return new ItemBonus(0, 0, 0, 0f, 0f, ability.DataAt(1, 'A'), 0f, 0f);
+                return new ItemBonus(0, 0, 0, 0f, 0f, dataA, 0f, 0f);
             case "AIMS":
-                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, ability.DataAt(1, 'A'), 0f);
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, dataA, 0f);
             case "AIVA":
-                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, ability.DataAt(1, 'A'));
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, dataA);
+            case "AIRM":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, 0f, manaRegen: dataA);
             default:
                 return Zero;
         }
     }
+
+    private static ItemBonus Orb(OrbEffect effect, float damage, float secondary, float seconds)
+        => new(0, 0, 0, 0f, 0f, 0f, 0f, 0f,
+            orbDamage: damage, orbSecondary: secondary, orbEffect: effect, orbSeconds: seconds);
 
     public override string ToString()
     {
@@ -114,6 +171,10 @@ public readonly struct ItemBonus
         if (AttackSpeedPct != 0f) parts.Add($"攻速+{AttackSpeedPct * 100f:0.#}%");
         if (MoveSpeed != 0f) parts.Add($"移速+{MoveSpeed:0}");
         if (LifestealPct != 0f) parts.Add($"吸血+{LifestealPct * 100f:0.#}%");
+        if (ManaRegen != 0f) parts.Add($"回蓝+{ManaRegen:0.##}/s");
+        if (EvasionPct != 0f) parts.Add($"闪避+{EvasionPct * 100f:0.#}%");
+        if (Sight != 0f) parts.Add($"视野+{Sight:0}");
+        if (OrbEffect != OrbEffect.None) parts.Add($"法球:{OrbEffect}(+{OrbDamage:0})");
         return parts.Count == 0 ? "-" : string.Join(" ", parts);
     }
 }

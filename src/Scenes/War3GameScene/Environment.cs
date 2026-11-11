@@ -16,12 +16,13 @@ public sealed partial class War3GameScene
         float scale = 1f / Mathf.Max(0.02f, TimeScaleHint);
         _todHours += World.Tick * scale * 24f / Mathf.Max(60f, DaySeconds);
         if (_todHours >= 24f) _todHours -= 24f;
+        if (_world != null) _world.IsNight = IsNight;
     }
 
     private bool IsNight => _todHours < 6f || _todHours >= 18f;
 
     /// <summary>白天用 sight、夜里用 nsight（UnitBalance 的两列）。</summary>
-    private float SightOf(UnitType type) => type == null ? 800f : (IsNight ? type.SightNight : type.SightDay);
+    private float SightOf(Unit unit) => unit?.Type == null ? 800f : (IsNight ? unit.Type.SightNight : unit.Type.SightDay) + unit.BonusSight;
 
     private string ClockText()
     {

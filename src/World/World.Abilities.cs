@@ -404,8 +404,39 @@ public sealed partial class World
         unit.BonusAttackSpeedPct += bonus.AttackSpeedPct;
         unit.BonusMoveSpeedFlat += bonus.MoveSpeed;
         unit.BonusLifestealPct += bonus.LifestealPct;
+        unit.BonusManaRegenPerSecond += bonus.ManaRegen;
+        unit.BonusEvasionPct += bonus.EvasionPct;
+        unit.BonusSight += bonus.Sight;
+        RebuildOrb(unit, item, null);
 
         RefreshHeroAttributes(unit);
+    }
+
+    /// <summary>重新汇总身上的法球（装备/丢弃/转交后重算，不叠多件）。</summary>
+    private void RebuildOrb(Unit unit, Item added, Item removed)
+    {
+        unit.OrbDamage = 0f;
+        unit.OrbSecondary = 0f;
+        unit.OrbSeconds = 0f;
+        unit.OrbEffectKind = OrbEffect.None;
+
+        foreach (Item item in unit.Inventory)
+        {
+            if (item == null || item == removed) continue;
+            ApplyOrb(item, unit);
+        }
+        if (added != null && System.Array.IndexOf(unit.Inventory, added) < 0) ApplyOrb(added, unit);
+    }
+
+    private static void ApplyOrb(Item item, Unit unit)
+    {
+        ItemBonus bonus = item.Bonus;
+        if (bonus.OrbEffect == OrbEffect.None) return;
+
+        unit.OrbDamage += bonus.OrbDamage;
+        unit.OrbSecondary = Mathf.Max(unit.OrbSecondary, bonus.OrbSecondary);
+        unit.OrbSeconds = Mathf.Max(unit.OrbSeconds, bonus.OrbSeconds);
+        if (unit.OrbEffectKind == OrbEffect.None) unit.OrbEffectKind = bonus.OrbEffect;
     }
 
     /// <summary>扣除一件物品已经生效的加成（丢弃/被抢时用）。</summary>
@@ -424,7 +455,11 @@ public sealed partial class World
         unit.BonusAttackSpeedPct -= bonus.AttackSpeedPct;
         unit.BonusMoveSpeedFlat -= bonus.MoveSpeed;
         unit.BonusLifestealPct -= bonus.LifestealPct;
+        unit.BonusManaRegenPerSecond -= bonus.ManaRegen;
+        unit.BonusEvasionPct -= bonus.EvasionPct;
+        unit.BonusSight -= bonus.Sight;
         item.Bonus = ItemBonus.Zero;
+        RebuildOrb(unit, null, item);
 
         RefreshHeroAttributes(unit);
     }

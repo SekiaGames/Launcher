@@ -24,6 +24,19 @@ public sealed partial class Unit
     public float BonusMoveSpeedFlat;
     /// <summary>物品给的攻击吸血比例（AIva）。</summary>
     public float BonusLifestealPct;
+    /// <summary>攻击未命中率（醉酒云雾）。</summary>
+    public float AttackMissChance;
+    /// <summary>物品给的闪避（AIev）。</summary>
+    public float BonusEvasionPct;
+    /// <summary>物品给的每秒回蓝（AIrn/AIrm）。</summary>
+    public float BonusManaRegenPerSecond;
+    /// <summary>物品给的视野加成（AIsi）。</summary>
+    public float BonusSight;
+    /// <summary>法球：命中附加伤害与触发效果。</summary>
+    public float OrbDamage;
+    public float OrbSecondary;
+    public OrbEffect OrbEffectKind = OrbEffect.None;
+    public float OrbSeconds;
     public float BonusMaxHp;
     /// <summary>AI 控制（非玩家视角）时为 true，会自己找机会放技能。</summary>
     public bool AutoCast;
@@ -41,6 +54,7 @@ public sealed partial class Unit
     public float AuraMoveSpeedPct;
     public float AuraDamagePct;
     public float AuraHpRegenPerSecond;
+    public float AuraHpRegenPct;
     public float AuraManaRegenPerSecond;
 
     /// <summary>清空这一 tick 的光环结果（RefreshAuras 每次重算前调用）。</summary>
@@ -54,6 +68,7 @@ public sealed partial class Unit
         AuraMoveSpeedPct = 0f;
         AuraDamagePct = 0f;
         AuraHpRegenPerSecond = 0f;
+        AuraHpRegenPct = 0f;
         AuraManaRegenPerSecond = 0f;
     }
 
@@ -67,6 +82,7 @@ public sealed partial class Unit
         AuraMoveSpeedPct = Mathf.Max(AuraMoveSpeedPct, bonus.MoveSpeedPct);
         AuraDamagePct = Mathf.Max(AuraDamagePct, bonus.DamagePct);
         AuraHpRegenPerSecond = Mathf.Max(AuraHpRegenPerSecond, bonus.HpRegenPerSecond);
+        AuraHpRegenPct = Mathf.Max(AuraHpRegenPct, bonus.HpRegenPct);
         AuraManaRegenPerSecond = Mathf.Max(AuraManaRegenPerSecond, bonus.ManaRegenPerSecond);
     }
 

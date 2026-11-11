@@ -191,6 +191,21 @@ public static class SkillRegistry
         ["AIan"] = () => new AnimateDead(),       // 物品版操纵死尸
         ["AIrs"] = () => new Resurrection(),      // 物品版复活
         ["AIrx"] = () => new Resurrection(),
+        // —— 酒馆英雄剩余 ——
+        ["ANvc"] = () => new Volcano(),          // 火山（火焰领主，引导 8 波 × 5s）
+        ["Acef"] = () => new StormEarthFire(),   // 风暴大地火焰（陈，召三元素）
+        ["ANcf"] = () => new BreathOfFire(),     // 火焰吐息（陈，直线 + 点燃醉酒目标）
+        ["Acdh"] = () => new DrunkenHaze(),      // 醉酒云雾（最高 80% 未命中 + 减速）
+        ["Acdb"] = () => new DrunkenBrawler(),   // 醉拳（暴击 + 闪避）
+        ["ANht"] = () => new HowlOfTerror(),     // 恐惧嚎叫（范围减攻/减甲）
+        ["ANca"] = () => new CleavingAttack(),   // 分裂攻击（近战溅射）
+        ["ANdo"] = () => new Doom(),             // 末日（持续伤害 + 死亡召恶魔）
+        ["Arsp"] = () => new Stampede(),         // 兽群狂奔（雷克萨，引导 30s）
+        // —— 暗夜被动与光环 ——
+        ["Ashm"] = () => new ShadowMeld(),       // 影遁（夜间静止后隐身）
+        ["Aoar"] = () => new RegenerationAura(), // 再生光环（治疗守卫）
+        ["Aabr"] = () => new RegenerationAura(), // 再生光环（黑曜石雕像）
+        ["Aap1"] = () => new PlagueAura(),       // 瘟疫光环（憎恶）
         // —— 物品技能里与英雄同源的码 ——
         ["AIbx"] = () => new Bash(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击

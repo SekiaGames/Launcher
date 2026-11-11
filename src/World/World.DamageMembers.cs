@@ -78,14 +78,14 @@ public sealed partial class World
 
             if (!noHpRegen && unit.Hp < unit.MaxHp)
             {
-                float hpPerSecond = unit.Type.RegenHp + unit.AuraHpRegenPerSecond;
+                float hpPerSecond = unit.Type.RegenHp + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
                 if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
             }
 
             if (unit.MaxMana > 0f && unit.Mana < unit.MaxMana)
             {
-                float manaPerSecond = unit.Type.ManaRegen + unit.AuraManaRegenPerSecond;
+                float manaPerSecond = unit.Type.ManaRegen + unit.AuraManaRegenPerSecond + unit.BonusManaRegenPerSecond;
                 if (unit.IsHero) manaPerSecond += unit.Intelligence * HeroRules.IntRegenBonus;
                 if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * Tick);
             }
@@ -142,6 +142,15 @@ public sealed partial class World
         if (target.State.Invulnerable)
         {
             info.Amount = 0f;
+            DamageApplied?.Invoke(info);
+            return;
+        }
+
+        if (info.IsAttack && target.BonusEvasionPct > 0f
+            && RollPercent(Mathf.Clamp(target.BonusEvasionPct, 0f, 1f) * 100f))
+        {
+            info.Amount = 0f;
+            info.Cancelled = true;
             DamageApplied?.Invoke(info);
             return;
         }
