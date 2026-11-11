@@ -30,8 +30,9 @@ public sealed class Ensnare : Ability
 
     public override bool TryAutoCast(World world)
     {
+        bool anyTarget = string.Equals(Id, "Aent", System.StringComparison.OrdinalIgnoreCase);
         Unit target = FindEnemyInRange(world, accept: other =>
-            other.Type != null && other.Type.Flying && !other.State.Snared);
+            (anyTarget || (other.Type != null && other.Type.Flying)) && !other.State.Snared);
         if (target == null) return false;
         return world.TryCast(Owner, this, target, target.Position);
     }

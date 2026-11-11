@@ -229,6 +229,7 @@ public static class SkillRegistry
         ["Amim"] = () => new MagicImmunityPassive(), // 魔法免疫（破法者 / 树妖 / 精灵龙）
         // —— 兽族单位补充 ——
         ["Aens"] = () => new Ensnare(),           // 诱捕（狼骑兵，定身）
+        ["Aent"] = () => new Ensnare(),           // 缠绕（古树，定身）
         ["Ahwd"] = () => new HealingWard(),       // 治疗守卫（萨满，召 ohwd）
         ["Asta"] = () => new StasisTrap(),        // 静止陷阱（萨满，敌人靠近眩晕）
         ["Aspl"] = () => new SpiritLink(),        // 灵魂链（灵魂行者，伤害分摊）
@@ -287,6 +288,25 @@ public static class SkillRegistry
         ["SCc1"] = () => new Cyclone(),           // 塞纳留斯旋风
         ["Scri"] = () => new Cripple(),           // 野怪术士残废
         ["Suhf"] = () => new UnholyFrenzy(),      // 野怪术士邪恶狂热
+        ["Aclf"] = () => new CloudOfFog(),        // 云雾（龙鹰，区域未命中）
+        ["Adtn"] = () => new Detonate(),          // 自爆（小精灵，驱散 + 伤害）
+        ["Asds"] = () => new SelfDestruct(),      // 自爆（野怪）
+        ["Ambt"] = () => new ManaBattery(),       // 法力电池（回蓝光环）
+        ["Auns"] = () => new Unsummon(),          // 取消召唤（召回自己的召唤物）
+        ["ACnr"] = () => new NeutralRegen(),      // 中立恢复（只回血）
+        ["ANre"] = () => new NeutralRegen(),      // 中立恢复（只回蓝）
+        ["Aamk"] = () => new AttributeModifier(), // 属性修正（中立英雄）
+        ["ACf3"] = () => new FingerOfDeath(),     // 痛苦之指（单体伤害）
+        ["ACmo"] = () => new Monsoon(),           // 季风（引导范围伤害 + 减速）
+        ["Amrf"] = () => new TwoWayForm(),        // 乌鸦形态（麦迪文）
+        ["Amic"] = () => new CallToArms(),         // 敲钟（城镇大厅，农民变民兵）
+        // —— 物品栏（单位获得格子的标记码） ——
+        ["AInv"] = () => new InventoryPassive(),
+        ["Aien"] = () => new InventoryPassive(),
+        ["Aihn"] = () => new InventoryPassive(),
+        ["Aion"] = () => new InventoryPassive(),
+        ["Aiun"] = () => new InventoryPassive(),
+        ["Apak"] = () => new InventoryPassive(),
         // —— 物品技能里与英雄同源的码 ——
         ["AIbx"] = () => new Bash(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击
