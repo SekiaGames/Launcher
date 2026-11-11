@@ -28,6 +28,16 @@ public sealed partial class War3GameScene : Node3D
     private List<TreeState> _trees = new();
     private string _placingId;
 
+    /// <summary>暂停只停模拟层（世界推进与 AI），相机/UI 照常响应。</summary>
+    public bool Paused;
+
+    private void TogglePause()
+    {
+        Paused = !Paused;
+        _escMenu?.SetPaused(Paused);
+        _hud?.SetHint(Paused ? "已暂停" : "");
+    }
+
     /// <summary>-1 表示跟随客户端 melee 模板（TFT 500/150、RoC 750/200）。</summary>
     public int StartGold = -1;
     public int StartLumber = -1;
@@ -144,6 +154,7 @@ public sealed partial class War3GameScene : Node3D
         HeroRules.Log();
         _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
         _escMenu = new EscMenu(this, Back);
+        _escMenu.PauseToggled = TogglePause;
         _loadingScreen = new LoadingScreen(this, map);
         _gameOverPanel = new GameOverPanel(this, Back);
         _hud.DetailProvider = DescribeUnit;
@@ -302,6 +313,7 @@ public sealed partial class War3GameScene : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
+        if (Paused) return;
         _world?.Advance();
         TickClock();
         TickOrders((float)delta);

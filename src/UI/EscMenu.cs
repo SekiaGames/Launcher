@@ -6,6 +6,9 @@ namespace Launcher;
 public sealed class EscMenu
 {
     private readonly CanvasLayer _layer;
+    private readonly Button _pauseButton;
+
+    public Action PauseToggled;
 
     public EscMenu(Node parent, Action backToMapList)
     {
@@ -42,14 +45,18 @@ public sealed class EscMenu
         _layer.AddChild(title);
 
         AddButton(360f, "继续游戏（Esc）", () => Close());
-        AddButton(430f, "返回地图列表", () =>
+        _pauseButton = AddButton(430f, "暂停游戏", () =>
+        {
+            PauseToggled?.Invoke();
+        });
+        AddButton(500f, "返回地图列表", () =>
         {
             Close();
             backToMapList?.Invoke();
         });
     }
 
-    private void AddButton(float y, string text, Action action)
+    private Button AddButton(float y, string text, Action action)
     {
         var button = new Button
         {
@@ -59,6 +66,12 @@ public sealed class EscMenu
         };
         button.Pressed += action;
         _layer.AddChild(button);
+        return button;
+    }
+
+    public void SetPaused(bool paused)
+    {
+        _pauseButton.Text = paused ? "继续游戏（暂停中）" : "暂停游戏";
     }
 
     public bool Visible => _layer.Visible;
