@@ -423,6 +423,78 @@ public static partial class CombatProbe
             GD.Print($"[自检] 丢弃 {crown2.Name}：力量 {baseStrength}+5 → {hero3.Strength}，地面物品 {world13.GroundItems.Count}");
         }
 
+        // —— 尸体利用：食尸鬼吞尸、亡灵巫师复活死尸 ——
+        AbilityType cannibalizeType = AbilityCatalog.Get("Acan");
+        UnitType ghoulType = UnitCatalog.Get("ugho");
+        if (cannibalizeType != null && ghoulType != null)
+        {
+            var world15 = new World(null, null);
+            Unit ghoul = MakeUnit(ghoulType, 0);
+            Unit corpse = MakeUnit(footmanType, 0);
+            corpse.Position = new Vector3(20f, 0f, 0f);
+            corpse.EnterDeath();
+            world15.Units.Add(ghoul);
+            world15.Units.Add(corpse);
+
+            ghoul.Hp = ghoul.MaxHp * 0.3f;
+            var eat = (Cannibalize)ghoul.GiveAbility("Acan", 1);
+            eat.Level = 1;
+
+            float hpBefore = ghoul.Hp;
+            bool cast = world15.TryCast(ghoul, eat, null, ghoul.Position);
+            Verify("吞尸施放成功", 1f, cast ? 1f : 0f, 0f);
+            Verify("尸体被吃掉", 0f, corpse.IsCorpse ? 1f : 0f, 0f);
+
+            for (int index = 0; index < 40; index++) world15.TickAbilities();
+            Verify("吞尸 2 秒回 20 血", hpBefore + 20f, ghoul.Hp, 1.5f);
+            GD.Print($"[自检] 吞尸 {hpBefore:0}→{ghoul.Hp:0}（每秒 {eat.HealPerSecond:0}，持续 {eat.Duration:0}s）");
+        }
+
+        AbilityType raiseType = AbilityCatalog.Get("Arai");
+        UnitType necroType = UnitCatalog.Get("unec");
+        if (raiseType != null && necroType != null)
+        {
+            var world16 = new World(null, null);
+            Unit necro = MakeUnit(necroType, 0);
+            necro.MaxMana = 300f;
+            necro.Mana = 300f;
+            world16.Units.Add(necro);
+
+            var corpses = new List<Unit>();
+            for (int index = 0; index < 2; index++)
+            {
+                Unit dead = MakeUnit(footmanType, 0);
+                dead.Position = new Vector3(60f + index * 40f, 0f, 0f);
+                dead.EnterDeath();
+                world16.Units.Add(dead);
+                corpses.Add(dead);
+            }
+
+            world16.SummonHandler = (caster, id, position) =>
+            {
+                UnitType type = UnitCatalog.Get(id);
+                if (type == null) return null;
+                return new Unit
+                {
+                    Type = type,
+                    Player = caster.Player,
+                    Position = position,
+                    Hp = type.Hp,
+                    MaxHp = type.Hp,
+                };
+            };
+
+            var raise = (RaiseDead)necro.GiveAbility("Arai", 1);
+            raise.Level = 1;
+            int unitsBefore = world16.Units.Count;
+            bool cast = world16.TryCast(necro, raise, null, necro.Position);
+            Verify("复活死尸施放成功", 1f, cast ? 1f : 0f, 0f);
+            Verify("拉出 2 个骷髅", 2f, world16.Units.Count - unitsBefore, 0f);
+            Verify("尸体被消耗", 0f, corpses[0].IsCorpse ? 1f : 0f, 0f);
+            GD.Print($"[自检] 复活死尸 拉出 {world16.Units.Count - unitsBefore} 个 {raise.SkeletonId}，"
+                + $"法力剩 {necro.Mana:0}，召唤物存在 {world16.Units[^1].SummonRemaining:0}s");
+        }
+
         CheckShopAndTrade();
 
         CheckItemBonus();

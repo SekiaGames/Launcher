@@ -30,6 +30,9 @@ public static class SkillRegistry
         ["AOsf"] = () => new SummonUnit(),     // 幽灵狼
         ["ANsg"] = () => new SummonUnit(),     // 熔岩怪
         ["AHre"] = () => new Resurrection(),   // 复活
+        // —— 尸体利用（食尸鬼吞尸 / 亡灵巫师复活死尸） ——
+        ["Acan"] = () => new Cannibalize(),
+        ["Arai"] = () => new RaiseDead(),
         // —— 通用治疗（牧师 / 野怪牧师，自动施法） ——
         ["Ahea"] = () => new Heal(),
         // —— 物品技能里与英雄同源的码 ——

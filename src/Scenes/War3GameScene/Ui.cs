@@ -396,7 +396,7 @@ public sealed partial class War3GameScene
                 Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}\n库存 {stock}/{max}",
                 Icon = TechTree.Icon(type.IconArt),
                 Enabled = stock > 0 && slot.Gold >= type.GoldCost,
-                Action = () => BuyItemFromShop(target, id),
+                Action = () => BuyItemFromShop(target, slot.Id, id),
             });
 
             if (++shown >= 6) break;
@@ -439,7 +439,7 @@ public sealed partial class War3GameScene
             return;
         }
 
-        PlayerSlot slotData = Slot(shop.Player);
+        PlayerSlot slotData = Slot(seller.Player);
         if (slotData != null) slotData.Gold += price;
 
         _hud?.SetHint($"卖出 {item.Type.Name}：+{price} 金（半价）");

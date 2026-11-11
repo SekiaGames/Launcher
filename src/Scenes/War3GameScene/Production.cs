@@ -370,14 +370,14 @@ public sealed partial class War3GameScene
     /// 商店买物品：扣金 → 在商店旁边落地 → 交给拾取逻辑（英雄站在旁边就自动拿到）。
     /// 商品列表来自 `*UnitFunc` 的 Sellitems（地精商店 ngme = phea,pman,pinv,…）。
     /// </summary>
-    public bool BuyItemFromShop(Unit shop, string itemId)
+    public bool BuyItemFromShop(Unit shop, int buyerPlayer, string itemId)
     {
         if (shop?.Type == null || _world == null) return false;
 
         ItemType type = ItemCatalog.Get(itemId);
         if (type == null) return false;
 
-        PlayerSlot slot = Slot(shop.Player);
+        PlayerSlot slot = Slot(buyerPlayer);
         if (slot == null) return false;
         if (slot.Gold < type.GoldCost)
         {

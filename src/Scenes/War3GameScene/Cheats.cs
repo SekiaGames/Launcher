@@ -580,7 +580,7 @@ public sealed partial class War3GameScene
                 int bought = 0;
                 for (int attempt = 0; attempt < 5; attempt++)
                 {
-                    if (BuyItemFromShop(shop, first)) bought++;
+                    if (BuyItemFromShop(shop, ViewPlayer, first)) bought++;
                 }
                 GD.Print($"[SHOP] 连买 {first} {bought} 次（库存 {shop.StockOf(first)}/{shop.StockMaxOf(first)}）"
                     + $" 金币 {goldBefore}→{shopSlot?.Gold} 背包 {hero.ItemCount} 件 地面 {_world.GroundItems.Count} 件");

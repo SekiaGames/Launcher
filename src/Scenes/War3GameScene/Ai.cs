@@ -151,6 +151,100 @@ public sealed partial class War3GameScene
         }
     }
 
+    /// <summary>
+    /// 集火：每 2 秒给本家「还没目标、没在撤退」的部队指定同一个敌人——
+    /// 优先挑血量最少、且在基地 1800 以内的敌人，让整队往一处压。
+    /// </summary>
+    private void TickAiFocus(PlayerSlot slot)
+    {
+        Unit hall = FindHall(slot.Id);
+        if (hall == null) return;
+
+        Unit focus = null;
+        float bestHp = float.MaxValue;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.IsBuilding) continue;
+            if (unit.Player == slot.Id || AreAllied(unit.Player, slot.Id)) continue;
+            if (unit.DistanceTo(hall) > 1800f) continue;
+            if (unit.Hp >= bestHp) continue;
+            bestHp = unit.Hp;
+            focus = unit;
+        }
+        if (focus == null) return;
+
+        int assigned = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != slot.Id) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered) continue;
+            if (unit.Target != null) continue;
+            if (unit.DistanceTo(hall) > 1800f) continue;
+
+            unit.Target = focus;
+            unit.MoveTarget = null;
+            unit.Path = null;
+            assigned++;
+        }
+
+        if (assigned > 0 && _focusLogBudget > 0)
+        {
+            _focusLogBudget--;
+            GD.Print($"[AI] P{slot.Id} 集火 {focus.Type.Name}（{assigned} 个单位）");
+        }
+    }
+
+    private int _focusLogBudget = 8;
+
+    /// <summary>
+    /// 买装备：AI 英雄站在商店 700 内、背包有空位、钱够，就买店里最便宜且有货的那件。
+    /// 贵的东西（比如 1000 金神器）要等经济起来，这条规则自然就把它排在后面。
+    /// </summary>
+    private void TickAiShopping(PlayerSlot slot)
+    {
+        Unit hero = null;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit.Alive && unit.Player == slot.Id && unit.IsHero) { hero = unit; break; }
+        }
+        if (hero == null || !hero.HasFreeSlot) return;
+
+        Unit shop = null;
+        float bestDistance = 700f;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || !unit.IsShop) continue;
+            float distance = hero.DistanceTo(unit);
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            shop = unit;
+        }
+        if (shop == null) return;
+
+        string pick = null;
+        int pickCost = int.MaxValue;
+        foreach (string itemId in shop.Type.SellItems)
+        {
+            ItemType type = ItemCatalog.Get(itemId);
+            if (type == null || type.GoldCost <= 0) continue;
+            if (shop.StockOf(itemId) <= 0) continue;
+            if (type.GoldCost > slot.Gold) continue;
+            if (type.GoldCost >= pickCost) continue;
+            pickCost = type.GoldCost;
+            pick = itemId;
+        }
+        if (pick == null) return;
+
+        if (!BuyItemFromShop(shop, slot.Id, pick)) return;
+        if (_shopLogBudget > 0)
+        {
+            _shopLogBudget--;
+            GD.Print($"[AI] P{slot.Id} 英雄买了 {ItemCatalog.Get(pick)?.Name}（{pickCost} 金）");
+        }
+    }
+
+    private int _shopLogBudget = 8;
+
     private Unit NearestTargetOf(int player, Vector3 from)
     {
         Unit best = null;
@@ -301,6 +395,18 @@ public sealed partial class War3GameScene
         if (hall == null) return;
 
         TickAiRetreat(slot);
+        slot.FocusTimer += 0.3f;
+        if (slot.FocusTimer >= 2f)
+        {
+            slot.FocusTimer = 0f;
+            TickAiFocus(slot);
+        }
+        slot.ShopTimer += 0.3f;
+        if (slot.ShopTimer >= 6f)
+        {
+            slot.ShopTimer = 0f;
+            TickAiShopping(slot);
+        }
 
         for (int attempt = 0; attempt < 4; attempt++)
         {

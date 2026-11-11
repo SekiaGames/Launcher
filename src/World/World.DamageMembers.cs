@@ -172,6 +172,17 @@ public sealed partial class World
         };
     }
 
+    /// <summary>吃掉/取材一具尸体：尸体消失，不再参与复活与后续取材。</summary>
+    public void ConsumeCorpse(Unit corpse)
+    {
+        if (corpse == null || corpse.Alive) return;
+
+        corpse.IsCorpse = false;
+        corpse.CorpseRemaining = 0f;
+        corpse.AwaitingRevive = false;
+        if (corpse.View != null) corpse.View.Root.Visible = false;
+    }
+
     private void Kill(Unit unit, Unit killer = null)
     {
         if (!unit.Alive) return;

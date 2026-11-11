@@ -17,6 +17,9 @@ public sealed partial class War3GameScene
         public bool Announced;
         public float Timer;
         public float StatusTimer;
+        /// <summary>AI 集火/买装备的节流计时。</summary>
+        public float FocusTimer;
+        public float ShopTimer;
         public readonly HashSet<string> KnownBuildings = new(StringComparer.OrdinalIgnoreCase);
         public readonly Dictionary<string, int> Research = new(StringComparer.OrdinalIgnoreCase);
         public readonly Dictionary<string, int> BuiltCounts = new(StringComparer.OrdinalIgnoreCase);
