@@ -382,6 +382,14 @@ public static partial class CombatProbe
             Verify("药水回 250 生命", 350f, hero2.Hp, 1f);
             Verify("用完后格子空出来", 0f, hero2.ItemCount, 0f);
 
+            // 满血时喝回血药应该失败（原版口径）
+            hero2.Hp = hero2.MaxHp;
+            var flask2 = new Item { Type = potion };
+            hero2.AddItem(flask2);
+            bool fullHp = world12.UseItem(hero2, flask2);
+            Verify("满血时喝不了回血药", 0f, fullHp ? 1f : 0f, 0f);
+            if (!fullHp) hero2.RemoveSlot(flask2.Slot);
+
             ItemType manaPotion = ItemCatalog.Get("pman");
             if (manaPotion != null)
             {

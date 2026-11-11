@@ -13,7 +13,13 @@ public sealed class CommandEntry
     public Texture2D Icon;
     public bool Enabled = true;
     public bool Active;
+    /// <summary>固定格位（0..11）；&lt;0 表示按顺序排。物品用原版右两列（2,3,6,7,10,11）。</summary>
+    public int SlotIndex = -1;
+    /// <summary>热键，显示在格子右上角。</summary>
+    public string Hotkey = "";
     public Action Action;
+    /// <summary>右键动作（原版：右键丢物品）。</summary>
+    public Action RightAction;
 }
 
 public sealed class MeleeHudController
@@ -38,6 +44,7 @@ public sealed class MeleeHudController
     public Action<Unit> SelectionSlotClicked;
     private readonly List<Button> _slots = new();
     private readonly List<Label> _slotCosts = new();
+    private readonly List<Label> _slotHotkeys = new();
     private readonly List<CommandEntry> _commands = new();
 
     public Func<Unit, string> DetailProvider;
@@ -222,6 +229,12 @@ public sealed class MeleeHudController
                 button.AddThemeStyleboxOverride("pressed", SlotStyle(new Color(0.28f, 0.32f, 0.26f)));
                 button.AddThemeStyleboxOverride("disabled", SlotStyle(new Color(0.08f, 0.08f, 0.09f)));
                 button.Pressed += () => Press(index);
+                button.GuiInput += @event =>
+                {
+                    if (@event is not InputEventMouseButton mouse) return;
+                    if (!mouse.Pressed || mouse.ButtonIndex != MouseButton.Right) return;
+                    RightPress(index);
+                };
                 layer.AddChild(button);
                 _slots.Add(button);
 
@@ -232,6 +245,14 @@ public sealed class MeleeHudController
                 cost.Visible = false;
                 layer.AddChild(cost);
                 _slotCosts.Add(cost);
+
+                var hotkey = Label("", 11, Vector2.Zero, new Color(0.85f, 0.9f, 1f));
+                hotkey.Position = new Vector2(button.Position.X + SlotSize - 14f, button.Position.Y + 1f);
+                hotkey.Size = new Vector2(13f, 14f);
+                hotkey.HorizontalAlignment = HorizontalAlignment.Right;
+                hotkey.Visible = false;
+                layer.AddChild(hotkey);
+                _slotHotkeys.Add(hotkey);
             }
         }
     }
@@ -257,28 +278,72 @@ public sealed class MeleeHudController
     {
         if (index < 0 || index >= _commands.Count) return;
         CommandEntry entry = _commands[index];
-        if (!entry.Enabled || entry.Action == null) return;
+        if (entry == null || !entry.Enabled || entry.Action == null) return;
         entry.Action();
     }
 
+    private void RightPress(int index)
+    {
+        if (index < 0 || index >= _commands.Count) return;
+        CommandEntry entry = _commands[index];
+        if (entry == null || !entry.Enabled || entry.RightAction == null) return;
+        entry.RightAction();
+    }
+
+    /// <summary>
+    /// 排格子：原版命令卡是 4×3 = 12 格，**左两列放技能/命令，右两列固定放物品**
+    /// （index 2,3,6,7,10,11）。有固定格位的先占位，其余按顺序填剩下的格子。
+    /// </summary>
     public void SetCommands(IReadOnlyList<CommandEntry> commands)
     {
-        _commands.Clear();
-        if (commands != null) _commands.AddRange(commands);
+        var placed = new CommandEntry[_slots.Count];
+        var leftovers = new List<CommandEntry>();
 
+        if (commands != null)
+        {
+            foreach (CommandEntry entry in commands)
+            {
+                if (entry.SlotIndex >= 0 && entry.SlotIndex < placed.Length && placed[entry.SlotIndex] == null)
+                {
+                    placed[entry.SlotIndex] = entry;
+                }
+                else
+                {
+                    leftovers.Add(entry);
+                }
+            }
+        }
+
+        int cursor = 0;
+        foreach (CommandEntry entry in leftovers)
+        {
+            while (cursor < placed.Length && placed[cursor] != null) cursor++;
+            if (cursor >= placed.Length) break;
+            placed[cursor] = entry;
+            cursor++;
+        }
+
+        _commands.Clear();
         for (int index = 0; index < _slots.Count; index++)
         {
-            bool used = index < _commands.Count;
+            CommandEntry entry = placed[index];
+            bool used = entry != null;
             _slots[index].Visible = used;
-            _slotCosts[index].Visible = used && !string.IsNullOrEmpty(_commands[index].Cost);
-            if (!used) continue;
+            _slotCosts[index].Visible = used && !string.IsNullOrEmpty(entry.Cost);
+            _slotHotkeys[index].Visible = used && !string.IsNullOrEmpty(entry.Hotkey);
+            if (!used)
+            {
+                _commands.Add(null);
+                continue;
+            }
 
-            CommandEntry entry = _commands[index];
+            _commands.Add(entry);
             _slots[index].Icon = entry.Icon;
             _slots[index].Disabled = !entry.Enabled;
             _slots[index].Modulate = entry.Enabled ? Colors.White : new Color(0.45f, 0.45f, 0.45f);
             _slots[index].TooltipText = BuildTooltip(entry);
             _slotCosts[index].Text = entry.Cost ?? "";
+            _slotHotkeys[index].Text = entry.Hotkey ?? "";
         }
     }
 

@@ -473,7 +473,7 @@ public sealed partial class War3GameScene
 
         _world.Units.Add(hero);
         hero.Level = 6;
-        hero.SkillPoints = 2;
+        hero.SkillPoints = 3;   // 学 2 个技能后还剩 1 点 → 命令卡上会出现「+」升级标记
         _world.RefreshHeroAttributes(hero);
         hero.Hp = hero.MaxHp;
         hero.Mana = hero.MaxMana;
@@ -481,8 +481,11 @@ public sealed partial class War3GameScene
         GD.Print($"[SKILL] 圣骑士 Lv{hero.Level} 法力{hero.Mana:0}/{hero.MaxMana:0} 技能点{hero.SkillPoints}"
             + $" 可学 [{string.Join(",", hero.Type.HeroAbilList)}]");
 
+        // 只学前两个，留 1 点给命令卡的「+」升级标记
+        int learnt = 0;
         foreach (string id in hero.Type.HeroAbilList)
         {
+            if (learnt++ >= 2) break;
             AbilityType type = AbilityCatalog.Get(id);
             if (type == null) continue;
             bool ok = _world.LearnAbility(hero, id);
@@ -508,29 +511,9 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
         GD.Print($"[SKILL] 命令卡：{DescribeCommandCard(hero)}");
 
-        foreach (Item picked in hero.Inventory)
-        {
-            if (picked?.Type == null) continue;
-            if (!picked.Type.Consumable.IsEmpty)
-            {
-                hero.Hp = Mathf.Max(1f, hero.Hp - 300f);
-                float hpBefore = hero.Hp;
-                bool used = _world.UseItem(hero, picked);
-                GD.Print($"[SKILL] 使用 {picked.Type.Name} {(used ? "成功" : "失败")} {hpBefore:0}→{hero.Hp:0}"
-                    + $" 剩余 {hero.ItemCount} 件");
-            }
-        }
-
-        for (int slot = 0; slot < Unit.InventorySize; slot++)
-        {
-            Item held = hero.Inventory[slot];
-            if (held?.Type == null) continue;
-            int strengthBefore = hero.Strength;
-            bool dropped = _world.DropItemFromSlot(hero, slot);
-            GD.Print($"[SKILL] 丢弃 {held.Type.Name} {(dropped ? "成功" : "失败")}"
-                + $" 力量 {strengthBefore}→{hero.Strength} 地面 {_world.GroundItems.Count} 件");
-            break;
-        }
+        // 留 3 秒让截图能看到「左技能 / 右物品」的原版布局，再演示使用与丢弃
+        SceneTreeTimer itemTimer = GetTree().CreateTimer(3.0);
+        itemTimer.Timeout += () => DemoItemUse(hero);
 
         // 山丘之王演示 单体伤害+眩晕 / 自身 AoE 减速
         Unit mountain = Spawn("Hmkg", ViewPlayer, creep.Position.X + 120f, creep.Position.Z + 120f, 0f, 0f, 1f);
@@ -606,5 +589,34 @@ public sealed partial class War3GameScene
 
         GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
             + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
+    }
+
+    private void DemoItemUse(Unit hero)
+    {
+        if (hero == null || _world == null) return;
+
+        foreach (Item picked in hero.Inventory)
+        {
+            if (picked?.Type == null) continue;
+            if (!picked.Type.Consumable.IsEmpty)
+            {
+                hero.Hp = Mathf.Max(1f, hero.Hp - 300f);
+                float hpBefore = hero.Hp;
+                bool used = _world.UseItem(hero, picked);
+                GD.Print($"[SKILL] 使用 {picked.Type.Name} {(used ? "成功" : "失败")} {hpBefore:0}→{hero.Hp:0}"
+                    + $" 剩余 {hero.ItemCount} 件");
+            }
+        }
+
+        for (int slot = 0; slot < Unit.InventorySize; slot++)
+        {
+            Item held = hero.Inventory[slot];
+            if (held?.Type == null) continue;
+            int strengthBefore = hero.Strength;
+            bool dropped = _world.DropItemFromSlot(hero, slot);
+            GD.Print($"[SKILL] 丢弃 {held.Type.Name} {(dropped ? "成功" : "失败")}"
+                + $" 力量 {strengthBefore}→{hero.Strength} 地面 {_world.GroundItems.Count} 件");
+            break;
+        }
     }
 }

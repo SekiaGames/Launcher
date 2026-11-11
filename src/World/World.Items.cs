@@ -35,8 +35,13 @@ public sealed partial class World
         ItemConsumable effect = item.Type.Consumable;
         if (effect.IsEmpty) return false;
 
-        if (effect.Heal > 0f) unit.Heal(effect.Heal);
-        if (effect.Mana > 0f && unit.MaxMana > 0f)
+        // 原版口径：回血的药在满血时喝不了，回蓝的在满蓝时喝不了（双回的要有一项没满）
+        bool needHeal = effect.Heal > 0f && unit.Hp < unit.MaxHp;
+        bool needMana = effect.Mana > 0f && unit.MaxMana > 0f && unit.Mana < unit.MaxMana;
+        if (!needHeal && !needMana) return false;
+
+        if (needHeal) unit.Heal(effect.Heal);
+        if (needMana)
         {
             unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + effect.Mana);
         }

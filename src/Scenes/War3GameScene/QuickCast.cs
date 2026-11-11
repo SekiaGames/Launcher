@@ -104,13 +104,12 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>
-    /// 英雄技能命令卡。对标原版口径：已学的技能占施法格，没学的占学习格，
-    /// 有点数时在末尾补「升级 X」格（原版是英雄面板上的 + 按钮，这里合并到同一张卡）。
+    /// 英雄技能命令卡，口径与原版一致：
+    /// 没学的技能占一格（点=学）；**有点数且还能升级时，技能图标上挂「+」，点它就是升级**；
+    /// 否则点它才是施法。被动技能只在没学/可升级时占格。
     /// </summary>
     private void AddAbilityCommands(System.Collections.Generic.List<CommandEntry> commands, Unit hero)
     {
-        var upgrades = new System.Collections.Generic.List<CommandEntry>();
-
         foreach (string id in hero.Type.HeroAbilList)
         {
             AbilityType type = AbilityCatalog.Get(id);
@@ -119,29 +118,108 @@ public sealed partial class War3GameScene
             Ability ability = hero.FindAbility(id) ?? hero.GiveAbility(id, 0);
             if (ability == null) continue;
 
-            if (!ability.Learned || ability.IsPassive)
+            bool canUpgrade = ability.CanLevelUp && hero.SkillPoints > 0 && LevelRequirementMet(hero, ability);
+            if (!ability.Learned || (ability.IsPassive && canUpgrade))
             {
                 commands.Add(LearnEntry(hero, ability));
                 continue;
             }
 
+            if (canUpgrade)
+            {
+                // 原版：技能图标右上角一个「+」，点一下就是加点（优先于施法）
+                CommandEntry upgrade = LearnEntry(hero, ability);
+                upgrade.Name = ability.Name;
+                upgrade.Cost = "+";
+                upgrade.Tooltip = AbilityTooltip(ability, ability.Level + 1) + "\n左键：升级（1 技能点）";
+                commands.Add(upgrade);
+                continue;
+            }
+
+            string cost = ability.Ready
+                ? $"{ability.ManaCost:0} 法力"
+                : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
+
             commands.Add(new CommandEntry
             {
                 Id = id,
                 Name = ability.Name,
-                Cost = $"{ability.ManaCost:0} 法力",
+                Cost = cost,
+                Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level),
                 Icon = TechTree.Icon(ability.IconArt),
                 Enabled = ability.Ready && hero.Mana >= ability.ManaCost,
                 Action = () => BeginCast(hero, ability),
             });
-
-            if (ability.CanLevelUp && hero.SkillPoints > 0) upgrades.Add(LearnEntry(hero, ability));
         }
 
-        foreach (CommandEntry entry in upgrades) commands.Add(entry);
-
         AddInventoryCommands(commands, hero);
+    }
+
+    private static bool LevelRequirementMet(Unit hero, Ability ability)
+    {
+        if (ability?.Type == null) return false;
+        int next = ability.Level + 1;
+        int skip = Mathf.Max(1, ability.Type.LevelSkip);
+        int need = (next - 1) * skip + Mathf.Max(1, ability.Type.RequiredLevel);
+        return hero.Level >= need;
+    }
+
+    /// <summary>
+    /// 原版命令卡是 4×3，物品栏固定占**右两列**（第 3、4 列 × 3 行），技能占左两列。
+    /// 槽位顺序按行铺：2,3 / 6,7 / 10,11。
+    /// </summary>
+    private static readonly int[] InventorySlotIndices = { 2, 3, 6, 7, 10, 11 };
+
+    /// <summary>右键丢物品（原版也是右键把物品丢到地上）。</summary>
+    private void DropInventorySlot(Unit hero, int slot)
+    {
+        Item item = hero.Inventory[slot];
+        if (_world == null || item?.Type == null) return;
+
+        if (_world.DropItemFromSlot(hero, slot))
+        {
+            _hud?.SetHint($"{hero.Type.Name} 丢下了 {item.Type.Name}");
+            RefreshHud();
+            UpdateCommandCard();
+        }
+    }
+
+    /// <summary>
+    /// 英雄热键：小键盘 1~6 用物品（原版物品格快捷键），技能按物编的 Hotkey（T/C/D/V…）。
+    /// 主键盘 1~0 仍是编队，不抢。
+    /// </summary>
+    public bool TryHeroHotkey(Key keycode)
+    {
+        Unit hero = _selected.Count == 1 ? _selected[0] : null;
+        if (hero == null || !hero.IsHero) return false;
+
+        int slot = (int)(keycode - Key.Kp1);
+        if (slot is >= 0 and < Unit.InventorySize)
+        {
+            Item item = hero.Inventory[slot];
+            if (item?.Type == null) return false;
+            UseOrDropItem(hero, item, slot, item.Type.Usable && !item.Type.Consumable.IsEmpty);
+            return true;
+        }
+
+        foreach (Ability ability in hero.Abilities)
+        {
+            if (!ability.Learned || ability.IsPassive) continue;
+            if (string.IsNullOrEmpty(ability.Hotkey)) continue;
+            char pressed = KeyToLetter(keycode);
+            if (pressed == '\0') continue;
+            if (char.ToUpperInvariant(ability.Hotkey[0]) != pressed) continue;
+            BeginCast(hero, ability);
+            return true;
+        }
+        return false;
+    }
+
+    private static char KeyToLetter(Key keycode)
+    {
+        if (keycode < Key.A || keycode > Key.Z) return '\0';
+        return (char)('A' + (int)(keycode - Key.A));
     }
 
     /// <summary>
@@ -161,11 +239,14 @@ public sealed partial class War3GameScene
             {
                 Id = item.Type.Id,
                 Name = item.Type.Name,
-                Cost = $"格 {slot + 1}",
+                Cost = "",
+                SlotIndex = InventorySlotIndices[slot],
+                Hotkey = (slot + 1).ToString(),
                 Tooltip = ItemTooltip(item.Type, usable),
                 Icon = TechTree.Icon(item.Type.IconArt),
                 Enabled = true,
                 Action = () => UseOrDropItem(hero, item, captured, usable),
+                RightAction = () => DropInventorySlot(hero, captured),
             });
         }
     }
