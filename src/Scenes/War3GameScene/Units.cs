@@ -24,6 +24,7 @@ public sealed partial class War3GameScene
         int placed = 0;
         int missingType = 0;
         int missingScene = 0;
+        int lootCount = 0;
 
         if (_map.Units != null)
         {
@@ -33,7 +34,7 @@ public sealed partial class War3GameScene
 
                 Vector3 world = ToWorld(entry.X, entry.Y);
 
-                if (ItemCatalog.Exists(entry.Id))
+                if (entry.IsItem || ItemCatalog.Exists(entry.Id))
                 {
                     if (SpawnItem(entry.Id, world) != null) placed++;
                     else missingScene++;
@@ -44,7 +45,13 @@ public sealed partial class War3GameScene
                 Unit unit = Spawn(entry.Id, player, world.X, world.Z, Mathf.Pi + entry.Angle,
                     entry.Hitpoints > 0 ? entry.Hitpoints : 0f, entry.ScaleX, entry.Gold);
 
-                if (unit != null) placed++;
+                if (unit != null)
+                {
+                    placed++;
+                    foreach (UnitItemDropSet set in entry.DroppedItemSets) unit.DropSets.Add(set);
+                    if (unit.DropSets.Count > 0) lootCount++;
+                    ApplyPlacementInventory(unit, entry);
+                }
                 else if (UnitCatalog.Get(entry.Id) == null) missingType++;
                 else missingScene++;
             }
@@ -53,7 +60,7 @@ public sealed partial class War3GameScene
         int cleared = ClearExcessUnits();
         int melee = SpawnMeleeStarts();
 
-        GD.Print($"[INIT] 地图单位 {placed} 个（缺类型 {missingType} 缺模型 {missingScene}），"
+        GD.Print($"[INIT] 地图单位 {placed} 个（缺类型 {missingType} 缺模型 {missingScene}，带掉落集 {lootCount}），"
             + $"出生点清场移除 {cleared} 个，开局基地单位 {melee} 个");
     }
 
@@ -216,6 +223,28 @@ public sealed partial class War3GameScene
             || id.StartsWith("ugol", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>地图上单位自带的背包物品（war3mapUnits.doo 的 Inventory）。</summary>
+    private static void ApplyPlacementInventory(Unit unit, UnitPlacement entry)
+    {
+        if (entry.Inventory.Count == 0 || !unit.CanCarryItems) return;
+
+        foreach (UnitInventoryItem placed in entry.Inventory)
+        {
+            ItemType type = ItemCatalog.Get(placed.ItemId);
+            if (type == null) continue;
+            var item = new Item { Type = type };
+            if (placed.Slot >= 0 && placed.Slot < Unit.InventorySize && unit.Inventory[placed.Slot] == null)
+            {
+                unit.Inventory[placed.Slot] = item;
+                item.AttachTo(unit, placed.Slot);
+            }
+            else
+            {
+                unit.AddItem(item);
+            }
+        }
+    }
+
     /// <summary>在地图上放一件物品：建模型节点后交给 World 管理拾取。</summary>
     private Item SpawnItem(string id, Vector3 position)
     {
@@ -223,21 +252,28 @@ public sealed partial class War3GameScene
         if (type == null) return null;
 
         var item = new Item { Type = type, Position = position };
-
-        PackedScene scene = Assets.LoadScene(type.ModelPath);
-        if (scene != null)
-        {
-            var node = scene.Instantiate<Node3D>();
-            node.Position = position;
-            node.Scale = Vector3.One * type.Scale;
-            node.Name = $"item_{id}_{_itemSerial++}";
-            AddChild(node);
-            item.Node = node;
-        }
-
+        CreateItemNode(item);
         _world.DropItem(item, position);
         return item;
     }
+
+    /// <summary>给新落地的物品建模型节点（掉落与手动摆放共用）。</summary>
+    private void CreateItemNode(Item item)
+    {
+        if (item?.Type == null || item.Node != null) return;
+
+        PackedScene scene = Assets.LoadScene(item.Type.ModelPath);
+        if (scene == null) return;
+
+        var node = scene.Instantiate<Node3D>();
+        node.Position = item.Position;
+        node.Scale = Vector3.One * item.Type.Scale;
+        node.Name = $"item_{item.Type.Id}_{_itemSerial++}";
+        AddChild(node);
+        item.Node = node;
+    }
+
+    private void OnItemSpawned(Item item) => CreateItemNode(item);
 
     private int _itemSerial;
 

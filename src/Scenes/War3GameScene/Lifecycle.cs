@@ -100,6 +100,7 @@ public sealed partial class War3GameScene : Node3D
         _world.AttackLanded += OnAttackLanded;
         _world.ConstructionFinished += OnConstructionFinished;
         _world.BountyAwarded += OnBountyAwarded;
+        _world.ItemSpawned += OnItemSpawned;
         _world.HeroRevived += OnHeroRevived;
         _world.TrySpendGold = (player, amount) =>
         {

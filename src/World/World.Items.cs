@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using WorldEdit.Core.Formats.W3x;
 
 namespace Launcher;
 
@@ -17,6 +18,8 @@ public sealed partial class World
     public IReadOnlyList<Item> GroundItems => _groundItems;
 
     public event Action<Unit, Item> ItemPickedUp;
+    /// <summary>新物品落地（野怪掉落 / 脚本生成），场景层据此建模型。</summary>
+    public event Action<Item> ItemSpawned;
 
     /// <summary>落地一件物品；场景层负责先建好 Item.Node 再交给这里。</summary>
     public void DropItem(Item item, Vector3 position)
@@ -49,6 +52,43 @@ public sealed partial class World
     }
 
     private int _logItemBudget = 8;
+
+    /// <summary>
+    /// 死亡掉落：对每个掉落集逐件按 chance(%) 掷骰，每个集最多掉一件。
+    /// 数据来自 war3mapUnits.doo 的单位实例掉落集（UnitPlacement.DroppedItemSets）。
+    /// </summary>
+    public void DropLootOnDeath(Unit victim)
+    {
+        if (victim == null || victim.DropSets.Count == 0) return;
+
+        foreach (UnitItemDropSet set in victim.DropSets)
+        {
+            foreach (UnitItemDrop drop in set.Items)
+            {
+                if (drop.Chance > 0 && _random.Next(1, 101) > drop.Chance) continue;
+
+                ItemType type = ItemCatalog.Get(drop.ItemId);
+                if (type == null) continue;
+
+                float angle = (float)(_random.NextDouble() * Mathf.Tau);
+                float radius = Mathf.Max(40f, victim.Radius + 24f);
+                var position = new Vector3(
+                    victim.Position.X + Mathf.Cos(angle) * radius,
+                    victim.Position.Y,
+                    victim.Position.Z + Mathf.Sin(angle) * radius);
+
+                var item = new Item { Type = type, Position = position };
+                DropItem(item, position);
+                ItemSpawned?.Invoke(item);
+                if (_logItemBudget > 0)
+                {
+                    _logItemBudget--;
+                    GD.Print($"[ITEM] {victim.Type.Name} 掉落 {type.Name}({drop.ItemId}) chance={drop.Chance}%");
+                }
+                break;
+            }
+        }
+    }
 
     private Unit NearestPicker(Vector3 position)
     {

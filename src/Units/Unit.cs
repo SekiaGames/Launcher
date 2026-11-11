@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using WorldEdit.Core.Formats.W3x;
 
 namespace Launcher;
 
@@ -28,6 +29,9 @@ public sealed partial class Unit
     public TreeState RallyTree;
     public int Carry;
     public int CarryLumber;
+    /// <summary>war3mapUnits.doo 里这个单位自带的掉落集（野怪死亡时掷骰）。</summary>
+    public readonly List<UnitItemDropSet> DropSets = new();
+
     /// <summary>入矿倒计时：侍僧（Aaha）进矿时隐藏模型，出矿再显示。</summary>
     public float InMineRemaining;
     public bool InMine => InMineRemaining > 0f;

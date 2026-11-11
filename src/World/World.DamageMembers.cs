@@ -176,6 +176,7 @@ public sealed partial class World
 
         unit.CancelAttack();
         unit.EnterDeath();
+        DropLootOnDeath(unit);
         GrantKillExperience(killer, unit);
 
         if (killer != null && killer.Player != unit.Player && !IsAllied(killer.Player, unit.Player) && GivesBounty(unit))

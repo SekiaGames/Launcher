@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using WorldEdit.Core.Formats.W3x;
 
 namespace Launcher;
 
@@ -109,6 +110,7 @@ public static class CombatProbe
         CheckSecondWeapon();
         CheckCorpse();
         CheckItems();
+        CheckLoot();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
@@ -397,6 +399,42 @@ public static class CombatProbe
         Verify("物品仍留在地上", 1f, second.OnGround ? 1f : 0f, 0f);
         GD.Print($"[自检] 物品 {crown.Name} Lv{crown.Level} 可掉落={crown.Droppable}，"
             + $"英雄栏位 {paladin.ItemCount}/{Unit.InventorySize}");
+    }
+
+    /// <summary>野怪死亡按掉落集掉物品，英雄随后能捡走。</summary>
+    private static void CheckLoot()
+    {
+        UnitType creep = UnitCatalog.Get("nftr");
+        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType hero = UnitCatalog.Get("Hpal");
+        if (creep == null || footman == null || hero == null) return;
+
+        var world = new World(null, null);
+        Unit monster = MakeUnit(creep, 12);
+        Unit killer = MakeUnit(footman, 0);
+        world.Units.Add(monster);
+        world.Units.Add(killer);
+
+        var set = new UnitItemDropSet();
+        set.Items.Add(new UnitItemDrop("phea", 100));
+        monster.DropSets.Add(set);
+
+        int spawned = 0;
+        world.ItemSpawned += item => spawned++;
+        world.DealDamage(World.MakeAbilityDamage(killer, monster, 100000f, AttackType.Spells, DamageType.Universal));
+
+        Verify("野怪死亡触发掉落", 1f, spawned, 0f);
+        Verify("掉落进入地面清单", 1f, world.GroundItems.Count, 0f);
+
+        Unit paladin = MakeUnit(hero, 0);
+        paladin.IsHero = true;
+        if (world.GroundItems.Count > 0) paladin.Position = world.GroundItems[0].Position;
+        world.Units.Add(paladin);
+        world.TickItemPickup();
+        Verify("英雄捡起掉落的物品", 1f, paladin.ItemCount, 0f);
+
+        GD.Print($"[自检] 掉落 {creep.Name} → {(spawned > 0 ? "有" : "无")}，"
+            + $"拾取后坐标地面清单 {world.GroundItems.Count}");
     }
 
     private static void ReportHit(string attackerId, string victimId, float raw)
