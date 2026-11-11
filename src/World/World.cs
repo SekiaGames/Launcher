@@ -52,8 +52,11 @@ public sealed partial class World
 
     public void Advance()
     {
-        foreach (Unit unit in Units)
+        // 用下标遍历：技能/召唤会在推进过程中往 Units 里加新单位（狼、骷髅、黑暗转换），
+        // 用 foreach 会直接撞 InvalidOperationException。
+        for (int index = 0; index < Units.Count; index++)
         {
+            Unit unit = Units[index];
             if (!unit.Alive)
             {
                 unit.TickCorpse(Tick);
@@ -67,6 +70,7 @@ public sealed partial class World
         TickAbilityMissiles();
         TickChannels();
         TickAbilities();
+        TickFogReveals();
         TickMorph();
         TickRegeneration();
         TickItemPickup();

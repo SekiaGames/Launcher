@@ -193,9 +193,9 @@ public sealed partial class World
         if (attacker == null || !attacker.Alive || ReferenceEquals(attacker, target)) return;
         if (info.Reflected || !info.IsAttack) return;
 
-        if (attacker.AuraLifestealPct > 0f)
+        if (attacker.AuraLifestealPct > 0f || attacker.BonusLifestealPct > 0f)
         {
-            attacker.Heal(info.Amount * attacker.AuraLifestealPct);
+            attacker.Heal(info.Amount * (attacker.AuraLifestealPct + attacker.BonusLifestealPct));
         }
 
         bool ranged = info.Weapon != null && !string.IsNullOrEmpty(info.Weapon.MissileScene);
@@ -261,6 +261,9 @@ public sealed partial class World
         corpse.AwaitingRevive = false;
         if (corpse.View != null) corpse.View.Root.Visible = false;
     }
+
+    /// <summary>直接死亡（灵魂保存 / 黑暗转换）：绕过伤害计算，击杀者照常记账。</summary>
+    public void KillUnit(Unit unit, Unit killer = null) => Kill(unit, killer);
 
     private void Kill(Unit unit, Unit killer = null)
     {

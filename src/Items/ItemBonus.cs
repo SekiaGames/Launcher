@@ -15,6 +15,7 @@ namespace Launcher;
 /// <item>AIde —— 护甲（DataA）：rde1 +2</item>
 /// <item>AIas —— 攻击速度（DataA，比例）：gcel 0.15</item>
 /// <item>AIms —— 移动速度（DataA，绝对值）：ms 类鞋子</item>
+/// <item>AIva —— 攻击吸血（DataA 比例）：modt 50%、klmm 50%</item>
 /// </list>
 /// </summary>
 public readonly struct ItemBonus
@@ -26,9 +27,10 @@ public readonly struct ItemBonus
     public readonly float Armor;
     public readonly float AttackSpeedPct;
     public readonly float MoveSpeed;
+    public readonly float LifestealPct;
 
     public ItemBonus(int strength, int agility, int intelligence,
-        float damage, float armor, float attackSpeedPct, float moveSpeed)
+        float damage, float armor, float attackSpeedPct, float moveSpeed, float lifestealPct)
     {
         Strength = strength;
         Agility = agility;
@@ -37,9 +39,10 @@ public readonly struct ItemBonus
         Armor = armor;
         AttackSpeedPct = attackSpeedPct;
         MoveSpeed = moveSpeed;
+        LifestealPct = lifestealPct;
     }
 
-    public static readonly ItemBonus Zero = new(0, 0, 0, 0f, 0f, 0f, 0f);
+    public static readonly ItemBonus Zero = new(0, 0, 0, 0f, 0f, 0f, 0f, 0f);
 
     public static ItemBonus operator +(ItemBonus a, ItemBonus b)
     {
@@ -50,11 +53,12 @@ public readonly struct ItemBonus
             a.Damage + b.Damage,
             a.Armor + b.Armor,
             a.AttackSpeedPct + b.AttackSpeedPct,
-            a.MoveSpeed + b.MoveSpeed);
+            a.MoveSpeed + b.MoveSpeed,
+            a.LifestealPct + b.LifestealPct);
     }
 
     public bool IsZero => Strength == 0 && Agility == 0 && Intelligence == 0
-        && Damage == 0f && Armor == 0f && AttackSpeedPct == 0f && MoveSpeed == 0f;
+        && Damage == 0f && Armor == 0f && AttackSpeedPct == 0f && MoveSpeed == 0f && LifestealPct == 0f;
 
     /// <summary>把一件物品的 abilList 逐条翻译成加成。</summary>
     public static ItemBonus ForItem(ItemType item)
@@ -83,15 +87,17 @@ public readonly struct ItemBonus
                     (int)MathF.Round(ability.DataAt(1, 'A')),
                     (int)MathF.Round(ability.DataAt(1, 'B')),
                     (int)MathF.Round(ability.DataAt(1, 'C')),
-                    0f, 0f, 0f, 0f);
+                    0f, 0f, 0f, 0f, 0f);
             case "AIAT":
-                return new ItemBonus(0, 0, 0, ability.DataAt(1, 'A'), 0f, 0f, 0f);
+                return new ItemBonus(0, 0, 0, ability.DataAt(1, 'A'), 0f, 0f, 0f, 0f);
             case "AIDE":
-                return new ItemBonus(0, 0, 0, 0f, ability.DataAt(1, 'A'), 0f, 0f);
+                return new ItemBonus(0, 0, 0, 0f, ability.DataAt(1, 'A'), 0f, 0f, 0f);
             case "AIAS":
-                return new ItemBonus(0, 0, 0, 0f, 0f, ability.DataAt(1, 'A'), 0f);
+                return new ItemBonus(0, 0, 0, 0f, 0f, ability.DataAt(1, 'A'), 0f, 0f);
             case "AIMS":
-                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, ability.DataAt(1, 'A'));
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, ability.DataAt(1, 'A'), 0f);
+            case "AIVA":
+                return new ItemBonus(0, 0, 0, 0f, 0f, 0f, 0f, ability.DataAt(1, 'A'));
             default:
                 return Zero;
         }
@@ -107,6 +113,7 @@ public readonly struct ItemBonus
         if (Armor != 0f) parts.Add($"护甲+{Armor:0.##}");
         if (AttackSpeedPct != 0f) parts.Add($"攻速+{AttackSpeedPct * 100f:0.#}%");
         if (MoveSpeed != 0f) parts.Add($"移速+{MoveSpeed:0}");
+        if (LifestealPct != 0f) parts.Add($"吸血+{LifestealPct * 100f:0.#}%");
         return parts.Count == 0 ? "-" : string.Join(" ", parts);
     }
 }

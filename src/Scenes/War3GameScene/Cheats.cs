@@ -686,6 +686,9 @@ public sealed partial class War3GameScene
         // 尸体目标：腐尸甲虫这类取材技能必须能通过命令卡点到尸体
         DemoCorpseTarget(creep);
 
+        // 远视：把一块原本看不见的区域刷成可见（World.Reveals → FogOfWar.Refresh）
+        DemoFarSight(creep);
+
         GD.Print($"[SKILL] 技能栏 {hero.Abilities.Count} 个："
             + string.Join("、", hero.Abilities.ConvertAll(a => $"{a.Name}{(a.Learned ? " Lv" + a.Level : " 未学")}")));
     }
@@ -744,6 +747,66 @@ public sealed partial class War3GameScene
 
         GD.Print($"[CORPSE] 命令卡点尸体 点击命中={clicked} 尸体已消耗={!corpse.IsCorpse}"
             + $" 召出甲虫={beetles} 屏幕点({screen.X:0},{screen.Y:0}) 技能={scarabs.Name}（尸体目标={scarabs.TargetsCorpse}）");
+    }
+
+    /// <summary>
+    /// 远视整条链路：施法往 World.Reveals 里记一块区域 → FogOfWar.Refresh 接受揭示区域 → IsVisible 变 true。
+    /// 不靠截图，直接查雾格。
+    /// </summary>
+    private void DemoFarSight(Unit anchor)
+    {
+        Unit seer = Spawn("Ofar", ViewPlayer, anchor.Position.X + 120f, anchor.Position.Z + 200f, 0f, 0f, 1f);
+        if (seer == null)
+        {
+            GD.Print("[SIGHT] 缺先知模型，跳过远视验证");
+            return;
+        }
+
+        _world.Units.Add(seer);
+        seer.Level = 6;
+        seer.SkillPoints = 2;
+        _world.RefreshHeroAttributes(seer);
+        seer.Hp = seer.MaxHp;
+        seer.Mana = seer.MaxMana;
+        _world.LearnAbility(seer, "AOfs");
+
+        Ability sight = seer.FindAbility("AOfs");
+        if (sight == null)
+        {
+            GD.Print("[SIGHT] 远视没学会");
+            return;
+        }
+
+        float maxX = -(_map.Terrain.Width - 1) * MapWorldBuilder.CellSize + 320f;
+        float maxZ = (_map.Terrain.Height - 1) * MapWorldBuilder.CellSize - 320f;
+        Vector3 spot = default;
+        bool found = false;
+        for (int step = 0; step < 16 && !found; step++)
+        {
+            float angle = Mathf.Tau * step / 16f;
+            var candidate = new Vector3(
+                seer.Position.X + Mathf.Cos(angle) * 1500f,
+                seer.Position.Y,
+                seer.Position.Z + Mathf.Sin(angle) * 1500f);
+            if (candidate.X > -320f || candidate.X < maxX) continue;
+            if (candidate.Z < 320f || candidate.Z > maxZ) continue;
+            if (_fog.IsVisible(candidate)) continue;
+            spot = candidate;
+            found = true;
+        }
+
+        if (!found)
+        {
+            GD.Print("[SIGHT] 附近找不到看不见的落点，跳过");
+            return;
+        }
+
+        bool before = _fog.IsVisible(spot);
+        bool cast = _world.TryCast(seer, sight, null, spot);
+        _fog.Refresh(_allUnits, ViewPlayer, AreAllied, SightOf, _world.Reveals);
+        bool after = _fog.IsVisible(spot);
+        GD.Print($"[SIGHT] 远视 {(cast ? "成功" : "失败")} 落点({spot.X:0},{spot.Z:0}) 半径{sight.Area:0}"
+            + $" 雾前={before} 雾后={after} 揭示区域={_world.Reveals.Count}");
     }
 
     private void DemoItemUse(Unit hero)

@@ -68,6 +68,11 @@ public static class SkillRegistry
         ["AUdd"] = () => new DeathAndDecay(), // 死亡腐烂（引导 + 百分比）
         ["AEbl"] = () => new Blink(),         // 闪烁（守望者，点目标瞬移）
         ["ANsi"] = () => new Silence(),       // 沉默（点目标 AoE）
+        ["ANch"] = () => new Charm(),         // 魅惑（黑暗游侠大招，抢一个非英雄单位）
+        ["ANfd"] = () => new FingerOfDeath(), // 死亡之指（阿克蒙德，DataC 直伤）
+        ["ANsl"] = () => new SoulPreservation(), // 灵魂保存（玛尔加尼斯，到期接管并死亡）
+        ["ANdc"] = () => new DarkConversion(),   // 黑暗转换（玛尔加尼斯，沉睡后换单位）
+        ["AOfs"] = () => new FarSight(),      // 远视（先知，点地面揭示）
         ["AEev"] = () => new Evasion(),       // 闪避（被动）
         ["AUfa"] = () => new FrostArmor(),    // 霜冻护甲
         // —— 召唤与复活 ——

@@ -18,6 +18,8 @@ public sealed partial class Unit
     public float BonusDamageFlat;
     public float BonusAttackSpeedPct;
     public float BonusMoveSpeedFlat;
+    /// <summary>物品给的攻击吸血比例（AIva）。</summary>
+    public float BonusLifestealPct;
     public float BonusMaxHp;
     /// <summary>AI 控制（非玩家视角）时为 true，会自己找机会放技能。</summary>
     public bool AutoCast;

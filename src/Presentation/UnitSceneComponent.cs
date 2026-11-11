@@ -56,6 +56,9 @@ public sealed class UnitSceneComponent
         return PlayerColors[Mathf.Abs(player) % PlayerColors.Length];
     }
 
+    /// <summary>换阵营时重刷模型上的队伍色。</summary>
+    public void SetTeamColor(Color color) => ApplyTeamColor(color);
+
     private void ApplyTeamColor(Color color)
     {
         foreach (Node node in Root.FindChildren("*", "MeshInstance3D", true, false))

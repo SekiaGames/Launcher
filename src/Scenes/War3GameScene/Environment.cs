@@ -38,7 +38,7 @@ public sealed partial class War3GameScene
         if (_fogTimer < 0.2f) return;
         _fogTimer = 0f;
 
-        _fog.Refresh(_allUnits, ViewPlayer, AreAllied, SightOf);
+        _fog.Refresh(_allUnits, ViewPlayer, AreAllied, SightOf, _world?.Reveals);
         if (!_fog.Enabled) return;
 
         foreach (Unit unit in _allUnits)

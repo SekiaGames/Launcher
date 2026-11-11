@@ -168,13 +168,15 @@ public sealed partial class World
     /// <summary>每 tick：技能冷却、减速倒计时、Buff 到期、光环重算。</summary>
     public void TickAbilities()
     {
-        foreach (Unit unit in Units)
+        // Buff 到期回调里可能召唤单位（黑暗转换）、换阵营；用下标遍历避开集合变更异常。
+        for (int unitIndex = 0; unitIndex < Units.Count; unitIndex++)
         {
+            Unit unit = Units[unitIndex];
             if (!unit.Alive) continue;
 
-            for (int index = 0; index < unit.Abilities.Count; index++)
+            for (int abilityIndex = 0; abilityIndex < unit.Abilities.Count; abilityIndex++)
             {
-                Ability ability = unit.Abilities[index];
+                Ability ability = unit.Abilities[abilityIndex];
                 if (ability.CooldownRemaining > 0f)
                 {
                     ability.CooldownRemaining = Mathf.Max(0f, ability.CooldownRemaining - Tick);
@@ -199,17 +201,17 @@ public sealed partial class World
 
             if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
 
-            for (int index = 0; index < unit.Abilities.Count; index++)
+            for (int upkeepIndex = 0; upkeepIndex < unit.Abilities.Count; upkeepIndex++)
             {
-                Ability kept = unit.Abilities[index];
+                Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
             }
 
-            for (int index = unit.Buffs.Count - 1; index >= 0; index--)
+            for (int buffIndex = unit.Buffs.Count - 1; buffIndex >= 0; buffIndex--)
             {
-                Buff buff = unit.Buffs[index];
+                Buff buff = unit.Buffs[buffIndex];
                 if (buff.OnTick(this, Tick)) continue;
-                unit.Buffs.RemoveAt(index);
+                unit.Buffs.RemoveAt(buffIndex);
                 buff.OnRemove(this);
             }
         }
@@ -387,6 +389,7 @@ public sealed partial class World
         unit.BonusArmor += bonus.Armor;
         unit.BonusAttackSpeedPct += bonus.AttackSpeedPct;
         unit.BonusMoveSpeedFlat += bonus.MoveSpeed;
+        unit.BonusLifestealPct += bonus.LifestealPct;
 
         RefreshHeroAttributes(unit);
     }
@@ -406,6 +409,7 @@ public sealed partial class World
         unit.BonusArmor -= bonus.Armor;
         unit.BonusAttackSpeedPct -= bonus.AttackSpeedPct;
         unit.BonusMoveSpeedFlat -= bonus.MoveSpeed;
+        unit.BonusLifestealPct -= bonus.LifestealPct;
         item.Bonus = ItemBonus.Zero;
 
         RefreshHeroAttributes(unit);

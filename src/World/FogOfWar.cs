@@ -130,8 +130,9 @@ public sealed partial class FogOfWar : Node3D
         return new Vector3(worldX, height + FogHeight, worldZ);
     }
 
-    /// <summary>按视野源重算可见格；返回本次是否真的有变化。</summary>
-    public void Refresh(IReadOnlyList<Unit> sources, int player, Func<int, int, bool> allied, Func<UnitType, float> sightOf)
+    /// <summary>按视野源重算可见格（单位视野 + 技能给的临时揭示区域）；返回本次是否真的有变化。</summary>
+    public void Refresh(IReadOnlyList<Unit> sources, int player, Func<int, int, bool> allied, Func<UnitType, float> sightOf,
+        IReadOnlyList<FogReveal> reveals = null)
     {
         if (!Enabled || _terrain == null) return;
 
@@ -143,6 +144,15 @@ public sealed partial class FogOfWar : Node3D
             bool mine = unit.Player == player || (allied != null && allied(unit.Player, player));
             if (!mine) continue;
             Stamp(unit.Position, sightOf != null ? sightOf(unit.Type) : unit.Type.SightDay);
+        }
+
+        if (reveals != null)
+        {
+            foreach (FogReveal reveal in reveals)
+            {
+                if (reveal.Player != player && !(allied != null && allied(reveal.Player, player))) continue;
+                Stamp(reveal.Center, reveal.Radius);
+            }
         }
 
         int visibleCount = 0;
