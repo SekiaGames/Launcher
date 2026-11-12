@@ -18,6 +18,10 @@ public static class MiscRules
     public static readonly float MaxUnitSpeed = Value("Misc.MaxUnitSpeed", 400f);
     public static readonly float MinBuildingSpeed = Value("Misc.MinBldgSpeed", 25f);
     public static readonly float MaxBuildingSpeed = Value("Misc.MaxBldgSpeed", 400f);
+    // 经验分配开关（客户端 World.cs:505-532）：建筑击杀是否给经验、近处没人时是否全局兜底、满级英雄是否继续吸经验。
+    public static readonly bool BuildingKillsGiveExp = Value("Misc.BuildingKillsGiveExp", 0f) > 0f;
+    public static readonly bool GlobalExperience = Value("Misc.GlobalExperience", 0f) > 0f;
+    public static readonly bool MaxLevelHeroesDrainExp = Value("Misc.MaxLevelHeroesDrainExp", 0f) > 0f;
     /// <summary>击杀召唤物只按这个比例给经验（MiscData 的 SummonedKillFactor，对战表是 0.5）。</summary>
     public static readonly float SummonedKillFactor = Value("Misc.SummonedKillFactor", 0.5f);
 

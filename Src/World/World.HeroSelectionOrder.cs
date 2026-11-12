@@ -15,6 +15,8 @@ public sealed partial class World
     public void GrantKillExperience(Unit killer, Unit victim)
     {
         if (victim == null || victim.IsIllusion) return;
+        // 客户端 World.cs:505-511：建筑击杀是否给经验由 BuildingKillsGiveExp 决定（TFT 为 0 = 不给）。
+        if (killer != null && killer.IsBuilding && !MiscRules.BuildingKillsGiveExp) return;
 
         int bounty = KillExperienceBounty(victim);
         if (bounty <= 0) return;
@@ -22,14 +24,21 @@ public sealed partial class World
         int team = killer != null ? killer.Player : -1;
         if (team < 0 || team > 11) return;
 
-        var receivers = new List<Unit>();
+        // 客户端 660630：先收近距离英雄；近处没人且开了 GlobalExperience 才退回"全体己方英雄"。
+        var nearby = new List<Unit>();
+        var everyone = new List<Unit>();
         foreach (Unit hero in Units)
         {
             if (!hero.Alive || !hero.IsHero) continue;
             if (hero.Player != team && !(Allied != null && Allied(hero.Player, team))) continue;
-            if (hero.DistanceTo(victim) > HeroRules.ExpRange) continue;
-            receivers.Add(hero);
+            // 满级英雄默认不再吸经验（MaxLevelHeroesDrainExp=0）。
+            if (!MiscRules.MaxLevelHeroesDrainExp && hero.Level >= HeroRules.MaxLevel) continue;
+            everyone.Add(hero);
+            if (hero.DistanceTo(victim) <= HeroRules.ExpRange) nearby.Add(hero);
         }
+        List<Unit> receivers = nearby.Count > 0
+            ? nearby
+            : (MiscRules.GlobalExperience ? everyone : nearby);
         if (receivers.Count == 0) return;
 
         int share = Mathf.FloorToInt((float)bounty / receivers.Count + 0.5f);

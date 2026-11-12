@@ -159,6 +159,42 @@ public static partial class CombatProbe
         summon.Units.Add(heroC);
         summon.DealDamage(World.MakeAbilityDamage(killer3, summoned, 100000f, AttackType.Spells, DamageType.Universal));
         Verify("召唤物经验按 SummonedKillFactor 折算", (int)(bounty * MiscRules.SummonedKillFactor), heroC.Xp, 0f);
+
+        // 建筑击杀：TFT 的 BuildingKillsGiveExp=0，不给经验。
+        var byTower = new World(null, null);
+        Unit tower = MakeUnit(UnitFactory.Get("hbla"), 0);
+        tower.IsBuilding = true;
+        Unit preyForTower = MakeUnit(creepType, 12);
+        Unit heroByTower = MakeHero(heroType, 0, 1, byTower);
+        byTower.Units.Add(tower);
+        byTower.Units.Add(preyForTower);
+        byTower.Units.Add(heroByTower);
+        byTower.DealDamage(World.MakeAbilityDamage(tower, preyForTower, 100000f, AttackType.Spells, DamageType.Universal));
+        Verify("建筑击杀按 BuildingKillsGiveExp 决定", MiscRules.BuildingKillsGiveExp ? bounty : 0f, heroByTower.Xp, 0f);
+
+        // 满级英雄：MaxLevelHeroesDrainExp=0 时不再吸经验。
+        var maxed = new World(null, null);
+        Unit killerM = MakeUnit(soldier, 0);
+        Unit preyM = MakeUnit(creepType, 12);
+        Unit heroMax = MakeHero(heroType, 0, HeroRules.MaxLevel, maxed);
+        maxed.Units.Add(killerM);
+        maxed.Units.Add(preyM);
+        maxed.Units.Add(heroMax);
+        float xpBefore = heroMax.Xp;
+        maxed.DealDamage(World.MakeAbilityDamage(killerM, preyM, 100000f, AttackType.Spells, DamageType.Universal));
+        Verify("满级英雄不涨经验", xpBefore, heroMax.Xp, 0f);
+
+        // 近处没有英雄：GlobalExperience=1 时远处英雄也能分到。
+        var farWorld = new World(null, null);
+        Unit killerF = MakeUnit(soldier, 0);
+        Unit preyF = MakeUnit(creepType, 12);
+        Unit heroFar = MakeHero(heroType, 0, 1, farWorld);
+        heroFar.Position = new Vector3(10000f, 0f, 0f);
+        farWorld.Units.Add(killerF);
+        farWorld.Units.Add(preyF);
+        farWorld.Units.Add(heroFar);
+        farWorld.DealDamage(World.MakeAbilityDamage(killerF, preyF, 100000f, AttackType.Spells, DamageType.Universal));
+        Verify("远处英雄按 GlobalExperience 兜底", MiscRules.GlobalExperience ? bounty : 0f, heroFar.Xp, 0f);
     }
 
     /// <summary>迫击炮 Farea=25 / Harea=150 / Qarea=250：全伤、半伤、四分之一、圈外不受伤。</summary>
