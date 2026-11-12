@@ -157,6 +157,16 @@ public sealed class War3GameplayConfig
 
     // —— 光环授予条件（客户端 War3GameplayConfig 同名旗标，值取 Units/MiscGame.txt）——
 
+        public int MagicImmunesResistUltimates { get; } = MiscRules.Value("Misc.MagicImmunesResistUltimates", 1f) != 0f ? 1 : 0;
+
+    public bool EnsnareIsMagic { get; } = MiscRules.Value("Misc.EnsnareIsMagic", 1f) != 0f;
+
+    public bool WebIsMagic { get; } = MiscRules.Value("Misc.WebIsMagic", 1f) != 0f;
+
+    public bool DrainTransfersLife { get; } = MiscRules.Value("Misc.DrainTransfersLife", 1f) != 0f;
+
+    public bool DrainTransfersMana { get; } = MiscRules.Value("Misc.DrainTransfersMana", 1f) != 0f;
+
     public bool CanDeactivateDivineShield { get; } = MiscRules.Value("Misc.CanDeactivateDivineShield", 1f) != 0f;
 
     public bool IllusionsGetDefenseBonus { get; } = MiscRules.Value("Misc.IllusionsGetDefenseBonus", 1f) != 0f;

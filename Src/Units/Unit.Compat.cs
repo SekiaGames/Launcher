@@ -357,6 +357,8 @@ public sealed class Health
     }
 
     public void NotifySleepRemoval() => _unit.State.RemoveAll(StateMod.Sleep);
+
+    public void NotifySleepRemoval(Unit caster) => _unit.State.RemoveAll(StateMod.Sleep);
 }
 
 public sealed class Stats

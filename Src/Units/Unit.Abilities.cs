@@ -183,6 +183,11 @@ public sealed partial class Unit
         {
             if (buff is T match) return match;
         }
+        // 客户端把 Buff 也放技能表（Buff : Ability），这里一并找
+        foreach (Ability ability in Abilities)
+        {
+            if (ability is T match) return match;
+        }
         return null;
     }
 
