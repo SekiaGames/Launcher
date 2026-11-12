@@ -203,6 +203,24 @@ public sealed partial class World
             info.Cancelled = true;
             if (info.IsAttack) AttackMissed?.Invoke(info.Source);
             DamageApplied?.Invoke(info);
+        // 客户端钩子：OnDamaged（受击后）、OnAttackHit（普攻命中后）
+        if (target.Abilities != null)
+        {
+            foreach (Ability ability in target.Abilities)
+            {
+                if (!ability.Learned) continue;
+                ability.OnDamaged(ref info, info.Amount);
+            }
+        }
+        if (info.IsAttack && info.Source?.Abilities != null)
+        {
+            foreach (Ability ability in info.Source.Abilities)
+            {
+                if (!ability.Learned) continue;
+                ability.OnAttackHit(target, info.Amount, in info);
+            }
+        }
+
             return;
         }
 
@@ -210,6 +228,7 @@ public sealed partial class World
         {
             info.Amount = 0f;
             DamageApplied?.Invoke(info);
+
             return;
         }
 
@@ -220,6 +239,7 @@ public sealed partial class World
             info.Cancelled = true;
             AttackMissed?.Invoke(info.Source);
             DamageApplied?.Invoke(info);
+
             return;
         }
 
@@ -229,12 +249,14 @@ public sealed partial class World
         {
             info.Amount = 0f;
             DamageApplied?.Invoke(info);
+
             return;
         }
         if (target.State.MagicImmune && !physical || target.State.PhysicalImmune && physical)
         {
             info.Amount = 0f;
             DamageApplied?.Invoke(info);
+
             return;
         }
 
@@ -256,9 +278,26 @@ public sealed partial class World
         info.Amount = War3GameplayConfig.Default.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
             info.Armor, info.UnderConstruction, info.Ethereal);
 
+        // 客户端钩子：ApplyIncomingDamage 拦截、ModifyFinalDamage 改终伤
+        if (target.Abilities != null)
+        {
+            foreach (Ability ability in target.Abilities)
+            {
+                if (!ability.Learned) continue;
+                if (ability.ApplyIncomingDamage(ref info))
+                {
+                    info.Amount = 0f;
+                    info.Cancelled = true;
+                    break;
+                }
+                info.Amount = ability.ModifyFinalDamage(info.Amount, ref info);
+            }
+        }
+
         target.Hp -= info.Amount;
         target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), target.Alive);
         DamageApplied?.Invoke(info);
+
 
         // 被攻击回调：霜冻护甲减速攻击者、荆棘反伤将来也挂这里
         if (info.IsAttack && info.Amount > 0f && info.Source != null && target.Buffs.Count > 0)

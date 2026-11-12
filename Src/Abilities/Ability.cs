@@ -634,6 +634,8 @@ public abstract class Ability
 
     public virtual float ModifyFinalDamage(float trueDamage, ref DamageData data) => trueDamage;
 
+    public virtual bool ApplyIncomingDamage(ref DamageData data) => false;
+
     public virtual void OnDamaged(ref DamageData data, float dealt) { }
 
     public virtual string VisualModelPath => "";
