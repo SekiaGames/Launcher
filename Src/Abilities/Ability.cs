@@ -460,6 +460,9 @@ public abstract class Ability
 
     public virtual float ExpectedChannelDuration => 0f;
 
+    /// <summary>引导的结算间隔（客户端各技能自己的 WaveInterval 之类）。</summary>
+    public virtual float ChannelInterval => 0f;
+
     public float ConfiguredAreaOfEffect => Area;
 
     public virtual bool SpellStealable => true;

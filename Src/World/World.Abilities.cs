@@ -152,7 +152,13 @@ public sealed partial class World
         if (!ability.CheckTarget(this, target, point)) return false;
         Vec2 flat = new(point.X, point.Z);
         if (!ability.CheckCanTarget(target, flat)) return false;
-        if (ability.UsesOnEffectPipeline) ability.OnEffect(target, flat);
+        if (ability.UsesOnEffectPipeline)
+        {
+            ability.OnEffect(target, flat);
+            // 客户端引导型技能自己在 OnEffect 里开效果，时长与间隔由技能声明
+            if (ability.ExpectedChannelDuration > 0f)
+                BeginChannel(caster, ability, point, ability.ExpectedChannelDuration, ability.ChannelInterval);
+        }
         else
         {
             ability.BeginCasting();
@@ -163,7 +169,7 @@ public sealed partial class World
         }
 
         // 施放别的技能会打断正在进行的引导（引导型技能自己刚开的不能打断）
-        if (!ability.IsChanneled) InterruptChannel(caster);
+        if (!ability.IsChanneled && ability.ExpectedChannelDuration <= 0f) InterruptChannel(caster);
 
         caster.Mana = Mathf.Max(0f, caster.Mana - cost);
         ability.CooldownRemaining = ability.Cooldown;
@@ -238,7 +244,7 @@ public sealed partial class World
             {
                 Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
-                if (!kept.Learned) continue;
+                if (kept is not Buff && !kept.Learned) continue;
                 kept.OnWorldTick(this, FrameSeconds);
                 kept.OnTick(FrameSeconds);
                 debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
