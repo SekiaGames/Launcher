@@ -174,7 +174,24 @@ public static partial class CombatProbe
         }
         Verify("蝗群数量=DataA", swarmType.DataAt(1, 'A'), locusts, 1f);
         Verify("蝗群放出完毕", 0f, world.GroundSpellCount, 0f);
-        GD.Print($"[自检] 蝗群 {locusts} 只，存货 {swarmType.DurationAt(1):0}s，放出间隔 {swarmType.DataAt(1, 'B'):0.00}s");
+
+        Unit agentUnit = null;
+        foreach (Unit unit in world.Units)
+        {
+            if (unit.Type == null || unit.Type.Id != "uloc") continue;
+            if (unit.Abilities.Exists(ability => ability is LocustAgent)) agentUnit = unit;
+        }
+        if (agentUnit != null)
+        {
+            lord.Hp = lord.MaxHp * 0.5f;
+            float before = lord.Hp;
+            LocustAgent agent = (LocustAgent)agentUnit.Abilities.Find(ability => ability is LocustAgent);
+            var hit = new DamageInfo { Source = agentUnit, Target = lord, Amount = 50f, Raw = 50f };
+            agent.OnAttackLanded(world, hit);
+            world.KillUnit(agentUnit, null);
+            Verify("蝗群代理回血=伤害×DataD", 50f * swarmType.DataAt(1, 'D'), lord.Hp - before, 0.5f);
+        }
+        GD.Print($"[自检] 蝗群 {locusts} 只，存货 {swarmType.DurationAt(1):0}s，放出间隔 {swarmType.DataAt(1, 'B'):0.00}s，回血系数 DataD={swarmType.DataAt(1, 'D'):0.00}");
     }
 
     private static void CheckEarthquake()

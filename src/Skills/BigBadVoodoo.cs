@@ -12,7 +12,7 @@ public sealed class BigBadVoodoo : Ability
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 
     public override bool IsChanneled => true;
-    public override float ChannelWaveInterval => 1f;
+    public override float ChannelWaveInterval => 0.5f;
     public override float ChannelTotal => EffectiveDuration;
 
     public override bool OnCast(World world, Unit target, Vector3 point)
@@ -25,11 +25,12 @@ public sealed class BigBadVoodoo : Ability
     {
         if (world == null || Owner == null) return;
 
-        // 每秒续一次，单次挂 1.2 秒：引导断了最多 1.2 秒就恢复可被打
+        // 客户端 RuntimeVoodooBuff：每 0.5s 扫描一次，单次护盾 1s，无敌 + 魔免
         foreach (Unit ally in world.AlliesInRange(Owner, Owner.Position, Area))
         {
-            if (ReferenceEquals(ally, Owner)) continue;
-            ally.State.Add(StateMod.Invulnerable, 1.2f);
+            if (ReferenceEquals(ally, Owner) || ally.IsChanneling) continue;
+            ally.State.Add(StateMod.Invulnerable, 1f);
+            ally.State.Add(StateMod.MagicImmune, 1f);
         }
     }
 

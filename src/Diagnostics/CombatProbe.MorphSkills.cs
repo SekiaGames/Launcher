@@ -175,6 +175,7 @@ public static partial class CombatProbe
         for (int index = 0; index < 21; index++) voodooWorld.TickChannels();
         Verify("巫毒施放成功", 1f, voodooCast ? 1f : 0f, 0f);
         Verify("巫毒让友军无敌", 1f, voodooAlly.State.Invulnerable ? 1f : 0f, 0f);
+        Verify("巫毒让友军魔免", 1f, voodooAlly.State.MagicImmune ? 1f : 0f, 0f);
         Verify("巫毒不保护施法者", 0f, voodooSh.State.Invulnerable ? 1f : 0f, 0f);
         GD.Print($"[自检] 巫毒 友军无敌={voodooAlly.State.Invulnerable} 施法者无敌={voodooSh.State.Invulnerable}");
     }

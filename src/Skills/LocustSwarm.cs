@@ -28,6 +28,7 @@ public sealed class LocustSwarm : Ability
             Count = SwarmCount,
             Interval = ReleaseInterval,
             Lifetime = SwarmDuration,
+            Factor = Data('D'),
         });
         return true;
     }
@@ -48,6 +49,7 @@ public sealed class LocustSwarmRelease : IGroundSpell
     public int Count;
     public float Interval;
     public float Lifetime;
+    public float Factor;
 
     private int _released;
     private float _timer;
@@ -63,10 +65,40 @@ public sealed class LocustSwarmRelease : IGroundSpell
         int guard = 0;
         while (_timer <= 0f && _released < Count && guard++ < 40)
         {
-            world.Summon(Caster, UnitId, Caster.Position, Lifetime);
+            Unit locust = world.Summon(Caster, UnitId, Caster.Position, Lifetime);
+            if (locust != null)
+            {
+                var agent = new LocustAgent { Owner = locust, Caster = Caster, Factor = Factor, Level = 1 };
+                locust.Abilities.Add(agent);
+            }
             _released++;
             _timer += Mathf.Max(World.Tick, Interval);
         }
         return _released < Count;
+    }
+}
+
+/// <summary>蝗虫代理：把打出的伤害存起来，蝗虫消失时按 DataD 比例回给施法者（RuntimeLocustSwarmAbility）。</summary>
+public sealed class LocustAgent : Ability
+{
+    public Unit Caster;
+    public float Factor;
+
+    private float _stored;
+
+    public override bool IsPassive => true;
+
+    public override void OnAttackLanded(World world, DamageInfo info)
+    {
+        if (Caster == null || !Caster.Alive || info == null) return;
+        _stored += info.Amount * Factor;
+    }
+
+    public override void OnOwnerDeath(World world)
+    {
+        if (Caster == null || !Caster.Alive || Mathf.Abs(_stored) < 0.5f) return;
+        if (_stored > 0f) Caster.Heal(_stored);
+        else Caster.Hp = Mathf.Max(1f, Caster.Hp + _stored);
+        _stored = 0f;
     }
 }
