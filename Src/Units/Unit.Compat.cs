@@ -60,6 +60,10 @@ public sealed partial class Unit
 
     Death _death;
 
+    public bool CorpseDecaySuspended;
+
+    public int TeleportVersion;
+
     public float CollisionSize => Type == null ? 16f : (IsBuilding ? Type.FootprintRadius : Type.CollisionRadius);
 
     public Ability GetAbility(string id) => FindAbility(id);
@@ -164,6 +168,16 @@ public sealed partial class Unit
 
     static StateMod ToStateMod(StateModType type)
         => Enum.TryParse(type.ToString(), out StateMod mod) ? mod : StateMod.Pause;
+
+    public void CancelOrders()
+    {
+        PendingOrders.Clear();
+        MoveTarget = null;
+        Target = null;
+        AttackMoving = false;
+        Patrolling = false;
+        HoldingPosition = false;
+    }
 
     public void AddAbility(Ability ability)
     {
@@ -348,4 +362,17 @@ public sealed class Death
     public bool IsDead => !_unit.Alive;
 
     public float CorpseSecondsLeft => _unit.CorpseRemaining;
+
+    public void SuspendDecay(bool suspend) => _unit.CorpseDecaySuspended = suspend;
+
+    public void ResumeDecay() => _unit.CorpseDecaySuspended = false;
+
+    /// <summary>把单位变成一具尸体（客户端 Death.InitializeAsCorpse）。</summary>
+    public void InitializeAsCorpse()
+    {
+        _unit.Alive = false;
+        _unit.IsCorpse = true;
+        _unit.Hp = 0f;
+        _unit.CorpseRemaining = Unit.CorpseSeconds;
+    }
 }

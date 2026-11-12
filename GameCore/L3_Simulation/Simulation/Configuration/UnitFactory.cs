@@ -227,6 +227,24 @@ public static class UnitFactory
         };
     }
 
+    public static Unit Create(War3ObjectData objects, string id, int team, Vec2 position, float facing)
+    {
+        UnitType type = Get(id);
+        if (type == null) return null;
+        return new Unit
+        {
+            Type = type,
+            Player = team,
+            Position = new Vector3(position.X, 0f, position.Y),
+            Facing = facing,
+            Hp = type.Hp,
+            MaxHp = type.Hp,
+            Mana = type.ManaStart,
+            IsBuilding = type.IsBuilding,
+            IsHero = type.IsHero,
+        };
+    }
+
     public static UnitType Get(string id)
     {
         if (string.IsNullOrEmpty(id)) return null;

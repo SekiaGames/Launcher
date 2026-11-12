@@ -486,6 +486,10 @@ public abstract class Ability
 
     public virtual bool IsTechTreeLocked => false;
 
+    public virtual bool CheckConfiguredTarget(Unit target) => true;
+
+    public virtual bool AutoCastActive { get; set; }
+
     protected virtual bool EffectEventBeforePayment => true;
 
     protected virtual float ObjectDataArtLifeSpan => 0f;

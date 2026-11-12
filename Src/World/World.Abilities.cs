@@ -360,6 +360,29 @@ public sealed partial class World
         }
     }
 
+    /// <summary>把一个已经构好的单位放进世界（客户端 World.Spawn）。</summary>
+    /// <summary>单位死亡/被移除时放开它占的空间（A 侧只有路径格）。</summary>
+    public void ReleaseUnitSpatialOnDeath(Unit unit)
+    {
+        if (unit == null) return;
+        ReleaseFootprint(unit, unit.CollisionSize);
+    }
+
+    public void Spawn(Unit unit)
+    {
+        if (unit == null) return;
+        if (!Units.Contains(unit)) Units.Add(unit);
+    }
+
+    /// <summary>静默移除：不触发死亡与移除事件，专给「刚造就不要了」的场合。</summary>
+    public void RemoveUnitSilent(Unit unit)
+    {
+        if (unit == null) return;
+        unit.Alive = false;
+        unit.IsCorpse = false;
+        Units.Remove(unit);
+    }
+
     public List<Unit> RentUnitList()
     {
         List<Unit> list = _spatialPool.Count > 0 ? _spatialPool.Pop() : new List<Unit>(64);
