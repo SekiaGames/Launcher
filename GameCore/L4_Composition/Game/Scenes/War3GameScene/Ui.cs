@@ -98,7 +98,7 @@ public sealed partial class War3GameScene
 
         float bonus = _world != null ? _world.DamageBonus(unit) : 0f;
         float armor = _world != null ? _world.ArmorOf(unit) : unit.Type.Armor;
-        float reduction = (1f - War3GameplayConfig.ArmorFactor(armor)) * 100f;
+        float reduction = (1f - War3GameplayConfig.Default.ArmorFactor(armor)) * 100f;
         if (unit.Type.CanAttack)
         {
             return $"攻击 {unit.Type.MinDamage + bonus:0}-{unit.Type.MaxDamage + bonus:0}（{CombatCodes.AttackLabel(unit.Type.AttackType)}）"
@@ -241,7 +241,7 @@ public sealed partial class War3GameScene
     {
         if (Slot(player) == null) return;
         // 维修费用：人口过高时只按比例入账（木头不扣）。
-        int credited = War3GameplayConfig.GoldAfterUpkeep(amount, FoodUsed(player));
+        int credited = War3GameplayConfig.Default.GoldAfterUpkeep(amount, FoodUsed(player));
         Slot(player).Gold += credited;
         RefreshHud();
         if (player == ViewPlayer) ShowResourceFloat(FindHall(player), credited, false, false);

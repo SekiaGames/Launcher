@@ -31,7 +31,7 @@ public sealed partial class World
     {
         float armor = unit.Type.Armor;
         if (unit.IsHero) armor += HeroRules.AgilityArmor(unit.Agility);
-        armor += unit.BonusArmor + unit.AuraArmor + unit.TechArmor;
+        armor += unit.BonusArmor + unit.AuraArmor + unit.TechArmor + unit.NonStackArmor;
         // 被动技能的常驻护甲（尖刺甲壳这类）
         foreach (Ability ability in unit.Abilities)
         {
@@ -247,9 +247,9 @@ public sealed partial class World
             info.Amount *= 1f - Mathf.Clamp(target.MagicDamageReductionPct, 0f, 0.9f);
         }
         info.ThornsBase = Mathf.Max(0f, info.Amount);
-        info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.ArmorFactor(info.Armor);
-        info.ClassRatio = War3GameplayConfig.ClassRatio(info.AttackType, info.DefenseType);
-        info.Amount = War3GameplayConfig.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
+        info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.Default.ArmorFactor(info.Armor);
+        info.ClassRatio = War3GameplayConfig.Default.ClassRatio(info.AttackType, info.DefenseType);
+        info.Amount = War3GameplayConfig.Default.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
             info.Armor, info.UnderConstruction, info.Ethereal);
 
         target.Hp -= info.Amount;

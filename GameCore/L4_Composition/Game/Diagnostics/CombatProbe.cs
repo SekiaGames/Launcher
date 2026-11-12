@@ -13,7 +13,7 @@ public static partial class CombatProbe
         _failures = 0;
         GD.Print("==== 战斗结算管线自检 ====");
 
-        War3GameplayConfig.LogMatrix();
+        War3GameplayConfig.Default.LogMatrix();
 
         CheckRatio("穿刺 vs 加固", AttackType.Pierce, DefenseType.Fort, 0.35f);
         CheckRatio("攻城 vs 加固", AttackType.Siege, DefenseType.Fort, 1.50f);
@@ -98,8 +98,8 @@ public static partial class CombatProbe
 
         states.Add(StateMod.Ethereal, 3f);
         Verify("虚无禁普攻", 0f, states.CanAttack ? 1f : 0f, 0f);
-        Verify("虚无法术加成 1.66", 1.66f, War3GameplayConfig.EtherealBonus(AttackType.Spells), 0.001f);
-        Verify("虚无普攻无加成", 1f, War3GameplayConfig.EtherealBonus(AttackType.Normal), 0.001f);
+        Verify("虚无法术加成 1.66", 1.66f, War3GameplayConfig.Default.EtherealBonus(AttackType.Spells), 0.001f);
+        Verify("虚无普攻无加成", 1f, War3GameplayConfig.Default.EtherealBonus(AttackType.Normal), 0.001f);
 
         CheckImmunity();
         CheckDuel();
@@ -158,7 +158,7 @@ public static partial class CombatProbe
         if (attacker == null || victim == null) return;
 
         float armor = victim.Armor;
-        GD.Print($"[命中] {attackerId} → {victimId}  {War3GameplayConfig.Describe(raw, attacker.AttackType, victim.DefenseType, DamageType.Normal, armor, false, false)}");
+        GD.Print($"[命中] {attackerId} → {victimId}  {War3GameplayConfig.Default.Describe(raw, attacker.AttackType, victim.DefenseType, DamageType.Normal, armor, false, false)}");
     }
 
     private static void ReportMask(string attackerId, string victimId)
@@ -174,27 +174,27 @@ public static partial class CombatProbe
 
     private static void CheckRatio(string label, AttackType attack, DefenseType defense, float expected)
     {
-        float actual = War3GameplayConfig.ClassRatio(attack, defense);
+        float actual = War3GameplayConfig.Default.ClassRatio(attack, defense);
         Verify(label, expected, actual, 0.001f);
     }
 
     private static void CheckArmor(string label, float armor, float expected)
     {
-        Verify(label, expected, War3GameplayConfig.ArmorFactor(armor), 0.0001f);
+        Verify(label, expected, War3GameplayConfig.Default.ArmorFactor(armor), 0.0001f);
     }
 
     private static void CheckFloor(string label, float raw, AttackType attack, DefenseType defense, float armor, float expected)
     {
-        float actual = War3GameplayConfig.Resolve(raw, attack, defense, DamageType.Normal, armor, false, false);
+        float actual = War3GameplayConfig.Default.Resolve(raw, attack, defense, DamageType.Normal, armor, false, false);
         Verify(label, expected, actual, 0.001f);
     }
 
     /// <summary>维修费用（upkeep）：人口 50 内全额、51-80 七成、81+ 四成，只扣金。</summary>
     private static void CheckUpkeep()
     {
-        Verify("维修 人口50内 全额", 100f, War3GameplayConfig.GoldAfterUpkeep(100, 50), 0f);
-        Verify("维修 人口51-80 七成", 70f, War3GameplayConfig.GoldAfterUpkeep(100, 60), 0f);
-        Verify("维修 人口81+ 四成", 40f, War3GameplayConfig.GoldAfterUpkeep(100, 90), 0f);
+        Verify("维修 人口50内 全额", 100f, War3GameplayConfig.Default.GoldAfterUpkeep(100, 50), 0f);
+        Verify("维修 人口51-80 七成", 70f, War3GameplayConfig.Default.GoldAfterUpkeep(100, 60), 0f);
+        Verify("维修 人口81+ 四成", 40f, War3GameplayConfig.Default.GoldAfterUpkeep(100, 90), 0f);
     }
 
     private static void Verify(string label, float expected, float actual, float tolerance)

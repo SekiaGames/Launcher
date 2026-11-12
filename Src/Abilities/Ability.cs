@@ -301,7 +301,11 @@ public abstract class Ability
 
     public IRuntimeObjectData ObjectData { get; private set; }
 
-    public string Rawcode => Id;
+    public string Rawcode
+    {
+        get => Id;
+        set => _rawcode = value ?? "";
+    }
 
     int _maxLevel;
 
@@ -387,6 +391,41 @@ public abstract class Ability
     public virtual bool ProvidesResistantSkin => false;
 
     public virtual bool HasPersistentTargetArts => false;
+
+    public bool HasConfiguredTargets => Type != null && Type.Targets != SpellTargets.None;
+
+    public TargetFlags ConfiguredTargets => TargetFlagsOf(Type?.Targets ?? SpellTargets.None);
+
+    public bool IsRuntimeLocked => IsDisabled;
+
+    static TargetFlags TargetFlagsOf(SpellTargets targets)
+    {
+        TargetFlags flags = TargetFlags.None;
+        if ((targets & SpellTargets.Ground) != 0) flags |= TargetFlags.Ground;
+        if ((targets & SpellTargets.Air) != 0) flags |= TargetFlags.Air;
+        if ((targets & SpellTargets.Structure) != 0) flags |= TargetFlags.Structure;
+        if ((targets & SpellTargets.Debris) != 0) flags |= TargetFlags.Debris;
+        if ((targets & SpellTargets.Item) != 0) flags |= TargetFlags.Item;
+        if ((targets & SpellTargets.Ward) != 0) flags |= TargetFlags.Ward;
+        if ((targets & SpellTargets.Tree) != 0) flags |= TargetFlags.Tree;
+        if ((targets & SpellTargets.Wall) != 0) flags |= TargetFlags.Wall;
+        if ((targets & SpellTargets.Enemy) != 0) flags |= TargetFlags.Enemy;
+        if ((targets & SpellTargets.Neutral) != 0) flags |= TargetFlags.Neutral;
+        if ((targets & SpellTargets.Friend) != 0) flags |= TargetFlags.Ally;
+        if ((targets & SpellTargets.Self) != 0) flags |= TargetFlags.Self;
+        if ((targets & SpellTargets.NotSelf) != 0) flags |= TargetFlags.NotSelf;
+        if ((targets & SpellTargets.Player) != 0) flags |= TargetFlags.Player;
+        if ((targets & SpellTargets.Ally) != 0) flags |= TargetFlags.Ally;
+        if ((targets & SpellTargets.Dead) != 0) flags |= TargetFlags.Dead;
+        if ((targets & SpellTargets.Organic) != 0) flags |= TargetFlags.Organic;
+        if ((targets & SpellTargets.Vulnerable) != 0) flags |= TargetFlags.Vulnerable;
+        if ((targets & SpellTargets.Invulnerable) != 0) flags |= TargetFlags.Invulnerable;
+        if ((targets & SpellTargets.NonAncient) != 0) flags |= TargetFlags.NonAncient;
+        if ((targets & SpellTargets.NonHero) != 0) flags |= TargetFlags.NonHero;
+        if ((targets & SpellTargets.Hero) != 0) flags |= TargetFlags.Hero;
+        if ((targets & SpellTargets.NonMagicImmune) != 0) flags |= TargetFlags.NonMagicImmune;
+        return flags;
+    }
 
     public virtual float ExpectedChannelDuration => 0f;
 

@@ -301,7 +301,7 @@ public static partial class CombatProbe
         float beetleHp = beetle.Hp;
         carapaceWorld.DealDamage(carapaceWorld.MakeAttackDamage(striker, beetle, 100f));
         float dealtToBeetle = beetleHp - beetle.Hp;
-        float reflected = War3GameplayConfig.Resolve(100f * 0.15f, AttackType.Spells,
+        float reflected = War3GameplayConfig.Default.Resolve(100f * 0.15f, AttackType.Spells,
             striker.Type.DefenseType, DamageType.Universal, 0f, false, false);
         Verify("尖刺甲壳反弹 15%", strikerHp - reflected, striker.Hp, 0.5f);
         GD.Print($"[自检] 尖刺甲壳 挨 {dealtToBeetle:0} 伤害，反弹 {strikerHp - striker.Hp:0}");

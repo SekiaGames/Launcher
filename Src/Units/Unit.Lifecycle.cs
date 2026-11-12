@@ -122,8 +122,8 @@ public sealed partial class Unit
         AwaitingRevive = false;
         ReviveRemaining = 0f;
         ReviveAltar = null;
-        Hp = MaxHp * War3GameplayConfig.HeroReviveLifeFactor;
-        Mana = Mathf.Max(Mana, MaxMana * War3GameplayConfig.HeroReviveManaStart);
+        Hp = MaxHp * War3GameplayConfig.Default.HeroReviveLifeFactor;
+        Mana = Mathf.Max(Mana, MaxMana * War3GameplayConfig.Default.HeroReviveManaStart);
         Position = position;
         Home = position;
         Facing = yaw;

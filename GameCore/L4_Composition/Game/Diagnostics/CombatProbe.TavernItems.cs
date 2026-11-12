@@ -128,7 +128,7 @@ public static partial class CombatProbe
         float before = victim.Hp;
         Ability fire = caster.FindAbility("ANcf");
         bool cast = world.TryCast(caster, fire, victim, victim.Position);
-        float expected = War3GameplayConfig.Resolve(fireType.DataAt(1, 'A'), AttackType.Spells,
+        float expected = War3GameplayConfig.Default.Resolve(fireType.DataAt(1, 'A'), AttackType.Spells,
             victim.Type.DefenseType, DamageType.Magic, 0f, false, false);
         Verify("火焰吐息施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("火焰吐息命中伤害=DataA", expected, before - victim.Hp, 3f);
@@ -164,7 +164,7 @@ public static partial class CombatProbe
         float before = second.Hp;
         caster.FindAbility("ANca").OnAttackLanded(world, info);
 
-        float expected = War3GameplayConfig.Resolve(100f * cleaveType.DataAt(1, 'A'), AttackType.Normal,
+        float expected = War3GameplayConfig.Default.Resolve(100f * cleaveType.DataAt(1, 'A'), AttackType.Normal,
             second.Type.DefenseType, DamageType.Universal, 0f, false, false);
         Verify("分裂攻击溅射=DataA×伤害", before - expected, second.Hp, 0.5f);
     }
@@ -234,7 +234,7 @@ public static partial class CombatProbe
         Unit near = ProbeUnit(world, "hfoo", 1, new Vector3(260f, 0f, 0f));
 
         float before = near.Hp;
-        float splash = War3GameplayConfig.Resolve(5f, AttackType.Spells, near.Type.DefenseType,
+        float splash = War3GameplayConfig.Default.Resolve(5f, AttackType.Spells, near.Type.DefenseType,
             DamageType.Magic, 0f, false, false);
         var info = new DamageData { Source = hero, Target = target, Amount = 30f, IsAttack = true };
         world.ApplyOrbEffect(info);

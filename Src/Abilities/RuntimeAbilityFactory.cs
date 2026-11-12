@@ -590,6 +590,54 @@ public static class RuntimeAbilityFactory
     public static string ReadString(IRuntimeObjectData data, string field, int level, string fallback = "")
         => data?.GetString(field, Math.Max(1, level), 0, fallback) ?? fallback;
 
+    public static TargetFlags ParseTargets(string rules)
+    {
+        TargetFlags flags = TargetFlags.None;
+        if (string.IsNullOrWhiteSpace(rules)) return flags;
+        foreach (string token in rules.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            switch (token.Trim().ToLowerInvariant())
+            {
+                case "ground": flags |= TargetFlags.Ground; break;
+                case "air": flags |= TargetFlags.Air; break;
+                case "structure": flags |= TargetFlags.Structure; break;
+                case "debris": flags |= TargetFlags.Debris; break;
+                case "item": flags |= TargetFlags.Item; break;
+                case "ward": flags |= TargetFlags.Ward; break;
+                case "tree": flags |= TargetFlags.Tree; break;
+                case "wall": flags |= TargetFlags.Wall; break;
+                case "enemy": flags |= TargetFlags.Enemy; break;
+                case "neutral": flags |= TargetFlags.Neutral; break;
+                case "friend": flags |= TargetFlags.Ally; break;
+                case "self": flags |= TargetFlags.Self; break;
+                case "notself": flags |= TargetFlags.NotSelf; break;
+                case "player": flags |= TargetFlags.Player; break;
+                case "ally": flags |= TargetFlags.Ally; break;
+                case "dead": flags |= TargetFlags.Dead; break;
+                case "organic": flags |= TargetFlags.Organic; break;
+                case "vulnerable": flags |= TargetFlags.Vulnerable; break;
+                case "invulnerable": flags |= TargetFlags.Invulnerable; break;
+                case "nonancient": flags |= TargetFlags.NonAncient; break;
+                case "nonhero": flags |= TargetFlags.NonHero; break;
+                case "hero": flags |= TargetFlags.Hero; break;
+                case "nonmagicimmune": flags |= TargetFlags.NonMagicImmune; break;
+                case "alive": flags |= TargetFlags.Alive; break;
+                case "ancient": flags |= TargetFlags.Ancient; break;
+                case "mechanical": flags |= TargetFlags.Mechanical; break;
+                case "sapper": flags |= TargetFlags.Sapper; break;
+                case "nonsapper": flags |= TargetFlags.NonSapper; break;
+            }
+        }
+        return flags;
+    }
+
+    public static string ReadTargetRules(IRuntimeObjectData data, int level)
+    {
+        string rules = ReadString(data, "targs", level);
+        if (!string.IsNullOrEmpty(rules)) return rules;
+        return ReadString(data, "targs1", level);
+    }
+
     public static Ability Create(AbilityType type)
     {
         if (type == null) return null;

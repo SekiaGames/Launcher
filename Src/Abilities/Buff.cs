@@ -32,7 +32,15 @@ public class Buff : Ability
     public virtual bool IsHarmful => true;
 
     /// <summary>施加者（客户端 Buff.Caster）。Launcher 里 Buff 只记 Source 技能。</summary>
-    public Unit Caster => Source?.Owner;
+    Unit _caster;
+
+    public Unit Caster
+    {
+        get => _caster ?? Source?.Owner;
+        set => _caster = value;
+    }
+
+    public Ability SourceAbility;
 
     /// <summary>总时长（客户端 Buff.Duration）；Launcher 用 Remaining 倒计时。</summary>
     public new float Duration;

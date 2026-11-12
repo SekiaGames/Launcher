@@ -330,6 +330,21 @@ public sealed partial class World
         }
     }
 
+    public List<Unit> RentUnitListForAura() => new();
+
+    public void ReturnUnitListForAura(List<Unit> list) => list?.Clear();
+
+    /// <summary>光环扫描候选：客户端走空间哈希，这里先全表返回，调用方自己判距离。</summary>
+    public void CollectNearbyUnits(Vec2 center, float radius, List<Unit> into)
+    {
+        if (into == null) return;
+        for (int i = 0; i < Units.Count; i++)
+        {
+            Unit unit = Units[i];
+            if (unit != null && unit.Alive) into.Add(unit);
+        }
+    }
+
     /// <summary>受击钩子：只要有一个已学被动要取消这次伤害（闪避），就整体取消。</summary>
     public bool PassesDefensiveHooks(DamageData info)
     {

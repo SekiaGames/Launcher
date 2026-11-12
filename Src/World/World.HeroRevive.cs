@@ -46,13 +46,13 @@ public sealed partial class World
 
     public int HeroReviveCostOf(Unit hero)
     {
-        return hero?.Type == null ? 0 : War3GameplayConfig.HeroReviveGoldCost(hero.Type.GoldCost, hero.Level);
+        return hero?.Type == null ? 0 : War3GameplayConfig.Default.HeroReviveGoldCost(hero.Type.GoldCost, hero.Level);
     }
 
     public float HeroReviveSecondsOf(Unit hero)
     {
         // 客户端 HeroesAndSpells.cs:11-20 用 bldtm（建造时间）而不是 reptm（训练时间）做复活基数。
-        return hero?.Type == null ? 0f : War3GameplayConfig.HeroReviveSeconds(hero.Type.BuildSeconds, hero.Level);
+        return hero?.Type == null ? 0f : War3GameplayConfig.Default.HeroReviveSeconds(hero.Type.BuildSeconds, hero.Level);
     }
 
     public Unit FindAltar(int player)

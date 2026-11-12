@@ -25,6 +25,8 @@ public sealed partial class World
 
     public UnitList Units { get; }
 
+    public War3GameplayConfig GameplayConfig => War3GameplayConfig.Default;
+
     private CargoTransport _cargo;
     /// <summary>驻军子系统（对标客户端 Src/Units/CargoTransport.cs）。</summary>
     public CargoTransport Cargo => _cargo ??= new CargoTransport(this);

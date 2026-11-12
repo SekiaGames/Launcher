@@ -83,11 +83,11 @@ public static class AiCounters
             float best = 0f;
             if (candidate.Weapon.Enabled)
             {
-                best = Math.Max(best, War3GameplayConfig.ClassRatio(candidate.Weapon.AttackType, defense));
+                best = Math.Max(best, War3GameplayConfig.Default.ClassRatio(candidate.Weapon.AttackType, defense));
             }
             if (candidate.Weapon2 != null && candidate.Weapon2.Enabled)
             {
-                best = Math.Max(best, War3GameplayConfig.ClassRatio(candidate.Weapon2.AttackType, defense));
+                best = Math.Max(best, War3GameplayConfig.Default.ClassRatio(candidate.Weapon2.AttackType, defense));
             }
             weighted += best * weight;
         }

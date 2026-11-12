@@ -184,7 +184,7 @@ public static partial class CombatProbe
         float victimHp = thornVictim.Hp;
         thornsWorld.DealDamage(thornsWorld.MakeAttackDamage(thornAttacker, thornVictim, 100f));
         float victimDealt = victimHp - thornVictim.Hp;
-        float expectedThorns = War3GameplayConfig.Resolve(100f * 0.1f, AttackType.Spells,
+        float expectedThorns = War3GameplayConfig.Default.Resolve(100f * 0.1f, AttackType.Spells,
             thornAttacker.Type.DefenseType, DamageType.Universal, 0f, false, false);
         Verify("荆棘光环反弹 10%", attackerHp - expectedThorns, thornAttacker.Hp, 0.5f);
 
@@ -213,7 +213,7 @@ public static partial class CombatProbe
         Verify("法力燃烧 DataB 延迟前不扣蓝", 200f, burner.Mana, 0.01f);
         for (int tick = 0; tick < 8; tick++) burnWorld.Advance();
         Verify("法力燃烧烧掉 50 蓝", 150f, burner.Mana, 0.5f);
-        float burnExpected = War3GameplayConfig.Resolve(50f, AttackType.Spells, burner.Type.DefenseType,
+        float burnExpected = War3GameplayConfig.Default.Resolve(50f, AttackType.Spells, burner.Type.DefenseType,
             DamageType.Magic, 0f, false, false);
         Verify("法力燃烧造成等量伤害", burnHp - burnExpected, burner.Hp, 0.5f);
         GD.Print($"[自检] 法力燃烧 蓝 200→{burner.Mana:0}，血 {burnHp:0}→{burner.Hp:0}");

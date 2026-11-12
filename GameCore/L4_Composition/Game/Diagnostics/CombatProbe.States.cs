@@ -75,7 +75,7 @@ public static partial class CombatProbe
         victim.State.Clear();
 
         float armor = sim.ArmorOf(victim);
-        GD.Print($"[自检] 步兵护甲 {armor:0.00} 折算系数 {War3GameplayConfig.ArmorFactor(armor):0.0000}");
+        GD.Print($"[自检] 步兵护甲 {armor:0.00} 折算系数 {War3GameplayConfig.Default.ArmorFactor(armor):0.0000}");
     }
 
     private static void CheckBounty()

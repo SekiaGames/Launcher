@@ -445,7 +445,7 @@ public static partial class CombatProbe
         var info = new DamageData { Source = huntress, Target = first, Amount = 40f, IsAttack = true };
         huntress.FindAbility("Amgl").OnAttackLanded(world, info);
 
-        float expected = War3GameplayConfig.Resolve(info.Amount * 0.5f, AttackType.Pierce, second.Type.DefenseType,
+        float expected = War3GameplayConfig.Default.Resolve(info.Amount * 0.5f, AttackType.Pierce, second.Type.DefenseType,
             DamageType.Normal, 0f, false, false);
         GD.Print($"[月刃] 主目标 {first.Hp:0.0}/{first.MaxHp:0.0} 弹射目标 {second.Hp:0.0}/{second.MaxHp:0.0} 预期弹射伤害 {expected:0.00}");
         Verify("月刃弹射到第二个目标", first.Hp - expected, second.Hp, 0.5f);

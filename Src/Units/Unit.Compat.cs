@@ -30,11 +30,39 @@ public sealed partial class Unit
 
     public float MoveSpeedBase => Type?.Speed ?? 0f;
 
+    public bool Invisible => State.Invisible;
+
+    /// <summary>客户端 Unit.ManaRegen 是法力回复字段；Launcher 在 Type 上放基础值，这里折成同样的可读写口径。</summary>
+    public float ManaRegen
+    {
+        get => _manaRegenBonus + (Type?.ManaRegen ?? 0f);
+        set => _manaRegenBonus = value - (Type?.ManaRegen ?? 0f);
+    }
+
+    float _manaRegenBonus;
+
+    public MovementType MovementType => Type?.MoveType switch
+    {
+        "fly" => MovementType.Fly,
+        "hover" => MovementType.Hover,
+        "horse" => MovementType.Horse,
+        "float" => MovementType.Float,
+        "amph" => MovementType.Amphibious,
+        "none" => MovementType.Disabled,
+        _ => MovementType.Foot,
+    };
+
     public void AddState(StateMod mod, float seconds = 0f) => State.Add(mod, seconds);
 
     public void RemoveState(StateMod mod) => State.RemoveAll(mod);
 
     public Health Health => _health ??= new Health(this);
+
+    public Stats Stats => _stats ??= new Stats(this);
+
+    Stats _stats;
+
+    public float NonStackArmor { get; internal set; }
 
     Health _health;
 
@@ -142,4 +170,53 @@ public sealed class Health
     }
 
     public void NotifySleepRemoval() => _unit.State.RemoveAll(StateMod.Sleep);
+}
+
+public sealed class Stats
+{
+    readonly Unit _unit;
+    readonly Dictionary<string, float> _nonStack = new();
+
+    public Stats(Unit unit) => _unit = unit;
+
+    public float MoveSpeedBase => _unit.MoveSpeedBase;
+
+    public float SpeedBonus
+    {
+        get => _unit.BonusMoveSpeedFlat;
+        set => _unit.BonusMoveSpeedFlat = value;
+    }
+
+    public float AttackSpeedBonusPct
+    {
+        get => _unit.BonusAttackSpeedPct;
+        set => _unit.BonusAttackSpeedPct = value;
+    }
+
+    public float DamageBonus
+    {
+        get => _unit.BonusDamageFlat;
+        set => _unit.BonusDamageFlat = value;
+    }
+
+    public void AddNonStack(string key, float armor, float unused, object source)
+    {
+        if (string.IsNullOrEmpty(key)) return;
+        _nonStack[key] = armor;
+        Recompute();
+    }
+
+    public void RemoveNonStack(string key, object source)
+    {
+        if (string.IsNullOrEmpty(key)) return;
+        if (!_nonStack.Remove(key)) return;
+        Recompute();
+    }
+
+    void Recompute()
+    {
+        float total = 0f;
+        foreach (float value in _nonStack.Values) total += value;
+        _unit.NonStackArmor = total;
+    }
 }

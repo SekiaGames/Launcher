@@ -4,61 +4,65 @@ using System;
 using OpenWC3.Game;
 namespace OpenWC3;
 
-public static class War3GameplayConfig
+public sealed class War3GameplayConfig
 {
+    public static War3GameplayConfig Default { get; } = new();
+
     private const int DefenseCount = 8;
 
-    private static readonly float[] RowNormal = MiscRules.Values("Misc.DamageBonusNormal", DefenseCount);
-    private static readonly float[] RowPierce = MiscRules.Values("Misc.DamageBonusPierce", DefenseCount);
-    private static readonly float[] RowSiege = MiscRules.Values("Misc.DamageBonusSiege", DefenseCount);
-    private static readonly float[] RowSpells = MiscRules.Values("Misc.DamageBonusSpells", DefenseCount);
-    private static readonly float[] RowChaos = MiscRules.Values("Misc.DamageBonusChaos", DefenseCount);
-    private static readonly float[] RowMagic = MiscRules.Values("Misc.DamageBonusMagic", DefenseCount);
-    private static readonly float[] RowHero = MiscRules.Values("Misc.DamageBonusHero", DefenseCount);
+    private readonly float[] RowNormal = MiscRules.Values("Misc.DamageBonusNormal", DefenseCount);
+    private readonly float[] RowPierce = MiscRules.Values("Misc.DamageBonusPierce", DefenseCount);
+    private readonly float[] RowSiege = MiscRules.Values("Misc.DamageBonusSiege", DefenseCount);
+    private readonly float[] RowSpells = MiscRules.Values("Misc.DamageBonusSpells", DefenseCount);
+    private readonly float[] RowChaos = MiscRules.Values("Misc.DamageBonusChaos", DefenseCount);
+    private readonly float[] RowMagic = MiscRules.Values("Misc.DamageBonusMagic", DefenseCount);
+    private readonly float[] RowHero = MiscRules.Values("Misc.DamageBonusHero", DefenseCount);
 
-    private static readonly float[] EtherealRatio = LoadEthereal();
+    private readonly float[] EtherealRatio;
 
-    public static readonly float DefenseArmor = MiscRules.Value("Misc.DefenseArmor", 0.06f);
+    public War3GameplayConfig() => EtherealRatio = LoadEthereal();
 
-    public static readonly int HeroMaxReviveCostGold = (int)MiscRules.Value("Misc.HeroMaxReviveCostGold", 700f);
-    public static readonly float HeroMaxReviveTime = MiscRules.Value("Misc.HeroMaxReviveTime", 150f);
-    public static readonly float HeroReviveLifeFactor = MiscRules.Value("Misc.HeroReviveLifeFactor", 1f);
-    public static readonly float HeroReviveManaStart = MiscRules.Value("Misc.HeroReviveManaStart", 1f);
-    public static readonly float HeroReviveManaFactor = MiscRules.Value("Misc.HeroReviveManaFactor", 0f);
-    public static readonly float ReviveBaseFactor = MiscRules.Value("Misc.ReviveBaseFactor", 0.40f);
-    public static readonly float ReviveLevelFactor = MiscRules.Value("Misc.ReviveLevelFactor", 0.10f);
-    public static readonly float ReviveMaxFactor = MiscRules.Value("Misc.ReviveMaxFactor", 4f);
-    public static readonly float ReviveTimeFactor = MiscRules.Value("Misc.ReviveTimeFactor", 0.65f);
-    public static readonly float ReviveMaxTimeFactor = MiscRules.Value("Misc.ReviveMaxTimeFactor", 2f);
+    public readonly float DefenseArmor = MiscRules.Value("Misc.DefenseArmor", 0.06f);
+
+    public readonly int HeroMaxReviveCostGold = (int)MiscRules.Value("Misc.HeroMaxReviveCostGold", 700f);
+    public readonly float HeroMaxReviveTime = MiscRules.Value("Misc.HeroMaxReviveTime", 150f);
+    public readonly float HeroReviveLifeFactor = MiscRules.Value("Misc.HeroReviveLifeFactor", 1f);
+    public readonly float HeroReviveManaStart = MiscRules.Value("Misc.HeroReviveManaStart", 1f);
+    public readonly float HeroReviveManaFactor = MiscRules.Value("Misc.HeroReviveManaFactor", 0f);
+    public readonly float ReviveBaseFactor = MiscRules.Value("Misc.ReviveBaseFactor", 0.40f);
+    public readonly float ReviveLevelFactor = MiscRules.Value("Misc.ReviveLevelFactor", 0.10f);
+    public readonly float ReviveMaxFactor = MiscRules.Value("Misc.ReviveMaxFactor", 4f);
+    public readonly float ReviveTimeFactor = MiscRules.Value("Misc.ReviveTimeFactor", 0.65f);
+    public readonly float ReviveMaxTimeFactor = MiscRules.Value("Misc.ReviveMaxTimeFactor", 2f);
 
     // —— 维修费用（Upkeep）：客户端 War3GameplayConfig.cs:191-210 ——
     // 人口 <=50 无税，<=80 扣 30%，再高扣 60%；只扣金币，木材不扣。
-    public static readonly int UpkeepFoodLimitLow = (int)MiscRules.Value("Misc.UpkeepFoodLimitLow", 50f);
-    public static readonly int UpkeepFoodLimitHigh = (int)MiscRules.Value("Misc.UpkeepFoodLimitHigh", 80f);
-    private static readonly int[] UpkeepGoldTaxPct = { 0, 30, 60 };
+    public readonly int UpkeepFoodLimitLow = (int)MiscRules.Value("Misc.UpkeepFoodLimitLow", 50f);
+    public readonly int UpkeepFoodLimitHigh = (int)MiscRules.Value("Misc.UpkeepFoodLimitHigh", 80f);
+    private readonly int[] UpkeepGoldTaxPct = { 0, 30, 60 };
 
     /// <summary>阈值相同的人口留在低一级（客户端 241d30 的口径）。</summary>
-    public static int UpkeepTier(int foodUsed)
+    public int UpkeepTier(int foodUsed)
     {
         if (foodUsed <= UpkeepFoodLimitLow) return 0;
         return foodUsed <= UpkeepFoodLimitHigh ? 1 : 2;
     }
 
-    public static float GoldIncomeFactor(int foodUsed) => (100 - UpkeepGoldTaxPct[UpkeepTier(foodUsed)]) / 100f;
+    public float GoldIncomeFactor(int foodUsed) => (100 - UpkeepGoldTaxPct[UpkeepTier(foodUsed)]) / 100f;
 
     /// <summary>按整数百分比结算，避免 0.4f 这类浮点误差把 40 截成 39。</summary>
-    public static int GoldAfterUpkeep(int amount, int foodUsed) =>
+    public int GoldAfterUpkeep(int amount, int foodUsed) =>
         Math.Max(0, amount * (100 - UpkeepGoldTaxPct[UpkeepTier(foodUsed)]) / 100);
 
     /// <summary>对标 GameplayConstants.HeroReviveGoldCost：花费 = 英雄造价 × min(Max, Base + Level×等级差)，上限 700。</summary>
-    public static int HeroReviveGoldCost(int heroGoldCost, int level)
+    public int HeroReviveGoldCost(int heroGoldCost, int level)
     {
         float factor = MathF.Min(ReviveMaxFactor, ReviveBaseFactor + ReviveLevelFactor * MathF.Max(0, level - 1));
         return Math.Max(0, Math.Min(HeroMaxReviveCostGold, (int)(heroGoldCost * factor)));
     }
 
     /// <summary>对标 NativeHeroBuildTime：时间 = 英雄建造时长(bldtm) × min(等级×0.65, 2)，量化到 5 秒，下限 1 秒、上限 150。</summary>
-    public static float HeroReviveSeconds(float heroBuildSeconds, int level)
+    public float HeroReviveSeconds(float heroBuildSeconds, int level)
     {
         float factor = MathF.Min(level * ReviveTimeFactor, ReviveMaxTimeFactor);
         float seconds = heroBuildSeconds * factor;
@@ -66,7 +70,7 @@ public static class War3GameplayConfig
         return MathF.Min(HeroMaxReviveTime, MathF.Max(1f, seconds));
     }
 
-    private static float[] LoadEthereal()
+    private float[] LoadEthereal()
     {
         float[] parsed = MiscRules.Values("Misc.EtherealDamageBonus", 7);
         for (int index = 0; index < parsed.Length; index++)
@@ -76,7 +80,7 @@ public static class War3GameplayConfig
         return parsed;
     }
 
-    public static float ClassRatio(AttackType attack, DefenseType defense)
+    public float ClassRatio(AttackType attack, DefenseType defense)
     {
         float[] row = attack switch
         {
@@ -96,13 +100,13 @@ public static class War3GameplayConfig
     }
 
     /// <summary>护甲减伤系数：正护甲 1/(1+k·armor)，负护甲按客户端 2-(1-k)^-armor 放大。</summary>
-    public static float ArmorFactor(float armor)
+    public float ArmorFactor(float armor)
     {
         if (armor >= 0f) return 1f / (1f + DefenseArmor * armor);
         return 2f - Mathf.Pow(1f - DefenseArmor, -armor);
     }
 
-    public static float EtherealBonus(AttackType attack)
+    public float EtherealBonus(AttackType attack)
     {
         int index = (int)attack;
         return index >= 0 && index < EtherealRatio.Length ? EtherealRatio[index] : 1f;
@@ -112,7 +116,7 @@ public static class War3GameplayConfig
     /// 客户端结算顺序（Health.DamageScaling）：先护甲，再攻击类型×护甲类型矩阵，
     /// 最后把结果夹到不低于 min(原始伤害,1)。施工中的建筑护甲按无甲处理。
     /// </summary>
-    public static float Resolve(float raw, AttackType attack, DefenseType defense, DamageType type,
+    public float Resolve(float raw, AttackType attack, DefenseType defense, DamageType type,
         float armor, bool underConstruction, bool ethereal)
     {
         float result = raw;
@@ -124,7 +128,7 @@ public static class War3GameplayConfig
         return Mathf.Max(Mathf.Min(raw, 1f), result);
     }
 
-    public static void LogMatrix()
+    public void LogMatrix()
     {
         GD.Print($"[COMBAT] 护甲系数 k={DefenseArmor}  虚无倍率={string.Join('/', EtherealRatio)}");
         GD.Print("[COMBAT] 倍率矩阵  行=攻击类型 列=小/中/大/加固/无甲/英雄/神圣/无");
@@ -140,7 +144,7 @@ public static class War3GameplayConfig
     }
 
     /// <summary>单次命中拆解，供探针与调试输出。</summary>
-    public static string Describe(float raw, AttackType attack, DefenseType defense, DamageType type,
+    public string Describe(float raw, AttackType attack, DefenseType defense, DamageType type,
         float armor, bool underConstruction, bool ethereal)
     {
         float armorFactor = underConstruction || type != DamageType.Normal ? 1f : ArmorFactor(armor);
@@ -150,4 +154,22 @@ public static class War3GameplayConfig
             + (underConstruction ? " [施工中按无甲]" : "")
             + $" = {resolved:0.0}";
     }
+
+    // —— 光环授予条件（客户端 War3GameplayConfig 同名旗标，值取 Units/MiscGame.txt）——
+
+    public bool IllusionsGetDefenseBonus { get; } = MiscRules.Value("Misc.IllusionsGetDefenseBonus", 1f) != 0f;
+
+    public bool IllusionsCanRestoreMana { get; } = MiscRules.Value("Misc.IllusionsCanRestoreMana", 1f) != 0f;
+
+    public bool InvisibleUnitsBestowAuras { get; } = MiscRules.Value("Misc.InvisibleUnitsBestowAuras", 0f) != 0f;
+
+    public bool BurrowedUnitsBestowAuras { get; } = MiscRules.Value("Misc.BurrowedUnitsBestowAuras", 0f) != 0f;
+
+    public bool AnimatedUnitsBestowAuras { get; } = MiscRules.Value("Misc.AnimatedUnitsBestowAuras", 0f) != 0f;
+
+    public bool FlyingHeroesBestowAuras { get; } = MiscRules.Value("Misc.FlyingHeroesBestowAuras", 0f) != 0f;
+
+    public bool PolymorphedUnitsBestowAuras { get; } = MiscRules.Value("Misc.PolymorphedUnitsBestowAuras", 0f) != 0f;
+
+    public bool IllusionsBestowAuras { get; } = MiscRules.Value("Misc.IllusionsBestowAuras", 0f) != 0f;
 }
