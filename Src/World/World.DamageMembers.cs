@@ -384,7 +384,8 @@ public sealed partial class World
         if (target.Abilities == null) return;
         foreach (Ability ability in target.Abilities)
         {
-            if (!ability.Learned) continue;
+            // Buff 挂在技能表里时没有等级，不能按 Learned 过滤
+            if (ability is not Buff && !ability.Learned) continue;
             if (ability.OverridesIncomingWorldHook) ability.ModifyIncomingDamage(this, info);
             else ability.ModifyIncomingDamage(ref info);
         }
