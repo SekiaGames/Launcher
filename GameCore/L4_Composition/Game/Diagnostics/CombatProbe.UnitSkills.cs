@@ -484,8 +484,9 @@ public static partial class CombatProbe
         ProbeUnit(world, "okod", 0, Vector3.Zero, "Aakb");
         Unit ally = ProbeUnit(world, "ogru", 0, new Vector3(300f, 0f, 0f));
 
-        world.RefreshAuras();
-        Verify("战鼓光环加攻=DataA", drumsType.DataAt(1, 'A'), ally.AuraDamagePct, 0.001f);
+        world.TickAbilities();
+        RuntimeCommandAuraBuff drumsBuff = ally.Abilities.OfType<RuntimeCommandAuraBuff>().FirstOrDefault();
+        Verify("战鼓光环加攻=DataA", drumsType.DataAt(1, 'A'), drumsBuff?.DamageFactor ?? 0f, 0.001f);
     }
 
     private static void CheckDetection()

@@ -98,9 +98,14 @@ public sealed partial class World
         raw = ApplyAttackModifiers(unit, target, raw);
         unit.PaidArrowShot = false;
         raw = ApplyLaunchModifiers(unit, target, raw);
-        if (unit.IsIllusion) raw *= unit.IllusionDamageDealt;
         DamageData info = MakeAttackDamage(unit, target, raw, weapon);
         info.IsCritical = LastAttackWasCritical;
+        ApplyDamagePacketModifiers(info);
+        if (unit.IsIllusion)
+        {
+            info.Raw *= unit.IllusionDamageDealt;
+            info.Amount *= unit.IllusionDamageDealt;
+        }
 
         bool flies = (arrowScene ?? weapon.MissileScene) != null && weapon.MissileSpeed > 0f;
         if (flies)

@@ -378,6 +378,20 @@ public sealed partial class World
         return result;
     }
 
+    /// <summary>包级出伤钩子：客户端 Buff/技能实现 IAttackDamageStatModifier 或重写 ModifyOutgoingDamage(ref) 都在这里生效。</summary>
+    public void ApplyDamagePacketModifiers(DamageData info)
+    {
+        Unit attacker = info?.Source;
+        if (attacker?.Abilities == null) return;
+        for (int index = 0; index < attacker.Abilities.Count; index++)
+        {
+            Ability ability = attacker.Abilities[index];
+            if (!ability.Learned) continue;
+            if (ability is IAttackDamageStatModifier modifier) modifier.ModifyOutgoingDamage(ref info);
+            ability.ModifyOutgoingDamage(ref info);
+        }
+    }
+
     /// <summary>普攻出手钩子：疾风步的破隐一击挂 Buff 上（隐身要在这时破）。</summary>
     public float ApplyLaunchModifiers(Unit attacker, Unit target, float raw)
     {
