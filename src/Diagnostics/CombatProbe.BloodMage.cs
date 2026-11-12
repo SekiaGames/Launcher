@@ -226,11 +226,14 @@ public static partial class CombatProbe
 
         Ability arrows = priestess.GiveAbility("AHfa", 1);
         priestess.Mana = 100f;
+        string arrowArt = world.PrepareArrowMissile(priestess, footman);
         float modified = world.ApplyAttackModifiers(priestess, footman, 50f);
         Verify("灼热之箭附加伤害=DataA", 50f + arrowType.DataAt(1, 'A'), modified, 0.01f);
         Verify("灼热之箭扣蓝=Cost", 100f - arrowType.CostAt(1), priestess.Mana, 0.01f);
+        Verify("灼热之箭换成自己的箭模型", 1f, arrowArt != null ? 1f : 0f, 0f);
 
         priestess.Mana = 0f;
+        world.PrepareArrowMissile(priestess, footman);
         float plain = world.ApplyAttackModifiers(priestess, footman, 50f);
         Verify("没蓝时只是普通一箭", 50f, plain, 0.01f);
         GD.Print($"[自检] 灼热之箭 +{arrowType.DataAt(1, 'A'):0} 伤害 / 每箭 {arrowType.CostAt(1):0} 蓝，"

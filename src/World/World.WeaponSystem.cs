@@ -84,17 +84,21 @@ public sealed partial class World
         float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
             + DamageBonus(unit) + unit.OrbDamage;
         raw *= 1f + unit.BonusDamagePct + unit.AuraDamagePct;
+        unit.PaidArrowShot = false;
+        string arrowScene = PrepareArrowMissile(unit, target);
         // 强击光环只加远程攻击（物编 AEar 的 DataA 是百分比）
         if (!string.IsNullOrEmpty(weapon.MissileScene)) raw *= 1f + unit.AuraRangedDamagePct;
         raw = ApplyAttackModifiers(unit, target, raw);
+        unit.PaidArrowShot = false;
         raw = ApplyLaunchModifiers(unit, target, raw);
         if (unit.IsIllusion) raw *= unit.IllusionDamageDealt;
         DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
         info.IsCritical = LastAttackWasCritical;
 
-        bool flies = weapon.MissileScene != null && weapon.MissileSpeed > 0f;
+        bool flies = (arrowScene ?? weapon.MissileScene) != null && weapon.MissileSpeed > 0f;
         if (flies)
         {
+            unit.NextMissileScene = arrowScene;
             MissileFired?.Invoke(unit, target);
             float travel = Mathf.Max(Tick, unit.DistanceTo(target) / weapon.MissileSpeed);
             _pendingHits.Add(new PendingHit { Info = info, Remaining = travel });
@@ -103,6 +107,23 @@ public sealed partial class World
 
         ResolveHit(info);
         if (target.AutoAcquire && target.Alive && target.Target == null) EngageTarget(target, unit);
+    }
+
+    public string PrepareArrowMissile(Unit unit, Unit target)
+    {
+        if (unit == null) return null;
+        unit.PaidArrowShot = false;
+        if (unit.Type == null || target == null) return null;
+        foreach (Ability ability in unit.Abilities)
+        {
+            if (!ability.Learned) continue;
+            string art = ability.PrepareAttackMissile(this, target);
+            if (string.IsNullOrEmpty(art)) continue;
+            string scene = PathResolve.ModelScene(art);
+            if (scene == null) continue;
+            return scene;
+        }
+        return null;
     }
 
     /// <summary>命中：主目标结算，再按 Farea/Harea/Qarea 三档扩散（区域内全部命中）。</summary>

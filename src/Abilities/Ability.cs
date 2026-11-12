@@ -183,6 +183,9 @@ public abstract class Ability
     /// <summary>弹道模型（war3 路径）。物编 Missileart 列没导出，按原版路径补。</summary>
     public virtual string MissileArt => "";
 
+    /// <summary>普攻弹道覆盖：箭类技能在每次射击时扣蓝并返回自己的箭模型（原版 MissileArtOverride）。</summary>
+    public virtual string PrepareAttackMissile(World world, Unit target) => null;
+
     /// <summary>投射物命中时结算（只有 UsesMissile 的技能会被调用）。</summary>
     public virtual void OnMissileHit(World world, Unit target) { }
 

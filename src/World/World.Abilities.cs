@@ -47,6 +47,21 @@ public sealed partial class World
         return true;
     }
 
+    /// <summary>只延后结算、不生成投射物模型（原版法力燃烧那种用引擎闪电束的技能）。</summary>
+    public bool ScheduleAbilityImpact(Unit caster, Ability ability, Unit target, float delay)
+    {
+        if (caster == null || ability == null || target == null) return false;
+
+        _pendingAbilityHits.Add(new PendingAbilityHit
+        {
+            Caster = caster,
+            Ability = ability,
+            Target = target,
+            Remaining = Mathf.Max(Tick, delay),
+        });
+        return true;
+    }
+
     /// <summary>推进技能投射物；目标在飞行途中死亡就落空。</summary>
     public void TickAbilityMissiles()
     {

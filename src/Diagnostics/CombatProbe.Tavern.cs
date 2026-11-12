@@ -169,8 +169,10 @@ public static partial class CombatProbe
         Unit victim = MakeUnit(footmanType, 1);
         world.Units.Add(victim);
 
+        string coldArt = world.PrepareArrowMissile(caster, victim);
         float modified = world.ApplyAttackModifiers(caster, victim, 50f);
         Verify("冰霜箭附加伤害=DataA", 50f + coldType.DataAt(1, 'A'), modified, 0.01f);
+        Verify("冰霜箭换成自己的箭模型", 1f, coldArt != null ? 1f : 0f, 0f);
         Verify("冰霜箭扣蓝=Cost", 100f - coldType.CostAt(1), caster.Mana, 0.01f);
         Verify("冰霜箭移速减速=DataB", coldType.DataAt(1, 'B'), victim.SlowMovePct, 0.001f);
         Verify("冰霜箭攻速减速=DataC", coldType.DataAt(1, 'C'), victim.SlowAttackPct, 0.001f);
@@ -178,6 +180,8 @@ public static partial class CombatProbe
 
         Unit heroVictim = MakeHero(rangerType, 1, 1, world);
         world.Units.Add(heroVictim);
+        caster.Mana = 100f;
+        world.PrepareArrowMissile(caster, heroVictim);
         world.ApplyAttackModifiers(caster, heroVictim, 50f);
         Verify("英雄减速时长=HeroDur", coldType.HeroDurationAt(1), heroVictim.SlowRemaining, 0.01f);
         GD.Print($"[自检] 冰霜箭 +{coldType.DataAt(1, 'A'):0} 伤害 / {coldType.CostAt(1):0} 蓝，"

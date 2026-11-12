@@ -34,6 +34,10 @@ public sealed partial class Unit
     public float BonusSight;
     /// <summary>法球：命中附加伤害与触发效果。</summary>
     public float OrbDamage;
+    /// <summary>本次射击是否已被箭类技能付费（决定附加伤害与弹道）。</summary>
+    public bool PaidArrowShot;
+    /// <summary>本次射击的弹道覆盖（技能给的原版箭模型）。</summary>
+    public string NextMissileScene;
     public float OrbSecondary;
     public OrbEffect OrbEffectKind = OrbEffect.None;
     public float OrbSeconds;

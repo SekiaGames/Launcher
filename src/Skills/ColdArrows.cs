@@ -15,12 +15,19 @@ public sealed class ColdArrows : Ability
     public float MoveSlowPct => Data('B');
     public float AttackSlowPct => Data('C');
 
-    public override float ModifyOutgoingAttack(World world, Unit target, float raw)
+    public override string PrepareAttackMissile(World world, Unit target)
     {
-        if (Owner == null || target == null || BonusDamage <= 0f) return raw;
-        if (Owner.Mana < ManaCost) return raw;
+        if (Owner == null || target == null || BonusDamage <= 0f) return null;
+        if (Owner.Mana < ManaCost) return null;
 
         Owner.Mana -= ManaCost;
+        Owner.PaidArrowShot = true;
+        return @"Abilities\Weapons\ColdArrow\ColdArrowMissile";
+    }
+
+    public override float ModifyOutgoingAttack(World world, Unit target, float raw)
+    {
+        if (Owner == null || target == null || !Owner.PaidArrowShot || BonusDamage <= 0f) return raw;
 
         float seconds = target.IsHero && HeroDuration > 0f ? HeroDuration : Duration;
         if (seconds > 0f && (MoveSlowPct > 0f || AttackSlowPct > 0f))

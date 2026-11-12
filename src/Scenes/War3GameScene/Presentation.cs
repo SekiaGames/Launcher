@@ -27,7 +27,9 @@ public sealed partial class War3GameScene
         if (attacker?.View == null || target == null) return;
 
         Node3D node = null;
-        PackedScene scene = Assets.LoadScene(attacker.Type.MissileScene);
+        string missileScene = attacker.NextMissileScene ?? attacker.Type.MissileScene;
+        attacker.NextMissileScene = null;
+        PackedScene scene = Assets.LoadScene(missileScene);
         if (scene != null)
         {
             node = scene.Instantiate<Node3D>();

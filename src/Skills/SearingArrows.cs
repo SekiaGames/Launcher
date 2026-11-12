@@ -12,12 +12,19 @@ public sealed class SearingArrows : Ability
 
     public float BonusDamage => Data('A');
 
-    public override float ModifyOutgoingAttack(World world, Unit target, float raw)
+    public override string PrepareAttackMissile(World world, Unit target)
     {
-        if (Owner == null || BonusDamage <= 0f) return raw;
-        if (Owner.Mana < ManaCost) return raw;
+        if (Owner == null || target == null || BonusDamage <= 0f) return null;
+        if (Owner.Mana < ManaCost) return null;
 
         Owner.Mana -= ManaCost;
+        Owner.PaidArrowShot = true;
+        return @"Abilities\Weapons\SearingArrow\SearingArrowMissile";
+    }
+
+    public override float ModifyOutgoingAttack(World world, Unit target, float raw)
+    {
+        if (Owner == null || !Owner.PaidArrowShot || BonusDamage <= 0f) return raw;
         return raw + BonusDamage;
     }
 }

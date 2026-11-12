@@ -211,6 +211,8 @@ public static partial class CombatProbe
         float burnHp = burner.Hp;
         bool burned = burnWorld.TryCast(demon, burn, burner, burner.Position);
         Verify("法力燃烧施放成功", 1f, burned ? 1f : 0f, 0f);
+        Verify("法力燃烧 DataB 延迟前不扣蓝", 200f, burner.Mana, 0.01f);
+        for (int tick = 0; tick < 8; tick++) burnWorld.Advance();
         Verify("法力燃烧烧掉 50 蓝", 150f, burner.Mana, 0.5f);
         float burnExpected = War3GameplayConfig.Resolve(50f, AttackType.Spells, burner.Type.DefenseType,
             DamageType.Magic, 0f, false, false);
