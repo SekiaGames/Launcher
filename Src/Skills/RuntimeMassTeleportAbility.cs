@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 群体传送 AHmt（大法师终极）。点全图任意地面：把施法者 Area（700）内最多 DataA（24）个友军

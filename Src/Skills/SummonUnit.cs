@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 召唤类技能（水元素 AHwe / 树人 AEfn / 侦察猫头鹰 AEst / 幽灵狼 AOsf / 熊 ANsg）。

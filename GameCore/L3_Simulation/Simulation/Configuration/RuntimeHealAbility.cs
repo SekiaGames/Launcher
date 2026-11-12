@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 治疗 Ahea（牧师/野怪牧师的自动施法治疗）。

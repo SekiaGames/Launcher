@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 黑暗之门（ANdp）：在 Area 内随机位置召出 DataB(3) 只 DataA 列表里的单位（nbal / nfel）。

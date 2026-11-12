@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>蝗虫代理：把打出的伤害存起来，蝗虫消失时按 DataD 比例回给施法者（RuntimeLocustSwarmAbility）。</summary>
 public sealed class LocustAgent : Ability

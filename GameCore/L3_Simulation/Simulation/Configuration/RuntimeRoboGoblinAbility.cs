@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 地精修补匠。对标客户端 RuntimeRoboGoblinAbility / RuntimeEngineeringUpgradeAbility /

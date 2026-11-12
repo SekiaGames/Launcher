@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>主动物品的目标形态：无目标（药水/卷轴）、点单位、点地面。</summary>
 public enum ItemTargetMode

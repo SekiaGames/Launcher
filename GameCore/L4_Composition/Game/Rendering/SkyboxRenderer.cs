@@ -1,8 +1,7 @@
 using Godot;
 using System;
-using WorldEdit.Core.Formats.W3x;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public sealed class SkyboxRenderer
 {

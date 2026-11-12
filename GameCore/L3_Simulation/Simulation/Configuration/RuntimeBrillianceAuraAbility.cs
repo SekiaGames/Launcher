@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 辉煌光环 AHab（大魔法师）。半径 900 内友军每秒多回 DataA(0.75/1.5/2.25) 法力。

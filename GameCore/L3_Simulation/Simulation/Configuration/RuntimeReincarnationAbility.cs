@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 重生 AOre（牛头人酋长终极）。等价客户端的死亡前钩子：阵亡时若已学且不在冷却，

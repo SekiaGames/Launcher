@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 黑暗仪式 AUdr（巫妖）。牺牲一个友军单位，把它最大生命的 DataA 比例换成自己的法力。

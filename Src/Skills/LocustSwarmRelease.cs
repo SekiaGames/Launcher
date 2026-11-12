@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>蝗群的放出节奏：每 Interval 只出一只，出满 Count 只后结束。</summary>
 public sealed class LocustSwarmRelease : IGroundSpell

@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game.UI;
 
 /// <summary>
 /// 对局结束面板（客户端战役结算前的胜负提示）：大标题 + 胜者名单 + 返回列表。

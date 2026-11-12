@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 反魔法外壳（Aams）：物编 1.27 的 DataC=0，走「对所有的魔法免疫」这条，Dur/HeroDur 都是 90 秒；

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>卸载（Adro 全部卸下 / Sdro 战船卸下 / Adri 瞬时卸下）：把人摆回船周围。</summary>
 public sealed class RuntimeCargoDropAbility : Ability

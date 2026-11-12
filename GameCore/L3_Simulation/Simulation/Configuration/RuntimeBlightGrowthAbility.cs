@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 腐地扩散（Abgl 大 / Abgs 小）。对标客户端 RuntimeBlightGrowthAbility：

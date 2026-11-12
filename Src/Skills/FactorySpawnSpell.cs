@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>工厂的出兵节奏：工厂活着就每隔 Interval 放一只地精，工厂没了/时间到就停。</summary>
 public sealed class FactorySpawnSpell : IGroundSpell

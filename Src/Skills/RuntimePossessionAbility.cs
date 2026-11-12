@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 占据（Apos）：抢一个非英雄、非飞行、等级不超过 DataA 的敌方单位，代价是女妖自己。

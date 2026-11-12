@@ -2,9 +2,9 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using WorldEdit.Core.Formats.Slk;
+using OpenWC3.War3Formats;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 引擎闪电束参数（`Units\LightningData.slk` → `SplatsLightningData`）：

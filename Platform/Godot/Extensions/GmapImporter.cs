@@ -2,10 +2,9 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using WorldEdit.Core.Formats.W3x;
-using WorldEdit.Core.Map;
+using OpenWC3.Game;
 
-namespace Launcher;
+namespace OpenWC3;
 
 public static class GmapImporter
 {

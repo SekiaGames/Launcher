@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 凤凰 AHpx（血法师终极）。对标 Wiki RuntimePhoenixAbility：

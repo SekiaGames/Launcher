@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 黑暗转换 ANdc（玛尔加尼斯）。对标客户端 Src/Skills/CampaignAndAuraSkills.cs 的 DarkConversion：

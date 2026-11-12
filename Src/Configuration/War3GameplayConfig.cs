@@ -1,7 +1,8 @@
 using Godot;
 using System;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 public static class War3GameplayConfig
 {

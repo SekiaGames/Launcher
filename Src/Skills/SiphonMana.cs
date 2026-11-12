@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 吸魔 AHdr（血法师）。对标 Wiki RuntimeDrainAbility：

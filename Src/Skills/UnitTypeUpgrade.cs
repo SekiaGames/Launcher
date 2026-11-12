@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 研究完成就把自己换成升级后的单位（Sbsk 猎头者→狂暴战士、Srtt 蒸汽机车→升级机车）。

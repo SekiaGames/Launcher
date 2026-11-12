@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 灼热之箭 AHfa（月之女祭司）。对标客户端 Src/Skills 里的攻击附加型：每次普攻

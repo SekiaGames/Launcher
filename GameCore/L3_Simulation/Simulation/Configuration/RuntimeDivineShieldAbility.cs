@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 神圣护甲 AHds。对标客户端 Src/Skills/ 的无目标自身免疫技：

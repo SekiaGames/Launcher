@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>一块临时视野（远视这类技能）：按玩家记录圆心/半径/剩余时间。</summary>
 public sealed class FogReveal

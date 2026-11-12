@@ -4,7 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace WorldEdit.Core.Formats.W3x;
+using OpenWC3.War3Formats.Text;
+namespace OpenWC3.Game;
 
 public sealed record W3iPlayer(
     int Id,

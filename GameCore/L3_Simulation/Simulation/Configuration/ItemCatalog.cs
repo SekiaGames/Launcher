@@ -1,9 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.Slk;
+using OpenWC3.War3Formats;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 物品类型。数据来自 Units\ItemData.slk + Units\*ItemStrings（名字）。

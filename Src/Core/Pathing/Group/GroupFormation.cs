@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 编队阵型。对标客户端 Core/Pathing/Group/MovementFormationOffsets.cs：

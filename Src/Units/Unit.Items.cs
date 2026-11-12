@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 单位物品栏。对标客户端 Units/Unit.Items.cs：英雄 6 格，非英雄不能带。

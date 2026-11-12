@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 耐久光环 AOae（牛头人酋长）。对标客户端 Src/Skills/EnduranceAura：

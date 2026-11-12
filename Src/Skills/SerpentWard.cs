@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 毒蛇守卫 AOsw（暗影猎手）。在落点召出一座固定守卫（UnitID=osp1/osp2/osp3），持续 Dur(40) 秒。

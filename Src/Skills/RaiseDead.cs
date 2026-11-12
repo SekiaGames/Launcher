@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 复活死尸 Arai（亡灵巫师）。对标客户端：从附近尸体里拉出 DataA 个骷髅（UnitID=uske）。

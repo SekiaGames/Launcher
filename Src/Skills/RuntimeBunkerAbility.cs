@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 地洞驻军（Abun）。对标客户端 RuntimeBunkerAbility + CargoTransport：

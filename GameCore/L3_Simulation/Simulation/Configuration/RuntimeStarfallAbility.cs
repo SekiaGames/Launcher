@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 群星坠落 AEsf（月之女祭司终极）。引导 HeroDur(30) 秒，每 DataB(1.5) 秒一波，

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 凤凰蛋 Aphx。对标 Wiki RuntimePhoenixEggBuff：凤凰生命耗尽时不是死亡，

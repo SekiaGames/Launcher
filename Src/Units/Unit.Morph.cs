@@ -1,4 +1,5 @@
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 单位变形（妖术变羊、变身恶魔、德鲁伊形态）。对标客户端 Units/Unit.Morph.cs：

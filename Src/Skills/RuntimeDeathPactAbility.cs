@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 死亡契约 AUdp（死亡骑士）。杀死一个友军非英雄单位，按它最大生命的 DataB 倍回自己的血。

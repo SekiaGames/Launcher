@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 物品的「用一次」效果：一次性卷轴/药水、区域增益、揭示、守卫、回城、保存权杖这类

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 重击 AHbh（被动）。对标客户端 Src/Skills/StunBuff + AHbh 的攻击后处理：

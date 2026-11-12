@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public static class WorldTest
 {
@@ -44,7 +44,7 @@ public static class WorldTest
         return defender.Alive ? 1 : 0;
     }
 
-    private static Unit Make(string id, int player, float x, float z, WorldEdit.Core.Formats.W3x.W3eTerrain terrain)
+    private static Unit Make(string id, int player, float x, float z, OpenWC3.Game.W3eTerrain terrain)
     {
         UnitType type = UnitFactory.Get(id);
         if (type == null) return null;

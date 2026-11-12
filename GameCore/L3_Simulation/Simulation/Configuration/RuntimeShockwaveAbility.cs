@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 震荡波 AOsh（牛头人酋长）。朝落点放一条 Area(125) 宽的能量波，轨迹上的地面单位与建筑吃 DataA 伤害。

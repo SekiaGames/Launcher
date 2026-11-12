@@ -1,6 +1,6 @@
 using System;
 
-namespace WorldEdit.Core.Formats.Mpq;
+namespace OpenWC3.War3Formats.Mpq;
 
 internal static class HuffmanTables
 {

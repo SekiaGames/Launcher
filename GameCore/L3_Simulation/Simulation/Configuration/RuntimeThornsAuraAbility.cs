@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 荆棘光环 AEah（丛林守护者）。对标客户端 RuntimeThornsAuraAbility：半径 900 内友军被**近战**普攻命中时，

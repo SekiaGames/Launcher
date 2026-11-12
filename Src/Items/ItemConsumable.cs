@@ -1,6 +1,7 @@
 using System;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 消耗品的即时效果。对标客户端物品使用路径：物品本身没有数值，

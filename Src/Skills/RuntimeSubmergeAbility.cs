@@ -1,7 +1,8 @@
 using Godot;
 using System;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 纳迦潜水（Asb1 穆戈尔 / Asb2 皇家卫兵 / Asb3 飞龙）。形态切换与德鲁伊同源

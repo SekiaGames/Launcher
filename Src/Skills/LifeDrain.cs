@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 生命汲取 ANdr（黑暗游侠）。对标 Wiki RuntimeDrainAbility 的生命那一支：

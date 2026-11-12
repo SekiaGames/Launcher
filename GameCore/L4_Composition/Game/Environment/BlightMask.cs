@@ -1,9 +1,8 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.W3x;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 腐地遮罩：一格一个字节，静态部分来自 w3e 角点的 blight 标志，动态部分由亡灵建筑盖章

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 寄生虫（ANpa / ACpa）。对标客户端 RuntimeParasiteAbility：

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 风暴之锤 AHtb。对标客户端 Src/Skills/RuntimeStormBoltAbility.cs：

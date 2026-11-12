@@ -1,6 +1,7 @@
 using Godot;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 变身 AEme（恶魔猎手终极）。变成 UnitID(Edmm) 恶魔形态，HeroDur(60) 秒，

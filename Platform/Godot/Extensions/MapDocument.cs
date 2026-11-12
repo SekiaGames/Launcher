@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using WorldEdit.Core.Formats.Mpq;
-using WorldEdit.Core.Formats.W3x;
+using OpenWC3.War3Formats.Mpq;
+using OpenWC3.Game;
 
-namespace WorldEdit.Core.Map;
+using OpenWC3.War3Formats.Text;
+namespace OpenWC3;
 
 public sealed class MapDocument
 {
@@ -258,8 +259,8 @@ public sealed class MapDocument
 
     private bool IsItemId(string id)
     {
-        var items = Launcher.War3SlkReader.ItemData();
-        var units = Launcher.War3SlkReader.UnitData();
+        var items = OpenWC3.Game.War3SlkReader.ItemData();
+        var units = OpenWC3.Game.War3SlkReader.UnitData();
         if (items.FindRow("itemID", id) >= 0 && units.FindRow("unitID", id) < 0)
         {
             return true;

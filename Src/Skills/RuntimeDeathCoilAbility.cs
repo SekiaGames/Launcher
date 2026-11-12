@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 死亡缠绕 AUdc（死亡骑士）。对标客户端口径：亡灵友军治疗、活物敌人伤害，走弹道飞行后结算。

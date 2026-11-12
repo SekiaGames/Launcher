@@ -1,6 +1,6 @@
 using System;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 技能的目标位。对标客户端 CTargetType：AbilityData.targsN 用的是这套位，

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 龙卷风 ANto（海巫）。对标 Wiki RuntimeTornadoAbility：

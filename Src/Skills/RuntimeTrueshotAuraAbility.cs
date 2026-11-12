@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 强击光环 AEar（月之女祭司）。半径 900 内友军**远程**攻击伤害 +DataA(10%/20%/30%)。

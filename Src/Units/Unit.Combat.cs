@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 单位攻击行为：起手 → 伤害点 → 后摇。对标客户端 Units/Unit.Combat.cs 与 Components/WeaponSystem.cs。

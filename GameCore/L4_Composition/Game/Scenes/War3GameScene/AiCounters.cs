@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 对手阵容快照：按护甲类型累计权重，另外记空中与英雄数量。Ai.cs 每 2 秒刷一次。

@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 武器系统：攻击时序（前摇 → 伤害点 → 后摇）、投射物飞行命中、溅射。

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 疾风步 AOwk（剑圣）。对标 Wiki RuntimeWindWalkAbility：

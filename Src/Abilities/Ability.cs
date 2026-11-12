@@ -1,7 +1,8 @@
 using Godot;
 using System;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>AI 自动施法的出手次序：控制先把人按住，再爆发，最后支援/增益。</summary>
 public enum AbilityCastPriority

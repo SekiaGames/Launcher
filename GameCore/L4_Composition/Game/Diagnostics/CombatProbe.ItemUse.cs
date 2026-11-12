@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public static partial class CombatProbe
 {

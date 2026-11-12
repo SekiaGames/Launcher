@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 妖术 AOhx（暗影猎手）。目标 Dur(15/30/45) 秒变成一只随机小动物：

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public sealed class RuntimeDoomAbility : Ability
 {

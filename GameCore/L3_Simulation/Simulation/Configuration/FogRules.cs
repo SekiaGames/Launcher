@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// [FogOfWar] 配置，来源 UI\MiscData.txt。四元组按原版是 ARGB（首分量 alpha）。

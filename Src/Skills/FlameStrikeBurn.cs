@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>烈焰风暴的地面结算：满伤阶段 + 余烬阶段，建筑按系数打折。</summary>
 public sealed class FlameStrikeBurn : IGroundSpell

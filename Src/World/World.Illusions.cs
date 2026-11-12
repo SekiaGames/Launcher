@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 幻象生成。对标 Wiki RuntimeMirrorImageAbility 的 UnitFactory.SetIllusion 那条：

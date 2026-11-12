@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 宁静 AEtq（丛林守护者终极）。引导 HeroDur(30) 秒，每秒给 Area(900) 内友军回 DataA(20) 生命。

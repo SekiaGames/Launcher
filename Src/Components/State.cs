@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>对标客户端 CUnit 的 stateModBuff：计数式叠加，多来源互不覆盖。</summary>
 public enum StateMod

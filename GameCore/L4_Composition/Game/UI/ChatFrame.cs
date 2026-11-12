@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game.UI;
 
 /// <summary>
 /// 左下角消息区（客户端 ChatFrame 的精简版）：滚动的系统播报 + Enter 输入的一句聊天。

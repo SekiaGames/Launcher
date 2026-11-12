@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>战棍增益：攻城攻击 + 射程加成，挥满次数就恢复原口径。</summary>
 public sealed class RuntimeGrabTreeBuff : Buff, IAttackLaunchBuff

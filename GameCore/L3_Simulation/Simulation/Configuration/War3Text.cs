@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 物编文本处理：`|cffRRGGBB` 色码、`|n` 换行，以及 `&lt;AEmb,DataA1&gt;` 这类

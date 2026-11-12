@@ -1,7 +1,8 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 英雄复活与赏金。复活公式对齐客户端 GameplayConstants.HeroReviveGoldCost 与 NativeHeroBuildTime；

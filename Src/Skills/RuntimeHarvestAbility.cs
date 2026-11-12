@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 客户端里同样是「内部能力对象」的码：采集、返还、商店买卖、集结、金矿、腐地标记、视觉标记。

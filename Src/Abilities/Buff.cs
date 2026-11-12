@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>普攻出手时的 Buff 钩子（疾风步的破隐一击这类）。</summary>
 public interface IAttackLaunchBuff

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 邪恶光环 AUau（死亡骑士）。对标客户端 Src/Skills/AuraAbility：

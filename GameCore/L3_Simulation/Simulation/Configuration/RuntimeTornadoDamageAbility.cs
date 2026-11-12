@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 龙卷风自身伤害（Atdg）：每秒一波，取「包含目标且半径最小」的那一圈结算，

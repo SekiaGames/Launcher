@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public sealed class RuntimeLiquidFireAbility : Ability
 {

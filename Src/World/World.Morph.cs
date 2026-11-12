@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 变形系统。对标客户端 Units/Unit.Morph.cs + Unit.TypeChange.cs 的 ApplyUnitTypeTemplate：

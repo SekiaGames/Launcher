@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 一条光环的加成集合。对标客户端 Src/Skills/AuraAbility 的 Buff 数值：

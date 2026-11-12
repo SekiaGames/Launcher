@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 黑蚀箭 ANba（黑暗游侠）。对标 Wiki RuntimeBlackArrowAbility：

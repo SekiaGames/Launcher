@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public static class AttachmentProbe
 {

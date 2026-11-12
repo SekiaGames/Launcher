@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 客户端对战开局模板，逐条对应 War3.mpq/Scripts/RuntimeBlizzardAbility.j 的 Melee* 函数：

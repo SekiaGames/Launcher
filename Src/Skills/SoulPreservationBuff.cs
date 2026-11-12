@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>灵魂保存的保留状态：到期撤状态 → 换阵营 → 直接死亡。</summary>
 public sealed class SoulPreservationBuff : Buff

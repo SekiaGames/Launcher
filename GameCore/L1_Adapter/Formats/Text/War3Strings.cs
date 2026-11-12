@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// war3map.wts 的 TRIGSTR 解析。客户端的玩家名、地图名、提示文本都走这张表，

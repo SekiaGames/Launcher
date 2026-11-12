@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>永久献祭（地狱火 ANpi）：每 Dur 秒对 Area 内敌方地面单位结算 DataA。</summary>
 public sealed class RuntimePermanentImmolationAbility : Ability

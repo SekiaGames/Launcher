@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 冰霜箭 ANfa / 寒冰箭 AHca（海巫 / 凯尔萨斯）。对标 Wiki RuntimeColdArrowsAbility：

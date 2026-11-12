@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 混乱之雨（Anrc / ANr3）。对标客户端 RuntimeRainOfChaosAbility：

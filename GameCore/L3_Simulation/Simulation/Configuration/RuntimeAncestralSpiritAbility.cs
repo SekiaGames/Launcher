@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 牛头人祖灵（Aast，灵魂行者）。对标客户端 RuntimeAncestralSpiritAbility：

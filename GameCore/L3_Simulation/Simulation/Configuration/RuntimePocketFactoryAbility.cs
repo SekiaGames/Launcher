@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>口袋工厂（ANsy）：落点召唤工厂，工厂按 DataA 间隔放出 DataB 地精（地精寿命 DataC、出位 DataD）。</summary>
 public sealed class RuntimePocketFactoryAbility : Ability

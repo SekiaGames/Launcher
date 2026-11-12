@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 腐臭蜂群 AUcs（恐惧魔王）。朝落点放一条直线，Area(100) 宽的带子上敌人吃 DataA 伤害。

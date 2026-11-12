@@ -1,9 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.W3x;
+using OpenWC3.Game;
 
-namespace Launcher;
+namespace OpenWC3.Game.UI;
 
 /// <summary>
 /// 小地图：用 w3e 每格的地表贴图平均色生成底图（地图自带的是 blp，Godot 不能直接读），

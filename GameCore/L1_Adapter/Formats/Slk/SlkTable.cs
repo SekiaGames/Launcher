@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace WorldEdit.Core.Formats.Slk;
+namespace OpenWC3.War3Formats;
 
 public sealed class SlkTable
 {

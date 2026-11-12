@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 腐尸甲虫 AUcb（地穴领主）。从目标尸体里爬出 DataA(1) 只甲虫（UnitID=ucs1/ucs2/ucs3），

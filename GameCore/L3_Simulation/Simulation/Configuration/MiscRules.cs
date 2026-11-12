@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Globalization;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public static class MiscRules
 {

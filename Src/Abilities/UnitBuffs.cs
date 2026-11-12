@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 public sealed class InvisibilityBuff : Buff, IAttackLaunchBuff
 {

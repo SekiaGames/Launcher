@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 德鲁伊形态 Abrf / Arav（利爪德鲁伊 / 猛禽德鲁伊）。对标客户端 Units/Unit.TypeChange.cs：

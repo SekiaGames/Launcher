@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 死亡触发型技能：重生 AOre（延迟复活）与复仇之魂 AEsv（召魂）。

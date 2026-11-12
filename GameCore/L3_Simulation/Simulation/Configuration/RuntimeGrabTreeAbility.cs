@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 战棍（Agra）：让山岭巨人拔一棵树当武器——攻击变成攻城型、射程 +DataE，持续 DataE 次攻击。

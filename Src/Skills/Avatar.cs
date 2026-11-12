@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 天神下凡 AHav。对标客户端 Src/Skills/Avatar.cs + AvatarBuff：

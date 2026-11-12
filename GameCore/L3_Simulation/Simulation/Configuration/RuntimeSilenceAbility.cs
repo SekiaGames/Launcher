@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 沉默 ANsi（黑暗游侠）。点地面：范围内敌方单位在 Dur 秒内不能施法。

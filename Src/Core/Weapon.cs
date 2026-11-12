@@ -1,4 +1,4 @@
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 一套武器的完整参数。对标客户端 Src/Core/Weapon.cs + Weapon.TypeFields.cs。

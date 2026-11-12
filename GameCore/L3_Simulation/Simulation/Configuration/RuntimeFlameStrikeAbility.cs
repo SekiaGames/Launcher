@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 烈焰风暴 AHfs（血法师）。对标 Wiki RuntimeFlameStrikeAbility：

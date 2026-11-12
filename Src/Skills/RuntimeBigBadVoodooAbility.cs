@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 巫毒 AOvd（暗影猎手终极）。引导 HeroDur(30) 秒，每秒把 Area(800) 内友军刷成无敌，

@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game.UI;
+namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
 {

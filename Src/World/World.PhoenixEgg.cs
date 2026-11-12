@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 凤凰蛋计时。对标 Wiki RuntimePhoenixEggBuff：凤凰生命耗尽时换成蛋形态并接管生命值，

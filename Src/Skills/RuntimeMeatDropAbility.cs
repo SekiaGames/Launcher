@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>卸货（Amed）：把货舱里的尸体全倒在车周围。</summary>
 public sealed class RuntimeMeatDropAbility : Ability

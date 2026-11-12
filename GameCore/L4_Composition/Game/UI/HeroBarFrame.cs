@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game.UI;
 
 /// <summary>
 /// 左侧英雄头像栏（客户端 HeroBarFrame）：竖排最多 7 个己方英雄，

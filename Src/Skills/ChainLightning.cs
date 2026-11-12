@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 闪电链 AOcl。对标客户端 Src/Skills/ChainLightning.cs：

@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game.UI;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 技能施放输入与命令卡。对标客户端 Game/Scenes/War3GameScene/QuickCast.cs：

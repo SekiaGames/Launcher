@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 放逐 AHbn（血法师）。对标 Wiki RuntimeBanishAbility：

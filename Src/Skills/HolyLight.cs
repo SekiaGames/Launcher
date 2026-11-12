@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 圣光术 AHhb。对标客户端 Src/Skills/HolyLight.cs：

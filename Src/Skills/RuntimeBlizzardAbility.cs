@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 暴风雪 AHbz。对标客户端 Src/Skills/Bloodstorm.cs（引导 + 按波 AoE 结算）：

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 霜冻护甲 AUfa（巫妖）。给自己或友军加 DataB 点护甲，持续 DataA 秒。

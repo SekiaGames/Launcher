@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 复仇之魂 AEsv（守望者终极）。阵亡时召出 UnitID（espv）代替自己继续战斗 Dur（180s），

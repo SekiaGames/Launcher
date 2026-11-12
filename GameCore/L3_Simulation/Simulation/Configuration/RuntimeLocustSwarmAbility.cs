@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 蝗群 AUls（地穴领主终极）。对标 Wiki RuntimeLocustSwarmAbility：

@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 技能注册表：技能码 → 实现类。对标客户端 Src/Skills/RuntimeAbilityFactory.cs。

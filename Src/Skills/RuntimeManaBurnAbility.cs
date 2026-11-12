@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 法力燃烧 AEmb（恶魔猎手）。烧掉目标 DataA(50/100/150) 点法力，并造成等量的魔法伤害。

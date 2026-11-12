@@ -1,10 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.Slk;
-using WorldEdit.Core.Formats.W3x;
+using OpenWC3.War3Formats;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public sealed class MapSource
 {

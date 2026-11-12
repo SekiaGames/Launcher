@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>粉碎（ANde）：普攻打建筑时按 DataA 概率把伤害乘 DataB 并追加 DataC。</summary>
 public sealed class RuntimeDemolishAbility : Ability

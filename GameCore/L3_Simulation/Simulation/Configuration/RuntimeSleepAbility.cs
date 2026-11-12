@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 睡眠 AUsl（恐惧魔王）。目标 Dur(20/40/60) 秒不能动不能打，被攻击就醒

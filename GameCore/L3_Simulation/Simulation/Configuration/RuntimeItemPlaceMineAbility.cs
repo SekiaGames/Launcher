@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 地精地雷（Amin）：敌人踩进探测半径就引爆自己（死亡后由 Amnx 结算爆炸伤害）。

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 战争践踏 AOws（牛头人酋长）。周围 Area(250/300/350) 内地面单位吃 DataA 伤害并眩晕 Dur(3/4/5) 秒。

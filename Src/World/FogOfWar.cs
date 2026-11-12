@@ -1,9 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.W3x;
+using OpenWC3.Game;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 战争迷雾/视野：按单位 sight（UnitBalance 的 sight/nsight）点亮格子，

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 魅惑 ANch（黑暗游侠终极）。对标客户端 Src/Skills/RuntimeCharmAbility.cs：

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 引导（channel）与点目标技能的自检：暴风雪、死亡腐烂、闪电链、闪烁、沉默、霜冻护甲、闪避。

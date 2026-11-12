@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>Stand Down（Astd）：把地洞里的人全放出来。</summary>
 public sealed class RuntimeStandDownAbility : Ability

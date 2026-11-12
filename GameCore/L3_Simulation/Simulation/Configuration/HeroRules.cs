@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 英雄规则：常量全部取自 Units\MiscData 的 [Misc]（MaxHeroLevel / NeedHeroXP / GrantHeroXP / HeroExpRange）。

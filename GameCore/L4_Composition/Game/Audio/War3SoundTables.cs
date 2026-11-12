@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 单位语音/音效库。数据来自 extract 的 UISoundInfo* 表：

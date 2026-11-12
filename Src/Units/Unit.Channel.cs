@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 引导状态。对标客户端 UnitFlags.Channeling + Abilities.ChannelingAbility：

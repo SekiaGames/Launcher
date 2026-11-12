@@ -1,12 +1,12 @@
-namespace Launcher;
+namespace OpenWC3;
 
-/// <summary>技能的目标形态。对标客户端 Src/Abilities/AbilityTargetMode.cs。</summary>
+/// <summary>技能订单的目标形态。Any 用于尚未专门实现目标规则的旧技能。</summary>
 public enum AbilityTargetMode
 {
-    /// <summary>无目标，按一下立刻施放（天神下凡、雷霆一击、神圣护甲）。</summary>
-    None,
-    /// <summary>需要单位目标（圣光术、风暴之锤）。</summary>
-    Unit,
-    /// <summary>需要地面点（暴风雪、闪烁）。</summary>
-    Point,
+    Any = -1,
+    None = 0,
+    Unit = 1,
+    Point = 2,
+    UnitOrPoint = 3,
+    Destructable = 4,
 }

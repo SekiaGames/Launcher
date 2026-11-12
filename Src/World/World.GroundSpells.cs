@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>不需要施法者站桩的地面法术（烈焰风暴的余烬、蝗群的陆续释放）。</summary>
 public interface IGroundSpell

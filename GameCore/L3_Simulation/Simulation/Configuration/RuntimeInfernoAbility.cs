@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 地狱火 AUin（恐惧魔王终极）。落点 Area(250) 内敌人吃 DataA(50) 伤害并眩晕 Dur(4) 秒，

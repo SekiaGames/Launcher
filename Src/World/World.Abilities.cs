@@ -1,7 +1,8 @@
 using Godot;
 using System;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 技能系统。对标客户端 Src/Abilities/* + Src/Components/Stats.cs：

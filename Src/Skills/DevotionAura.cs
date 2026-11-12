@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 专注光环 AHad（被动光环）。对标客户端 Src/Skills/DevotionAura{,Buff}.cs：

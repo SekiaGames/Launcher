@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 腐地净化（Abdl 大 / Abds 小）。对标客户端 RuntimeBlightDispelAbility：

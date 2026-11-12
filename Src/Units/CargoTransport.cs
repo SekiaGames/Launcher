@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 驻军（兽族地洞）：把苦工塞进地洞藏起来，地洞里有人才开火。

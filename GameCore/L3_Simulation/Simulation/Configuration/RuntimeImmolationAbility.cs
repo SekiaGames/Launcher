@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 献祭 AEim（恶魔猎手，开关型）。开启时每秒对身边 Area(160) 内地面敌人造成 DataA(10/15/20) 伤害，

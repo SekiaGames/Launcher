@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 单位推挤：按 UnitBalance.collision 半径分离重叠单位。对标客户端 Src/Core/World.RepulseMembers.cs。

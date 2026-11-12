@@ -1,6 +1,6 @@
 using System;
 
-namespace Launcher;
+namespace OpenWC3;
 
 public static class CombatCodes
 {

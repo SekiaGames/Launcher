@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 吞尸 Acan（食尸鬼）。对标客户端：吃掉附近的一具尸体，边吃边回血。

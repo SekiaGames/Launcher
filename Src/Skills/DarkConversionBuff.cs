@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>黑暗转换：先沉睡，到期生成替代单位再让原单位消失。</summary>
 public sealed class DarkConversionBuff : Buff

@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace WorldEdit.Core.Formats.W3x;
+namespace OpenWC3.War3Formats.Text;
 
 public sealed class WtsDocument
 {

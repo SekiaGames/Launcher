@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 死亡腐烂 AUdd（巫妖终极）。点地面引导 35 秒，按目标最大生命的百分比持续掉血。

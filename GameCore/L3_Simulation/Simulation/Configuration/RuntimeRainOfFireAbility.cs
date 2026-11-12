@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 火焰雨 ANrf（深渊魔王）。对标 Wiki RuntimeRainOfFireAbility：

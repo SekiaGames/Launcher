@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 复活 AHre：把半径 Area 内最多 DataA 个友军尸体满血复活（物编 DataA=6 Area=900）。

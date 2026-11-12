@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 刀阵旋风 AEfk（守望者）。周围 Area(400/450/475) 内敌人各吃 DataA(75/125/190) 伤害（一把刀只扎一次）。

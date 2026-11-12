@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 吸血光环 AUav（恐惧魔王）。对标客户端 Src/Skills/VampiricAura：

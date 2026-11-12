@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 雷霆一击 AHtc。对标客户端 Src/Skills/RuntimeThunderClapAbility.cs：

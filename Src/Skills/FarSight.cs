@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 远视 AOfs（先知）。对标客户端 Src/Skills/CampaignAndAuraSkills.cs 的 FarSight：

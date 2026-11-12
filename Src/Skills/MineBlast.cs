@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>地雷爆炸（Amnx）：死亡时对 Area/DataA 内敌人结算 DataB 伤害。</summary>
 public sealed class MineBlast : Ability

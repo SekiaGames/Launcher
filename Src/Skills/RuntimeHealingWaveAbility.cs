@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 医疗波 AOhw（暗影猎手）。对标客户端 RuntimeHealingWaveAbility 的跳跃口径：

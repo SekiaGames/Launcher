@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 扎根 / 拔根（Aro1 古树、Aro2 远古守护者）。对标客户端 RuntimeRootAbility：

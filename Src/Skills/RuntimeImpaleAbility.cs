@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 穿刺 AUim（地穴领主）。朝落点射一条地刺，轨迹上的地面敌人吃 DataC(50/80/110) 伤害并眩晕 Dur(2/3/4) 秒。

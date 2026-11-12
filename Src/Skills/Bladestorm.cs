@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 剑刃风暴 AOww（剑圣终极）。引导 HeroDur(5) 秒，每秒对 Area(200) 内地面敌人造成 DataA(110) 伤害。

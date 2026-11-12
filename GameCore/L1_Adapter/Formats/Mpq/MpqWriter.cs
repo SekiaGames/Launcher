@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace WorldEdit.Core.Formats.Mpq;
+namespace OpenWC3.War3Formats.Mpq;
 
 public sealed class MpqWriter
 {

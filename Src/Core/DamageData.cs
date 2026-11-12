@@ -1,4 +1,4 @@
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>一次伤害的完整上下文，供技能/物品/光环在结算前后挂钩。</summary>
 public sealed class DamageData

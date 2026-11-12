@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 对战背景音乐。曲目来自 UI\war3skins.txt 的 `[种族] Music_V{版本}`（分号分隔），

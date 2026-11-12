@@ -1,7 +1,8 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 单位技能与加成。对标客户端 Units/Unit.Abilities + Components/Stats：

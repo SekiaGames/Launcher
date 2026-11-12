@@ -1,9 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.W3x;
+using OpenWC3.Game;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 地面物品与拾取。对标客户端 War3GameScene/AutoPickup.cs：

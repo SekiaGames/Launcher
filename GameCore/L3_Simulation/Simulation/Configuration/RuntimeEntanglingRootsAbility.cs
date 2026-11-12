@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 纠缠根须 AEer（丛林守护者）。目标 Dur(9/24/36) 秒被定身，每秒吃 DataA(15/15/25) 伤害。

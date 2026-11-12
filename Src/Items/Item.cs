@@ -1,6 +1,7 @@
 using Godot;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 物品实例。对标客户端 Src/Items/ItemBonus.cs 与 Units/Unit.Items.cs 的物品实体部分。

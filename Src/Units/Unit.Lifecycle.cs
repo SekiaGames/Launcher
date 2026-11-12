@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 单位生命周期：死亡 → 尸体 → 英雄复活。对标客户端 Units/Unit.Lifecycle.cs 与 Components/Death.cs。

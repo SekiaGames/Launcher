@@ -1,8 +1,7 @@
 using Godot;
 using System;
-using WorldEdit.Core.Formats.W3x;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 三维天空穹顶（客户端用 Sky 模型而不是全景贴图）：按 w3i tileset 选

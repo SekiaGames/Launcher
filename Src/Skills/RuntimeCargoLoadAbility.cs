@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>装载（Aloa 运输船 / Slo3 战船）：点一个友军把它装进来。</summary>
 public sealed class RuntimeCargoLoadAbility : Ability

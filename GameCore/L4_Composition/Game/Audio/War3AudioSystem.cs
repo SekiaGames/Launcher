@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>3D 音效播放池：单位语音、战斗音、建造音都走这里，超出池子就丢掉最旧的。</summary>
 public sealed class War3AudioSystem

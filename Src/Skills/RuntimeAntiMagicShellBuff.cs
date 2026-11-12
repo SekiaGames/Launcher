@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>反魔法外壳的载体：期间魔法免疫，到期摘掉。</summary>
 public sealed class RuntimeAntiMagicShellBuff : Buff

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 霜冻新星 AUfn（巫妖）。物编 ubertip：主目标吃 DataB(100) 常规伤害，范围内其他敌人吃

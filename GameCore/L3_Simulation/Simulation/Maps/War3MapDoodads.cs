@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace WorldEdit.Core.Formats.W3x;
+namespace OpenWC3.Game;
 
 public sealed class DoodadPlacement
 {

@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 碎裂闪电 ANfl（海巫）。对标 Wiki RuntimeForkedLightningAbility：

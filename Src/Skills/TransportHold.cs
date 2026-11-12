@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 载具货舱（Sch3 运输船/飞艇、Sch5 战船、Sch2 绞肉车、Advc 吞噬、Aenc 金矿、Achd 尸体舱、Slo2 缠绕金矿）。

@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 致命一击 AOcr（被动）。对标客户端 Src/Skills/CriticalStrike.cs：

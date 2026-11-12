@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 变形术 Aply（女巫）。把目标变成 DataB 指定的那只羊（nshe），持续 Dur(60) 秒。

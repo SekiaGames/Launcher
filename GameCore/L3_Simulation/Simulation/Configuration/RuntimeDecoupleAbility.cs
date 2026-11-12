@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 分离（Adec）。对标客户端 RuntimeDecoupleAbility：DataA / DataB 是要拆出来的两个单位，

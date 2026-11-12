@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// AI 战术判定。对标客户端 Captain 的目标优先级（英雄 → 攻城 → 普通）与

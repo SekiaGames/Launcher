@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 尸体货舱（Amel 装尸体 / Amed 卸尸体 / Aexh 掘尸）。对标客户端 RuntimeMeatCargoAbilities：

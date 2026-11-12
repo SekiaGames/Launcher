@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 /// <summary>
 /// 装备属性加成。物品本身不含数值，效果写在 ItemData.abilList 指向的能力里，

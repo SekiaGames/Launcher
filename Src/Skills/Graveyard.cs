@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 坟场产尸（Agyd）：每逢 Dur(15)s 在建筑旁留下一个 UnitID(ugho) 尸体，同时在场的最多 DataA(5) 具。

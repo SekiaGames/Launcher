@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using WorldEdit.Core.Formats.Slk;
+using OpenWC3.War3Formats;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public sealed class UnitFuncRow
 {

@@ -2,9 +2,9 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
-using WorldEdit.Core.Formats.Slk;
+using OpenWC3.War3Formats;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 public static class War3SlkReader
 {

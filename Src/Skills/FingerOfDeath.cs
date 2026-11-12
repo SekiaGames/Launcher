@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 死亡之指 ANfd（阿克蒙德）。对标客户端 Src/Skills/CampaignAndAuraSkills.cs 的 FingerOfDeath：

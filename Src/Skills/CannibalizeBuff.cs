@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>吞尸期间的持续回血。</summary>
 public sealed class CannibalizeBuff : Buff

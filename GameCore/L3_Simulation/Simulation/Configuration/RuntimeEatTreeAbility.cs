@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 野怪、古树与召唤物自带的技能（客户端 L3_Simulation/Configuration/Runtime*Ability 的同款实现）：

@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>掘尸（Aexh）：每 Dur 秒往货舱里补一具 UnitID 尸体，货舱满或到 DataA 上限就停。</summary>
 public sealed class RuntimeExhumeAbility : Ability

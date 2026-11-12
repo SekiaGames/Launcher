@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 闪避 AEev（恶魔猎手 / 守望者）。被动：受到**普攻**时按 DataA(10/20/30%) 概率完全闪掉。

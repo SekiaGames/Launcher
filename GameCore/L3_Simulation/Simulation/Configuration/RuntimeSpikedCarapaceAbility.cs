@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 尖刺甲壳 AUts（地穴领主，被动）。物编 ubertip：+DataC(3/5/7) 护甲，

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>寄生虫的持续伤害与「寄生目标死亡时爆虫」。</summary>
 public sealed class ParasiteBuff : Buff

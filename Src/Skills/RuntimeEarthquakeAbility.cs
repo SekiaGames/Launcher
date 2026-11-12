@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3;
 
 /// <summary>
 /// 地震 AOeq（先知终极）。对标 Wiki RuntimeEarthquakeAbility：

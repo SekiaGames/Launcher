@@ -1,6 +1,7 @@
 using Godot;
 
-namespace Launcher;
+using OpenWC3.Game;
+namespace OpenWC3;
 
 public sealed partial class World
 {

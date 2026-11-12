@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 骑乘合成（Aco2 弓箭手 / Aco3 角鹰兽）。对标客户端 RuntimeCoupleAbility：

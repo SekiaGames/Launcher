@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 暗影突袭 AEsh（守望者）。物编 ubertip：最初 DataE(75/150/225) 伤害，

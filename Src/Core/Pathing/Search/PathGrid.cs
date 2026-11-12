@@ -1,9 +1,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using WorldEdit.Core.Formats.W3x;
+using OpenWC3.Game;
 
-namespace Launcher;
+namespace OpenWC3;
 
 public enum PathLayer
 {

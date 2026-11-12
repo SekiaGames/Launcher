@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Launcher;
+namespace OpenWC3.Game;
 
 /// <summary>
 /// 操纵死尸 AUan（死亡骑士终极）。把 Area(900) 内最多 DataA(6) 具尸体拉起来，Dur(40) 秒无敌。
