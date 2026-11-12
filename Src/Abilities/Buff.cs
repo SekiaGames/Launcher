@@ -43,6 +43,36 @@ public class Buff
         Remaining -= delta;
         return Remaining > 0f;
     }
+
+    // ---- 客户端 Buff 兼容层（对标 Src/Abilities/Buff.cs）----
+
+    public int AuraLevel;
+
+    public virtual bool Positive => !IsHarmful;
+
+    public virtual bool Magic => false;
+
+    public virtual bool Physical => false;
+
+    public virtual bool AutoDispel => false;
+
+    public virtual bool SpellStealable => false;
+
+    public virtual bool Aura => false;
+
+    public virtual bool TickRunsWhilePaused => false;
+
+    public virtual float VisualAgeSeconds => 0f;
+
+    public virtual void OnAdd() { }
+
+    public virtual void OnRemove() { }
+
+    public virtual void OnBuffAdd() { }
+
+    public virtual void OnBuffRemove() { }
+
+    public virtual void OnTick(float delta) { }
 }
 
 /// <summary>霜冻护甲：+护甲，被普攻命中时让攻击者减速。</summary>

@@ -25,8 +25,12 @@ public abstract class Ability
     public int Level;
     public float CooldownRemaining;
 
-    public string Id => Type?.Id ?? "";
-    public string Name => string.IsNullOrEmpty(Type?.Name) ? Id : Type.Name;
+    string _rawcode = "";
+
+    public string Id => Type?.Id ?? _rawcode;
+    public virtual string Name => Type != null
+        ? (string.IsNullOrEmpty(Type.Name) ? Id : Type.Name)
+        : (ObjectData?.GetString("Name", Id) ?? Id);
     public string Hotkey => Type?.Hotkey ?? "";
     public string IconArt => Type?.IconArt ?? "";
 
@@ -246,7 +250,7 @@ public abstract class Ability
 
     private bool? _supportsAutoCast;
 
-    public bool SupportsAutoCast
+    public virtual bool SupportsAutoCast
     {
         get
         {
@@ -292,4 +296,87 @@ public abstract class Ability
 
     /// <summary>持有者死亡时（镜像分身要把幻象一起收掉）。</summary>
     public virtual void OnOwnerDeath(World world) { }
+
+    // ---- 客户端 Ability 兼容层（对标 Src/Abilities/Ability.cs）----
+
+    public IRuntimeObjectData ObjectData { get; private set; }
+
+    public string Rawcode => Id;
+
+    int _maxLevel;
+
+    public int MaxLevel
+    {
+        get => _maxLevel > 0 ? _maxLevel : Type?.MaxLevel ?? 1;
+        set => _maxLevel = value;
+    }
+
+    public bool Learnable;
+
+    public string OrderId = "";
+
+    public virtual bool IsPolymorphEffect => false;
+
+    public virtual bool ExpirationRunsWhilePaused => false;
+
+    public virtual bool TickRunsWhilePaused => false;
+
+    public virtual IReadOnlyList<string> RuntimePreloadArts => Array.Empty<string>();
+
+    public void BindObjectData(string rawcode, IRuntimeObjectData data, int initialLevel = 1, bool learnable = false)
+    {
+        _rawcode = rawcode ?? "";
+        ObjectData = data;
+        Learnable = learnable;
+        Level = initialLevel;
+    }
+
+    public float GetLevelFloat(string field, int dataPointer = 0, float fallback = 0f)
+        => ObjectData?.GetFloat(field, Math.Max(1, Level), dataPointer, fallback) ?? fallback;
+
+    public int GetLevelInt(string field, int dataPointer = 0, int fallback = 0)
+        => ObjectData?.GetInt(field, Math.Max(1, Level), dataPointer, fallback) ?? fallback;
+
+    public string GetLevelString(string field, int dataPointer = 0, string fallback = "")
+        => ObjectData?.GetString(field, Math.Max(1, Level), dataPointer, fallback) ?? fallback;
+
+    public virtual void OnAdd() { }
+
+    public virtual void OnRemove() { }
+
+    public virtual void OnLevelUp() { }
+
+    public virtual void OnLevelDown() { }
+
+    public virtual void OnSpawn() { }
+
+    public virtual void OnDeath() { }
+
+    public virtual void OnTick(float delta) { }
+
+    public virtual void OnDisabledStateChanged() { }
+
+    public virtual void OnCastFinished(bool interrupted, bool completed) { }
+
+    public virtual bool CheckCanUse(Unit target, Vec2 point) => true;
+
+    public virtual bool CheckCanTarget(Unit target, Vec2 point) => true;
+
+    public virtual bool ProvidesResistantSkin => false;
+
+    public virtual float ExpectedChannelDuration => 0f;
+
+    public virtual bool SpellStealable => true;
+
+    public virtual void OnCombatAlarm(Unit attacker, Unit victim) { }
+
+    public virtual void OnAttackHit(Unit target, float damage) { }
+
+    public virtual bool CheckCastOrder(int orderId) => true;
+
+    public virtual int ResolveCastOrderId(int orderId) => orderId;
+
+    public virtual bool ModifyOutgoingDamage(ref DamageData data) => true;
+
+    public virtual bool ModifyIncomingDamage(ref DamageData data) => true;
 }
