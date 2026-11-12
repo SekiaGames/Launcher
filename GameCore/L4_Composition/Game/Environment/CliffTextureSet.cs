@@ -11,7 +11,7 @@ public sealed class CliffTextureSet
     private static SlkTable _table;
     private readonly Dictionary<string, int> _layer = new(StringComparer.OrdinalIgnoreCase);
 
-    private static SlkTable Table => _table ??= War3Tables.CliffTypes();
+    private static SlkTable Table => _table ??= War3SlkReader.CliffTypes();
 
     public Texture2DArray Texture { get; private set; }
     public int Count => _layer.Count;

@@ -323,7 +323,7 @@ public sealed partial class War3GameScene
         int index = string.IsNullOrEmpty(_subgroupType) ? 0 : ids.IndexOf(_subgroupType);
         index = (index + 1) % ids.Count;
         ShowSubgroup(ids[index]);
-        _hud?.SetHint($"子组 {index + 1}/{ids.Count}：{UnitCatalog.Get(ids[index])?.Name}（{_selected.Count} 个）");
+        _hud?.SetHint($"子组 {index + 1}/{ids.Count}：{UnitFactory.Get(ids[index])?.Name}（{_selected.Count} 个）");
     }
 
     /// <summary>点头像：切到该英雄所在的子组（同类型单位一起），池子里其它兵不丢。</summary>

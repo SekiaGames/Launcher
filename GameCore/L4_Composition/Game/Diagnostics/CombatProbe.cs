@@ -34,7 +34,7 @@ public static partial class CombatProbe
         GD.Print("==== 单位战斗档案 ====");
         foreach (string id in new[] { "hfoo", "hrif", "earc", "hmtm", "ogru", "uaco", "nftr", "hgyr", "hbla", "Hpal", "Hamg" })
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null)
             {
                 GD.Print($"[档] {id,-5} 表里没有");
@@ -153,8 +153,8 @@ public static partial class CombatProbe
 
     private static void ReportHit(string attackerId, string victimId, float raw)
     {
-        UnitType attacker = UnitCatalog.Get(attackerId);
-        UnitType victim = UnitCatalog.Get(victimId);
+        UnitType attacker = UnitFactory.Get(attackerId);
+        UnitType victim = UnitFactory.Get(victimId);
         if (attacker == null || victim == null) return;
 
         float armor = victim.Armor;
@@ -163,8 +163,8 @@ public static partial class CombatProbe
 
     private static void ReportMask(string attackerId, string victimId)
     {
-        UnitType attacker = UnitCatalog.Get(attackerId);
-        UnitType victim = UnitCatalog.Get(victimId);
+        UnitType attacker = UnitFactory.Get(attackerId);
+        UnitType victim = UnitFactory.Get(victimId);
         if (attacker == null || victim == null) return;
 
         bool can = attacker.CanTarget(victim.Kind);

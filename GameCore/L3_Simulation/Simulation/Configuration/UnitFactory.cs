@@ -25,9 +25,9 @@ public sealed class UnitType
     public int FoodMade;
 
     /// <summary>第一套武器（UnitWeapons 的 *1 列）。</summary>
-    public WeaponProfile Weapon = new();
+    public Weapon Weapon = new();
     /// <summary>第二套武器（*2 列），null 表示没有。打第一武器打不到的目标类别时切换。</summary>
-    public WeaponProfile Weapon2;
+    public Weapon Weapon2;
 
     public DefenseType DefenseType = DefenseType.Unarmored;
     /// <summary>UnitData.targType，本单位被索敌时匹配对方的武器 TargetKind。</summary>
@@ -127,7 +127,7 @@ public sealed class UnitType
     public TargetKind AllTargets => Weapon2 == null ? Weapon.Targets : Weapon.Targets | Weapon2.Targets;
 
     /// <summary>选武器：先看第一套能不能打，再退到第二套；两套都不行就是打不到。</summary>
-    public WeaponProfile WeaponFor(TargetKind kind)
+    public Weapon WeaponFor(TargetKind kind)
     {
         if (Weapon.Enabled && Weapon.CanTarget(kind)) return Weapon;
         if (Weapon2 != null && Weapon2.Enabled && Weapon2.CanTarget(kind)) return Weapon2;
@@ -166,7 +166,7 @@ public sealed class UnitType
     }
 }
 
-public static class UnitCatalog
+public static class UnitFactory
 {
     private static readonly Dictionary<string, UnitType> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, int> UiRows = new(StringComparer.OrdinalIgnoreCase);
@@ -180,11 +180,11 @@ public static class UnitCatalog
     {
         if (_indexed) return;
         _indexed = true;
-        Index(War3Tables.UnitUI(), "unitUIID", UiRows);
-        Index(War3Tables.UnitBalance(), "unitBalanceID", BalanceRows);
-        Index(War3Tables.UnitWeapons(), "unitWeapID", WeaponRows);
-        Index(War3Tables.UnitAbilities(), "unitAbilID", AbilityRows);
-        Index(War3Tables.UnitData(), "unitID", DataRows);
+        Index(War3SlkReader.UnitUI(), "unitUIID", UiRows);
+        Index(War3SlkReader.UnitBalance(), "unitBalanceID", BalanceRows);
+        Index(War3SlkReader.UnitWeapons(), "unitWeapID", WeaponRows);
+        Index(War3SlkReader.UnitAbilities(), "unitAbilID", AbilityRows);
+        Index(War3SlkReader.UnitData(), "unitID", DataRows);
         GD.Print($"[UNIT] 索引 unitUI={UiRows.Count} balance={BalanceRows.Count} weapons={WeaponRows.Count} abilities={AbilityRows.Count}");
     }
 
@@ -213,7 +213,7 @@ public static class UnitCatalog
     {
         if (!UiRows.TryGetValue(id, out int uiRow)) return null;
 
-        SlkTable ui = War3Tables.UnitUI();
+        SlkTable ui = War3SlkReader.UnitUI();
         string file = ui.Get(uiRow, "file");
         if (string.IsNullOrWhiteSpace(file)) return null;
 
@@ -235,7 +235,7 @@ public static class UnitCatalog
 
         if (BalanceRows.TryGetValue(id, out int balanceRow))
         {
-            SlkTable balance = War3Tables.UnitBalance();
+            SlkTable balance = War3SlkReader.UnitBalance();
             type.Hp = Number(balance.Get(balanceRow, "HP"), 100f);
             type.Speed = Number(balance.Get(balanceRow, "spd"), 270f);
             type.SightDay = Number(balance.Get(balanceRow, "sight"), 1400f);
@@ -256,7 +256,7 @@ public static class UnitCatalog
             type.ManaStart = Number(balance.Get(balanceRow, "mana0"), 0f);
             if (DataRows.TryGetValue(id, out int turnRow) && !type.IsBuilding)
             {
-                SlkTable unitData = War3Tables.UnitData();
+                SlkTable unitData = War3SlkReader.UnitData();
                 float turnRate = Number(unitData.Get(turnRow, "turnRate"), 0f);
                 if (turnRate > 0f) type.TurnSpeed = Mathf.Clamp(turnRate * 6f, 1.5f, 14f);
                 type.FormationRank = Mathf.Clamp((int)Number(unitData.Get(turnRow, "formation"), 0f), 0, 15);
@@ -289,15 +289,15 @@ public static class UnitCatalog
 
         if (WeaponRows.TryGetValue(id, out int weaponRow))
         {
-            SlkTable weapons = War3Tables.UnitWeapons();
-            WeaponProfile first = ReadWeapon(weapons, weaponRow, "1");
+            SlkTable weapons = War3SlkReader.UnitWeapons();
+            Weapon first = ReadWeapon(weapons, weaponRow, "1");
             if (first != null) type.Weapon = first;
             type.Weapon2 = ReadWeapon(weapons, weaponRow, "2");
         }
 
         if (DataRows.TryGetValue(id, out int dataRow))
         {
-            SlkTable data = War3Tables.UnitData();
+            SlkTable data = War3SlkReader.UnitData();
             type.FootprintCells = FootprintFromPathTexture(data.Get(dataRow, "pathTex"), type.FootprintCells);
             TargetKind kind = CombatCodes.ParseTargets(data.Get(dataRow, "targType"));
             type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
@@ -311,7 +311,7 @@ public static class UnitCatalog
 
         if (AbilityRows.TryGetValue(id, out int abilityRow))
         {
-            SlkTable abilities = War3Tables.UnitAbilities();
+            SlkTable abilities = War3SlkReader.UnitAbilities();
             type.Abilities = SplitList(abilities.Get(abilityRow, "abilList"));
             type.HeroAbilList = SplitList(abilities.Get(abilityRow, "heroAbilList"));
         }
@@ -346,7 +346,7 @@ public static class UnitCatalog
         return type;
     }
 
-    private static WeaponProfile ReadWeapon(SlkTable weapons, int row, string slot)
+    private static Weapon ReadWeapon(SlkTable weapons, int row, string slot)
     {
         string kind = weapons.Get(row, "weapTp" + slot)?.Trim();
         bool enabled = !string.IsNullOrEmpty(kind)
@@ -354,7 +354,7 @@ public static class UnitCatalog
             && !kind.Equals("none", StringComparison.OrdinalIgnoreCase);
         if (!enabled) return null;
 
-        var weapon = new WeaponProfile { Enabled = true };
+        var weapon = new Weapon { Enabled = true };
 
         string sound = weapons.Get(row, "weapType" + slot)?.Trim();
         if (!string.IsNullOrEmpty(sound) && sound != "_" && sound != "-") weapon.Sound = sound;

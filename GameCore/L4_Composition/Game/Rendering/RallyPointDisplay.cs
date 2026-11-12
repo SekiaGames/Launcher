@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class RallyFlagView
+public sealed class RallyPointDisplay
 {
     private sealed class Flag
     {

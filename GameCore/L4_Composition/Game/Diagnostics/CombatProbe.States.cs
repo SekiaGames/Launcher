@@ -9,8 +9,8 @@ public static partial class CombatProbe
 {
     private static void CheckDuel()
     {
-        UnitType footman = UnitCatalog.Get("hfoo");
-        UnitType grunt = UnitCatalog.Get("ogru");
+        UnitType footman = UnitFactory.Get("hfoo");
+        UnitType grunt = UnitFactory.Get("ogru");
         if (footman == null || grunt == null) return;
 
         var sim = new World(null, null);
@@ -33,8 +33,8 @@ public static partial class CombatProbe
 
     private static void CheckImmunity()
     {
-        UnitType footman = UnitCatalog.Get("hfoo");
-        UnitType grunt = UnitCatalog.Get("ogru");
+        UnitType footman = UnitFactory.Get("hfoo");
+        UnitType grunt = UnitFactory.Get("ogru");
         if (footman == null || grunt == null)
         {
             GD.Print("[自检] 单位表缺失，跳过免疫检查");
@@ -48,18 +48,18 @@ public static partial class CombatProbe
         Unit victim = sim.Units[1];
 
         victim.State.Add(StateMod.Invulnerable, 5f);
-        DamageInfo blocked = sim.MakeAttackDamage(attacker, victim, 100f);
+        DamageData blocked = sim.MakeAttackDamage(attacker, victim, 100f);
         sim.DealDamage(blocked);
         Verify("无敌目标伤害归零", 0f, blocked.Amount, 0.001f);
         Verify("无敌目标不掉血", victim.MaxHp, victim.Hp, 0.001f);
         victim.State.Clear();
 
         victim.State.Add(StateMod.MagicImmune, 5f);
-        DamageInfo magic = World.MakeAbilityDamage(attacker, victim, 100f, AttackType.Spells, DamageType.Magic);
+        DamageData magic = World.MakeAbilityDamage(attacker, victim, 100f, AttackType.Spells, DamageType.Magic);
         sim.DealDamage(magic);
         Verify("魔免挡法术伤害", 0f, magic.Amount, 0.001f);
 
-        DamageInfo physical = sim.MakeAttackDamage(attacker, victim, 100f);
+        DamageData physical = sim.MakeAttackDamage(attacker, victim, 100f);
         sim.DealDamage(physical);
         Verify("魔免不挡物理伤害", 1f, physical.Amount > 0f ? 1f : 0f, 0f);
         GD.Print($"[自检] 物理 {physical.Raw:0} 经护甲与类别换算后 {physical.Amount:0.00}");
@@ -71,8 +71,8 @@ public static partial class CombatProbe
 
     private static void CheckBounty()
     {
-        UnitType creep = UnitCatalog.Get("nban");
-        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType creep = UnitFactory.Get("nban");
+        UnitType footman = UnitFactory.Get("hfoo");
         if (creep == null || footman == null) return;
 
         var sim = new World(null, null);
@@ -109,9 +109,9 @@ public static partial class CombatProbe
     /// </summary>
     private static void CheckKillExperienceSharing()
     {
-        UnitType heroType = UnitCatalog.Get("Hpal");
-        UnitType soldier = UnitCatalog.Get("hfoo");
-        UnitType creepType = UnitCatalog.Get("nban");
+        UnitType heroType = UnitFactory.Get("Hpal");
+        UnitType soldier = UnitFactory.Get("hfoo");
+        UnitType creepType = UnitFactory.Get("nban");
         if (heroType == null || soldier == null || creepType == null) return;
 
         var alone = new World(null, null);
@@ -154,8 +154,8 @@ public static partial class CombatProbe
     /// <summary>迫击炮 Farea=25 / Harea=150 / Qarea=250：全伤、半伤、四分之一、圈外不受伤。</summary>
     private static void CheckSplash()
     {
-        UnitType mortar = UnitCatalog.Get("hmtm");
-        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType mortar = UnitFactory.Get("hmtm");
+        UnitType footman = UnitFactory.Get("hfoo");
         if (mortar == null || footman == null) return;
 
         var world = new World(null, null);
@@ -174,7 +174,7 @@ public static partial class CombatProbe
         world.Units.Add(mid);
         world.Units.Add(far);
 
-        DamageInfo primary = world.MakeAttackDamage(attacker, center, 100f);
+        DamageData primary = world.MakeAttackDamage(attacker, center, 100f);
         world.DealDamage(primary);
         world.ApplySplash(primary);
 
@@ -192,7 +192,7 @@ public static partial class CombatProbe
         Unit ally = MakeUnit(footman, 0);
         ally.Position = new Vector3(100f, 0f, 0f);
         world.Units.Add(ally);
-        UnitType gyro = UnitCatalog.Get("hgyr");
+        UnitType gyro = UnitFactory.Get("hgyr");
         Unit flyer = gyro != null ? MakeUnit(gyro, 1) : null;
         if (flyer != null)
         {
@@ -209,7 +209,7 @@ public static partial class CombatProbe
             Verify("溅射掩码不含空中 → 飞机不吃", 0f, flyer.Hp < flyerBefore ? 1f : 0f, 0f);
         }
 
-        UnitType marked = UnitCatalog.Get("hwat");
+        UnitType marked = UnitFactory.Get("hwat");
         if (marked?.Weapon == null) return;
         var markedWorld = new World(null, null);
         Unit caster = MakeUnit(marked, 0);
@@ -237,7 +237,7 @@ public static partial class CombatProbe
         GD.Print($"[自检] 亡灵寺院研究 {string.Join(",", temple?.Researches ?? Array.Empty<string>())}");
 
         var world = new World(null, null);
-        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType footman = UnitFactory.Get("hfoo");
         if (footman != null)
         {
             Unit unit = MakeUnit(footman, 0);
@@ -250,7 +250,7 @@ public static partial class CombatProbe
             Verify("科技 步兵护甲 +3", 3f, world.ArmorOf(unit) - footman.Armor, 0.01f);
         }
 
-        UnitType rifleman = UnitCatalog.Get("hrif");
+        UnitType rifleman = UnitFactory.Get("hrif");
         if (rifleman != null)
         {
             Unit unit = MakeUnit(rifleman, 0);
@@ -261,7 +261,7 @@ public static partial class CombatProbe
             Verify("科技 火枪射程 +200", rifleman.AttackRange + 200f, unit.AttackReach, 0.01f);
         }
 
-        UnitType ghoul = UnitCatalog.Get("ugho");
+        UnitType ghoul = UnitFactory.Get("ugho");
         if (ghoul != null)
         {
             Unit unit = MakeUnit(ghoul, 0);
@@ -273,7 +273,7 @@ public static partial class CombatProbe
             Verify("科技 食尸鬼移速 +80", World.SpeedOf(unit), ghoul.Speed + 80f, 0.01f);
         }
 
-        UnitType priest = UnitCatalog.Get("hmpr");
+        UnitType priest = UnitFactory.Get("hmpr");
         if (priest != null)
         {
             Unit unit = MakeUnit(priest, 0);
@@ -288,7 +288,7 @@ public static partial class CombatProbe
             Verify("科技 牧师回蓝 +0.325", 0.325f, unit.TechManaRegen, 0.001f);
         }
 
-        UnitType tower = UnitCatalog.Get("otrb");
+        UnitType tower = UnitFactory.Get("otrb");
         if (tower != null)
         {
             Unit unit = MakeUnit(tower, 0);
@@ -299,7 +299,7 @@ public static partial class CombatProbe
             Verify("科技 尖刺路障 4+6×2", 16f, unit.TechSpikeDamage, 0.01f);
         }
 
-        UnitType hall = UnitCatalog.Get("htow");
+        UnitType hall = UnitFactory.Get("htow");
         if (hall != null)
         {
             Unit unit = MakeUnit(hall, 0);
@@ -310,7 +310,7 @@ public static partial class CombatProbe
             Verify("科技 建筑生命 +30%", hall.Hp * 1.3f, unit.MaxHp, 0.5f);
         }
 
-        UnitType peasant = UnitCatalog.Get("hpea");
+        UnitType peasant = UnitFactory.Get("hpea");
         if (peasant != null)
         {
             Unit unit = MakeUnit(peasant, 0);
@@ -326,7 +326,7 @@ public static partial class CombatProbe
 
     private static void CheckMissEvent()
     {
-        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType footman = UnitFactory.Get("hfoo");
         if (footman == null) return;
 
         var world = new World(null, null);
@@ -348,7 +348,7 @@ public static partial class CombatProbe
 
     private static void CheckSeparation()
     {
-        UnitType footman = UnitCatalog.Get("hfoo");
+        UnitType footman = UnitFactory.Get("hfoo");
         if (footman == null) return;
 
         var world = new World(null, null);
@@ -368,7 +368,7 @@ public static partial class CombatProbe
 
     private static void CheckShop(string id, int expectedItems, string label)
     {
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         if (type == null)
         {
             GD.Print($"[自检] 缺单位表 {id}，跳过商店检查");
@@ -380,8 +380,8 @@ public static partial class CombatProbe
 
     private static void CheckRegeneration()
     {
-        UnitType footman = UnitCatalog.Get("hfoo");
-        UnitType blacksmith = UnitCatalog.Get("hbla");
+        UnitType footman = UnitFactory.Get("hfoo");
+        UnitType blacksmith = UnitFactory.Get("hbla");
         if (footman == null || blacksmith == null) return;
 
         var world = new World(null, null);
@@ -406,10 +406,10 @@ public static partial class CombatProbe
 
     private static void CheckRally()
     {
-        UnitType hall = UnitCatalog.Get("htow");
-        UnitType footman = UnitCatalog.Get("hfoo");
-        UnitType peasant = UnitCatalog.Get("hpea");
-        UnitType mine = UnitCatalog.Get("ngol");
+        UnitType hall = UnitFactory.Get("htow");
+        UnitType footman = UnitFactory.Get("hfoo");
+        UnitType peasant = UnitFactory.Get("hpea");
+        UnitType mine = UnitFactory.Get("ngol");
         if (hall == null || footman == null || peasant == null || mine == null) return;
 
         var world = new World(null, null);
@@ -441,10 +441,10 @@ public static partial class CombatProbe
     /// <summary>双武器：英雄第一套打不到空中、第二套能；迫击炮砸建筑走第二套。</summary>
     private static void CheckSecondWeapon()
     {
-        UnitType hero = UnitCatalog.Get("Hpal");
-        UnitType gyro = UnitCatalog.Get("hgyr");
-        UnitType mortar = UnitCatalog.Get("hmtm");
-        UnitType blacksmith = UnitCatalog.Get("hbla");
+        UnitType hero = UnitFactory.Get("Hpal");
+        UnitType gyro = UnitFactory.Get("hgyr");
+        UnitType mortar = UnitFactory.Get("hmtm");
+        UnitType blacksmith = UnitFactory.Get("hbla");
         if (hero?.Weapon2 == null || gyro == null || mortar?.Weapon2 == null || blacksmith == null) return;
 
         Verify("英雄第一套打不到空中", 0f, hero.Weapon.CanTarget(gyro.Kind) ? 1f : 0f, 0f);
@@ -462,8 +462,8 @@ public static partial class CombatProbe
     /// <summary>尸体按 deathType：3/2 会衰减，建筑不留尸。</summary>
     private static void CheckCorpse()
     {
-        UnitType footman = UnitCatalog.Get("hfoo");
-        UnitType hall = UnitCatalog.Get("htow");
+        UnitType footman = UnitFactory.Get("hfoo");
+        UnitType hall = UnitFactory.Get("htow");
         if (footman == null || hall == null) return;
 
         var world = new World(null, null);
@@ -487,8 +487,8 @@ public static partial class CombatProbe
     private static void CheckItems()
     {
         ItemType crown = ItemCatalog.Get("ckng");
-        UnitType paladinType = UnitCatalog.Get("Hpal");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType paladinType = UnitFactory.Get("Hpal");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         if (crown == null || paladinType == null || footmanType == null) return;
 
         var world = new World(null, null);
@@ -520,9 +520,9 @@ public static partial class CombatProbe
     /// <summary>野怪死亡按掉落集掉物品，英雄随后能捡走。</summary>
     private static void CheckLoot()
     {
-        UnitType creep = UnitCatalog.Get("nftr");
-        UnitType footman = UnitCatalog.Get("hfoo");
-        UnitType hero = UnitCatalog.Get("Hpal");
+        UnitType creep = UnitFactory.Get("nftr");
+        UnitType footman = UnitFactory.Get("hfoo");
+        UnitType hero = UnitFactory.Get("Hpal");
         if (creep == null || footman == null || hero == null) return;
 
         var world = new World(null, null);

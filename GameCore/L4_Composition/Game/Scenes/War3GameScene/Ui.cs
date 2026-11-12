@@ -144,7 +144,7 @@ public sealed partial class War3GameScene
         foreach (string id in requires)
         {
             if (HasBuilding(slot, id)) continue;
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             return type != null ? type.Name : id;
         }
         return "";
@@ -325,7 +325,7 @@ public sealed partial class War3GameScene
     {
         foreach (string unitId in building.Type.Trains)
         {
-            UnitType type = UnitCatalog.Get(unitId);
+            UnitType type = UnitFactory.Get(unitId);
             if (type == null) continue;
 
             bool afford = slot.Gold >= type.GoldCost && slot.Lumber >= type.LumberCost;
@@ -372,7 +372,7 @@ public sealed partial class War3GameScene
 
         foreach (string unitId in building.Type.SellUnits)
         {
-            UnitType type = UnitCatalog.Get(unitId);
+            UnitType type = UnitFactory.Get(unitId);
             if (type == null) continue;
 
             int stock = building.UnitStockOf(unitId);
@@ -454,7 +454,7 @@ public sealed partial class War3GameScene
     {
         foreach (string targetId in building.Type.UpgradeTo)
         {
-            UnitType target = UnitCatalog.Get(targetId);
+            UnitType target = UnitFactory.Get(targetId);
             if (target == null) continue;
 
             bool afford = slot.Gold >= target.GoldCost && slot.Lumber >= target.LumberCost;
@@ -479,7 +479,7 @@ public sealed partial class War3GameScene
     {
         foreach (string buildingId in worker.Type.Builds)
         {
-            UnitType type = UnitCatalog.Get(buildingId);
+            UnitType type = UnitFactory.Get(buildingId);
             if (type == null) continue;
 
             bool afford = slot.Gold >= type.GoldCost && slot.Lumber >= type.LumberCost;
@@ -606,7 +606,7 @@ public sealed partial class War3GameScene
     private void BeginPlacement(string buildingId)
     {
         PlayerSlot slot = Slot(ViewPlayer);
-        UnitType type = UnitCatalog.Get(buildingId);
+        UnitType type = UnitFactory.Get(buildingId);
         if (type == null) return;
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
@@ -634,7 +634,7 @@ public sealed partial class War3GameScene
     private void CreatePlacementPreview(string buildingId)
     {
         ClearPlacementPreview();
-        UnitType type = UnitCatalog.Get(buildingId);
+        UnitType type = UnitFactory.Get(buildingId);
         if (type == null) return;
 
         PackedScene scene = Assets.LoadScene(type.ModelPath);
@@ -689,7 +689,7 @@ public sealed partial class War3GameScene
     private void UpdatePlacementPreview()
     {
         if (_placingId == null || _placementGhost == null || _placementFootprintNode == null) return;
-        UnitType type = UnitCatalog.Get(_placingId);
+        UnitType type = UnitFactory.Get(_placingId);
         if (type == null) return;
 
         Vector2 mouse = GetViewport().GetMousePosition();
@@ -813,16 +813,16 @@ public sealed partial class War3GameScene
     {
         return order.Kind switch
         {
-            OrderKind.Train => $"训练 {UnitCatalog.Get(order.Id)?.Name}",
+            OrderKind.Train => $"训练 {UnitFactory.Get(order.Id)?.Name}",
             OrderKind.Research => $"研究 {TechTree.Upgrade(order.Id)?.NameFor(order.Level)}",
-            _ => $"升级 {UnitCatalog.Get(order.Id)?.Name}",
+            _ => $"升级 {UnitFactory.Get(order.Id)?.Name}",
         };
     }
 
     private static Texture2D QueueIconOf(BuildingOrder order)
     {
         if (order.Kind == OrderKind.Research) return TechTree.Icon(TechTree.Upgrade(order.Id)?.IconPath);
-        UnitType type = UnitCatalog.Get(order.Id);
+        UnitType type = UnitFactory.Get(order.Id);
         return type == null || string.IsNullOrEmpty(type.IconPath) ? null : Assets.LoadTexture(type.IconPath);
     }
 

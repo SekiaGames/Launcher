@@ -158,7 +158,7 @@ public sealed class MeleeHudController
             if (!show) continue;
 
             Unit unit = _selectedUnits[i];
-            UnitType type = UnitCatalog.Get(unit.Type.Id);
+            UnitType type = UnitFactory.Get(unit.Type.Id);
             _selSlots[i].Icon = type != null && !string.IsNullOrEmpty(type.IconPath)
                 ? Assets.LoadTexture(type.IconPath)
                 : null;

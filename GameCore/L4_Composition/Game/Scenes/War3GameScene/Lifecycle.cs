@@ -159,7 +159,7 @@ public sealed partial class War3GameScene : Node3D
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
         _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
-        _escMenu = new EscMenu(this, Back);
+        _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
         _loadingScreen = new LoadingScreen(this, map);
         _gameOverPanel = new GameOverPanel(this, Back);
@@ -179,9 +179,9 @@ public sealed partial class War3GameScene : Node3D
         _hud.MinimapFrame.RightNavigate = MinimapOrderAt;
         _hud.MinimapFrame.SetFogTexture(_fog.Texture);
         _hud.MinimapFrame.SetTexture(MinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader()));
-        _heroBar = new HeroBarController(this);
+        _heroBar = new HeroBarFrame(this);
         _heroBar.HeroClicked = SelectHeroFromBar;
-        _log = new GameLogPanel(this);
+        _log = new ChatFrame(this);
         _log.Add("Enter 输入消息");
         _hud.SetSelection(_selected);
         RefreshHud();
@@ -198,16 +198,16 @@ public sealed partial class War3GameScene : Node3D
 
     private bool _musicPending;
     private WeatherRenderer _weather;
-    private HeroBarController _heroBar;
+    private HeroBarFrame _heroBar;
     private readonly List<Unit> _heroScratch = new();
-    private GameLogPanel _log;
-    private EscMenu _escMenu;
+    private ChatFrame _log;
+    private EscMenuFrame _escMenu;
     private LoadingScreen _loadingScreen;
     private GameOverPanel _gameOverPanel;
     private SkyboxRenderer _skybox;
     private SkyDomeRenderer _skyDome;
     private Node3D _worldRoot;
-    private readonly RallyFlagView _rallyFlags = new();
+    private readonly RallyPointDisplay _rallyFlags = new();
     private float _rallyTimer;
 
     public override void _Ready()

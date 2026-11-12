@@ -25,13 +25,13 @@ public static partial class CombatProbe
 
     private static void CheckUnitManaPool()
     {
-        UnitType shamanType = UnitCatalog.Get("oshm");
+        UnitType shamanType = UnitFactory.Get("oshm");
         if (shamanType == null) return;
 
         Verify("萨满最大法力=manaN", 200f, shamanType.ManaMax, 0.01f);
         Verify("萨满出生法力=mana0", 75f, shamanType.ManaStart, 0.01f);
 
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         if (footmanType == null) return;
         Verify("无蓝单位 manaN 为 0", 0f, footmanType.ManaMax, 0.01f);
         GD.Print($"[自检] 法力池 萨满 {shamanType.ManaStart:0}/{shamanType.ManaMax:0} 回蓝 {shamanType.ManaRegen:0.00}/s"
@@ -40,8 +40,8 @@ public static partial class CombatProbe
 
     private static void CheckDruidForms()
     {
-        UnitType druidType = UnitCatalog.Get("edoc");
-        UnitType bearType = UnitCatalog.Get("edcm");
+        UnitType druidType = UnitFactory.Get("edoc");
+        UnitType bearType = UnitFactory.Get("edcm");
         if (druidType == null || bearType == null) return;
 
         var world = new World(null, null);
@@ -82,7 +82,7 @@ public static partial class CombatProbe
 
     private static void CheckReincarnation()
     {
-        UnitType chiefType = UnitCatalog.Get("Otch");
+        UnitType chiefType = UnitFactory.Get("Otch");
         AbilityType reincarnationType = AbilityCatalog.Get("AOre");
         if (chiefType == null || reincarnationType == null) return;
 
@@ -112,8 +112,8 @@ public static partial class CombatProbe
 
     private static void CheckMassTeleport()
     {
-        UnitType mageType = UnitCatalog.Get("Hamg");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType mageType = UnitFactory.Get("Hamg");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType teleportType = AbilityCatalog.Get("AHmt");
         if (mageType == null || footmanType == null || teleportType == null) return;
 
@@ -151,13 +151,13 @@ public static partial class CombatProbe
 
     private static void CheckSpiritOfVengeance()
     {
-        UnitType wardenType = UnitCatalog.Get("Ewar");
-        UnitType spiritType = UnitCatalog.Get("espv");
+        UnitType wardenType = UnitFactory.Get("Ewar");
+        UnitType spiritType = UnitFactory.Get("espv");
         AbilityType vengeanceType = AbilityCatalog.Get("AEsv");
         if (wardenType == null || spiritType == null || vengeanceType == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
 
         Unit warden = MakeHero(wardenType, 0, 6, world);
         world.Units.Add(warden);
@@ -190,10 +190,10 @@ public static partial class CombatProbe
     {
         GD.Print("==== 终极技能出手时机自检 ====");
 
-        UnitType footType = UnitCatalog.Get("hfoo");
+        UnitType footType = UnitFactory.Get("hfoo");
         if (footType == null) return;
 
-        UnitType mkType = UnitCatalog.Get("Hmkg");
+        UnitType mkType = UnitFactory.Get("Hmkg");
         AbilityType avatarType = AbilityCatalog.Get("AHav");
         if (mkType != null && avatarType != null)
         {
@@ -216,7 +216,7 @@ public static partial class CombatProbe
             }
         }
 
-        UnitType bladeType = UnitCatalog.Get("Obla");
+        UnitType bladeType = UnitFactory.Get("Obla");
         AbilityType stormType = AbilityCatalog.Get("AOww");
         if (bladeType != null && stormType != null)
         {
@@ -239,7 +239,7 @@ public static partial class CombatProbe
             }
         }
 
-        UnitType lordType = UnitCatalog.Get("Ucrl");
+        UnitType lordType = UnitFactory.Get("Ucrl");
         AbilityType swarmType = AbilityCatalog.Get("AUls");
         if (lordType != null && swarmType != null)
         {
@@ -268,7 +268,7 @@ public static partial class CombatProbe
             }
         }
 
-        UnitType shadowType = UnitCatalog.Get("Oshd");
+        UnitType shadowType = UnitFactory.Get("Oshd");
         AbilityType voodooType = AbilityCatalog.Get("AOvd");
         if (shadowType != null && voodooType != null)
         {
@@ -307,7 +307,7 @@ public static partial class CombatProbe
             }
         }
 
-        UnitType keeperType = UnitCatalog.Get("Ekee");
+        UnitType keeperType = UnitFactory.Get("Ekee");
         AbilityType calmType = AbilityCatalog.Get("AEtq");
         if (keeperType != null && calmType != null)
         {

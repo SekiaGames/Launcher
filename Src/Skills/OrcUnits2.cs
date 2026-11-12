@@ -169,7 +169,7 @@ public sealed class SpiritLinkBuff : Buff
 
     public override bool IsHarmful => false;
 
-    public override void ModifyIncomingDamage(World world, DamageInfo info)
+    public override void ModifyIncomingDamage(World world, DamageData info)
     {
         if (world == null || info == null || info.Amount <= 0f || Group?.Members == null) return;
 
@@ -200,7 +200,7 @@ public sealed class FreezingBreath : Ability
     public float MoveSlowPct => 0.5f;
     public float AttackSlowPct => 0.5f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (!info.Target.IsBuilding) return;

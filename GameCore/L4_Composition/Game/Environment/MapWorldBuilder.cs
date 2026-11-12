@@ -19,7 +19,7 @@ public sealed partial class MapWorldBuilder
 
     public List<TreeState> Trees { get; } = new List<TreeState>();
 
-    public Node3D Build(W3eTerrain terrain, W3oDoodads doodads)
+    public Node3D Build(W3eTerrain terrain, War3MapDoodads doodads)
     {
         Terrain = terrain;
         Root = new Node3D

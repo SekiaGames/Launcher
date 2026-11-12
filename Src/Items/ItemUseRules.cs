@@ -92,8 +92,8 @@ public static class ItemUseRules
             }
 
             // 复用技能实现的那一类：码在注册表里、且实例不是被动/光环
-            if (!SkillRegistry.IsImplemented(code)) continue;
-            Ability ability = SkillRegistry.Create(type);
+            if (!RuntimeAbilityFactory.IsImplemented(code)) continue;
+            Ability ability = RuntimeAbilityFactory.Create(type);
             if (ability == null || ability is PassiveAbility || ability.IsPassive || ability.IsAura) continue;
 
             return new ItemUsePlan(ItemUseKind.Ability, code, type, ModeOf(ability.TargetMode), type.CooldownAt(1));

@@ -22,9 +22,9 @@ public static partial class CombatProbe
 
     private static void CheckRainOfFire()
     {
-        UnitType lordType = UnitCatalog.Get("Nplh");
+        UnitType lordType = UnitFactory.Get("Nplh");
         AbilityType rainType = AbilityCatalog.Get("ANrf");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         if (lordType == null || rainType == null || footmanType == null) return;
 
         var world = new World(null, null);
@@ -66,15 +66,15 @@ public static partial class CombatProbe
 
     private static void CheckTornado()
     {
-        UnitType lordType = UnitCatalog.Get("Nplh");
+        UnitType lordType = UnitFactory.Get("Nplh");
         AbilityType tornadoType = AbilityCatalog.Get("ANto");
         if (lordType == null || tornadoType == null) return;
-        if (UnitCatalog.Get("ntor") == null) return;
+        if (UnitFactory.Get("ntor") == null) return;
 
         var world = new World(null, null);
         world.SummonHandler = (caster, id, position) =>
         {
-            Unit created = MakeUnit(UnitCatalog.Get(id), caster.Player);
+            Unit created = MakeUnit(UnitFactory.Get(id), caster.Player);
             created.Position = position;
             return created;
         };
@@ -106,8 +106,8 @@ public static partial class CombatProbe
 
     private static void CheckForkedLightning()
     {
-        UnitType lordType = UnitCatalog.Get("Nplh");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType lordType = UnitFactory.Get("Nplh");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType forkType = AbilityCatalog.Get("ANfl");
         if (lordType == null || footmanType == null || forkType == null) return;
 
@@ -154,8 +154,8 @@ public static partial class CombatProbe
 
     private static void CheckColdArrows()
     {
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType rangerType = UnitCatalog.Get("Nbrn");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType rangerType = UnitFactory.Get("Nbrn");
         AbilityType coldType = AbilityCatalog.Get("ANfa");
         if (footmanType == null || rangerType == null || coldType == null) return;
 

@@ -26,7 +26,7 @@ public static partial class CombatProbe
 
     private static void CheckShadowMeld()
     {
-        UnitType archerType = UnitCatalog.Get("earc");
+        UnitType archerType = UnitFactory.Get("earc");
         if (archerType == null) return;
 
         var world = new World(null, null) { IsNight = true };
@@ -90,7 +90,7 @@ public static partial class CombatProbe
         if (stormType == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
         Unit caster = ProbeUnit(world, "Nsjs", 0, Vector3.Zero, "Acef");
 
         Ability storm = caster.FindAbility("Acef");
@@ -160,7 +160,7 @@ public static partial class CombatProbe
         Unit first = ProbeUnit(world, "hfoo", 1, new Vector3(100f, 0f, 0f));
         Unit second = ProbeUnit(world, "hfoo", 1, new Vector3(260f, 0f, 0f));
 
-        var info = new DamageInfo { Source = caster, Target = first, Amount = 100f, IsAttack = true };
+        var info = new DamageData { Source = caster, Target = first, Amount = 100f, IsAttack = true };
         float before = second.Hp;
         caster.FindAbility("ANca").OnAttackLanded(world, info);
 
@@ -175,7 +175,7 @@ public static partial class CombatProbe
         if (doomType == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
         Unit caster = ProbeUnit(world, "Nmag", 0, Vector3.Zero, "ANdo");
         Unit victim = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
 
@@ -222,7 +222,7 @@ public static partial class CombatProbe
         if (fireOrb == null || frostOrb == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
 
         var item = new Item { Type = fireOrb };
@@ -236,7 +236,7 @@ public static partial class CombatProbe
         float before = near.Hp;
         float splash = War3GameplayConfig.Resolve(5f, AttackType.Spells, near.Type.DefenseType,
             DamageType.Magic, 0f, false, false);
-        var info = new DamageInfo { Source = hero, Target = target, Amount = 30f, IsAttack = true };
+        var info = new DamageData { Source = hero, Target = target, Amount = 30f, IsAttack = true };
         world.ApplyOrbEffect(info);
         Verify("火焰法球溅射到旁边的人", before - splash, near.Hp, 0.5f);
 
@@ -245,7 +245,7 @@ public static partial class CombatProbe
 
         var frost = new Item { Type = frostOrb };
         world.ApplyItemBonus(hero, frost);
-        world.ApplyOrbEffect(new DamageInfo { Source = hero, Target = target, Amount = 10f, IsAttack = true });
+        world.ApplyOrbEffect(new DamageData { Source = hero, Target = target, Amount = 10f, IsAttack = true });
         Verify("霜冻法球减速", 0.3f, target.SlowMovePct, 0.001f);
     }
 

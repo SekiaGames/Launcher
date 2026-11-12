@@ -112,7 +112,7 @@ public sealed partial class Unit
 
     public int UnitStockMaxOf(string id)
     {
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         return type != null ? Mathf.Max(1, type.StockMax) : 0;
     }
 
@@ -125,7 +125,7 @@ public sealed partial class Unit
 
         foreach (string id in Type.SellUnits)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) continue;
 
             int max = Mathf.Max(1, type.StockMax);
@@ -146,7 +146,7 @@ public sealed partial class Unit
         int count = UnitStockOf(id);
         if (count <= 0) return false;
 
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         if (type == null) return false;
         if (type.StockRegen <= 0f) return true;
 
@@ -166,7 +166,7 @@ public sealed partial class Unit
         int restocked = 0;
         foreach (string id in Type.SellUnits)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) continue;
 
             int max = Mathf.Max(1, type.StockMax);

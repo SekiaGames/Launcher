@@ -57,7 +57,7 @@ public static class ItemCatalog
         if (_indexed) return;
         _indexed = true;
 
-        SlkTable table = War3Tables.ItemData();
+        SlkTable table = War3SlkReader.ItemData();
         foreach (int row in table.DataRows)
         {
             string id = table.Get(row, "itemID");
@@ -81,7 +81,7 @@ public static class ItemCatalog
         EnsureIndex();
         if (!Rows.TryGetValue(id, out int row)) return null;
 
-        SlkTable table = War3Tables.ItemData();
+        SlkTable table = War3SlkReader.ItemData();
         string file = table.Get(row, "file") ?? "";
         var type = new ItemType
         {

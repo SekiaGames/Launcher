@@ -33,7 +33,7 @@ public static class UnitMeshLibrary
 
     private static UnitModel Load(string id, bool isItem)
     {
-        SlkTable table = isItem ? War3Tables.ItemData() : War3Tables.UnitUI();
+        SlkTable table = isItem ? War3SlkReader.ItemData() : War3SlkReader.UnitUI();
         int row = table.FindRow(isItem ? "itemID" : "unitUIID", id);
         if (row < 0)
         {

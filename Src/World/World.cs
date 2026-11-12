@@ -33,9 +33,9 @@ public sealed partial class World
     /// <summary>单位被从世界上直接拿掉（骑乘合成 / 分离），场景层据此释放模型。</summary>
     public event Action<Unit> UnitRemoved;
     /// <summary>结算前钩子：技能/物品可在此改 Amount、AttackType 或置 Cancelled。</summary>
-    public event Action<DamageInfo> DamagePreview;
+    public event Action<DamageData> DamagePreview;
     /// <summary>结算后钩子：吸血、荆棘、伤害数字都挂这里。</summary>
-    public event Action<DamageInfo> DamageApplied;
+    public event Action<DamageData> DamageApplied;
     /// <summary>法力燃烧抽掉的量（客户端专门的紫色数字）。</summary>
     public event Action<Unit, float> ManaBurned;
 

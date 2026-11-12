@@ -25,7 +25,7 @@ public sealed class Couple : Ability
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null || !Owner.Alive) return false;
-        if (UnitCatalog.Get(ResultType) == null) return false;
+        if (UnitFactory.Get(ResultType) == null) return false;
 
         Unit partner = target != null && IsLegal(world, target) ? target : FindPartner(world);
         if (partner == null) return false;
@@ -127,7 +127,7 @@ public sealed class Decouple : Ability
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null || !Owner.Alive) return false;
-        if (UnitCatalog.Get(FirstType) == null || UnitCatalog.Get(SecondType) == null) return false;
+        if (UnitFactory.Get(FirstType) == null || UnitFactory.Get(SecondType) == null) return false;
 
         float ratio = Mathf.Clamp(Owner.Hp / Mathf.Max(1f, Owner.MaxHp), 0.05f, 1f);
         Vector3 spot = Owner.Position;

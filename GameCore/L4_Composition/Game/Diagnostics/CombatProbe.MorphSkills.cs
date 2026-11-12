@@ -12,9 +12,9 @@ public static partial class CombatProbe
     {
         GD.Print("==== 变形与引导大招自检 ====");
 
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType shadowHunterType = UnitCatalog.Get("Oshd");
-        UnitType demonHunterType = UnitCatalog.Get("Edem");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType shadowHunterType = UnitFactory.Get("Oshd");
+        UnitType demonHunterType = UnitFactory.Get("Edem");
         if (footmanType == null || shadowHunterType == null || demonHunterType == null) return;
 
         // —— 妖术：变随机小动物、禁攻击禁施法、到期还原 ——
@@ -48,7 +48,7 @@ public static partial class CombatProbe
 
         // —— 变形术：女巫把目标固定变成羊（nshe）60 秒 ——
         var polyWorld = new World(null, null);
-        Unit sorceress = MakeUnit(UnitCatalog.Get("hsor") ?? footmanType, 0);
+        Unit sorceress = MakeUnit(UnitFactory.Get("hsor") ?? footmanType, 0);
         sorceress.Mana = 300f;
         sorceress.MaxMana = 300f;
         Unit polymorphed = MakeUnit(footmanType, 1);
@@ -75,7 +75,7 @@ public static partial class CombatProbe
         Ability metamorphosis = demon.GiveAbility("AEme", 1);
         bool morphCast = morphWorld.TryCast(demon, metamorphosis, null, demon.Position);
 
-        UnitType demonForm = UnitCatalog.Get("Edmm");
+        UnitType demonForm = UnitFactory.Get("Edmm");
         Verify("变身施放成功", 1f, morphCast ? 1f : 0f, 0f);
         Verify("变身换成恶魔形态", 1f,
             demonForm != null && string.Equals(demon.Type.Id, "Edmm", StringComparison.OrdinalIgnoreCase) ? 1f : 0f, 0f);
@@ -93,7 +93,7 @@ public static partial class CombatProbe
 
         // —— 宁静：引导 30 秒，每秒给范围内友军回 20 ——
         var calmWorld = new World(null, null);
-        Unit keeper = MakeHero(UnitCatalog.Get("Ekee") ?? shadowHunterType, 0, 6, calmWorld);
+        Unit keeper = MakeHero(UnitFactory.Get("Ekee") ?? shadowHunterType, 0, 6, calmWorld);
         var calmTargets = new List<Unit>();
         for (int index = 0; index < 2; index++)
         {
@@ -120,7 +120,7 @@ public static partial class CombatProbe
 
         // —— 群星坠落：引导，每 1.5 秒一波 AoE ——
         var starWorld = new World(null, null);
-        Unit priestess = MakeHero(UnitCatalog.Get("Emoo") ?? shadowHunterType, 0, 6, starWorld);
+        Unit priestess = MakeHero(UnitFactory.Get("Emoo") ?? shadowHunterType, 0, 6, starWorld);
         var starVictims = new List<Unit>();
         for (int index = 0; index < 3; index++)
         {
@@ -147,7 +147,7 @@ public static partial class CombatProbe
 
         // —— 剑刃风暴：引导，每秒 AoE 110，飞行单位不吃 ——
         var stormWorld = new World(null, null);
-        Unit blademaster = MakeHero(UnitCatalog.Get("Obla") ?? shadowHunterType, 0, 6, stormWorld);
+        Unit blademaster = MakeHero(UnitFactory.Get("Obla") ?? shadowHunterType, 0, 6, stormWorld);
         Unit stormVictim = MakeUnit(footmanType, 1);
         stormVictim.Position = new Vector3(120f, 0f, 0f);
         stormWorld.Units.Add(blademaster);

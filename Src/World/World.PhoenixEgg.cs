@@ -37,7 +37,7 @@ public sealed partial class World
         }
         if (egg == null) return false;
 
-        UnitType eggType = UnitCatalog.Get(egg.EggUnitId);
+        UnitType eggType = UnitFactory.Get(egg.EggUnitId);
         if (eggType == null) return false;
         if (string.Equals(unit.Type.Id, eggType.Id, StringComparison.OrdinalIgnoreCase)) return false;
 

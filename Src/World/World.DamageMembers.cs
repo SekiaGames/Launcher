@@ -158,14 +158,14 @@ public sealed partial class World
         }
     }
 
-    public DamageInfo MakeAttackDamage(Unit source, Unit target, float raw, WeaponProfile weapon = null)
+    public DamageData MakeAttackDamage(Unit source, Unit target, float raw, Weapon weapon = null)
     {
         bool underConstruction = target.IsUnderConstruction;
         DefenseType defense = underConstruction ? DefenseType.Unarmored : target.DefenseTypeOrDefault;
         float armor = underConstruction ? 0f : ArmorOf(target);
         weapon ??= source.Type.Weapon;
 
-        return new DamageInfo
+        return new DamageData
         {
             Source = source,
             Target = target,
@@ -187,7 +187,7 @@ public sealed partial class World
     /// 唯一伤害入口。顺序对齐客户端 Health.DamageScaling：
     /// DamagePreview 钩子 → 免疫判定 → 护甲 → 攻击/护甲类型矩阵 → 夹到 min(raw,1) → 扣血。
     /// </summary>
-    public void DealDamage(DamageInfo info)
+    public void DealDamage(DamageData info)
     {
         if (info?.Target == null || !info.Target.Alive) return;
 
@@ -267,7 +267,7 @@ public sealed partial class World
     /// 命中之后的连带效果（对标客户端 Health 的 OnDamaged 监听）：
     /// 睡眠被打醒 → 吸血光环按实际伤害回血 → 荆棘光环/尖刺甲壳把伤害反给攻击者。
     /// </summary>
-    private void SustainAfterHit(DamageInfo info)
+    private void SustainAfterHit(DamageData info)
     {
         Unit target = info.Target;
         if (target == null) return;
@@ -289,7 +289,7 @@ public sealed partial class World
         if (ratio > 0f)
         {
             float basis = info.ThornsBase > 0f ? info.ThornsBase : info.Amount;
-            DamageInfo counter = MakeAbilityDamage(target, attacker, Mathf.Max(1f, basis * ratio),
+            DamageData counter = MakeAbilityDamage(target, attacker, Mathf.Max(1f, basis * ratio),
                 AttackType.Spells, DamageType.Universal);
             counter.Reflected = true;
             DealDamage(counter);
@@ -298,7 +298,7 @@ public sealed partial class World
         float flat = ReflectFlatOf(target, ranged);
         if (flat > 0f)
         {
-            DamageInfo spikes = MakeAbilityDamage(target, attacker, flat,
+            DamageData spikes = MakeAbilityDamage(target, attacker, flat,
                 AttackType.Spells, DamageType.Universal);
             spikes.Reflected = true;
             DealDamage(spikes);
@@ -320,7 +320,7 @@ public sealed partial class World
     }
 
     /// <summary>受到伤害修正钩子（艾露恩恩泽、硬化皮肤）：在护甲与类型矩阵之前改数值。</summary>
-    public void ApplyIncomingModifiers(DamageInfo info)
+    public void ApplyIncomingModifiers(DamageData info)
     {
         Unit target = info?.Target;
         if (target == null) return;
@@ -361,11 +361,11 @@ public sealed partial class World
     }
 
     /// <summary>技能/陷阱等非武器伤害的统一构造入口。</summary>
-    public static DamageInfo MakeAbilityDamage(Unit source, Unit target, float amount,
+    public static DamageData MakeAbilityDamage(Unit source, Unit target, float amount,
         AttackType attack, DamageType type)
     {
         bool underConstruction = target.IsUnderConstruction;
-        return new DamageInfo
+        return new DamageData
         {
             Source = source,
             Target = target,

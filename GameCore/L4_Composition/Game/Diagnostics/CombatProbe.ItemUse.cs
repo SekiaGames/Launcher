@@ -32,7 +32,7 @@ public static partial class CombatProbe
         var world = new World(null, null);
         world.SummonHandler = (caster, id, position) =>
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) return null;
             Unit created = MakeUnit(type, caster.Player);
             created.Position = position;
@@ -40,7 +40,7 @@ public static partial class CombatProbe
             return created;
         };
 
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
 
         bool placed = world.UseItem(hero, GiveItem(hero, "gobm"), null, new Vector3(300f, 0f, 0f));
@@ -61,7 +61,7 @@ public static partial class CombatProbe
     private static void CheckReincarnationCharm()
     {
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 3, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 3, world);
         world.Units.Add(hero);
 
         Item ankh = GiveItem(hero, "ankh");
@@ -81,7 +81,7 @@ public static partial class CombatProbe
     private static void CheckItemCharges()
     {
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
         enemy.Mana = 500f;
@@ -106,7 +106,7 @@ public static partial class CombatProbe
         if (potion == null || mana == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
 
         hero.MaxHp = 2000f;
@@ -126,8 +126,8 @@ public static partial class CombatProbe
     private static void CheckTargetedItems()
     {
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         hero.Position = Vector3.Zero;
         world.Units.Add(hero);
 
@@ -179,7 +179,7 @@ public static partial class CombatProbe
     private static void CheckPermanentItemCooldown()
     {
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
 
@@ -211,7 +211,7 @@ public static partial class CombatProbe
         if (ItemCatalog.Get("pnvu") == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         Item item = GiveItem(hero, "pnvu");
 
@@ -228,7 +228,7 @@ public static partial class CombatProbe
         if (scroll == null || speedType == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         float baseSpeed = World.SpeedOf(hero);
 
@@ -244,7 +244,7 @@ public static partial class CombatProbe
         if (wand == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(200f, 0f, 0f));
 
@@ -262,7 +262,7 @@ public static partial class CombatProbe
         if (scroll == null || healType == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         hero.Hp = hero.MaxHp * 0.4f;
         Unit ally = ProbeUnit(world, "hfoo", 0, new Vector3(200f, 0f, 0f));
@@ -280,8 +280,8 @@ public static partial class CombatProbe
         if (ward == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
 
         Item item = GiveItem(hero, "whwd");
@@ -298,7 +298,7 @@ public static partial class CombatProbe
         if (portal == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         hero.Position = Vector3.Zero;
         world.Units.Add(hero);
         Unit hall = ProbeUnit(world, "htow", 0, new Vector3(6000f, 0f, 4000f));
@@ -316,7 +316,7 @@ public static partial class CombatProbe
         if (helm == null || auraType == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
         Unit ally = ProbeUnit(world, "hfoo", 0, new Vector3(300f, 0f, 0f));
 
@@ -333,7 +333,7 @@ public static partial class CombatProbe
     private static void CheckUltravision()
     {
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 0, 1, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 0, 1, world);
         world.Units.Add(hero);
 
         Ability night = hero.GiveAbility("Ault", 1);

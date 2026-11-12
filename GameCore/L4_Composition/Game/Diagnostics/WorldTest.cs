@@ -46,7 +46,7 @@ public static class WorldTest
 
     private static Unit Make(string id, int player, float x, float z, WorldEdit.Core.Formats.W3x.W3eTerrain terrain)
     {
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         if (type == null) return null;
 
         return new Unit

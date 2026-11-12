@@ -201,7 +201,7 @@ public sealed partial class Unit
         AbilityType type = AbilityCatalog.Get(id);
         if (type == null) return null;
 
-        Ability ability = SkillRegistry.Create(type);
+        Ability ability = RuntimeAbilityFactory.Create(type);
         if (ability == null) return null;
 
         ability.Owner = this;

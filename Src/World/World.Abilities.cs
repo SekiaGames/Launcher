@@ -325,7 +325,7 @@ public sealed partial class World
     }
 
     /// <summary>受击钩子：只要有一个已学被动要取消这次伤害（闪避），就整体取消。</summary>
-    public bool PassesDefensiveHooks(DamageInfo info)
+    public bool PassesDefensiveHooks(DamageData info)
     {
         Unit target = info?.Target;
         if (target?.Abilities == null || target.Abilities.Count == 0) return true;

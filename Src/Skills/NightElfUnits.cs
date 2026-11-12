@@ -193,7 +193,7 @@ public sealed class SlowPoison : Ability
     public float MoveSlowPct => Data('B');
     public float AttackSlowPct => Data('C');
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
 
@@ -297,7 +297,7 @@ public sealed class HardenedSkin : Ability
     /// <summary>物编 DataA：触发概率百分比（山岭巨人 / 龙龟都是 100，即必发）。</summary>
     public float ChancePercent => Mathf.Clamp(Data('A'), 0f, 100f);
 
-    public override void ModifyIncomingDamage(World world, DamageInfo info)
+    public override void ModifyIncomingDamage(World world, DamageData info)
     {
         if (Owner == null || info == null || info.DamageType != DamageType.Normal) return;
         if (info.Source == null) return;
@@ -316,7 +316,7 @@ public sealed class ElunesGrace : Ability
 
     public float Reduction => Mathf.Clamp(Data('A'), 0f, 1f);
 
-    public override void ModifyIncomingDamage(World world, DamageInfo info)
+    public override void ModifyIncomingDamage(World world, DamageData info)
     {
         if (Owner == null || info == null || !info.Ranged) return;
         if (info.DamageType != DamageType.Normal) return;
@@ -351,7 +351,7 @@ public sealed class MoonGlaive : Ability
     public int Bounces => 2 + (Owner?.TechTargetCountBonus ?? 0);
     public float Radius => 400f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null) return;
 
@@ -389,7 +389,7 @@ public sealed class LightningAttack : Ability
     public float NextRatio => Data('B') > 0f ? Data('B') : 0.25f;
     public float Radius => 500f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null) return;
 
@@ -408,7 +408,7 @@ public sealed class CorrosiveBreath : Ability
 
     public float DamagePerSecond => Data('A');
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (!info.Target.IsBuilding || DamagePerSecond <= 0f) return;

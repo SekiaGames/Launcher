@@ -216,7 +216,7 @@ public sealed class CallToArms : Ability
     {
         if (world == null || Owner == null || !Owner.Alive) return false;
 
-        UnitType militia = UnitCatalog.Get("hmil");
+        UnitType militia = UnitFactory.Get("hmil");
         if (militia == null) return false;
 
         int converted = 0;
@@ -294,7 +294,7 @@ public sealed class ManaShieldBuff : Buff
 
     public override bool IsHarmful => false;
 
-    public override void ModifyIncomingDamage(World world, DamageInfo info)
+    public override void ModifyIncomingDamage(World world, DamageData info)
     {
         if (info == null || info.Amount <= 0f || Owner == null || ManaPerDamage <= 0f) return;
         if (Owner.Mana <= 0f) return;

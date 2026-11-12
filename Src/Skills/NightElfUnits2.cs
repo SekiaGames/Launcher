@@ -28,7 +28,7 @@ public sealed class ImpalingBolt : Ability
     public float Width => 120f;
     public float Length => 900f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || info.Amount <= 0f) return;
 

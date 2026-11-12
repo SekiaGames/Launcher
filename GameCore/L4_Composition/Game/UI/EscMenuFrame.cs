@@ -3,16 +3,16 @@ using System;
 
 namespace Launcher;
 
-public sealed class EscMenu
+public sealed class EscMenuFrame
 {
     private readonly CanvasLayer _layer;
     private readonly Button _pauseButton;
 
     public Action PauseToggled;
 
-    public EscMenu(Node parent, Action backToMapList)
+    public EscMenuFrame(Node parent, Action backToMapList)
     {
-        _layer = new CanvasLayer { Name = "EscMenu", Layer = 60, Visible = false };
+        _layer = new CanvasLayer { Name = "EscMenuFrame", Layer = 60, Visible = false };
         parent.AddChild(_layer);
 
         var veil = new ColorRect

@@ -140,7 +140,7 @@ public sealed class Pulverize : Ability
     public float Damage => Data('B');
     public float Radius => Data('C') > 0f ? Data('C') : 250f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null) return;
         if (Damage <= 0f || !world.RollPercent(ChancePercent)) return;
@@ -190,7 +190,7 @@ public sealed class LiquidFire : Ability
     public float SlowPct => Data('C');
     public float Seconds => Duration > 0f ? Duration : 3f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (!info.Target.IsBuilding) return;
@@ -260,7 +260,7 @@ public sealed class VenomSpears : Ability
     public float DamagePerSecond => Data('A');
     public float SlowPct => Data('B');
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (DamagePerSecond <= 0f) return;
@@ -282,7 +282,7 @@ public sealed class Pillage : Ability
 
     public float Ratio => Data('A');
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null) return;
         if (!info.Target.IsBuilding || Ratio <= 0f || info.Amount <= 0f) return;

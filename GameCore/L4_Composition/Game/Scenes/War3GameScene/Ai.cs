@@ -52,7 +52,7 @@ public sealed partial class War3GameScene
             {
                 _waveLogBudget--;
                 var names = new List<string>();
-                foreach (string id in wave) names.Add(UnitCatalog.Get(id)?.Name ?? id);
+                foreach (string id in wave) names.Add(UnitFactory.Get(id)?.Name ?? id);
                 GD.Print($"[WAVE] P{player.Id} 出兵 {wave.Count * repeat} 个：{string.Join("、", names)}"
                     + $"（{AiCounters.Describe(AiCounters.Analyze(_allUnits, player.Id, AreAllied))}）");
             }
@@ -101,7 +101,7 @@ public sealed partial class War3GameScene
             if (!unit.Alive || unit.Player != player || !unit.IsBuilding || unit.IsUnderConstruction) continue;
             foreach (string id in unit.Type.Trains)
             {
-                UnitType type = UnitCatalog.Get(id);
+                UnitType type = UnitFactory.Get(id);
                 if (type == null || type.IsHero || type.IsWorkerType || type.FoodUsed <= 0) continue;
                 if (!options.Contains(id)) options.Add(id);
             }
@@ -112,7 +112,7 @@ public sealed partial class War3GameScene
         // 波次编成也按对手阵容挑：同样的兵造出来，打对面护甲收益高的排前面
         EnemyComposition enemy = AiCounters.Analyze(_allUnits, player, AreAllied);
         options.Sort((left, right) =>
-            AiCounters.Score(UnitCatalog.Get(right), enemy).CompareTo(AiCounters.Score(UnitCatalog.Get(left), enemy)));
+            AiCounters.Score(UnitFactory.Get(right), enemy).CompareTo(AiCounters.Score(UnitFactory.Get(left), enemy)));
 
         int breadth = AiDifficulty >= 2 ? 4 : AiDifficulty == 0 ? 2 : 3;
         if (options.Count > breadth) options.RemoveRange(breadth, options.Count - breadth);
@@ -612,7 +612,7 @@ public sealed partial class War3GameScene
                 if (_hireLogBudget > 0)
                 {
                     _hireLogBudget--;
-                    GD.Print($"[AI] P{slot.Id} 在 {shop.Type.Name} 买了 {UnitCatalog.Get(pick)?.Name}");
+                    GD.Print($"[AI] P{slot.Id} 在 {shop.Type.Name} 买了 {UnitFactory.Get(pick)?.Name}");
                 }
                 return;
             }
@@ -678,7 +678,7 @@ public sealed partial class War3GameScene
             if (_hireLogBudget > 0)
             {
                 _hireLogBudget--;
-                GD.Print($"[AI] P{slot.Id} 派 {carrier.Type.Name} 去 {shop.Type.Name} 买 {UnitCatalog.Get(pick)?.Name}");
+                GD.Print($"[AI] P{slot.Id} 派 {carrier.Type.Name} 去 {shop.Type.Name} 买 {UnitFactory.Get(pick)?.Name}");
             }
             return;
         }
@@ -704,7 +704,7 @@ public sealed partial class War3GameScene
 
         foreach (string unitId in shop.Type.SellUnits)
         {
-            UnitType type = UnitCatalog.Get(unitId);
+            UnitType type = UnitFactory.Get(unitId);
             if (type == null) continue;
             if (shop.UnitStockOf(unitId) <= 0) continue;
             if (type.GoldCost + 100 > slot.Gold || type.LumberCost > slot.Lumber) continue;
@@ -832,7 +832,7 @@ public sealed partial class War3GameScene
         }
 
         string workerId = hall.Type.Trains.Length > 0 ? hall.Type.Trains[0] : null;
-        UnitType worker = UnitCatalog.Get(workerId);
+        UnitType worker = UnitFactory.Get(workerId);
 
         var hallFamily = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         CollectUpgradeFamily(hall.Type.Id, hallFamily);
@@ -852,7 +852,7 @@ public sealed partial class War3GameScene
 
         foreach (string id in buildable)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) continue;
             int total = Mathf.Max(1, type.UpgradeTo.Length);
             if (type.FoodMade > 0) total = Mathf.Max(total, 2);
@@ -861,7 +861,7 @@ public sealed partial class War3GameScene
 
         foreach (string id in buildable)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) continue;
             foreach (string upgradeId in type.Researches)
             {
@@ -875,12 +875,12 @@ public sealed partial class War3GameScene
         var trained = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string id in trainSources)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) continue;
             foreach (string unitId in type.Trains)
             {
                 if (!trained.Add(unitId)) continue;
-                UnitType unit = UnitCatalog.Get(unitId);
+                UnitType unit = UnitFactory.Get(unitId);
                 if (unit == null) continue;
                 int total = unitId == workerId ? 6 : 1;
                 slot.Tasks.Add(new InhouseTask { Kind = "train", Id = unitId, Total = total, Label = unit.Name });
@@ -893,13 +893,13 @@ public sealed partial class War3GameScene
     /// <summary>0=人口建筑，1=能出英雄的祭坛，2=出兵建筑，3=其余。</summary>
     private static int BuildPriority(string id)
     {
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         if (type == null) return 9;
         if (type.FoodMade > 0) return 0;
 
         foreach (string unitId in type.Trains)
         {
-            UnitType trained = UnitCatalog.Get(unitId);
+            UnitType trained = UnitFactory.Get(unitId);
             if (trained != null && trained.IsHero) return 1;
         }
         return type.Trains.Length > 0 ? 2 : 3;
@@ -908,7 +908,7 @@ public sealed partial class War3GameScene
     private void CollectUpgradeFamily(string id, HashSet<string> family)
     {
         if (string.IsNullOrEmpty(id) || !family.Add(id)) return;
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         if (type == null) return;
         foreach (string target in type.UpgradeTo) CollectUpgradeFamily(target, family);
     }
@@ -1256,7 +1256,7 @@ public sealed partial class War3GameScene
 
         foreach (string id in worker.Type.Builds)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null || type.FoodMade <= 0) continue;
             if (type.Trains.Length > 0) continue;
             if (CountBuildings(slot, id) >= 12) continue;
@@ -1273,7 +1273,7 @@ public sealed partial class War3GameScene
         {
             if (task.Kind != "build") continue;
             if (TaskDone(slot, task) >= task.Total) continue;
-            UnitType type = UnitCatalog.Get(task.Id);
+            UnitType type = UnitFactory.Get(task.Id);
             if (type == null || !RequirementsMet(slot, type.Requires)) continue;
             return BuildOne(slot, task.Id, hall);
         }
@@ -1302,7 +1302,7 @@ public sealed partial class War3GameScene
 
     private bool BuildOne(PlayerSlot slot, string buildingId, Unit hall)
     {
-        UnitType type = UnitCatalog.Get(buildingId);
+        UnitType type = UnitFactory.Get(buildingId);
         if (type == null) return false;
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost) return false;
         if (CountActiveSites(slot) >= 3) return false;
@@ -1349,7 +1349,7 @@ public sealed partial class War3GameScene
             foreach (string candidate in unit.Type.UpgradeTo)
             {
                 if (CountBuildings(slot, candidate) > 0) continue;
-                UnitType target = UnitCatalog.Get(candidate);
+                UnitType target = UnitFactory.Get(candidate);
                 if (target == null || !RequirementsMet(slot, target.Requires)) continue;
                 targetId = candidate;
                 break;
@@ -1397,7 +1397,7 @@ public sealed partial class War3GameScene
             if (task.Kind != "train") continue;
             if (TaskDone(slot, task) >= task.Total) continue;
 
-            UnitType type = UnitCatalog.Get(task.Id);
+            UnitType type = UnitFactory.Get(task.Id);
             if (type == null || !RequirementsMet(slot, type.Requires)) continue;
             if (FoodUsed(slot.Id) + type.FoodUsed > FoodCap(slot.Id)) continue;
             if (!HasProducer(slot.Id, task.Id)) continue;

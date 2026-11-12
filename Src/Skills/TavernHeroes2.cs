@@ -169,7 +169,7 @@ public sealed class Incinerate : Ability
     public float BonusDamage => Data('A');
     public float DamagePerSecond => Data('D');
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
 

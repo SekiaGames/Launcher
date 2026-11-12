@@ -8,7 +8,7 @@ namespace Launcher;
 /// 左侧英雄头像栏（客户端 HeroBarFrame）：竖排最多 7 个己方英雄，
 /// 图标下压血条蓝条；点一下选中该英雄，再点一次把镜头对过去。
 /// </summary>
-public sealed class HeroBarController
+public sealed class HeroBarFrame
 {
     private const int MaxSlots = 7;
     private const float SlotSize = 44f;
@@ -24,7 +24,7 @@ public sealed class HeroBarController
 
     public Action<Unit> HeroClicked;
 
-    public HeroBarController(Node parent)
+    public HeroBarFrame(Node parent)
     {
         var layer = new CanvasLayer { Name = "HeroBar", Layer = 2 };
         parent.AddChild(layer);

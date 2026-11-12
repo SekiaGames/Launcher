@@ -25,8 +25,8 @@ public static partial class CombatProbe
     private static void CheckBlizzard()
     {
         var type = AbilityCatalog.Get("AHbz");
-        UnitType mageType = UnitCatalog.Get("Hamg");
-        UnitType footType = UnitCatalog.Get("hfoo");
+        UnitType mageType = UnitFactory.Get("Hamg");
+        UnitType footType = UnitFactory.Get("hfoo");
         if (type == null || mageType == null || footType == null) return;
 
         var world = new World(null, null);
@@ -87,8 +87,8 @@ public static partial class CombatProbe
     private static void CheckDeathAndDecay()
     {
         var type = AbilityCatalog.Get("AUdd");
-        UnitType lichType = UnitCatalog.Get("Udea");
-        UnitType footType = UnitCatalog.Get("hfoo");
+        UnitType lichType = UnitFactory.Get("Udea");
+        UnitType footType = UnitFactory.Get("hfoo");
         if (type == null || lichType == null || footType == null) return;
 
         var world = new World(null, null);
@@ -119,8 +119,8 @@ public static partial class CombatProbe
     private static void CheckChainLightning()
     {
         var type = AbilityCatalog.Get("AOcl");
-        UnitType farType = UnitCatalog.Get("Ofar");
-        UnitType footType = UnitCatalog.Get("hfoo");
+        UnitType farType = UnitFactory.Get("Ofar");
+        UnitType footType = UnitFactory.Get("hfoo");
         if (type == null || farType == null || footType == null) return;
 
         var world = new World(null, null);
@@ -157,7 +157,7 @@ public static partial class CombatProbe
     private static void CheckBlink()
     {
         var type = AbilityCatalog.Get("AEbl");
-        UnitType wardenType = UnitCatalog.Get("Ewar") ?? UnitCatalog.Get("Ekee");
+        UnitType wardenType = UnitFactory.Get("Ewar") ?? UnitFactory.Get("Ekee");
         if (type == null || wardenType == null) return;
 
         var world = new World(null, null);
@@ -186,8 +186,8 @@ public static partial class CombatProbe
     private static void CheckSilence()
     {
         var silenceType = AbilityCatalog.Get("ANsi");
-        UnitType rangerType = UnitCatalog.Get("Nbrn") ?? UnitCatalog.Get("Hpal");
-        UnitType mageType = UnitCatalog.Get("Hamg");
+        UnitType rangerType = UnitFactory.Get("Nbrn") ?? UnitFactory.Get("Hpal");
+        UnitType mageType = UnitFactory.Get("Hamg");
         if (silenceType == null || rangerType == null || mageType == null) return;
 
         var world = new World(null, null);
@@ -223,8 +223,8 @@ public static partial class CombatProbe
     private static void CheckFrostArmor()
     {
         var type = AbilityCatalog.Get("AUfa");
-        UnitType lichType = UnitCatalog.Get("Udea");
-        UnitType footType = UnitCatalog.Get("hfoo");
+        UnitType lichType = UnitFactory.Get("Udea");
+        UnitType footType = UnitFactory.Get("hfoo");
         if (type == null || lichType == null || footType == null) return;
 
         var world = new World(null, null);
@@ -260,8 +260,8 @@ public static partial class CombatProbe
     private static void CheckEvasion()
     {
         var type = AbilityCatalog.Get("AEev");
-        UnitType demonType = UnitCatalog.Get("Edem") ?? UnitCatalog.Get("Edmm");
-        UnitType footType = UnitCatalog.Get("hfoo");
+        UnitType demonType = UnitFactory.Get("Edem") ?? UnitFactory.Get("Edmm");
+        UnitType footType = UnitFactory.Get("hfoo");
         if (type == null || demonType == null || footType == null) return;
 
         var world = new World(null, null);

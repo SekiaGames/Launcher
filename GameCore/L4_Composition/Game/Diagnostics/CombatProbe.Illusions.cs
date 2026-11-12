@@ -22,14 +22,14 @@ public static partial class CombatProbe
 
     private static void CheckMirrorImage()
     {
-        UnitType bladeType = UnitCatalog.Get("Obla");
+        UnitType bladeType = UnitFactory.Get("Obla");
         AbilityType mirrorType = AbilityCatalog.Get("AOmi");
         if (bladeType == null || mirrorType == null) return;
 
         var world = new World(null, null);
         world.SummonHandler = (caster, id, position) =>
         {
-            Unit created = MakeUnit(UnitCatalog.Get(id), caster.Player);
+            Unit created = MakeUnit(UnitFactory.Get(id), caster.Player);
             created.Position = position;
             return created;
         };
@@ -54,7 +54,7 @@ public static partial class CombatProbe
         Verify("幻象生命上限抄本体", blade.MaxHp, image.MaxHp, 0.5f);
 
         // 幻象死亡不给经验：旁边放一个敌方英雄盯经验
-        UnitType enemyType = UnitCatalog.Get("Nbrn");
+        UnitType enemyType = UnitFactory.Get("Nbrn");
         Unit watcher = null;
         if (enemyType != null)
         {
@@ -95,8 +95,8 @@ public static partial class CombatProbe
 
     private static void CheckWindWalk()
     {
-        UnitType bladeType = UnitCatalog.Get("Obla");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType bladeType = UnitFactory.Get("Obla");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType windType = AbilityCatalog.Get("AOwk");
         if (bladeType == null || footmanType == null || windType == null) return;
 
@@ -131,16 +131,16 @@ public static partial class CombatProbe
 
     private static void CheckBlackArrow()
     {
-        UnitType rangerType = UnitCatalog.Get("Nbrn");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType rangerType = UnitFactory.Get("Nbrn");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType arrowType = AbilityCatalog.Get("ANba");
         if (rangerType == null || footmanType == null || arrowType == null) return;
-        if (UnitCatalog.Get(arrowType.SummonAt(1)) == null) return;
+        if (UnitFactory.Get(arrowType.SummonAt(1)) == null) return;
 
         var world = new World(null, null);
         world.SummonHandler = (caster, id, position) =>
         {
-            Unit created = MakeUnit(UnitCatalog.Get(id), caster.Player);
+            Unit created = MakeUnit(UnitFactory.Get(id), caster.Player);
             created.Position = position;
             return created;
         };
@@ -184,8 +184,8 @@ public static partial class CombatProbe
 
     private static void CheckLifeDrain()
     {
-        UnitType rangerType = UnitCatalog.Get("Nbrn");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType rangerType = UnitFactory.Get("Nbrn");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType drainType = AbilityCatalog.Get("ANdr");
         if (rangerType == null || footmanType == null || drainType == null) return;
 

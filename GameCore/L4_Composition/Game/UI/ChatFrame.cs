@@ -8,7 +8,7 @@ namespace Launcher;
 /// 左下角消息区（客户端 ChatFrame 的精简版）：滚动的系统播报 + Enter 输入的一句聊天。
 /// 单机没有网络，聊天只写进本地日志，但输入/回车的交互与原版一致。
 /// </summary>
-public sealed class GameLogPanel
+public sealed class ChatFrame
 {
     private const int MaxLines = 7;
 
@@ -18,7 +18,7 @@ public sealed class GameLogPanel
 
     public bool InputActive => _input.Visible;
 
-    public GameLogPanel(Node parent)
+    public ChatFrame(Node parent)
     {
         var layer = new CanvasLayer { Name = "GameLog", Layer = 3 };
         parent.AddChild(layer);

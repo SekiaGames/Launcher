@@ -25,7 +25,7 @@ public static partial class CombatProbe
 
     private static void CheckFarSight()
     {
-        UnitType farSeerType = UnitCatalog.Get("Ofar");
+        UnitType farSeerType = UnitFactory.Get("Ofar");
         AbilityType sightType = AbilityCatalog.Get("AOfs");
         if (farSeerType == null || sightType == null) return;
 
@@ -55,9 +55,9 @@ public static partial class CombatProbe
 
     private static void CheckCharm()
     {
-        UnitType rangerType = UnitCatalog.Get("Nbrn");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType dragonType = UnitCatalog.Get("ufro");
+        UnitType rangerType = UnitFactory.Get("Nbrn");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType dragonType = UnitFactory.Get("ufro");
         AbilityType charmType = AbilityCatalog.Get("ANch");
         if (rangerType == null || footmanType == null || charmType == null) return;
 
@@ -75,7 +75,7 @@ public static partial class CombatProbe
         footman.Target = ranger;
         world.Units.Add(footman);
 
-        Unit hero = MakeHero(UnitCatalog.Get("Hpal"), 1, 3, world);
+        Unit hero = MakeHero(UnitFactory.Get("Hpal"), 1, 3, world);
         hero.Position = new Vector3(220f, 0f, 0f);
         world.Units.Add(hero);
 
@@ -100,8 +100,8 @@ public static partial class CombatProbe
 
     private static void CheckFingerOfDeath()
     {
-        UnitType archimondeType = UnitCatalog.Get("Uwar");
-        UnitType archerType = UnitCatalog.Get("earc");
+        UnitType archimondeType = UnitFactory.Get("Uwar");
+        UnitType archerType = UnitFactory.Get("earc");
         AbilityType fingerType = AbilityCatalog.Get("ANfd");
         if (archimondeType == null || archerType == null || fingerType == null) return;
 
@@ -126,8 +126,8 @@ public static partial class CombatProbe
 
     private static void CheckSoulPreservation()
     {
-        UnitType malganisType = UnitCatalog.Get("Umal");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType malganisType = UnitFactory.Get("Umal");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType soulType = AbilityCatalog.Get("ANsl");
         if (malganisType == null || footmanType == null || soulType == null) return;
 
@@ -157,14 +157,14 @@ public static partial class CombatProbe
 
     private static void CheckDarkConversion()
     {
-        UnitType malganisType = UnitCatalog.Get("Umal");
-        UnitType villagerType = UnitCatalog.Get("nvil");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType malganisType = UnitFactory.Get("Umal");
+        UnitType villagerType = UnitFactory.Get("nvil");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType convertType = AbilityCatalog.Get("ANdc");
         if (malganisType == null || villagerType == null || footmanType == null || convertType == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
 
         Unit malganis = MakeHero(malganisType, 0, 6, world);
         world.Units.Add(malganis);
@@ -204,7 +204,7 @@ public static partial class CombatProbe
     private static void CheckVampiricAttack()
     {
         ItemType mask = ItemCatalog.Get("modt");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         if (mask == null || footmanType == null) return;
 
         var world = new World(null, null);

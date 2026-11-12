@@ -76,7 +76,7 @@ public sealed class UnitPlacement
     public bool IsScriptRandomUnit => Id is "uDNR" or "bDNR";
 }
 
-public sealed class W3oUnits
+public sealed class War3MapUnits
 {
     public int Version { get; private set; }
     public int SubVersion { get; private set; }
@@ -114,12 +114,12 @@ public sealed class W3oUnits
         }
     }
 
-    public static W3oUnits Parse(byte[] data, Func<string, bool> classify)
+    public static War3MapUnits Parse(byte[] data, Func<string, bool> classify)
     {
         return Parse(data, classify, 0);
     }
 
-    public static W3oUnits Parse(byte[] data, Func<string, bool> classify, int gameVersion)
+    public static War3MapUnits Parse(byte[] data, Func<string, bool> classify, int gameVersion)
     {
         if (data == null || data.Length < 16 || Encoding.ASCII.GetString(data, 0, 4) != "W3do")
         {
@@ -127,7 +127,7 @@ public sealed class W3oUnits
         }
 
         var reader = new W3xBinaryReader(data, 4);
-        var result = new W3oUnits
+        var result = new War3MapUnits
         {
             RawBytes = data,
             Version = reader.I32(),

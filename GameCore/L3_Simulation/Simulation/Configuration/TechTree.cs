@@ -209,7 +209,7 @@ public static class TechTree
 
     private static void LoadUpgradeData()
     {
-        SlkTable table = War3Tables.Get("UnitsUpgradeData");
+        SlkTable table = War3SlkReader.Get("UnitsUpgradeData");
         if (table == null || table.Columns.Count == 0) return;
 
         foreach (int row in table.DataRows)

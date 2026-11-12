@@ -4,7 +4,7 @@ namespace Launcher;
 /// 一套武器的完整参数。对标客户端 Src/Core/Weapon.cs + Weapon.TypeFields.cs。
 /// UnitWeapons 里每个单位最多两套（*1 / *2），打不同目标类别时切换。
 /// </summary>
-public sealed class WeaponProfile
+public sealed class Weapon
 {
     public bool Enabled;
     public AttackType AttackType = AttackType.Normal;

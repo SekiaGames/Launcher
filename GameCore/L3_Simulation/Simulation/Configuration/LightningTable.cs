@@ -49,7 +49,7 @@ public static class LightningTable
         EnsureIndex();
         if (!Rows.TryGetValue(id, out int row)) return null;
 
-        SlkTable table = War3Tables.Get(TableName);
+        SlkTable table = War3SlkReader.Get(TableName);
         string file = table.Get(row, "file");
         string dir = table.Get(row, "Dir");
         string texture = PathResolve.IconPng((dir ?? "").Trim('\\', '/') + "/" + file);
@@ -88,7 +88,7 @@ public static class LightningTable
         if (_indexed) return;
         _indexed = true;
 
-        SlkTable table = War3Tables.Get(TableName);
+        SlkTable table = War3SlkReader.Get(TableName);
         foreach (int row in table.DataRows)
         {
             string name = (table.Get(row, "Name") ?? "").Trim();

@@ -34,7 +34,7 @@ public sealed class UnitTypeUpgrade : Ability
 
         if (world.ResearchLevel(Owner.Player, ResearchId) <= 0) return;
 
-        UnitType upgraded = UnitCatalog.Get(UpgradedTypeId);
+        UnitType upgraded = UnitFactory.Get(UpgradedTypeId);
         if (upgraded == null) return;
         world.ReplaceType(Owner, upgraded);
     }

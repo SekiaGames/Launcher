@@ -29,7 +29,7 @@ public sealed class DoodadPlacement
     public float UniformScale => (ScaleX + ScaleY + ScaleZ) / 3f;
 }
 
-public sealed class W3oDoodads
+public sealed class War3MapDoodads
 {
     public int Version { get; private set; }
     public int SubVersion { get; private set; }
@@ -40,14 +40,14 @@ public sealed class W3oDoodads
     public byte[] RawBytes { get; private set; }
     public readonly List<DoodadPlacement> Entries = new();
 
-    public static W3oDoodads Parse(byte[] data)
+    public static War3MapDoodads Parse(byte[] data)
     {
         if (data == null || data.Length < 16 || Encoding.ASCII.GetString(data, 0, 4) != "W3do")
         {
             throw new InvalidDataException("不是 war3map.doo");
         }
 
-        var result = new W3oDoodads
+        var result = new War3MapDoodads
         {
             RawBytes = data,
             Version = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(4)),

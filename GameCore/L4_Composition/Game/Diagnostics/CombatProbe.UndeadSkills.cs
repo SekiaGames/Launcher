@@ -12,9 +12,9 @@ public static partial class CombatProbe
     {
         GD.Print("==== 亡灵英雄技能自检 ====");
 
-        UnitType deathKnightType = UnitCatalog.Get("Udea");
-        UnitType ghoulType = UnitCatalog.Get("ugho");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType deathKnightType = UnitFactory.Get("Udea");
+        UnitType ghoulType = UnitFactory.Get("ugho");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         if (deathKnightType == null || ghoulType == null || footmanType == null) return;
 
         // —— 死亡缠绕：亡灵友军回血、活物敌人掉血，都要等弹道飞到 ——
@@ -63,7 +63,7 @@ public static partial class CombatProbe
 
         // —— 黑暗仪式：按最大生命的 33% 换法力 ——
         var ritualWorld = new World(null, null);
-        Unit lich = MakeHero(UnitCatalog.Get("Ulic") ?? deathKnightType, 0, 3, ritualWorld);
+        Unit lich = MakeHero(UnitFactory.Get("Ulic") ?? deathKnightType, 0, 3, ritualWorld);
         Unit fodder = MakeUnit(ghoulType, 0);
         fodder.Position = new Vector3(120f, 0f, 0f);
         ritualWorld.Units.Add(lich);
@@ -137,7 +137,7 @@ public static partial class CombatProbe
 
         // —— 霜冻新星：主目标 100、旁边 50、全体减速 ——
         var novaWorld = new World(null, null);
-        Unit novaCaster = MakeHero(UnitCatalog.Get("Ulic") ?? deathKnightType, 0, 3, novaWorld);
+        Unit novaCaster = MakeHero(UnitFactory.Get("Ulic") ?? deathKnightType, 0, 3, novaWorld);
         Unit primary = MakeUnit(ghoulType, 1);
         primary.Position = new Vector3(300f, 0f, 0f);
         Unit splashA = MakeUnit(ghoulType, 1);
@@ -163,7 +163,7 @@ public static partial class CombatProbe
 
         // —— 腐臭蜂群：直线上的吃伤害，偏出去的不吃 ——
         var swarmWorld = new World(null, null);
-        Unit dread = MakeHero(UnitCatalog.Get("Uear") ?? deathKnightType, 0, 3, swarmWorld);
+        Unit dread = MakeHero(UnitFactory.Get("Uear") ?? deathKnightType, 0, 3, swarmWorld);
         var onLine = new List<Unit>();
         for (int index = 0; index < 3; index++)
         {
@@ -195,7 +195,7 @@ public static partial class CombatProbe
 
         // —— 睡眠：睡着不能动，挨打就醒 ——
         var sleepWorld = new World(null, null);
-        Unit sleeperHero = MakeHero(UnitCatalog.Get("Uear") ?? deathKnightType, 0, 3, sleepWorld);
+        Unit sleeperHero = MakeHero(UnitFactory.Get("Uear") ?? deathKnightType, 0, 3, sleepWorld);
         Unit sleeper = MakeUnit(footmanType, 1);
         sleeper.Position = new Vector3(200f, 0f, 0f);
         sleepWorld.Units.Add(sleeperHero);
@@ -213,7 +213,7 @@ public static partial class CombatProbe
 
         // —— 吸血光环：普攻伤害的 15% 回血 ——
         var drainWorld = new World(null, null);
-        Unit vampSource = MakeHero(UnitCatalog.Get("Uear") ?? deathKnightType, 0, 3, drainWorld);
+        Unit vampSource = MakeHero(UnitFactory.Get("Uear") ?? deathKnightType, 0, 3, drainWorld);
         Unit vampAttacker = MakeUnit(footmanType, 0);
         vampAttacker.Position = new Vector3(150f, 0f, 0f);
         Unit vampVictim = MakeUnit(ghoulType, 1);
@@ -236,8 +236,8 @@ public static partial class CombatProbe
 
         // —— 地狱火：落点伤害 + 眩晕 + 召唤 ——
         var infernoWorld = new World(null, null);
-        infernoWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit dreadTwo = MakeHero(UnitCatalog.Get("Uear") ?? deathKnightType, 0, 6, infernoWorld);
+        infernoWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit dreadTwo = MakeHero(UnitFactory.Get("Uear") ?? deathKnightType, 0, 6, infernoWorld);
         Unit infernoVictim = MakeUnit(footmanType, 1);
         infernoVictim.Position = new Vector3(400f, 0f, 0f);
         infernoWorld.Units.Add(dreadTwo);
@@ -264,7 +264,7 @@ public static partial class CombatProbe
 
         // —— 穿刺：直线地面伤害 + 眩晕 ——
         var impaleWorld = new World(null, null);
-        Unit cryptLord = MakeHero(UnitCatalog.Get("Ucrl") ?? deathKnightType, 0, 3, impaleWorld);
+        Unit cryptLord = MakeHero(UnitFactory.Get("Ucrl") ?? deathKnightType, 0, 3, impaleWorld);
         var impaleVictims = new List<Unit>();
         for (int index = 0; index < 2; index++)
         {
@@ -288,7 +288,7 @@ public static partial class CombatProbe
 
         // —— 尖刺甲壳：+3 护甲，近战反伤 15% ——
         var carapaceWorld = new World(null, null);
-        Unit beetle = MakeHero(UnitCatalog.Get("Ucrl") ?? deathKnightType, 0, 3, carapaceWorld);
+        Unit beetle = MakeHero(UnitFactory.Get("Ucrl") ?? deathKnightType, 0, 3, carapaceWorld);
         Unit striker = MakeUnit(footmanType, 1);
         striker.Position = new Vector3(80f, 0f, 0f);
         carapaceWorld.Units.Add(beetle);
@@ -309,8 +309,8 @@ public static partial class CombatProbe
 
         // —— 腐尸甲虫：从尸体里召甲虫 ——
         var scarabWorld = new World(null, null);
-        scarabWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit scarabLord = MakeHero(UnitCatalog.Get("Ucrl") ?? deathKnightType, 0, 3, scarabWorld);
+        scarabWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit scarabLord = MakeHero(UnitFactory.Get("Ucrl") ?? deathKnightType, 0, 3, scarabWorld);
         Unit scarabCorpse = MakeUnit(footmanType, 1);
         scarabCorpse.Position = new Vector3(200f, 0f, 0f);
         scarabCorpse.Alive = false;

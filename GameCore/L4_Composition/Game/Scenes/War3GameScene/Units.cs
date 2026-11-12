@@ -54,7 +54,7 @@ public sealed partial class War3GameScene
                     if (unit.DropSets.Count > 0) lootCount++;
                     ApplyPlacementInventory(unit, entry);
                 }
-                else if (UnitCatalog.Get(entry.Id) == null) missingType++;
+                else if (UnitFactory.Get(entry.Id) == null) missingType++;
                 else missingScene++;
             }
         }
@@ -316,7 +316,7 @@ public sealed partial class War3GameScene
 
     private Unit Spawn(string id, int player, float worldX, float worldZ, float yaw, float hp, float entryScale, int gold = 0)
     {
-        UnitType type = UnitCatalog.Get(id);
+        UnitType type = UnitFactory.Get(id);
         if (type == null) return null;
 
         PackedScene scene = Assets.LoadScene(type.ModelPath);

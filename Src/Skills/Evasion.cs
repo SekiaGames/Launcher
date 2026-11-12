@@ -13,7 +13,7 @@ public sealed class Evasion : Ability
 
     public float Chance => Mathf.Clamp(Data('A'), 0f, 1f);
 
-    public override bool CanBeHitBy(World world, DamageInfo info)
+    public override bool CanBeHitBy(World world, DamageData info)
     {
         if (info == null) return true;
         if (!info.IsAttack) return true;

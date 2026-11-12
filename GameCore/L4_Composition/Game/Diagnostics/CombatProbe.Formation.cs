@@ -14,8 +14,8 @@ public static partial class CombatProbe
     {
         GD.Print("==== 编队阵型自检 ====");
 
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType rifleType = UnitCatalog.Get("hrif");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType rifleType = UnitFactory.Get("hrif");
         if (footmanType == null || rifleType == null) return;
 
         Verify("步兵 formation=0（近战前排）", 0f, footmanType.FormationRank, 0f);
@@ -61,10 +61,10 @@ public static partial class CombatProbe
     /// <summary>AI 战术：威胁分（英雄 > 后排 > 攻城 > 普通）与切入点选敌人少的一侧。</summary>
     private static void CheckAiTactics()
     {
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType rifleType = UnitCatalog.Get("hrif");
-        UnitType mortarType = UnitCatalog.Get("hmtm");
-        UnitType heroType = UnitCatalog.Get("Hpal");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType rifleType = UnitFactory.Get("hrif");
+        UnitType mortarType = UnitFactory.Get("hmtm");
+        UnitType heroType = UnitFactory.Get("Hpal");
         if (footmanType == null || rifleType == null || mortarType == null || heroType == null) return;
 
         Unit footman = MakeUnit(footmanType, 1);

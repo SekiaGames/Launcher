@@ -47,7 +47,7 @@ public sealed class TerrainTextureLoader
     private readonly Dictionary<string, Image> _images = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _paths = new(StringComparer.OrdinalIgnoreCase);
 
-    private static SlkTable Table => _slk ??= War3Tables.Terrain();
+    private static SlkTable Table => _slk ??= War3SlkReader.Terrain();
 
     public static string PathFor(string tileId)
     {

@@ -6,7 +6,7 @@ using WorldEdit.Core.Formats.Slk;
 
 namespace Launcher;
 
-public static class War3Tables
+public static class War3SlkReader
 {
     private const string Root = "res://extract/Tables/";
 

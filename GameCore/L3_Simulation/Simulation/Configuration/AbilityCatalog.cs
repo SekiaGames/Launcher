@@ -188,7 +188,7 @@ public static class AbilityCatalog
         if (_indexed) return;
         _indexed = true;
 
-        SlkTable table = War3Tables.Get(Table);
+        SlkTable table = War3SlkReader.Get(Table);
         if (table == null)
         {
             GD.Print("[ABILITY] 缺少 UnitsAbilityData，技能系统不可用");
@@ -218,7 +218,7 @@ public static class AbilityCatalog
         EnsureIndex();
         if (!Rows.TryGetValue(id, out int row)) return null;
 
-        SlkTable table = War3Tables.Get(Table);
+        SlkTable table = War3SlkReader.Get(Table);
         var type = new AbilityType
         {
             Id = id,

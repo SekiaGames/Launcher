@@ -25,9 +25,9 @@ public static partial class CombatProbe
         Verify("圣光术射程 800", 800f, holyType.RangeAt(1), 0.01f);
         Verify("圣光术治疗 200/600", 600f, holyType.DataAt(3, 'A'), 0.01f);
 
-        UnitType paladinType = UnitCatalog.Get("Hpal");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType orcType = UnitCatalog.Get("uaco");
+        UnitType paladinType = UnitFactory.Get("Hpal");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType orcType = UnitFactory.Get("uaco");
         if (paladinType == null || footmanType == null) return;
 
         // —— 治疗 ——
@@ -102,7 +102,7 @@ public static partial class CombatProbe
         if (clapType != null && orcType != null)
         {
             var world3 = new World(null, null);
-            Unit hero = MakeHero(UnitCatalog.Get("Hmkg") ?? paladinType, 0, 3, world3);
+            Unit hero = MakeHero(UnitFactory.Get("Hmkg") ?? paladinType, 0, 3, world3);
             var victims = new List<Unit>();
             for (int index = 0; index < 3; index++)
             {
@@ -200,7 +200,7 @@ public static partial class CombatProbe
         if (critType != null)
         {
             var world7 = new World(null, null);
-            Unit blademaster = MakeHero(UnitCatalog.Get("Obla") ?? paladinType, 0, 5, world7);
+            Unit blademaster = MakeHero(UnitFactory.Get("Obla") ?? paladinType, 0, 5, world7);
             world7.Units.Add(blademaster);
             Ability crit = blademaster.GiveAbility("AOcr", 1);
             crit.Level = 1;
@@ -224,7 +224,7 @@ public static partial class CombatProbe
         if (bashType != null)
         {
             var world8 = new World(null, null);
-            Unit mountain = MakeHero(UnitCatalog.Get("Hmkg") ?? paladinType, 0, 5, world8);
+            Unit mountain = MakeHero(UnitFactory.Get("Hmkg") ?? paladinType, 0, 5, world8);
             Unit victim = MakeUnit(footmanType, 1);
             world8.Units.Add(mountain);
             world8.Units.Add(victim);
@@ -246,7 +246,7 @@ public static partial class CombatProbe
 
         // —— AI 自动施法：牧师自己给伤兵治疗 ——
         AbilityType healType = AbilityCatalog.Get("Ahea");
-        UnitType priestType = UnitCatalog.Get("hmpr");
+        UnitType priestType = UnitFactory.Get("hmpr");
         if (healType != null && priestType != null)
         {
             var world9 = new World(null, null);
@@ -272,8 +272,8 @@ public static partial class CombatProbe
 
         // —— 召唤：水元素 ——
         AbilityType summonType = AbilityCatalog.Get("AHwe");
-        UnitType archmageType = UnitCatalog.Get("Hamg");
-        if (summonType != null && archmageType != null && UnitCatalog.Get("hwat") != null)
+        UnitType archmageType = UnitFactory.Get("Hamg");
+        if (summonType != null && archmageType != null && UnitFactory.Get("hwat") != null)
         {
             var world10 = new World(null, null);
             Unit mage = MakeHero(archmageType, 0, 6, world10);
@@ -285,7 +285,7 @@ public static partial class CombatProbe
 
             world10.SummonHandler = (caster, id, position) =>
             {
-                UnitType created = UnitCatalog.Get(id);
+                UnitType created = UnitFactory.Get(id);
                 if (created == null) return null;
                 return new Unit
                 {
@@ -425,7 +425,7 @@ public static partial class CombatProbe
 
         // —— 尸体利用：食尸鬼吞尸、亡灵巫师复活死尸 ——
         AbilityType cannibalizeType = AbilityCatalog.Get("Acan");
-        UnitType ghoulType = UnitCatalog.Get("ugho");
+        UnitType ghoulType = UnitFactory.Get("ugho");
         if (cannibalizeType != null && ghoulType != null)
         {
             var world15 = new World(null, null);
@@ -451,7 +451,7 @@ public static partial class CombatProbe
         }
 
         AbilityType raiseType = AbilityCatalog.Get("Arai");
-        UnitType necroType = UnitCatalog.Get("unec");
+        UnitType necroType = UnitFactory.Get("unec");
         if (raiseType != null && necroType != null)
         {
             var world16 = new World(null, null);
@@ -472,7 +472,7 @@ public static partial class CombatProbe
 
             world16.SummonHandler = (caster, id, position) =>
             {
-                UnitType type = UnitCatalog.Get(id);
+                UnitType type = UnitFactory.Get(id);
                 if (type == null) return null;
                 return new Unit
                 {
@@ -505,8 +505,8 @@ public static partial class CombatProbe
     /// <summary>商店库存/补货/卖出，以及英雄之间的物品转交。</summary>
     private static void CheckShopAndTrade()
     {
-        UnitType shopType = UnitCatalog.Get("ngme");
-        UnitType paladinType = UnitCatalog.Get("Hpal");
+        UnitType shopType = UnitFactory.Get("ngme");
+        UnitType paladinType = UnitFactory.Get("Hpal");
         if (shopType == null || paladinType == null) return;
 
         var world = new World(null, null);
@@ -587,7 +587,7 @@ public static partial class CombatProbe
     /// <summary>物品属性加成：三围 + 攻击 + 护甲，并立刻反映到英雄派生值。</summary>
     private static void CheckItemBonus()
     {
-        UnitType paladinType = UnitCatalog.Get("Hpal");
+        UnitType paladinType = UnitFactory.Get("Hpal");
         ItemType crown = ItemCatalog.Get("ckng");
         ItemType ring = ItemCatalog.Get("rde1");
         if (paladinType == null || crown == null) return;

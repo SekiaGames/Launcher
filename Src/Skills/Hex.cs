@@ -27,7 +27,7 @@ public sealed class Hex : Ability
         if (world == null || target == null || !target.Alive) return false;
 
         string critterId = PickCritter(world);
-        UnitType critter = UnitCatalog.Get(critterId);
+        UnitType critter = UnitFactory.Get(critterId);
         if (critter == null) return false;
 
         return world.BeginMorph(target, critter, Duration, disable: true);

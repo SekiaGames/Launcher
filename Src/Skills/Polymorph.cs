@@ -24,7 +24,7 @@ public sealed class Polymorph : Ability
     {
         if (world == null || target == null || !target.Alive) return false;
 
-        UnitType sheep = UnitCatalog.Get(Type.DataTextAt(Level, 'B'));
+        UnitType sheep = UnitFactory.Get(Type.DataTextAt(Level, 'B'));
         if (sheep == null) return false;
 
         return world.BeginMorph(target, sheep, Duration, disable: true);

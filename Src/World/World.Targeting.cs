@@ -159,7 +159,7 @@ public sealed partial class World
     }
 
     /// <summary>攻击间隔：按实际使用的那套武器算，英雄再吃 AgiAttackSpeedBonus 提速。</summary>
-    public static float AttackCooldownOf(Unit unit, WeaponProfile weapon = null)
+    public static float AttackCooldownOf(Unit unit, Weapon weapon = null)
     {
         float cooldown = (weapon ?? unit.Type.Weapon).Cooldown;
         if (unit.IsHero) cooldown /= 1f + unit.Agility * HeroRules.AgiAttackSpeedBonus;

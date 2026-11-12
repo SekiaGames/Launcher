@@ -59,7 +59,7 @@ public sealed partial class World
     /// </summary>
     private bool UseItemAbility(Unit unit, ItemUsePlan plan, Unit target, Vector3 point)
     {
-        Ability ability = SkillRegistry.Create(plan.Type);
+        Ability ability = RuntimeAbilityFactory.Create(plan.Type);
         if (ability == null || ability is PassiveAbility) return false;
 
         ability.Owner = unit;

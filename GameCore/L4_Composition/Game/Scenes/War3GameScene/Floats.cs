@@ -28,7 +28,7 @@ public sealed partial class War3GameScene
     private static readonly Color ManaBurnColor = new(0.32f, 0.32f, 1f);
     private static readonly Color MissColor = new(0.82f, 0.82f, 0.82f, 0.95f);
 
-    private void OnDamageApplied(DamageInfo info)
+    private void OnDamageApplied(DamageData info)
     {
         if (info?.Target == null || info.Amount < 1f || info.Reflected) return;
         if (!IsAudible(info.Target.Position)) return;

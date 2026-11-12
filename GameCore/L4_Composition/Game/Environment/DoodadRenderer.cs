@@ -7,7 +7,7 @@ namespace Launcher;
 
 public sealed partial class MapWorldBuilder
 {
-    private void BuildDoodads(W3eTerrain terrain, W3oDoodads doodads)
+    private void BuildDoodads(W3eTerrain terrain, War3MapDoodads doodads)
     {
         Node3D node3D = new Node3D
         {

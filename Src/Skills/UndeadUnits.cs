@@ -46,7 +46,7 @@ public sealed class OrbOfAnnihilation : Ability
 
     public override float ModifyOutgoingAttack(World world, Unit target, float raw) => raw + BonusDamage;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null) return;
         if (SplashRatio <= 0f) return;
@@ -132,7 +132,7 @@ public sealed class FrostBreath : Ability
     public float MoveSlowPct => 0.5f;
     public float AttackSlowPct => 0.25f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
 

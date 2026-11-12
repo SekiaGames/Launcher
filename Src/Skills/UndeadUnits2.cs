@@ -55,7 +55,7 @@ public sealed class AntiMagicShieldBuff : Buff
 
     public override bool IsHarmful => false;
 
-    public override void ModifyIncomingDamage(World world, DamageInfo info)
+    public override void ModifyIncomingDamage(World world, DamageData info)
     {
         if (info == null || info.Amount <= 0f || Absorb <= 0f) return;
         if (info.DamageType != DamageType.Magic) return;
@@ -197,7 +197,7 @@ public sealed class TwoWayForm : Ability
         if (world == null || Owner?.Type == null || !Owner.Alive) return false;
 
         bool inA = string.Equals(Owner.Type.Id, FormAId, System.StringComparison.OrdinalIgnoreCase);
-        UnitType form = UnitCatalog.Get(inA ? FormBId : FormAId);
+        UnitType form = UnitFactory.Get(inA ? FormBId : FormAId);
         return form != null && world.BeginMorph(Owner, form, 0f, disable: false);
     }
 

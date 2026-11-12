@@ -27,8 +27,8 @@ public static partial class CombatProbe
 
     private static void CheckBanish()
     {
-        UnitType mageType = UnitCatalog.Get("Hblm");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType mageType = UnitFactory.Get("Hblm");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType banishType = AbilityCatalog.Get("AHbn");
         if (mageType == null || footmanType == null || banishType == null) return;
 
@@ -55,8 +55,8 @@ public static partial class CombatProbe
 
     private static void CheckFlameStrike()
     {
-        UnitType mageType = UnitCatalog.Get("Hblm");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType mageType = UnitFactory.Get("Hblm");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType strikeType = AbilityCatalog.Get("AHfs");
         if (mageType == null || footmanType == null || strikeType == null) return;
 
@@ -86,8 +86,8 @@ public static partial class CombatProbe
 
     private static void CheckSiphonMana()
     {
-        UnitType mageType = UnitCatalog.Get("Hblm");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType mageType = UnitFactory.Get("Hblm");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType drainType = AbilityCatalog.Get("AHdr");
         if (mageType == null || footmanType == null || drainType == null) return;
 
@@ -119,13 +119,13 @@ public static partial class CombatProbe
 
     private static void CheckPhoenix()
     {
-        UnitType mageType = UnitCatalog.Get("Hblm");
-        UnitType phoenixType = UnitCatalog.Get("hphx");
-        UnitType eggType = UnitCatalog.Get("hpxe");
+        UnitType mageType = UnitFactory.Get("Hblm");
+        UnitType phoenixType = UnitFactory.Get("hphx");
+        UnitType eggType = UnitFactory.Get("hpxe");
         if (mageType == null || phoenixType == null || eggType == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
         Unit mage = MakeHero(mageType, 0, 6, world);
         world.Units.Add(mage);
 
@@ -156,13 +156,13 @@ public static partial class CombatProbe
 
     private static void CheckLocustSwarm()
     {
-        UnitType lordType = UnitCatalog.Get("Ucrl");
+        UnitType lordType = UnitFactory.Get("Ucrl");
         AbilityType swarmType = AbilityCatalog.Get("AUls");
         if (lordType == null || swarmType == null) return;
-        if (UnitCatalog.Get("uloc") == null) return;
+        if (UnitFactory.Get("uloc") == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
         Unit lord = MakeHero(lordType, 0, 6, world);
         world.Units.Add(lord);
 
@@ -190,7 +190,7 @@ public static partial class CombatProbe
             lord.Hp = lord.MaxHp * 0.5f;
             float before = lord.Hp;
             LocustAgent agent = (LocustAgent)agentUnit.Abilities.Find(ability => ability is LocustAgent);
-            var hit = new DamageInfo { Source = agentUnit, Target = lord, Amount = 50f, Raw = 50f };
+            var hit = new DamageData { Source = agentUnit, Target = lord, Amount = 50f, Raw = 50f };
             agent.OnAttackLanded(world, hit);
             world.KillUnit(agentUnit, null);
             Verify("蝗群代理回血=伤害×DataD", 50f * swarmType.DataAt(1, 'D'), lord.Hp - before, 0.5f);
@@ -200,9 +200,9 @@ public static partial class CombatProbe
 
     private static void CheckEarthquake()
     {
-        UnitType seerType = UnitCatalog.Get("Ofar");
-        UnitType towerType = UnitCatalog.Get("hwtw");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType seerType = UnitFactory.Get("Ofar");
+        UnitType towerType = UnitFactory.Get("hwtw");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType quakeType = AbilityCatalog.Get("AOeq");
         if (seerType == null || towerType == null || footmanType == null || quakeType == null) return;
 
@@ -234,9 +234,9 @@ public static partial class CombatProbe
 
     private static void CheckSearingArrows()
     {
-        UnitType priestessType = UnitCatalog.Get("Etyr");
+        UnitType priestessType = UnitFactory.Get("Etyr");
         AbilityType arrowType = AbilityCatalog.Get("AHfa");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         if (priestessType == null || arrowType == null || footmanType == null) return;
 
         var world = new World(null, null);
@@ -273,6 +273,6 @@ public static partial class CombatProbe
 
     private static void CheckFrostArmorAutocast()
     {
-        Verify("霜冻护甲自动施法码 AUfu 已实现", 1f, SkillRegistry.IsImplemented("AUfu") ? 1f : 0f, 0f);
+        Verify("霜冻护甲自动施法码 AUfu 已实现", 1f, RuntimeAbilityFactory.IsImplemented("AUfu") ? 1f : 0f, 0f);
     }
 }

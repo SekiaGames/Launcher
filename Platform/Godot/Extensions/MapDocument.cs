@@ -24,13 +24,13 @@ public sealed class MapDocument
     public W3eTerrain Terrain { get; private set; }
     public W3iInfo Info { get; private set; }
 
-    public W3oUnits Units { get; private set; }
+    public War3MapUnits Units { get; private set; }
 
-    public W3oDoodads Doodads { get; private set; }
+    public War3MapDoodads Doodads { get; private set; }
 
     public W3mPathing Pathing { get; private set; }
 
-    public Dictionary<string, W3xObjectData> ObjectData { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, War3ObjectData> ObjectData { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public W3xImports Imports { get; private set; }
 
@@ -177,7 +177,7 @@ public sealed class MapDocument
         {
             try
             {
-                Units = W3oUnits.Parse(unitData, IsItemId, Info.GameVersionNumber);
+                Units = War3MapUnits.Parse(unitData, IsItemId, Info.GameVersionNumber);
             }
             catch (Exception exception)
             {
@@ -190,7 +190,7 @@ public sealed class MapDocument
         {
             try
             {
-                Doodads = W3oDoodads.Parse(doodadData);
+                Doodads = War3MapDoodads.Parse(doodadData);
             }
             catch (Exception exception)
             {
@@ -221,7 +221,7 @@ public sealed class MapDocument
 
     private void LoadObjectData()
     {
-        foreach (string fileName in W3xObjectData.AllFiles)
+        foreach (string fileName in War3ObjectData.AllFiles)
         {
             byte[] data = Find(fileName);
             if (data == null)
@@ -230,7 +230,7 @@ public sealed class MapDocument
             }
             try
             {
-                ObjectData[fileName] = W3xObjectData.Parse(data, fileName);
+                ObjectData[fileName] = War3ObjectData.Parse(data, fileName);
             }
             catch (Exception exception)
             {
@@ -258,8 +258,8 @@ public sealed class MapDocument
 
     private bool IsItemId(string id)
     {
-        var items = Launcher.War3Tables.ItemData();
-        var units = Launcher.War3Tables.UnitData();
+        var items = Launcher.War3SlkReader.ItemData();
+        var units = Launcher.War3SlkReader.UnitData();
         if (items.FindRow("itemID", id) >= 0 && units.FindRow("unitID", id) < 0)
         {
             return true;
@@ -273,7 +273,7 @@ public sealed class MapDocument
 
     private string ResolveObjectBaseId(string id)
     {
-        if (ObjectData.TryGetValue(W3xObjectData.ItemFile, out W3xObjectData itemData))
+        if (ObjectData.TryGetValue(War3ObjectData.ItemFile, out War3ObjectData itemData))
         {
             string baseId = itemData.ResolveBaseId(id);
             if (!string.Equals(baseId, id, StringComparison.Ordinal))
@@ -281,7 +281,7 @@ public sealed class MapDocument
                 return baseId;
             }
         }
-        if (ObjectData.TryGetValue(W3xObjectData.UnitFile, out W3xObjectData unitData))
+        if (ObjectData.TryGetValue(War3ObjectData.UnitFile, out War3ObjectData unitData))
         {
             return unitData.ResolveBaseId(id);
         }

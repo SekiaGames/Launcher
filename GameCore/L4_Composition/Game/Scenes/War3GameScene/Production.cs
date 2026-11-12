@@ -29,7 +29,7 @@ public sealed partial class War3GameScene
 
     private Unit PlaceBuildingAt(PlayerSlot slot, string buildingId, Vector3 ground, bool report)
     {
-        UnitType type = UnitCatalog.Get(buildingId);
+        UnitType type = UnitFactory.Get(buildingId);
         if (type == null) { _placingId = null; ClearPlacementPreview(); return null; }
 
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
@@ -241,7 +241,7 @@ public sealed partial class War3GameScene
         if (Slot(building.Player) == null) return false;
 
         PlayerSlot slot = Slot(building.Player);
-        UnitType type = UnitCatalog.Get(unitId);
+        UnitType type = UnitFactory.Get(unitId);
         if (type == null) return false;
 
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
@@ -321,7 +321,7 @@ public sealed partial class War3GameScene
         if (Slot(building.Player) == null) return false;
 
         PlayerSlot slot = Slot(building.Player);
-        UnitType target = UnitCatalog.Get(targetId);
+        UnitType target = UnitFactory.Get(targetId);
         if (target == null) return false;
         if (slot.Gold < target.GoldCost || slot.Lumber < target.LumberCost) return false;
         if (!RequirementsMet(slot, target.Requires)) return false;
@@ -499,7 +499,7 @@ public sealed partial class War3GameScene
         PlayerSlot slot = Slot(buyerPlayer);
         if (slot == null) return false;
 
-        UnitType type = UnitCatalog.Get(unitId);
+        UnitType type = UnitFactory.Get(unitId);
         if (type == null) return false;
 
         float range = ShopPurchaseRange(shop);
@@ -681,13 +681,13 @@ public sealed partial class War3GameScene
             string[] alternatives = TechTree.DependencyOr(id);
             if (alternatives.Length == 0)
             {
-                UnitType type = UnitCatalog.Get(id);
+                UnitType type = UnitFactory.Get(id);
                 return type != null ? type.Name : id;
             }
             var names = new List<string>();
             foreach (string alternative in alternatives)
             {
-                UnitType type = UnitCatalog.Get(alternative);
+                UnitType type = UnitFactory.Get(alternative);
                 names.Add(type != null ? type.Name : alternative);
             }
             return string.Join(" 或 ", names);
@@ -770,7 +770,7 @@ public sealed partial class War3GameScene
 
     private void SpawnTrainedUnit(BuildingOrder order)
     {
-        UnitType type = UnitCatalog.Get(order.Id);
+        UnitType type = UnitFactory.Get(order.Id);
         if (type == null) return;
 
         Vector3 spot = ResolveTrainedSpot(order.Building, type, out float yaw);
@@ -908,7 +908,7 @@ public sealed partial class War3GameScene
             case OrderKind.Train:
             case OrderKind.Upgrade:
             {
-                UnitType type = UnitCatalog.Get(order.Id);
+                UnitType type = UnitFactory.Get(order.Id);
                 if (type == null) return;
                 slot.Gold += type.GoldCost;
                 slot.Lumber += type.LumberCost;
@@ -930,9 +930,9 @@ public sealed partial class War3GameScene
     {
         return order.Kind switch
         {
-            OrderKind.Train => $"训练 {UnitCatalog.Get(order.Id)?.Name}",
+            OrderKind.Train => $"训练 {UnitFactory.Get(order.Id)?.Name}",
             OrderKind.Research => $"研究 {TechTree.Upgrade(order.Id)?.NameFor(order.Level)}",
-            _ => $"升级 {UnitCatalog.Get(order.Id)?.Name}",
+            _ => $"升级 {UnitFactory.Get(order.Id)?.Name}",
         };
     }
 
@@ -943,7 +943,7 @@ public sealed partial class War3GameScene
             BuildingOrder order = _orders[index];
             if (!ReferenceEquals(order.Building, building) || order.Kind != OrderKind.Train) continue;
 
-            UnitType type = UnitCatalog.Get(order.Id);
+            UnitType type = UnitFactory.Get(order.Id);
             if (type != null && Slot(order.Player) != null)
             {
                 Slot(order.Player).Gold += type.GoldCost;

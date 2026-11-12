@@ -40,7 +40,7 @@ public static partial class CombatProbe
 
     private static Unit ProbeUnit(World world, string typeId, int player, Vector3 position, params string[] abilities)
     {
-        UnitType type = UnitCatalog.Get(typeId);
+        UnitType type = UnitFactory.Get(typeId);
         if (type == null) return null;
 
         Unit unit = MakeUnit(type, player);
@@ -55,8 +55,8 @@ public static partial class CombatProbe
 
     private static void CheckSlowUnit()
     {
-        UnitType sorceressType = UnitCatalog.Get("hsor");
-        UnitType footmanType = UnitCatalog.Get("hfoo");
+        UnitType sorceressType = UnitFactory.Get("hsor");
+        UnitType footmanType = UnitFactory.Get("hfoo");
         AbilityType slowType = AbilityCatalog.Get("Aslo");
         if (sorceressType == null || footmanType == null || slowType == null) return;
 
@@ -76,7 +76,7 @@ public static partial class CombatProbe
 
     private static void CheckInvisibility()
     {
-        UnitType sorceressType = UnitCatalog.Get("hsor");
+        UnitType sorceressType = UnitFactory.Get("hsor");
         if (sorceressType == null) return;
 
         var world = new World(null, null);
@@ -94,8 +94,8 @@ public static partial class CombatProbe
 
     private static void CheckFeedback()
     {
-        UnitType breakerType = UnitCatalog.Get("hspt");
-        UnitType priestType = UnitCatalog.Get("hmpr");
+        UnitType breakerType = UnitFactory.Get("hspt");
+        UnitType priestType = UnitFactory.Get("hmpr");
         if (breakerType == null || priestType == null) return;
 
         var world = new World(null, null);
@@ -114,7 +114,7 @@ public static partial class CombatProbe
 
     private static void CheckAbolishMagic()
     {
-        UnitType dryadType = UnitCatalog.Get("edry");
+        UnitType dryadType = UnitFactory.Get("edry");
         AbilityType abolishType = AbilityCatalog.Get("Aadm");
         if (dryadType == null || abolishType == null) return;
 
@@ -138,7 +138,7 @@ public static partial class CombatProbe
 
     private static void CheckPurge()
     {
-        UnitType shamanType = UnitCatalog.Get("oshm");
+        UnitType shamanType = UnitFactory.Get("oshm");
         AbilityType purgeType = AbilityCatalog.Get("Apg2");
         if (shamanType == null || purgeType == null) return;
 
@@ -177,7 +177,7 @@ public static partial class CombatProbe
     private static void CheckAntiMagicShell()
     {
         AbilityType shellType = AbilityCatalog.Get("Aams");
-        if (shellType == null || UnitCatalog.Get("uban") == null) return;
+        if (shellType == null || UnitFactory.Get("uban") == null) return;
 
         var world = new World(null, null);
         Unit banshee = ProbeUnit(world, "uban", 0, Vector3.Zero, "Aams");
@@ -205,7 +205,7 @@ public static partial class CombatProbe
     private static void CheckPossession()
     {
         AbilityType possessionType = AbilityCatalog.Get("Apos");
-        if (possessionType == null || UnitCatalog.Get("uban") == null) return;
+        if (possessionType == null || UnitFactory.Get("uban") == null) return;
 
         var world = new World(null, null);
         Unit banshee = ProbeUnit(world, "uban", 0, Vector3.Zero, "Apos");
@@ -228,13 +228,13 @@ public static partial class CombatProbe
 
     private static void CheckHardenedSkin()
     {
-        UnitType giantType = UnitCatalog.Get("emtg");
+        UnitType giantType = UnitFactory.Get("emtg");
         if (giantType == null) return;
 
         var world = new World(null, null);
         Unit giant = ProbeUnit(world, "emtg", 0, Vector3.Zero, "Assk");
 
-        var info = new DamageInfo
+        var info = new DamageData
         {
             Source = ProbeUnit(world, "hfoo", 1, new Vector3(100f, 0f, 0f)),
             Target = giant,
@@ -254,13 +254,13 @@ public static partial class CombatProbe
 
     private static void CheckElunesGrace()
     {
-        UnitType archerType = UnitCatalog.Get("earc");
+        UnitType archerType = UnitFactory.Get("earc");
         if (archerType == null) return;
 
         var world = new World(null, null);
         Unit archer = ProbeUnit(world, "earc", 0, Vector3.Zero, "Aegr");
 
-        var info = new DamageInfo
+        var info = new DamageData
         {
             Source = ProbeUnit(world, "hfoo", 1, new Vector3(100f, 0f, 0f)),
             Target = archer,
@@ -282,8 +282,8 @@ public static partial class CombatProbe
 
     private static void CheckWeb()
     {
-        UnitType fiendType = UnitCatalog.Get("ucry");
-        UnitType copterType = UnitCatalog.Get("hgyr");
+        UnitType fiendType = UnitFactory.Get("ucry");
+        UnitType copterType = UnitFactory.Get("hgyr");
         if (fiendType == null || copterType == null) return;
 
         var world = new World(null, null);
@@ -298,7 +298,7 @@ public static partial class CombatProbe
 
     private static void CheckCyclone()
     {
-        UnitType druidType = UnitCatalog.Get("edot");
+        UnitType druidType = UnitFactory.Get("edot");
         AbilityType cycloneType = AbilityCatalog.Get("Acyc");
         if (druidType == null || cycloneType == null) return;
 
@@ -316,7 +316,7 @@ public static partial class CombatProbe
 
     private static void CheckFaerieFire()
     {
-        UnitType druidType = UnitCatalog.Get("edot");
+        UnitType druidType = UnitFactory.Get("edot");
         AbilityType fireType = AbilityCatalog.Get("Afae");
         if (druidType == null || fireType == null) return;
 
@@ -333,7 +333,7 @@ public static partial class CombatProbe
 
     private static void CheckBloodlust()
     {
-        UnitType shamanType = UnitCatalog.Get("oshm");
+        UnitType shamanType = UnitFactory.Get("oshm");
         AbilityType lustType = AbilityCatalog.Get("Ablo");
         if (shamanType == null || lustType == null) return;
 
@@ -351,7 +351,7 @@ public static partial class CombatProbe
 
     private static void CheckRoar()
     {
-        UnitType bearType = UnitCatalog.Get("edoc");
+        UnitType bearType = UnitFactory.Get("edoc");
         AbilityType roarType = AbilityCatalog.Get("Ara2");
         if (bearType == null || roarType == null) return;
 
@@ -367,7 +367,7 @@ public static partial class CombatProbe
 
     private static void CheckReplenish()
     {
-        UnitType statueType = UnitCatalog.Get("uobs");
+        UnitType statueType = UnitFactory.Get("uobs");
         AbilityType replenishType = AbilityCatalog.Get("Arpl");
         if (statueType == null || replenishType == null) return;
 
@@ -385,7 +385,7 @@ public static partial class CombatProbe
 
     private static void CheckPlagueAura()
     {
-        UnitType wardType = UnitCatalog.Get("uplg");
+        UnitType wardType = UnitFactory.Get("uplg");
         AbilityType plagueType = AbilityCatalog.Get("Aap2");
         if (wardType == null || plagueType == null) return;
 
@@ -402,7 +402,7 @@ public static partial class CombatProbe
 
     private static void CheckOrbOfAnnihilation()
     {
-        UnitType destroyerType = UnitCatalog.Get("ubsp");
+        UnitType destroyerType = UnitFactory.Get("ubsp");
         AbilityType orbType = AbilityCatalog.Get("Afak");
         if (destroyerType == null || orbType == null) return;
 
@@ -416,7 +416,7 @@ public static partial class CombatProbe
 
     private static void CheckAbsorbMana()
     {
-        UnitType destroyerType = UnitCatalog.Get("ubsp");
+        UnitType destroyerType = UnitFactory.Get("ubsp");
         if (destroyerType == null) return;
 
         var world = new World(null, null);
@@ -435,7 +435,7 @@ public static partial class CombatProbe
 
     private static void CheckMoonGlaive()
     {
-        UnitType huntressType = UnitCatalog.Get("esen");
+        UnitType huntressType = UnitFactory.Get("esen");
         if (huntressType == null) return;
 
         var world = new World(null, null);
@@ -443,7 +443,7 @@ public static partial class CombatProbe
         Unit first = ProbeUnit(world, "hfoo", 1, new Vector3(100f, 0f, 0f));
         Unit second = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
 
-        var info = new DamageInfo { Source = huntress, Target = first, Amount = 40f, IsAttack = true };
+        var info = new DamageData { Source = huntress, Target = first, Amount = 40f, IsAttack = true };
         huntress.FindAbility("Amgl").OnAttackLanded(world, info);
 
         float expected = War3GameplayConfig.Resolve(info.Amount * 0.5f, AttackType.Pierce, second.Type.DefenseType,
@@ -454,8 +454,8 @@ public static partial class CombatProbe
 
     private static void CheckPillage()
     {
-        UnitType gruntType = UnitCatalog.Get("ogru");
-        UnitType buildingType = UnitCatalog.Get("hbla");
+        UnitType gruntType = UnitFactory.Get("ogru");
+        UnitType buildingType = UnitFactory.Get("hbla");
         if (gruntType == null || buildingType == null) return;
 
         var world = new World(null, null);
@@ -465,7 +465,7 @@ public static partial class CombatProbe
         int gold = 0;
         world.BountyAwarded += (player, amount, victim) => gold += amount;
 
-        var info = new DamageInfo { Source = grunt, Target = building, Amount = 40f, IsAttack = true };
+        var info = new DamageData { Source = grunt, Target = building, Amount = 40f, IsAttack = true };
         grunt.FindAbility("Asal").OnAttackLanded(world, info);
         Verify("掠夺拆建筑得金", 1f, gold > 0 ? 1f : 0f, 0f);
 
@@ -477,7 +477,7 @@ public static partial class CombatProbe
 
     private static void CheckWarDrums()
     {
-        UnitType kodoType = UnitCatalog.Get("okod");
+        UnitType kodoType = UnitFactory.Get("okod");
         AbilityType drumsType = AbilityCatalog.Get("Aakb");
         if (kodoType == null || drumsType == null) return;
 
@@ -491,7 +491,7 @@ public static partial class CombatProbe
 
     private static void CheckDetection()
     {
-        UnitType shadeType = UnitCatalog.Get("ushd");
+        UnitType shadeType = UnitFactory.Get("ushd");
         if (shadeType == null) return;
 
         var world = new World(null, null);
@@ -507,7 +507,7 @@ public static partial class CombatProbe
 
     private static void CheckSentinel()
     {
-        UnitType huntressType = UnitCatalog.Get("esen");
+        UnitType huntressType = UnitFactory.Get("esen");
         if (huntressType == null) return;
 
         var world = new World(null, null);
@@ -540,7 +540,7 @@ public static partial class CombatProbe
         {
             AbilityType type = AbilityCatalog.Get(code);
             if (type == null) continue;
-            Ability ability = SkillRegistry.Create(type);
+            Ability ability = RuntimeAbilityFactory.Create(type);
             if (ability != null && expected.IsInstanceOfType(ability)) matched++;
         }
         Verify("英雄别名全部映射到位", aliases.Length, matched, 0f);

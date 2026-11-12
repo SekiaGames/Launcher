@@ -261,13 +261,13 @@ public abstract class Ability
     public virtual float ModifyOutgoingAttack(World world, Unit target, float raw) => raw;
 
     /// <summary>受击钩子：闪避这类被动返回 false 把伤害取消掉。</summary>
-    public virtual bool CanBeHitBy(World world, DamageInfo info) => true;
+    public virtual bool CanBeHitBy(World world, DamageData info) => true;
 
     /// <summary>受到伤害修正（护甲与类型矩阵之前）：硬化皮肤、艾露恩恩泽这类在这里改数值。</summary>
-    public virtual void ModifyIncomingDamage(World world, DamageInfo info) { }
+    public virtual void ModifyIncomingDamage(World world, DamageData info) { }
 
     /// <summary>普攻命中之后（伤害已结算）：腐蚀吐息、液体火焰、月刃弹射这类挂这里。</summary>
-    public virtual void OnAttackLanded(World world, DamageInfo info) { }
+    public virtual void OnAttackLanded(World world, DamageData info) { }
 
     /// <summary>每 tick 推进（被动也调）：瘟疫光环、幽灵隐身、补充回血这类自己维护计时。</summary>
     public virtual void OnWorldTick(World world, float delta) { }

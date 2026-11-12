@@ -15,8 +15,8 @@ public static partial class CombatProbe
     {
         GD.Print("==== AI 组合出招自检 ====");
 
-        UnitType chieftainType = UnitCatalog.Get("Otch");
-        UnitType gruntType = UnitCatalog.Get("ogru");
+        UnitType chieftainType = UnitFactory.Get("Otch");
+        UnitType gruntType = UnitFactory.Get("ogru");
         if (chieftainType != null && gruntType != null)
         {
             var world = new World(null, null);
@@ -49,10 +49,10 @@ public static partial class CombatProbe
             }
         }
 
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType riflemanType = UnitCatalog.Get("hrif");
-        UnitType paladinType = UnitCatalog.Get("Hpal");
-        UnitType flyerType = UnitCatalog.Get("hgyr");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType riflemanType = UnitFactory.Get("hrif");
+        UnitType paladinType = UnitFactory.Get("Hpal");
+        UnitType flyerType = UnitFactory.Get("hgyr");
         if (footmanType == null || riflemanType == null || paladinType == null || flyerType == null) return;
 
         var heroComp = new EnemyComposition();

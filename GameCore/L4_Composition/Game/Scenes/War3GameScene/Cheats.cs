@@ -254,7 +254,7 @@ public sealed partial class War3GameScene
         string buildingId = null;
         foreach (string candidate in worker.Type.Builds)
         {
-            UnitType type = UnitCatalog.Get(candidate);
+            UnitType type = UnitFactory.Get(candidate);
             if (type == null) continue;
             if (candidate == hall.Type.Id) continue;
             if (type.GoldCost > 0 || type.LumberCost > 0) { buildingId = candidate; break; }
@@ -265,7 +265,7 @@ public sealed partial class War3GameScene
             return;
         }
 
-        UnitType buildType = UnitCatalog.Get(buildingId);
+        UnitType buildType = UnitFactory.Get(buildingId);
         if (!TryFindBuildSpot(hall.Position, Mathf.Max(32f, buildType?.FootprintRadius ?? 96f), out Vector3 ground))
         {
             GD.Print("[TEST] 找不到可建造位置");
@@ -502,7 +502,7 @@ public sealed partial class War3GameScene
     private void ProbeUiEntry(Unit hero)
     {
         BeginPlacement("hhou");
-        UnitType house = UnitCatalog.Get("hhou");
+        UnitType house = UnitFactory.Get("hhou");
         bool openValid = false;
         bool blockedValid = true;
         bool foundOpen = false;
@@ -872,7 +872,7 @@ public sealed partial class War3GameScene
             _world.SetRally(unit, point);
             GD.Print($"[RALLY] {unit.Type?.Name}({unit.Type?.Id}) 集结点 {point}");
 
-            UnitType infantry = UnitCatalog.Get("hfoo");
+            UnitType infantry = UnitFactory.Get("hfoo");
             if (infantry != null)
             {
                 UnitType probe = infantry;
@@ -1046,7 +1046,7 @@ public sealed partial class War3GameScene
         var parts = new List<string>();
         foreach (string id in shop.Type.SellUnits)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null)
             {
                 parts.Add($"{id}(缺数据)");
@@ -1062,7 +1062,7 @@ public sealed partial class War3GameScene
         var parts = new List<string>();
         foreach (string id in shop.Type.SellUnits)
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) continue;
             parts.Add($"{id} {shop.UnitStockOf(id)}/{shop.UnitStockMaxOf(id)}");
         }
@@ -1132,7 +1132,7 @@ public sealed partial class War3GameScene
             + $" 造价{hero.Type.GoldCost} 训练时长{hero.Type.TrainSeconds:0}s"
             + $" 预计花费{_world.HeroReviveCostOf(hero)} 预计时间{_world.HeroReviveSecondsOf(hero):0}s");
 
-        DamageInfo lethal = World.MakeAbilityDamage(null, hero, 100000f, AttackType.Spells, DamageType.Universal);
+        DamageData lethal = World.MakeAbilityDamage(null, hero, 100000f, AttackType.Spells, DamageType.Universal);
         _world.DealDamage(lethal);
         GD.Print($"[REVIVE] 击杀完成 存活={hero.Alive} 留尸={hero.IsCorpse} 待复活={hero.AwaitingRevive}");
 

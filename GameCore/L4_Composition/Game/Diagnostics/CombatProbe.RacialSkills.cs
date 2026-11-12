@@ -12,9 +12,9 @@ public static partial class CombatProbe
     {
         GD.Print("==== 兽族/暗夜/人族技能自检 ====");
 
-        UnitType footmanType = UnitCatalog.Get("hfoo");
-        UnitType ghoulType = UnitCatalog.Get("ugho");
-        UnitType chieftainType = UnitCatalog.Get("Otch");
+        UnitType footmanType = UnitFactory.Get("hfoo");
+        UnitType ghoulType = UnitFactory.Get("ugho");
+        UnitType chieftainType = UnitFactory.Get("Otch");
         if (footmanType == null || ghoulType == null || chieftainType == null) return;
 
         // —— 震荡波：直线打地面单位与建筑，偏出宽度不吃 ——
@@ -90,7 +90,7 @@ public static partial class CombatProbe
 
         // —— 医疗波：130 → 97.5 → 73.125（每跳 -25%） ——
         var healWorld = new World(null, null);
-        Unit shaman = MakeHero(UnitCatalog.Get("Oshd") ?? chieftainType, 0, 3, healWorld);
+        Unit shaman = MakeHero(UnitFactory.Get("Oshd") ?? chieftainType, 0, 3, healWorld);
         shaman.Position = new Vector3(0f, 0f, -300f);
         var healTargets = new List<Unit>();
         for (int index = 0; index < 3; index++)
@@ -113,8 +113,8 @@ public static partial class CombatProbe
 
         // —— 毒蛇守卫：落点召出 osp1，存在 40 秒 ——
         var wardWorld = new World(null, null);
-        wardWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit shadowHunter = MakeHero(UnitCatalog.Get("Oshd") ?? chieftainType, 0, 3, wardWorld);
+        wardWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit shadowHunter = MakeHero(UnitFactory.Get("Oshd") ?? chieftainType, 0, 3, wardWorld);
         wardWorld.Units.Add(shadowHunter);
 
         Ability ward = shadowHunter.GiveAbility("AOsw", 1);
@@ -132,8 +132,8 @@ public static partial class CombatProbe
 
         // —— 树人：丛林守护者 AEfn 按 UnitID(efon) 召 DataA 个 ——
         var treantWorld = new World(null, null);
-        treantWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit treantKeeper = MakeHero(UnitCatalog.Get("Ekee") ?? chieftainType, 0, 3, treantWorld);
+        treantWorld.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit treantKeeper = MakeHero(UnitFactory.Get("Ekee") ?? chieftainType, 0, 3, treantWorld);
         treantWorld.Units.Add(treantKeeper);
 
         Ability forceOfNature = treantKeeper.GiveAbility("AEfn", 1);
@@ -149,7 +149,7 @@ public static partial class CombatProbe
 
         // —— 纠缠根须：定身 + 每秒 15 伤害 ——
         var rootWorld = new World(null, null);
-        Unit keeper = MakeHero(UnitCatalog.Get("Ekee") ?? chieftainType, 0, 3, rootWorld);
+        Unit keeper = MakeHero(UnitFactory.Get("Ekee") ?? chieftainType, 0, 3, rootWorld);
         Unit rooted = MakeUnit(ghoulType, 1);
         rooted.Position = new Vector3(300f, 0f, 0f);
         rootWorld.Units.Add(keeper);
@@ -168,7 +168,7 @@ public static partial class CombatProbe
 
         // —— 荆棘光环：近战攻击反弹 10%（远程不反） ——
         var thornsWorld = new World(null, null);
-        Unit thornKeeper = MakeHero(UnitCatalog.Get("Ekee") ?? chieftainType, 0, 3, thornsWorld);
+        Unit thornKeeper = MakeHero(UnitFactory.Get("Ekee") ?? chieftainType, 0, 3, thornsWorld);
         Unit thornVictim = MakeUnit(ghoulType, 0);
         thornVictim.Position = new Vector3(150f, 0f, 0f);
         Unit thornAttacker = MakeUnit(ghoulType, 1);
@@ -191,15 +191,15 @@ public static partial class CombatProbe
 
         float meleeReflect = attackerHp - thornAttacker.Hp;
         attackerHp = thornAttacker.Hp;
-        WeaponProfile ranged = new() { MissileScene = "res://fake.tscn", MissileSpeed = 900f };
+        Weapon ranged = new() { MissileScene = "res://fake.tscn", MissileSpeed = 900f };
         thornsWorld.DealDamage(thornsWorld.MakeAttackDamage(thornAttacker, thornVictim, 100f, ranged));
         Verify("荆棘光环不反远程", attackerHp, thornAttacker.Hp, 0.01f);
         GD.Print($"[自检] 荆棘光环 近战挨 {victimDealt:0} 反弹 {meleeReflect:0}，远程不反弹");
 
         // —— 法力燃烧：烧 50 蓝、造成等量伤害 ——
         var burnWorld = new World(null, null);
-        Unit demon = MakeHero(UnitCatalog.Get("Edem") ?? chieftainType, 0, 3, burnWorld);
-        Unit burner = MakeUnit(UnitCatalog.Get("Hpal") ?? footmanType, 1);
+        Unit demon = MakeHero(UnitFactory.Get("Edem") ?? chieftainType, 0, 3, burnWorld);
+        Unit burner = MakeUnit(UnitFactory.Get("Hpal") ?? footmanType, 1);
         burner.Position = new Vector3(200f, 0f, 0f);
         burnWorld.Units.Add(demon);
         burnWorld.Units.Add(burner);
@@ -221,7 +221,7 @@ public static partial class CombatProbe
 
         // —— 献祭：开→每秒 10 伤害 + 7 蓝；关不花蓝 ——
         var immolationWorld = new World(null, null);
-        Unit immolator = MakeHero(UnitCatalog.Get("Edem") ?? chieftainType, 0, 3, immolationWorld);
+        Unit immolator = MakeHero(UnitFactory.Get("Edem") ?? chieftainType, 0, 3, immolationWorld);
         Unit immolated = MakeUnit(footmanType, 1);
         immolated.Position = new Vector3(100f, 0f, 0f);
         immolationWorld.Units.Add(immolator);
@@ -247,7 +247,7 @@ public static partial class CombatProbe
 
         // —— 刀阵旋风：周围 AoE ——
         var fanWorld = new World(null, null);
-        Unit warden = MakeHero(UnitCatalog.Get("Ewar") ?? chieftainType, 0, 3, fanWorld);
+        Unit warden = MakeHero(UnitFactory.Get("Ewar") ?? chieftainType, 0, 3, fanWorld);
         var fanVictims = new List<Unit>();
         for (int index = 0; index < 3; index++)
         {
@@ -271,7 +271,7 @@ public static partial class CombatProbe
 
         // —— 暗影突袭：先 75，之后每 3 秒 10 点，并减速 ——
         var strikeWorld = new World(null, null);
-        Unit strikerHero = MakeHero(UnitCatalog.Get("Ewar") ?? chieftainType, 0, 3, strikeWorld);
+        Unit strikerHero = MakeHero(UnitFactory.Get("Ewar") ?? chieftainType, 0, 3, strikeWorld);
         Unit struck = MakeUnit(ghoulType, 1);
         struck.Position = new Vector3(200f, 0f, 0f);
         strikeWorld.Units.Add(strikerHero);
@@ -293,8 +293,8 @@ public static partial class CombatProbe
 
         // —— 辉煌光环：每秒多回 0.75 法力 ——
         var brillianceWorld = new World(null, null);
-        Unit archMage = MakeHero(UnitCatalog.Get("Hamg") ?? chieftainType, 0, 3, brillianceWorld);
-        Unit casterFriend = MakeHero(UnitCatalog.Get("Hpal") ?? chieftainType, 0, 3, brillianceWorld);
+        Unit archMage = MakeHero(UnitFactory.Get("Hamg") ?? chieftainType, 0, 3, brillianceWorld);
+        Unit casterFriend = MakeHero(UnitFactory.Get("Hpal") ?? chieftainType, 0, 3, brillianceWorld);
         casterFriend.Position = new Vector3(150f, 0f, 0f);
         brillianceWorld.Units.Add(archMage);
         brillianceWorld.Units.Add(casterFriend);
@@ -313,12 +313,12 @@ public static partial class CombatProbe
         GD.Print($"[自检] 辉煌光环 法力 10→{casterFriend.Mana:0.00}");
 
         // —— 强击光环：只加远程攻击伤害（同样的随机种子，两套世界对比） ——
-        UnitType archerType = UnitCatalog.Get("earc");
-        UnitType towerType = UnitCatalog.Get("hbla");
+        UnitType archerType = UnitFactory.Get("earc");
+        UnitType towerType = UnitFactory.Get("hbla");
         if (archerType != null && towerType != null)
         {
             float plain = MeasureArrowDamage(null, archerType, towerType);
-            float buffed = MeasureArrowDamage(UnitCatalog.Get("Ewar") ?? chieftainType, archerType, towerType);
+            float buffed = MeasureArrowDamage(UnitFactory.Get("Ewar") ?? chieftainType, archerType, towerType);
             Verify("强击光环把远程伤害抬高 10%", plain * 1.1f, buffed, plain * 0.02f);
             GD.Print($"[自检] 强击光环 远程单箭 {plain:0.00}→{buffed:0.00}");
         }

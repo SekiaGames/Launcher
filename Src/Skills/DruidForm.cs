@@ -26,7 +26,7 @@ public class DruidForm : Ability
         }
 
         bool normal = string.Equals(Owner.Type.Id, NormalFormId, System.StringComparison.OrdinalIgnoreCase);
-        UnitType form = UnitCatalog.Get(normal ? MorphFormId : NormalFormId);
+        UnitType form = UnitFactory.Get(normal ? MorphFormId : NormalFormId);
         return form != null && world.BeginMorph(Owner, form, 0f, disable: false);
     }
 

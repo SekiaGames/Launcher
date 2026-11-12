@@ -153,7 +153,7 @@ public sealed class BallsOfFire : Ability
     public float BurnSeconds => Duration > 0f ? Duration : 2.5f;
     public float Radius => Area > 0f ? Area : 150f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (HitDamage <= 0f) return;

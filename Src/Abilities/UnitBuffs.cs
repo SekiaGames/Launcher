@@ -150,7 +150,7 @@ public sealed class ManaFlareBuff : Buff
 
     public override bool IsHarmful => false;
 
-    public override void OnAttacked(World world, Unit attacker, DamageInfo info)
+    public override void OnAttacked(World world, Unit attacker, DamageData info)
     {
         if (world == null || Owner == null || !Owner.Alive) return;
 

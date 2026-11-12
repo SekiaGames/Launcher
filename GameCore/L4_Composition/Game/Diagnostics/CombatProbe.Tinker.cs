@@ -19,7 +19,7 @@ public static partial class CombatProbe
         if (type == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Ntin"), 0, 3, world);
+        Unit hero = MakeHero(UnitFactory.Get("Ntin"), 0, 3, world);
         world.Units.Add(hero);
         hero.GiveAbility("ANde", 1);
 
@@ -39,7 +39,7 @@ public static partial class CombatProbe
         if (type == null) return;
 
         var world = new World(null, null);
-        Unit hero = MakeHero(UnitCatalog.Get("Ntin"), 0, 3, world);
+        Unit hero = MakeHero(UnitFactory.Get("Ntin"), 0, 3, world);
         world.Units.Add(hero);
 
         float baseSpeed = hero.Type.Speed;
@@ -53,7 +53,7 @@ public static partial class CombatProbe
     private static void CheckRoboGoblin()
     {
         AbilityType type = AbilityCatalog.Get("ANrg");
-        UnitType tinker = UnitCatalog.Get("Ntin");
+        UnitType tinker = UnitFactory.Get("Ntin");
         if (type == null || tinker == null) return;
 
         var world = new World(null, null);
@@ -85,8 +85,8 @@ public static partial class CombatProbe
         if (type == null) return;
 
         var world = new World(null, null);
-        world.SummonHandler = (caster, id, position) => MakeUnit(UnitCatalog.Get(id), caster.Player);
-        Unit hero = MakeHero(UnitCatalog.Get("Ntin"), 0, 3, world);
+        world.SummonHandler = (caster, id, position) => MakeUnit(UnitFactory.Get(id), caster.Player);
+        Unit hero = MakeHero(UnitFactory.Get("Ntin"), 0, 3, world);
         hero.Mana = 400f;
         hero.MaxMana = 400f;
         world.Units.Add(hero);

@@ -33,7 +33,7 @@ public sealed class RoboGoblin : Ability
         if (world == null || Owner?.Type == null || !Owner.Alive) return false;
 
         bool robotNow = InRobotForm;
-        UnitType form = UnitCatalog.Get(robotNow ? HumanFormId : RobotFormId);
+        UnitType form = UnitFactory.Get(robotNow ? HumanFormId : RobotFormId);
         if (form == null) return false;
         if (!world.BeginMorph(Owner, form, 0f, disable: false)) return false;
 

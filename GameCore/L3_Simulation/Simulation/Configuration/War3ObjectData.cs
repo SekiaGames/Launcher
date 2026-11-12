@@ -65,7 +65,7 @@ public sealed class W3xObjectDefinition
     }
 }
 
-public sealed class W3xObjectData
+public sealed class War3ObjectData
 {
     public const string UnitFile = "war3map.w3u";
     public const string DoodadFile = "war3map.w3d";
@@ -137,7 +137,7 @@ public sealed class W3xObjectData
         return ResolveBaseId(definition.BaseId, depth + 1);
     }
 
-    public static W3xObjectData Parse(byte[] data, string fileName)
+    public static War3ObjectData Parse(byte[] data, string fileName)
     {
         if (data == null || data.Length < 8)
         {
@@ -145,7 +145,7 @@ public sealed class W3xObjectData
         }
 
         var reader = new W3xBinaryReader(data);
-        var result = new W3xObjectData
+        var result = new War3ObjectData
         {
             RawBytes = data,
             FileName = fileName,

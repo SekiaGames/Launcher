@@ -110,7 +110,7 @@ public static class DoodadMeshLibrary
 
     private static DoodadDefinition Resolve(string id)
     {
-        SlkTable destructables = War3Tables.DestructableData();
+        SlkTable destructables = War3SlkReader.DestructableData();
         int row = destructables.FindRow("DestructableID", id);
         if (row >= 0)
         {
@@ -131,7 +131,7 @@ public static class DoodadMeshLibrary
             return definition;
         }
 
-        SlkTable doodads = War3Tables.Doodads();
+        SlkTable doodads = War3SlkReader.Doodads();
         row = doodads.FindRow("doodID", id);
         if (row < 0)
         {

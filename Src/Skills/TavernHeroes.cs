@@ -184,7 +184,7 @@ public sealed class DrunkenBrawler : Ability
         return raw * CriticalMultiplier;
     }
 
-    public override bool CanBeHitBy(World world, DamageInfo info)
+    public override bool CanBeHitBy(World world, DamageData info)
     {
         if (info == null || !info.IsAttack || EvasionChance <= 0f) return true;
         return !world.RollPercent(EvasionChance * 100f);
@@ -230,7 +230,7 @@ public sealed class CleavingAttack : Ability
     public float Ratio => Data('A');
     public float Radius => Area > 0f ? Area : 200f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null) return;
         if (Ratio <= 0f || info.Amount <= 0f) return;

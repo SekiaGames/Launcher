@@ -16,7 +16,7 @@ public sealed class Metamorphosis : Ability
     {
         if (world == null || Owner == null) return false;
 
-        UnitType form = UnitCatalog.Get(Type.SummonAt(Level));
+        UnitType form = UnitFactory.Get(Type.SummonAt(Level));
         if (form == null) return false;
 
         return world.BeginMorph(Owner, form, EffectiveDuration, disable: false, bonusHp: Data('E'));

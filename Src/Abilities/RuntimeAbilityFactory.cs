@@ -5,11 +5,11 @@ using System.Collections.Generic;
 namespace Launcher;
 
 /// <summary>
-/// 技能注册表：技能码 → 实现类。对标客户端 Src/Skills/SkillRegistry.cs。
+/// 技能注册表：技能码 → 实现类。对标客户端 Src/Skills/RuntimeAbilityFactory.cs。
 /// 表里没有的码退化成 <see cref="PassiveAbility"/>（只占位，不产生效果），
 /// 这样单位的 abilList 即使包含未实现的技能也不会报错。
 /// </summary>
-public static class SkillRegistry
+public static class RuntimeAbilityFactory
 {
     private static readonly Dictionary<string, Func<Ability>> Map = new(StringComparer.OrdinalIgnoreCase)
     {

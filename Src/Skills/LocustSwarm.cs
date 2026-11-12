@@ -90,7 +90,7 @@ public sealed class LocustAgent : Ability
 
     public override bool IsPassive => true;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (Caster == null || !Caster.Alive || info == null) return;
         _stored += info.Amount * Factor;

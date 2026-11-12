@@ -19,14 +19,14 @@ public sealed class War3WaterConfig
 
     public static float LoadHeightOffset(char tileset)
     {
-        SlkTable table = War3Tables.Water();
+        SlkTable table = War3SlkReader.Water();
         int row = table.FindRow("waterID", tileset + "Sha");
         return row < 0 ? 0f : table.GetFloat(row, "height");
     }
 
     public static War3WaterConfig Load(char tileset)
     {
-        SlkTable table = War3Tables.Water();
+        SlkTable table = War3SlkReader.Water();
         string rowId = tileset + "Sha";
         int row = table.FindRow("waterID", rowId);
         if (row < 0)

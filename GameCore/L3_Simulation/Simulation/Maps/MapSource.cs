@@ -11,8 +11,8 @@ public sealed class MapSource
     public GmapPackage Package { get; private set; }
     public W3eTerrain Terrain { get; private set; }
     public W3iInfo Info { get; private set; }
-    public W3oUnits Units { get; private set; }
-    public W3oDoodads Doodads { get; private set; }
+    public War3MapUnits Units { get; private set; }
+    public War3MapDoodads Doodads { get; private set; }
     public W3mPathing Pathing { get; private set; }
     public List<W3iPlayer> Players { get; } = new();
 
@@ -44,13 +44,13 @@ public sealed class MapSource
         if (units != null)
         {
             int version = source.Info?.GameVersionNumber ?? 0;
-            source.Units = W3oUnits.Parse(units, IsItem, version);
+            source.Units = War3MapUnits.Parse(units, IsItem, version);
         }
 
         byte[] doodads = package.ReadMapFile("war3map.doo");
         if (doodads != null)
         {
-            source.Doodads = W3oDoodads.Parse(doodads);
+            source.Doodads = War3MapDoodads.Parse(doodads);
         }
 
         byte[] pathing = package.ReadMapFile("war3map.wpm");
@@ -76,7 +76,7 @@ public sealed class MapSource
     {
         if (string.IsNullOrEmpty(id)) return false;
 
-        SlkTable items = War3Tables.ItemData();
+        SlkTable items = War3SlkReader.ItemData();
         if (items.FindRow("itemID", id) >= 0) return true;
 
         string baseId = id.Length == 4 ? id[..3] + "0" : id;

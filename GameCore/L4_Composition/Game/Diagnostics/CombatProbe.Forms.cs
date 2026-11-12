@@ -26,7 +26,7 @@ public static partial class CombatProbe
         var world = new World(null, null);
         world.SummonHandler = (caster, id, position) =>
         {
-            UnitType type = UnitCatalog.Get(id);
+            UnitType type = UnitFactory.Get(id);
             if (type == null) return null;
             Unit created = MakeUnit(type, caster.Player);
             created.Position = position;
@@ -86,7 +86,7 @@ public static partial class CombatProbe
 
         Verify("研究完成后换狂暴战士", 1f,
             string.Equals(headhunter.Type.Id, "otbk", System.StringComparison.OrdinalIgnoreCase) ? 1f : 0f, 0f);
-        Verify("换型后生命上限按新类型", UnitCatalog.Get("otbk").Hp, headhunter.MaxHp, 0.5f);
+        Verify("换型后生命上限按新类型", UnitFactory.Get("otbk").Hp, headhunter.MaxHp, 0.5f);
     }
 
     private static void CheckSubmerge()
@@ -123,11 +123,11 @@ public static partial class CombatProbe
         if (turtle == null || attacker == null) return;
 
         Ability skin = turtle.FindAbility("Ansk");
-        var info = new DamageInfo { Source = attacker, Target = turtle, Raw = 20f, Amount = 20f };
+        var info = new DamageData { Source = attacker, Target = turtle, Raw = 20f, Amount = 20f };
         skin.ModifyIncomingDamage(world, info);
         Verify("龙龟硬化皮肤减伤 DataC", 20f - type.DataAt(1, 'C'), info.Amount, 0.01f);
 
-        var big = new DamageInfo { Source = attacker, Target = turtle, Raw = 5f, Amount = 5f };
+        var big = new DamageData { Source = attacker, Target = turtle, Raw = 5f, Amount = 5f };
         skin.ModifyIncomingDamage(world, big);
         Verify("伤害低于减免时保底 DataB", type.DataAt(1, 'B'), big.Amount, 0.01f);
     }

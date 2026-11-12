@@ -21,7 +21,7 @@ public sealed class WeatherRenderer
     {
         if (string.IsNullOrWhiteSpace(effectId)) return null;
 
-        SlkTable table = War3Tables.Get("TerrainArtWeather");
+        SlkTable table = War3SlkReader.Get("TerrainArtWeather");
         if (table == null) return null;
 
         int row = table.FindRow("effectID", effectId.Trim());

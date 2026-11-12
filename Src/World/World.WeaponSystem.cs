@@ -11,7 +11,7 @@ public sealed partial class World
 {
     private sealed class PendingHit
     {
-        public DamageInfo Info;
+        public DamageData Info;
         public float Remaining;
     }
 
@@ -62,7 +62,7 @@ public sealed partial class World
         if (target == null || !target.Alive) return;
         if (!unit.ReadyToAttack) return;
 
-        WeaponProfile weapon = unit.Type.WeaponFor(target.Type.Kind);
+        Weapon weapon = unit.Type.WeaponFor(target.Type.Kind);
         if (weapon == null) return;
 
         unit.ActiveWeapon = weapon;
@@ -74,7 +74,7 @@ public sealed partial class World
     private void FireWeapon(Unit unit)
     {
         Unit target = unit.WindupTarget;
-        WeaponProfile weapon = unit.ActiveWeapon ?? unit.Type.Weapon;
+        Weapon weapon = unit.ActiveWeapon ?? unit.Type.Weapon;
         unit.EndWindup();
 
         unit.Backswing = Mathf.Max(0f, weapon.Backswing);
@@ -98,7 +98,7 @@ public sealed partial class World
         unit.PaidArrowShot = false;
         raw = ApplyLaunchModifiers(unit, target, raw);
         if (unit.IsIllusion) raw *= unit.IllusionDamageDealt;
-        DamageInfo info = MakeAttackDamage(unit, target, raw, weapon);
+        DamageData info = MakeAttackDamage(unit, target, raw, weapon);
         info.IsCritical = LastAttackWasCritical;
 
         bool flies = (arrowScene ?? weapon.MissileScene) != null && weapon.MissileSpeed > 0f;
@@ -133,7 +133,7 @@ public sealed partial class World
     }
 
     /// <summary>命中：主目标结算，再按 Farea/Harea/Qarea 三档扩散（区域内全部命中）。</summary>
-    private void ResolveHit(DamageInfo info)
+    private void ResolveHit(DamageData info)
     {
         DealDamage(info);
         ApplyOrbEffect(info);
@@ -143,7 +143,7 @@ public sealed partial class World
     }
 
     /// <summary>法球命中后的附加效果：火焰溅射、腐化减甲、霜冻/冰冻减速、闪电净化、法术抽蓝、毒液中毒。</summary>
-    public void ApplyOrbEffect(DamageInfo info)
+    public void ApplyOrbEffect(DamageData info)
     {
         Unit attacker = info?.Source;
         Unit target = info?.Target;
@@ -199,7 +199,7 @@ public sealed partial class World
     }
 
     /// <summary>普攻命中钩子：腐蚀吐息/液体火焰/毒矛/月刃这类「中了之后再生数」的被动。</summary>
-    public void ApplyLandedModifiers(DamageInfo info)
+    public void ApplyLandedModifiers(DamageData info)
     {
         Unit attacker = info?.Source;
         if (info == null || !info.IsAttack || attacker?.Abilities == null) return;
@@ -212,13 +212,13 @@ public sealed partial class World
     }
 
     /// <summary>溅射：距离主目标 ≤ Farea 全额、≤ Harea 中型、≤ Qarea 小型，系数取 Hfact/Qfact；范围与归属按 splashTargs。</summary>
-    public void ApplySplash(DamageInfo primary)
+    public void ApplySplash(DamageData primary)
     {
         Unit attacker = primary.Source;
         Unit center = primary.Target;
         if (attacker?.Type == null || center == null) return;
 
-        WeaponProfile weapon = primary.Weapon ?? attacker.Type.Weapon;
+        Weapon weapon = primary.Weapon ?? attacker.Type.Weapon;
         float full = weapon.SplashFull;
         float half = weapon.SplashHalf;
         float quarter = weapon.SplashQuarter;

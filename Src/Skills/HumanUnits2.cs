@@ -27,7 +27,7 @@ public sealed class Defend : Ability
         }
     }
 
-    public override void ModifyIncomingDamage(World world, DamageInfo info)
+    public override void ModifyIncomingDamage(World world, DamageData info)
     {
         if (!ToggledOn || info == null || !info.Ranged || info.Amount <= 0f) return;
         info.Amount *= 1f - Mathf.Clamp(RangedDamageReduction, 0f, 0.95f);
@@ -164,7 +164,7 @@ public sealed class FlakCannon : Ability
     public float SplashDamage => Data('A');
     public float Radius => 300f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (info.Target.Type == null || !info.Target.Type.Flying) return;
@@ -186,7 +186,7 @@ public sealed class FragShards : Ability
     public float SplashDamage => Data('C');
     public float Radius => Area > 0f ? Area : 100f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (SplashDamage <= 0f) return;
@@ -207,7 +207,7 @@ public sealed class RocketAttack : Ability
     public float SplashDamage => Data('A');
     public float Radius => 250f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (info.Target.Type == null || !info.Target.Type.Flying) return;
@@ -271,7 +271,7 @@ public sealed class StormHammers : Ability
     public float Ratio => 0.5f;
     public float Radius => 500f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || info.Amount <= 0f) return;
 
@@ -334,7 +334,7 @@ public sealed class PhoenixFireAbility : Ability
     public float SplashDamage => Data('A');
     public float Radius => Area > 0f ? Area : 600f;
 
-    public override void OnAttackLanded(World world, DamageInfo info)
+    public override void OnAttackLanded(World world, DamageData info)
     {
         if (world == null || Owner == null || info?.Target == null || !info.Target.Alive) return;
         if (SplashDamage <= 0f) return;
