@@ -33,6 +33,20 @@ public sealed partial class World
 
     public bool IsChanneling(Unit unit) => ChannelOf(unit) != null;
 
+    public Ability ChannelingAbility(Unit unit) => ChannelOf(unit)?.Ability;
+
+    public void CancelChannel(Unit unit)
+    {
+        int index = _channels.FindIndex(state => ReferenceEquals(state.Caster, unit));
+        if (index >= 0) EndChannel(index, interrupted: true);
+    }
+
+    public void FinishChannel(Unit unit)
+    {
+        int index = _channels.FindIndex(state => ReferenceEquals(state.Caster, unit));
+        if (index >= 0) EndChannel(index, interrupted: false);
+    }
+
     private ChannelState ChannelOf(Unit unit)
     {
         if (unit == null) return null;

@@ -592,6 +592,13 @@ public static class RuntimeAbilityFactory
             : (T)Activator.CreateInstance(typeof(T));
     }
 
+    public static string ResolveBaseCode(IRuntimeObjectData data)
+    {
+        if (data == null) return "";
+        string code = data.GetString("code", 1, 0, null);
+        return string.IsNullOrWhiteSpace(code) ? "" : code.Trim();
+    }
+
     public static float ReadFloat(IRuntimeObjectData data, string field, int level, float fallback)
         => data?.GetFloat(field, Math.Max(1, level), 0, fallback) ?? fallback;
 

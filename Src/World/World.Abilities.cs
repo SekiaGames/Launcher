@@ -148,7 +148,14 @@ public sealed partial class World
         Vec2 flat = new(point.X, point.Z);
         if (!ability.CheckCanTarget(target, flat)) return false;
         if (ability.UsesOnEffectPipeline) ability.OnEffect(target, flat);
-        else if (!ability.OnCast(this, target, point)) return false;
+        else
+        {
+            ability.BeginCasting();
+            bool cast;
+            try { cast = ability.OnCast(this, target, point); }
+            finally { if (!ability.IsChanneling) ability.FinishCasting(); }
+            if (!cast) return false;
+        }
 
         // 施放别的技能会打断正在进行的引导（引导型技能自己刚开的不能打断）
         if (!ability.IsChanneled) InterruptChannel(caster);

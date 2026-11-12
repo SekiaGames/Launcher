@@ -490,6 +490,32 @@ public abstract class Ability
 
     public virtual bool AutoCastActive { get; set; }
 
+    public bool IsCasting { get; internal set; }
+
+    public bool IsChanneling => Owner?.World != null && ReferenceEquals(Owner.World.ChannelingAbility(Owner), this);
+
+    public float CdRemaining
+    {
+        get => CooldownRemaining;
+        set => CooldownRemaining = value;
+    }
+
+    public void CancelCast()
+    {
+        FinishCasting();
+        Owner?.World?.CancelChannel(Owner);
+    }
+
+    public void FinishChannel()
+    {
+        FinishCasting();
+        Owner?.World?.FinishChannel(Owner);
+    }
+
+    internal void BeginCasting() => IsCasting = true;
+
+    internal void FinishCasting() => IsCasting = false;
+
     protected virtual bool EffectEventBeforePayment => true;
 
     protected virtual float ObjectDataArtLifeSpan => 0f;
