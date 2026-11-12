@@ -463,6 +463,40 @@ public sealed partial class War3GameScene
 
         ProbeShopEntry(hero);
         ProbeUiEntry(hero);
+        ProbeHeroGuardEntry(hero);
+    }
+
+    private void ProbeHeroGuardEntry(Unit hero)
+    {
+        Unit hall = FindHall(ViewPlayer);
+        PlayerSlot slot = Slot(ViewPlayer);
+        if (hero == null || hall == null || slot == null) return;
+
+        Vector3 home = hero.Position;
+        hero.Position = hall.Position + new Vector3(2200f, 0f, 0f);
+        hero.Hp = hero.MaxHp * 0.3f;
+        hero.Target = null;
+
+        Unit foe = Spawn("hfoo", 1, hero.Position.X + 260f, hero.Position.Z, 0f, 0f, 1f);
+        if (foe != null)
+        {
+            _world.Units.Add(foe);
+            foe.Target = hero;
+        }
+
+        Unit escort = Spawn("hfoo", ViewPlayer, hero.Position.X + 180f, hero.Position.Z + 180f, 0f, 0f, 1f);
+        if (escort != null) _world.Units.Add(escort);
+
+        TickAiHeroGuard(slot, hall);
+        GD.Print($"[UI] 英雄护卫 残血撤退={hero.RetreatOrdered} 护送至={escort?.HeroEscort == true}"
+            + $" 奉命跟随={escort?.MoveTarget.HasValue == true} 朝基地={hero.MoveTarget.HasValue}");
+
+        hero.Hp = hero.MaxHp;
+        hero.Position = home;
+        TickAiHeroGuard(slot, hall);
+        GD.Print($"[UI] 英雄回血后 撤退={hero.RetreatOrdered} 护送至={escort?.HeroEscort == true}");
+
+        if (foe != null) _world.KillUnit(foe, null);
     }
 
     private void ProbeUiEntry(Unit hero)

@@ -73,7 +73,6 @@ public sealed class Resurrection : Ability
         return revived > 0;
     }
 
-    /// <summary>AI：半径内至少两具尸体、且正在交战才拉（拉一手就多几个肉盾）。</summary>
     public override bool TryAutoCast(World world)
     {
         if (!HasEnemyNearby(world, Radius)) return false;
@@ -86,6 +85,8 @@ public sealed class Resurrection : Ability
             if (Owner.DistanceTo(other) > Radius) continue;
             corpses++;
         }
-        return corpses >= 2 && world.TryCast(Owner, this, null, Owner.Position);
+
+        int required = Mathf.Min(2, MaxTargets);
+        return corpses >= required && world.TryCast(Owner, this, null, Owner.Position);
     }
 }

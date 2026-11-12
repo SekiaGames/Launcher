@@ -34,17 +34,22 @@ public sealed class BigBadVoodoo : Ability
         }
     }
 
-    /// <summary>AI：附近有敌人在打、并且身边有残血友军时才跳。</summary>
     public override bool TryAutoCast(World world)
     {
-        if (!HasEnemyNearby(world, Area)) return false;
+        if (Owner == null || Owner.MaxHp <= 0f) return false;
+        if (Owner.Hp / Owner.MaxHp < 0.4f) return false;
 
-        int wounded = 0;
+        int fightingAllies = 0;
         foreach (Unit ally in world.AlliesInRange(Owner, Owner.Position, Area))
         {
-            if (ally.Hp / Mathf.Max(1f, ally.MaxHp) > 0.75f) continue;
-            wounded++;
+            if (ReferenceEquals(ally, Owner) || ally.IsBuilding) continue;
+            if (ally.Target == null || !ally.Target.Alive) continue;
+            fightingAllies++;
         }
-        return wounded >= 2 && world.TryCast(Owner, this, null, Owner.Position);
+        if (fightingAllies < 3) return false;
+
+        int enemies = NearbyEnemyCount(world, Area, out _);
+        if (enemies < 3) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

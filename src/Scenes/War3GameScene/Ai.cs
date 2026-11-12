@@ -41,6 +41,9 @@ public sealed partial class War3GameScene
             Unit hall = FindHall(player.Id);
             if (hall == null) continue;
 
+            Unit waveHero = FindHero(player.Id);
+            if (waveHero != null && waveHero.RetreatOrdered) continue;
+
             int race = Mathf.Clamp(player.Race, 1, 4);
             List<string> wave = WaveComposition(player.Id, race);
             int repeat = AiDifficulty >= 2 ? 2 : 1;
@@ -77,18 +80,11 @@ public sealed partial class War3GameScene
             }
 
             // 有活着的英雄就一起上（英雄自己会施法/治疗）
-            Unit hero = null;
-            foreach (Unit unit in _allUnits)
+            if (waveHero != null)
             {
-                if (!unit.Alive || unit.Player != player.Id || !unit.IsHero) continue;
-                hero = unit;
-                break;
-            }
-            if (hero != null)
-            {
-                hero.Target = NearestTargetOf(ViewPlayer, hall.Position);
-                hero.MoveTarget = null;
-                hero.Path = null;
+                waveHero.Target = NearestTargetOf(ViewPlayer, hall.Position);
+                waveHero.MoveTarget = null;
+                waveHero.Path = null;
             }
         }
     }
@@ -200,7 +196,7 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.Player != slot.Id) continue;
-            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered || unit.Kiting) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered || unit.Kiting || unit.HeroEscort) continue;
             if (unit.HireShop != null) continue;
             // 召唤物当前排：不受基地 1800 限制，直接压上去当肉盾
             if (unit.DistanceTo(hall) > 1800f && !unit.IsSummon) continue;
@@ -270,6 +266,104 @@ public sealed partial class War3GameScene
         }
     }
 
+    private int _heroGuardLogBudget = 6;
+
+    private void TickAiHeroGuard(PlayerSlot slot, Unit hall)
+    {
+        Unit hero = FindHero(slot.Id);
+        if (hero == null)
+        {
+            ClearHeroEscorts(slot.Id);
+            return;
+        }
+
+        float ratio = hero.MaxHp > 0f ? hero.Hp / hero.MaxHp : 1f;
+        float homeDistance = hero.DistanceTo(hall);
+
+        if (hero.RetreatOrdered)
+        {
+            if (ratio > 0.7f || homeDistance < 500f)
+            {
+                hero.RetreatOrdered = false;
+                if (homeDistance < 500f)
+                {
+                    hero.MoveTarget = null;
+                    hero.Path = null;
+                }
+                ClearHeroEscorts(slot.Id);
+                return;
+            }
+        }
+        else if (ratio <= 0.35f && homeDistance > 500f && (hero.Target != null || IsHeroThreatened(hero)))
+        {
+            hero.RetreatOrdered = true;
+            hero.Target = null;
+            hero.MoveTarget = hall.Position;
+            hero.Path = null;
+            if (_heroGuardLogBudget > 0)
+            {
+                _heroGuardLogBudget--;
+                GD.Print($"[AI] P{slot.Id} 英雄 {hero.Type.Name} 残血 {ratio * 100f:0}% 撤退回基地");
+            }
+        }
+
+        if (!hero.RetreatOrdered)
+        {
+            ClearHeroEscorts(slot.Id);
+            return;
+        }
+
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != slot.Id) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.IsHero) continue;
+            if (unit.DistanceTo(hero) > 1200f) continue;
+
+            bool fresh = !unit.HeroEscort;
+            unit.HeroEscort = true;
+            unit.Kiting = false;
+            if (!fresh && unit.MoveTarget.HasValue
+                && (unit.MoveTarget.Value - hero.Position).LengthSquared() < 220f * 220f) continue;
+
+            unit.Target = null;
+            unit.MoveTarget = hero.Position;
+            unit.Path = null;
+        }
+    }
+
+    private void ClearHeroEscorts(int player)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || unit.Player != player || !unit.HeroEscort) continue;
+            unit.HeroEscort = false;
+            unit.MoveTarget = null;
+            unit.Path = null;
+            unit.PathIndex = 0;
+        }
+    }
+
+    private bool IsHeroThreatened(Unit hero)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive) continue;
+            if (unit.Player == hero.Player || AreAllied(unit.Player, hero.Player)) continue;
+            if (ReferenceEquals(unit.Target, hero)) return true;
+        }
+        return false;
+    }
+
+    private Unit FindHero(int player)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != player || !unit.IsHero) continue;
+            return unit;
+        }
+        return null;
+    }
+
     private int _focusLogBudget = 8;
 
     /// <summary>
@@ -321,7 +415,7 @@ public sealed partial class War3GameScene
         {
             if (!unit.Alive || unit.Player != slot.Id) continue;
             if (unit.IsBuilding || unit.IsWorker || unit.IsHero) continue;
-            if (unit.Target != null || unit.RetreatOrdered) continue;
+            if (unit.Target != null || unit.RetreatOrdered || unit.HeroEscort) continue;
             if (unit.DistanceTo(hall) > 1200f) continue;
             idle.Add(unit);
         }
@@ -396,7 +490,7 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.Player != slot.Id) continue;
-            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered) continue;
+            if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered || unit.HeroEscort) continue;
             if (unit.KiteCooldown > 0f) unit.KiteCooldown -= 0.3f;
             if (unit.IsHero) continue;
             if (unit.Type.AttackRange < 250f) continue;
@@ -563,7 +657,7 @@ public sealed partial class War3GameScene
             {
                 if (own == null || !own.Alive || own.Player != slot.Id) continue;
                 if (own.IsBuilding || own.IsWorker || own.IsHero || own.HireShop != null) continue;
-                if (own.RetreatOrdered || own.Kiting) continue;
+                if (own.RetreatOrdered || own.Kiting || own.HeroEscort) continue;
                 float distance = own.DistanceTo(shop);
                 if (distance <= ShopPurchaseRange(shop) || distance >= best) continue;
                 best = distance;
@@ -839,6 +933,7 @@ public sealed partial class War3GameScene
         }
 
         TickAiRetreat(slot);
+        TickAiHeroGuard(slot, hall);
         TickAiKite(slot);
         slot.FocusTimer += 0.3f;
         if (slot.FocusTimer >= 2f)

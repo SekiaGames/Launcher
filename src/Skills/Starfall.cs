@@ -31,17 +31,11 @@ public sealed class Starfall : Ability
         }
     }
 
-    /// <summary>AI：身边至少两个敌人就开。</summary>
     public override bool TryAutoCast(World world)
     {
-        int nearby = 0;
-        foreach (Unit other in world.Units)
-        {
-            if (other == null || !other.Alive) continue;
-            if (world.AreAllied(Owner.Player, other.Player)) continue;
-            if (Owner.DistanceTo(other) > Area * 0.4f) continue;
-            nearby++;
-        }
-        return nearby >= 2 && world.TryCast(Owner, this, null, Owner.Position);
+        if (Owner == null || !IsFighting) return false;
+        int enemies = NearbyEnemyCount(world, Area, out bool anyHero);
+        if (enemies < 3 && !anyHero) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

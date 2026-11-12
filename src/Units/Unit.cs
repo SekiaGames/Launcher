@@ -65,6 +65,7 @@ public sealed partial class Unit
     public float KiteCooldown;
     /// <summary>绕侧翼已持续的时间；超过 10 秒就直接压上去，避免绕路卡住。</summary>
     public float FlankTimer;
+    public bool HeroEscort;
 
     // —— 英雄状态 ——
     public bool IsHero;

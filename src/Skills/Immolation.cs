@@ -61,20 +61,31 @@ public sealed class Immolation : Ability
         }
     }
 
-    /// <summary>AI：身边有敌人就点火，没敌人就熄火。</summary>
     public override bool TryAutoCast(World world)
     {
-        bool enemyNearby = false;
+        if (Owner == null) return false;
+
+        int nearby = 0;
+        bool anyHero = false;
         foreach (Unit other in world.Units)
         {
             if (other == null || !other.Alive) continue;
+            if (other.Gold > 0) continue;
             if (world.AreAllied(Owner.Player, other.Player)) continue;
-            if (Owner.DistanceTo(other) > Area + 80f) continue;
-            enemyNearby = true;
-            break;
+            if (Owner.DistanceTo(other) > Area + other.Radius) continue;
+            nearby++;
+            if (other.IsHero) anyHero = true;
         }
 
-        if (enemyNearby == ToggledOn) return false;
+        float drain = Data('B');
+        if (ToggledOn)
+        {
+            if (nearby > 0 && Owner.Mana >= drain * 2f) return false;
+            return world.TryCast(Owner, this, null, Owner.Position);
+        }
+
+        if (nearby < 2 && !anyHero) return false;
+        if (Owner.Mana < ManaCost + drain * 3f) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

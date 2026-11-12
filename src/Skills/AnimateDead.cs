@@ -39,7 +39,6 @@ public sealed class AnimateDead : Ability
         return raised > 0;
     }
 
-    /// <summary>AI：交战且半径内至少两具非英雄尸体才拉（一具也要耗大招）。</summary>
     public override bool TryAutoCast(World world)
     {
         if (!HasEnemyNearby(world, Area)) return false;
@@ -51,6 +50,8 @@ public sealed class AnimateDead : Ability
             if (Owner.DistanceTo(other) > Area) continue;
             corpses++;
         }
-        return corpses >= 2 && world.TryCast(Owner, this, null, Owner.Position);
+
+        int required = Mathf.Min(3, Mathf.Max(1, MaxCorpses));
+        return corpses >= required && world.TryCast(Owner, this, null, Owner.Position);
     }
 }

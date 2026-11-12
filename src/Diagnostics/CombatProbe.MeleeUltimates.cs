@@ -20,6 +20,7 @@ public static partial class CombatProbe
         CheckReincarnation();
         CheckMassTeleport();
         CheckSpiritOfVengeance();
+        CheckUltimateTiming();
     }
 
     private static void CheckUnitManaPool()
@@ -183,5 +184,166 @@ public static partial class CombatProbe
         Verify("复仇之魂进冷却", vengeanceType.CooldownAt(1), vengeance.CooldownRemaining, 0.1f);
         GD.Print($"[自检] 复仇之魂 {(spirit != null ? $"存在 {spirit.SummonRemaining:0}s" : "未召出")}"
             + $"，冷却 {vengeance.CooldownRemaining:0}s");
+    }
+
+    private static void CheckUltimateTiming()
+    {
+        GD.Print("==== 终极技能出手时机自检 ====");
+
+        UnitType footType = UnitCatalog.Get("hfoo");
+        if (footType == null) return;
+
+        UnitType mkType = UnitCatalog.Get("Hmkg");
+        AbilityType avatarType = AbilityCatalog.Get("AHav");
+        if (mkType != null && avatarType != null)
+        {
+            var world = new World(null, null);
+            Unit mk = MakeHero(mkType, 0, 6, world);
+            world.Units.Add(mk);
+            Ability avatar = mk.GiveAbility("AHav", 1);
+            if (avatar != null)
+            {
+                Unit foe = MakeUnit(footType, 1);
+                foe.Position = new Vector3(180f, 0f, 0f);
+                world.Units.Add(foe);
+
+                Verify("满血不空放天神下凡", 0f, avatar.TryAutoCast(world) ? 1f : 0f, 0f);
+                mk.Hp = mk.MaxHp * 0.6f;
+                Verify("残血没被集火也不开", 0f, avatar.TryAutoCast(world) ? 1f : 0f, 0f);
+                foe.Target = mk;
+                Verify("残血且被集火才开天神下凡", 1f, avatar.TryAutoCast(world) ? 1f : 0f, 0f);
+                Verify("天神下凡进冷却", avatarType.CooldownAt(1), avatar.CooldownRemaining, 0.1f);
+            }
+        }
+
+        UnitType bladeType = UnitCatalog.Get("Obla");
+        AbilityType stormType = AbilityCatalog.Get("AOww");
+        if (bladeType != null && stormType != null)
+        {
+            var world = new World(null, null);
+            Unit blade = MakeHero(bladeType, 0, 6, world);
+            world.Units.Add(blade);
+            Ability storm = blade.GiveAbility("AOww", 1);
+            if (storm != null)
+            {
+                Unit one = MakeUnit(footType, 1);
+                one.Position = new Vector3(120f, 0f, 0f);
+                world.Units.Add(one);
+                Verify("只贴到一个敌人不转剑刃风暴", 0f, storm.TryAutoCast(world) ? 1f : 0f, 0f);
+
+                Unit two = MakeUnit(footType, 1);
+                two.Position = new Vector3(-120f, 0f, 0f);
+                world.Units.Add(two);
+                Verify("两个敌人贴脸才转", 1f, storm.TryAutoCast(world) ? 1f : 0f, 0f);
+                Verify("剑刃风暴进冷却", stormType.CooldownAt(1), storm.CooldownRemaining, 0.1f);
+            }
+        }
+
+        UnitType lordType = UnitCatalog.Get("Ucrl");
+        AbilityType swarmType = AbilityCatalog.Get("AUls");
+        if (lordType != null && swarmType != null)
+        {
+            var world = new World(null, null);
+            Unit lord = MakeHero(lordType, 0, 6, world);
+            world.Units.Add(lord);
+            Ability swarm = lord.GiveAbility("AUls", 1);
+            if (swarm != null)
+            {
+                var foes = new List<Unit>();
+                for (int index = 0; index < 2; index++)
+                {
+                    Unit foe = MakeUnit(footType, 1);
+                    foe.Position = new Vector3(260f + index * 110f, 0f, 0f);
+                    world.Units.Add(foe);
+                    foes.Add(foe);
+                }
+                lord.Target = foes[0];
+                Verify("两个敌人不够放蝗群", 0f, swarm.TryAutoCast(world) ? 1f : 0f, 0f);
+
+                Unit third = MakeUnit(footType, 1);
+                third.Position = new Vector3(0f, 0f, 300f);
+                world.Units.Add(third);
+                Verify("三个敌人才放蝗群", 1f, swarm.TryAutoCast(world) ? 1f : 0f, 0f);
+                Verify("蝗群进冷却", swarmType.CooldownAt(1), swarm.CooldownRemaining, 0.1f);
+            }
+        }
+
+        UnitType shadowType = UnitCatalog.Get("Oshd");
+        AbilityType voodooType = AbilityCatalog.Get("AOvd");
+        if (shadowType != null && voodooType != null)
+        {
+            var world = new World(null, null);
+            Unit shadow = MakeHero(shadowType, 0, 6, world);
+            world.Units.Add(shadow);
+            Ability voodoo = shadow.GiveAbility("AOvd", 1);
+            if (voodoo != null)
+            {
+                Unit mark = null;
+                var allies = new List<Unit>();
+                for (int index = 0; index < 2; index++)
+                {
+                    Unit ally = MakeUnit(footType, 0);
+                    ally.Position = new Vector3(80f + index * 70f, 0f, 0f);
+                    world.Units.Add(ally);
+                    allies.Add(ally);
+                }
+                for (int index = 0; index < 3; index++)
+                {
+                    Unit foe = MakeUnit(footType, 1);
+                    foe.Position = new Vector3(0f, 0f, 200f + index * 70f);
+                    world.Units.Add(foe);
+                    mark ??= foe;
+                }
+                foreach (Unit ally in allies) ally.Target = mark;
+
+                Verify("两个战斗友军不够跳巫毒", 0f, voodoo.TryAutoCast(world) ? 1f : 0f, 0f);
+
+                Unit thirdAlly = MakeUnit(footType, 0);
+                thirdAlly.Position = new Vector3(-80f, 0f, 0f);
+                thirdAlly.Target = mark;
+                world.Units.Add(thirdAlly);
+                Verify("三个战斗友军才跳巫毒", 1f, voodoo.TryAutoCast(world) ? 1f : 0f, 0f);
+                Verify("巫毒进冷却", voodooType.CooldownAt(1), voodoo.CooldownRemaining, 0.1f);
+            }
+        }
+
+        UnitType keeperType = UnitCatalog.Get("Ekee");
+        AbilityType calmType = AbilityCatalog.Get("AEtq");
+        if (keeperType != null && calmType != null)
+        {
+            var world = new World(null, null);
+            Unit keeper = MakeHero(keeperType, 0, 6, world);
+            world.Units.Add(keeper);
+            Ability calm = keeper.GiveAbility("AEtq", 1);
+            if (calm != null)
+            {
+                Unit foe = MakeUnit(footType, 1);
+                foe.Position = new Vector3(0f, 0f, 400f);
+                world.Units.Add(foe);
+
+                var allies = new List<Unit>();
+                for (int index = 0; index < 2; index++)
+                {
+                    Unit ally = MakeUnit(footType, 0);
+                    ally.Position = new Vector3(100f + index * 60f, 0f, 0f);
+                    ally.Hp = ally.MaxHp * 0.5f;
+                    ally.Target = foe;
+                    world.Units.Add(ally);
+                    allies.Add(ally);
+                }
+
+                Verify("两个残血友军不够开宁静", 0f, calm.TryAutoCast(world) ? 1f : 0f, 0f);
+
+                Unit thirdAlly = MakeUnit(footType, 0);
+                thirdAlly.Position = new Vector3(-100f, 0f, 0f);
+                thirdAlly.Hp = thirdAlly.MaxHp * 0.5f;
+                thirdAlly.Target = foe;
+                world.Units.Add(thirdAlly);
+                Verify("三个残血友军且掉血够多才开宁静", 1f, calm.TryAutoCast(world) ? 1f : 0f, 0f);
+                Verify("宁静进冷却", calmType.CooldownAt(1), calm.CooldownRemaining, 0.1f);
+            }
+        }
+
+        GD.Print("[自检] 大招时机：天神下凡看残血+被集火，剑刃/蝗群/流星看近敌数或英雄，巫毒/宁静看参战友军数");
     }
 }

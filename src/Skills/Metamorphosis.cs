@@ -22,10 +22,11 @@ public sealed class Metamorphosis : Ability
         return world.BeginMorph(Owner, form, EffectiveDuration, disable: false, bonusHp: Data('E'));
     }
 
-    /// <summary>AI：身边有敌人就变身。</summary>
     public override bool TryAutoCast(World world)
     {
-        if (!HasEnemyNearby(world, 800f)) return false;
+        if (Owner == null || Owner.Morphed || !IsFighting) return false;
+        int enemies = NearbyEnemyCount(world, 800f, out bool anyHero);
+        if (enemies < 2 && !anyHero) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

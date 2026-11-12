@@ -114,6 +114,38 @@ public abstract class Ability
         return false;
     }
 
+    protected bool IsFighting => Owner != null && Owner.Target != null && Owner.Target.Alive;
+
+    protected bool IsUnderAttack(World world)
+    {
+        if (world == null || Owner == null) return false;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (world.AreAllied(Owner.Player, other.Player)) continue;
+            if (ReferenceEquals(other.Target, Owner)) return true;
+        }
+        return false;
+    }
+
+    protected int NearbyEnemyCount(World world, float radius, out bool anyHero)
+    {
+        anyHero = false;
+        if (world == null || Owner == null) return 0;
+
+        int count = 0;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (other.Gold > 0) continue;
+            if (world.AreAllied(Owner.Player, other.Player)) continue;
+            if (Owner.DistanceTo(other) > radius + other.Radius) continue;
+            count++;
+            if (other.IsHero) anyHero = true;
+        }
+        return count;
+    }
+
     /// <summary>敌对判定：不同玩家且非同队。</summary>
     protected bool IsHostile(World world, Unit other)
     {

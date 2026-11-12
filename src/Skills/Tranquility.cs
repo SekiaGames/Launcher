@@ -30,15 +30,34 @@ public sealed class Tranquility : Ability
         }
     }
 
-    /// <summary>AI：附近至少两个残血友军才开。</summary>
     public override bool TryAutoCast(World world)
     {
-        int wounded = 0;
+        if (Owner == null) return false;
+
+        float missing = 0f;
+        int fighting = 0;
         foreach (Unit ally in world.AlliesInRange(Owner, Owner.Position, Area))
         {
-            if (ally.Hp / Mathf.Max(1f, ally.MaxHp) > 0.7f) continue;
-            wounded++;
+            if (ally.Hp >= ally.MaxHp) continue;
+            missing += ally.MaxHp - ally.Hp;
+            if (ally.IsBuilding) continue;
+            if (!IsEngaged(world, ally)) continue;
+            fighting++;
         }
-        return wounded >= 2 && world.TryCast(Owner, this, null, Owner.Position);
+
+        if (fighting < 3 || missing < Data('A') * 2f) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
+    }
+
+    private static bool IsEngaged(World world, Unit ally)
+    {
+        if (ally.Target != null && ally.Target.Alive) return true;
+        foreach (Unit other in world.Units)
+        {
+            if (other == null || !other.Alive) continue;
+            if (world.AreAllied(ally.Player, other.Player)) continue;
+            if (ReferenceEquals(other.Target, ally)) return true;
+        }
+        return false;
     }
 }

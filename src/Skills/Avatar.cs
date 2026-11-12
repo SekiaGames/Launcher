@@ -35,10 +35,11 @@ public sealed class Avatar : Ability
         return true;
     }
 
-    /// <summary>AI：交战时开，冷却 180s 所以整场就几次，不要空放。</summary>
     public override bool TryAutoCast(World world)
     {
-        if (!HasEnemyNearby(world, 900f)) return false;
+        if (Owner == null || Owner.MaxHp <= 0f) return false;
+        if (Owner.Hp / Owner.MaxHp > 0.7f) return false;
+        if (!IsUnderAttack(world)) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

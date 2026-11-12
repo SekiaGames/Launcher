@@ -32,17 +32,21 @@ public sealed class Bladestorm : Ability
         }
     }
 
-    /// <summary>AI：身边至少两个地面敌人就转。</summary>
     public override bool TryAutoCast(World world)
     {
+        if (Owner == null) return false;
         int nearby = 0;
+        bool anyHero = false;
         foreach (Unit other in world.Units)
         {
             if (other == null || !other.Alive || other.Type == null || other.Type.Flying) continue;
+            if (other.Gold > 0) continue;
             if (world.AreAllied(Owner.Player, other.Player)) continue;
-            if (Owner.DistanceTo(other) > Area) continue;
+            if (Owner.DistanceTo(other) > Area + other.Radius) continue;
             nearby++;
+            if (other.IsHero) anyHero = true;
         }
-        return nearby >= 2 && world.TryCast(Owner, this, null, Owner.Position);
+        if (nearby < 2 && !anyHero) return false;
+        return world.TryCast(Owner, this, null, Owner.Position);
     }
 }

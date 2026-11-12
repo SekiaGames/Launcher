@@ -33,10 +33,12 @@ public sealed class LocustSwarm : Ability
         return true;
     }
 
-    /// <summary>AI：身边有敌人就放（蝗虫会自己找目标）。</summary>
     public override bool TryAutoCast(World world)
     {
-        if (!HasEnemyNearby(world, 1000f)) return false;
+        if (Owner == null || !IsFighting) return false;
+        float radius = Mathf.Max(700f, Owner.Type?.AcquireRange ?? 0f);
+        int enemies = NearbyEnemyCount(world, radius, out bool anyHero);
+        if (enemies < 3 && !anyHero) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }
 }
