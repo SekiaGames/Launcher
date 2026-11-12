@@ -356,6 +356,20 @@ public abstract class Ability
 
     public virtual void OnDisabledStateChanged() { }
 
+    bool _isDisabled;
+
+    /// <summary>被沉默/锁定而不可用。置位时回调 OnDisabledStateChanged。</summary>
+    public bool IsDisabled
+    {
+        get => _isDisabled;
+        set
+        {
+            if (_isDisabled == value) return;
+            _isDisabled = value;
+            OnDisabledStateChanged();
+        }
+    }
+
     protected virtual void OnCastFinished(bool interrupted, bool completed) { }
 
     public virtual bool CheckCanUse(Unit target, Vec2 point) => true;

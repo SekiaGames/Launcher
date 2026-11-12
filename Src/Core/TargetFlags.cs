@@ -1,32 +1,18 @@
-using System;
-
 namespace OpenWC3;
 
-// 目标类别位（对标客户端 CTargetType：武器 targs1 与单位 targType 用同一套位）
+// CTargetType masks shared by spells, auras and weapons (project bit values).
 [Flags]
-public enum TargetKind
+public enum TargetFlags
 {
-    None = 0,
-    Ground = 1 << 0,
-    Air = 1 << 1,
-    Structure = 1 << 2,
-    Ward = 1 << 3,
-    Item = 1 << 4,
-    Tree = 1 << 5,
-    Wall = 1 << 6,
-    Debris = 1 << 7,
-    All = Ground | Air | Structure | Ward | Item | Tree | Wall | Debris,
-}
-
-// 归属关系位（对标客户端 TargetRules.RelationOf；掩码里没写关系时按客户端 68c7b0 默认成全部）
-[Flags]
-public enum TargetRelation
-{
-    None = 0,
-    Self = 1 << 0,
-    Player = 1 << 1,
-    Ally = 1 << 2,
-    Neutral = 1 << 3,
-    Enemy = 1 << 4,
-    All = Self | Player | Ally | Neutral | Enemy,
+    None = 0, Ground = 1, Air = 2, Structure = 4,
+    Enemy = 8, Ally = 16, Self = 32, NotSelf = 64,
+    NonMagicImmune = 128, NonEthereal = 256, Vulnerable = 512, Invulnerable = 1024,
+    Hero = 2048, NonHero = 4096, Organic = 8192, Mechanical = 16384, Dead = 32768,
+    Alive = 65536, Ancient = 131072, NonAncient = 262144,
+    Player = 524288, // same owning player; distinct from allied players
+    Neutral = 1048576, // PASSIVE without directional SHARED_SPELLS
+    NoTargets = 2097152, // explicit "none"; distinct from unspecified None=0
+    Ward = 1 << 22, Item = 1 << 23, Tree = 1 << 24, Wall = 1 << 25,
+    Debris = 1 << 26, Decoration = 1 << 27, Bridge = 1 << 28,
+    Sapper = 1 << 29, NonSapper = 1 << 30,
 }
