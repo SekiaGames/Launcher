@@ -71,7 +71,7 @@ public class Buff : Ability
     public virtual void OnAttacked(World world, Unit attacker, DamageData info) { }
 
     /// <summary>受到伤害修正（护甲与类型矩阵之前）：反魔法盾吸收、灵魂链分摊、相位转移都挂这里。</summary>
-    public override void ModifyIncomingDamage(World world, DamageData info) { }
+    public override void ModifyIncomingDamage(World world, DamageData info) => ModifyIncomingDamage(ref info);
 
     /// <summary>持有者死亡时（黑蚀箭的标记到点召骷髅）。</summary>
     public virtual void OnDeath(World world) { }

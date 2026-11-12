@@ -377,20 +377,16 @@ public sealed partial class World
 
         for (int index = 0; index < target.Buffs.Count; index++)
         {
-            target.Buffs[index].ModifyIncomingDamage(this, info);
-        }
-
-        for (int index = 0; index < target.Buffs.Count; index++)
-        {
-            target.Buffs[index].ModifyIncomingDamage(ref info);
+            if (target.Buffs[index].OverridesIncomingWorldHook) target.Buffs[index].ModifyIncomingDamage(this, info);
+            else target.Buffs[index].ModifyIncomingDamage(ref info);
         }
 
         if (target.Abilities == null) return;
         foreach (Ability ability in target.Abilities)
         {
             if (!ability.Learned) continue;
-            ability.ModifyIncomingDamage(this, info);
-            ability.ModifyIncomingDamage(ref info);
+            if (ability.OverridesIncomingWorldHook) ability.ModifyIncomingDamage(this, info);
+            else ability.ModifyIncomingDamage(ref info);
         }
     }
 

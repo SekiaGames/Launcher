@@ -269,7 +269,7 @@ public abstract class Ability
     public virtual bool CanBeHitBy(World world, DamageData info) => true;
 
     /// <summary>受到伤害修正（护甲与类型矩阵之前）：硬化皮肤、艾露恩恩泽这类在这里改数值。</summary>
-    public virtual void ModifyIncomingDamage(World world, DamageData info) { }
+    public virtual void ModifyIncomingDamage(World world, DamageData info) => ModifyIncomingDamage(ref info);
 
     /// <summary>普攻命中之后（伤害已结算）：腐蚀吐息、液体火焰、月刃弹射这类挂这里。</summary>
     public virtual void OnAttackLanded(World world, DamageData info) { }
@@ -547,6 +547,13 @@ public abstract class Ability
     public virtual void ModifyOutgoingDamage(Unit target, ref DamageData data) => ModifyOutgoingDamage(ref data);
 
     public virtual void ModifyIncomingDamage(ref DamageData data) { }
+
+    bool? _incomingWorldHook;
+
+    /// <summary>这个类型是否自己重写了 (World, DamageData) 版入伤钩子；没有则走 ref 版。</summary>
+    public bool OverridesIncomingWorldHook => _incomingWorldHook ??=
+        GetType().GetMethod(nameof(ModifyIncomingDamage), new[] { typeof(World), typeof(DamageData) })
+            ?.DeclaringType is Type declaring && declaring != typeof(Ability) && declaring != typeof(Buff);
 
     // —— 客户端 Ability 表面成员（对齐客户端形状，行为在各自管线里）——
 

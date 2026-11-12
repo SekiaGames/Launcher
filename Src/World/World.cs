@@ -20,6 +20,11 @@ public sealed partial class World
 
     public System.Random Rng => _random;
 
+    readonly System.Random _hardenedSkinRng = new(20261113);
+
+    /// <summary>硬化皮肤/减伤掷骰的独立随机流（与战斗随机分开，避免扰动既有序列）。</summary>
+    public System.Random HardenedSkinRng => _hardenedSkinRng;
+
     /// <summary>客户端 World.SharedSpellsQuery：同队共享视野/共享单位控制下的友军判定。</summary>
     public Func<Unit, Unit, bool> SharedSpellsQuery { get; set; } = (a, b) => a != null && b != null && a.Team == b.Team;
 
