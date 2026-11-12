@@ -340,6 +340,7 @@ public sealed partial class War3GameScene : Node3D
         _terrainBuilder?.Blight?.Tick((float)delta, _allUnits);
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
+        RefreshConstruction();
 
         _hudTimer += (float)delta;
         if (_hudTimer >= 0.2f)
@@ -347,7 +348,6 @@ public sealed partial class War3GameScene : Node3D
             _hudTimer = 0f;
             PruneCargoedSelection();
             _hud?.SetSelection(_selected);
-            RefreshConstruction();
             RefreshBars();
             RefreshHud();
             UpdateCommandCard();

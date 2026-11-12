@@ -534,6 +534,7 @@ public sealed partial class War3GameScene
             _selected.Add(fast);
             _selected.Add(slow);
             _hud?.SetSelection(_selected);
+            ProbeCreepSleepEntry();
             float fastBase = World.SpeedOf(fast);
             IssueMoveOrders(hero.Position + new Vector3(800f, 0f, 800f), false);
             GD.Print($"[UI] 群组限速 骑兵 {fastBase:0}->{World.SpeedOf(fast):0} 步兵 {World.SpeedOf(slow):0} cap={fast.GroupSpeedCap:0}");
@@ -541,6 +542,28 @@ public sealed partial class War3GameScene
             for (int tick = 0; tick < 40; tick++) _world.Advance();
             GD.Print($"[UI] 群组路径 40tick 索引 {fast.PathIndex}/{slow.PathIndex} 偏移 {Mathf.Abs(fast.PathIndex - slow.PathIndex)}");
         }
+    }
+
+    private void ProbeCreepSleepEntry()
+    {
+        int sleepers = 0;
+        Unit sample = null;
+        foreach (Unit unit in _world.Units)
+        {
+            if (unit == null || !unit.Alive || !unit.IsCreepSleeper) continue;
+            if (!unit.State.Has(StateMod.Sleep)) continue;
+            sleepers++;
+            sample ??= unit;
+        }
+        bool woke = false;
+        if (sample != null)
+        {
+            _world.IsNight = true;
+            _world.Advance();
+            woke = !sample.State.Has(StateMod.Sleep);
+            _world.IsNight = false;
+        }
+        GD.Print($"[UI] 野怪睡眠 {sleepers} 只，入夜唤醒={woke}");
     }
 
     private void ProbeShopEntry(Unit hero)

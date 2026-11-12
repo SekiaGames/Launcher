@@ -32,6 +32,7 @@ public sealed partial class Unit
     public Vector3 GroupMoveGoal;
     public int GroupMoveId;
     public bool ProductionBlocked;
+    public bool IsCreepSleeper;
 
     public Unit GoldMine;
     public Unit HomeHall;

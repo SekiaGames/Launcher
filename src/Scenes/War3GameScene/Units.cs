@@ -390,6 +390,12 @@ public sealed partial class War3GameScene
 
         view.Play("Stand");
         view.SetHp(1f, true);
+        if (type.CanSleep && player == MeleeRules.PlayerNeutralHostile)
+        {
+            unit.IsCreepSleeper = true;
+            unit.State.Add(StateMod.Sleep);
+            view.Play("Sleep");
+        }
         _allUnits.Add(unit);
         return unit;
     }
