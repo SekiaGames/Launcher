@@ -95,6 +95,7 @@ public sealed partial class War3GameScene
             Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
             _world.IssueOrder(unit, UnitOrder.Move(spot), queue);
         }
+        ApplyGroupSpeedCap(movers, slots, ground);
         PlayVoice(movers[0], "Yes");
         _hud?.SetHint(queue
             ? $"追加移动 {movers.Count} 个单位"
@@ -114,10 +115,30 @@ public sealed partial class War3GameScene
             Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
             _world.IssueOrder(unit, UnitOrder.Patrol(spot), queue);
         }
+        ApplyGroupSpeedCap(movers, slots, ground);
         PlayVoice(movers[0], "Yes");
         _hud?.SetHint(queue
             ? $"追加巡逻 {movers.Count} 个单位"
             : $"巡逻：{movers.Count} 个单位往返 ({ground.X:0}, {ground.Z:0})");
+    }
+
+    private void ApplyGroupSpeedCap(List<Unit> movers, Dictionary<Unit, Vector3> slots, Vector3 fallback)
+    {
+        foreach (Unit unit in movers)
+        {
+            unit.GroupSpeedCap = 0f;
+            unit.GroupMoveGoal = default;
+        }
+
+        if (movers.Count <= 1) return;
+
+        float cap = float.MaxValue;
+        foreach (Unit unit in movers) cap = Mathf.Min(cap, World.SpeedOf(unit));
+        foreach (Unit unit in movers)
+        {
+            unit.GroupSpeedCap = cap;
+            unit.GroupMoveGoal = slots.TryGetValue(unit, out Vector3 spot) ? spot : fallback;
+        }
     }
 
     public void IssueAttackOrders(Unit target, bool queue)
@@ -129,6 +150,7 @@ public sealed partial class War3GameScene
         {
             if (!unit.Alive || unit.IsBuilding || !unit.Type.CanAttack) continue;
             _world.IssueOrder(unit, UnitOrder.Attack(target), queue);
+            unit.GroupSpeedCap = 0f;
             attackers++;
         }
         if (attackers == 0)

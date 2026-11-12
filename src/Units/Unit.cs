@@ -28,6 +28,8 @@ public sealed partial class Unit
     public float SepVelocityX;
     public float SepVelocityZ;
     public int SepCooldown;
+    public float GroupSpeedCap;
+    public Vector3 GroupMoveGoal;
 
     public Unit GoldMine;
     public Unit HomeHall;

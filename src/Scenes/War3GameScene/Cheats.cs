@@ -523,6 +523,21 @@ public sealed partial class War3GameScene
         _hud?.SetSelection(_selected);
         MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
         GD.Print($"[UI] 小地图右键下令 MoveTarget={hero.MoveTarget.HasValue}");
+
+        Unit fast = Spawn("hkni", ViewPlayer, hero.Position.X + 300f, hero.Position.Z + 300f, 0f, 0f, 1f);
+        Unit slow = Spawn("hfoo", ViewPlayer, hero.Position.X + 360f, hero.Position.Z + 360f, 0f, 0f, 1f);
+        if (fast != null && slow != null)
+        {
+            _world.Units.Add(fast);
+            _world.Units.Add(slow);
+            _selected.Clear();
+            _selected.Add(fast);
+            _selected.Add(slow);
+            _hud?.SetSelection(_selected);
+            float fastBase = World.SpeedOf(fast);
+            IssueMoveOrders(hero.Position + new Vector3(800f, 0f, 800f), false);
+            GD.Print($"[UI] 群组限速 骑兵 {fastBase:0}->{World.SpeedOf(fast):0} 步兵 {World.SpeedOf(slow):0} cap={fast.GroupSpeedCap:0}");
+        }
     }
 
     private void ProbeShopEntry(Unit hero)

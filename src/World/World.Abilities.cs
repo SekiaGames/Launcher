@@ -413,6 +413,15 @@ public sealed partial class World
         float speed = unit.Type.Speed + unit.BonusMoveSpeedFlat + unit.TechMoveSpeedFlat;
         speed *= 1f + Mathf.Max(0f, unit.AuraMoveSpeedPct);
         if (unit.Slowed) speed *= 1f - unit.SlowMovePct;
+
+        if (unit.GroupSpeedCap > 0f)
+        {
+            bool sameGoal = unit.MoveTarget.HasValue
+                && (unit.MoveTarget.Value - unit.GroupMoveGoal).LengthSquared() <= 1f;
+            if (sameGoal) speed = Mathf.Min(speed, unit.GroupSpeedCap);
+            else unit.GroupSpeedCap = 0f;
+        }
+
         return Mathf.Max(40f, speed);
     }
 
