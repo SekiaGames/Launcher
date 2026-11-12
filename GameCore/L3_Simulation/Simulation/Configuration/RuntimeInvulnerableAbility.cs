@@ -1,15 +1,33 @@
-using Godot;
-
 namespace OpenWC3.Game;
 
+/// <summary>CAbilityInvulnerable（Avul）：存在且有等级时贡献计数式无敌状态。</summary>
 public sealed class RuntimeInvulnerableAbility : Ability
 {
-    public override bool IsPassive => true;
-
-    public override void OnWorldTick(World world, float delta)
+    bool _applied;
+    public override string Name=>ObjectData?.GetString("Name",Rawcode)??Rawcode;
+    public override bool CheckCanUse(Unit target,Vec2 point)=>false;
+    public override void OnAdd()=>RefreshInvulnerableState();
+    public override void OnSpawn()=>RefreshInvulnerableState();
+    public override void OnLevelUp()=>RefreshInvulnerableState();
+    public override void OnLevelDown()=>RefreshInvulnerableState();
+    public override void OnDeath()
     {
-        if (Owner == null || !Owner.Alive) return;
-        if (Owner.State.Has(StateMod.Invulnerable)) return;
-        Owner.State.Add(StateMod.Invulnerable, 0.5f);
+        RemoveOwnState();
+        base.OnDeath();
+    }
+    public override void OnRemove()=>RemoveOwnState();
+    public void RefreshInvulnerableState()
+    {
+        bool shouldApply=Owner!=null&&Level>0;
+        if(shouldApply==_applied)return;
+        if(shouldApply)Owner.State.Add(StateModType.Invulnerable);
+        else Owner.State.Remove(StateModType.Invulnerable);
+        _applied=shouldApply;
+    }
+    void RemoveOwnState()
+    {
+        if(!_applied||Owner==null)return;
+        Owner.State.Remove(StateModType.Invulnerable);
+        _applied=false;
     }
 }

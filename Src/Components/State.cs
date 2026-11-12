@@ -50,6 +50,10 @@ public sealed class State
 
     public bool Is(StateModType type) => Has(ToMod(type));
 
+    public void Add(StateModType type) => Add(ToMod(type));
+
+    public void Remove(StateModType type) => Remove(ToMod(type));
+
     public bool Paused => Has(StateMod.Pause) || Has(StateMod.InternalPause);
 
     public bool Sleeping => Has(StateMod.Sleep);
