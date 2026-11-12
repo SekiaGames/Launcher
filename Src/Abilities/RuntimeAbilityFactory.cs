@@ -251,7 +251,7 @@ public static class RuntimeAbilityFactory
         ["Atau"] = () => new RuntimeTauntAbility(),             // 嘲讽（山岭巨人）
         // —— 亡灵单位补充 ——
         ["Aam2"] = () => new AntiMagicShield(),   // 反魔法盾（女妖，吸收魔法伤害）
-        ["Aams"] = () => new RuntimeAntiMagicShellAbility(),    // 反魔法外壳（女妖，90s 全魔法免疫）
+        ["Aams"] = () => WithObjects<RuntimeAntiMagicShellAbility>(),    // 反魔法外壳（女妖，90s 全魔法免疫）
         ["Abur"] = () => new RuntimeBurrowFormAbility(),            // 钻地（地穴恶魔，隐形禁攻）
         ["Apts"] = () => new RuntimePlagueTossAbility(),        // 投掷瘟疫（绞肉车，消耗尸体召 uplg）
         ["Astn"] = () => new RuntimeAlternateFormAbility(),         // 石像形态（石像鬼，护甲 + 定身）

@@ -240,6 +240,8 @@ public sealed partial class Unit
         ability.Owner = this;
         Abilities.Add(ability);
         ability.OnAdd();
+        // 客户端 Buff 只在 Duration 上写时长，剩余时间要在这里起算，否则挂着即过期
+        if (ability is Buff buff && buff.Remaining <= 0f) buff.RefreshExpiration();
     }
 
     public bool RemoveAbility(Ability ability)
