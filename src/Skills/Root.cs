@@ -15,6 +15,9 @@ public sealed class Root : Ability
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;
 
     public bool Rooted => Owner?.IsBuilding == true;
+    public bool Transitioning { get; private set; }
+
+    private float _transitionRemaining;
 
     /// <summary>DataD：拔根后的护甲类型（0 Small / 1 Medium / 2 Large …）。</summary>
     public DefenseType MobileDefense => (DefenseType)Mathf.Clamp(Mathf.RoundToInt(Data('D')), 0, 7);
@@ -22,6 +25,7 @@ public sealed class Root : Ability
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner?.Type == null || !Owner.Alive) return false;
+        if (Transitioning) return false;
         if (Owner.State.Stunned || Owner.IsChanneling || Owner.IsUnderConstruction) return false;
 
         if (Rooted)
@@ -35,6 +39,22 @@ public sealed class Root : Ability
         return true;
     }
 
+    public override void OnWorldTick(World world, float delta)
+    {
+        if (!Transitioning) return;
+        _transitionRemaining -= delta;
+        if (_transitionRemaining > 0f) return;
+        Transitioning = false;
+        if (Owner != null) Owner.ProductionBlocked = false;
+    }
+
+    private void StartTransition()
+    {
+        Transitioning = true;
+        _transitionRemaining = Duration > 0f ? Duration : 2.5f;
+        if (Owner != null) Owner.ProductionBlocked = true;
+    }
+
     private void Uproot(World world)
     {
         float footprint = Owner.Radius;
@@ -46,6 +66,7 @@ public sealed class Root : Ability
         Owner.DefenseTypeOverride = MobileDefense;
         world.ReleaseFootprint(Owner, footprint);
         Owner.View?.Play("Stand");
+        StartTransition();
     }
 
     private void Plant(World world)
@@ -58,6 +79,7 @@ public sealed class Root : Ability
         Owner.DefenseTypeOverride = null;
         world.OccupyFootprint(Owner);
         Owner.View?.Play("Stand");
+        StartTransition();
     }
 
     public override bool TryAutoCast(World world) => false;

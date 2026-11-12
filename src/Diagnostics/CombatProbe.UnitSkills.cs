@@ -146,6 +146,8 @@ public static partial class CombatProbe
         Unit shaman = ProbeUnit(world, "oshm", 0, Vector3.Zero, "Apg2");
         Unit summon = ProbeUnit(world, "osw1", 1, new Vector3(300f, 0f, 0f));
         summon.SummonRemaining = 60f;
+        summon.MaxHp = 2000f;
+        summon.Hp = 2000f;
 
         float before = summon.Hp;
         Ability purge = shaman.FindAbility("Apg2");
@@ -153,7 +155,10 @@ public static partial class CombatProbe
 
         Verify("净化施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("净化对召唤物伤害=DataC", Mathf.Max(0f, before - purgeType.DataAt(1, 'C')), summon.Hp, 0.5f);
-        Verify("净化减速 1-1/DataA", 1f - 1f / purgeType.DataAt(1, 'A'), summon.SlowMovePct, 0.01f);
+        Verify("净化初始满减速", 0.95f, summon.SlowMovePct, 0.01f);
+        int moveStages = Mathf.Max(1, Mathf.RoundToInt(purgeType.DataAt(1, 'A')));
+        for (int index = 0; index < 65; index++) world.TickAbilities();
+        Verify("净化按 DataA 阶数恢复", 0.95f - 0.95f / moveStages, summon.SlowMovePct, 0.02f);
 
         // 萨满祭司用的码是 Aprg（Apg2 只是同名别名），除了减速还要把目标身上的增益驱散掉
         AbilityType shamanPurgeType = AbilityCatalog.Get("Aprg");
@@ -165,7 +170,7 @@ public static partial class CombatProbe
         bool real = world.TryCast(shamanReal, shamanReal.FindAbility("Aprg"), buffed, buffed.Position);
         Verify("净化(Aprg)施放成功", 1f, real ? 1f : 0f, 0f);
         Verify("净化把敌方增益驱散", 0f, buffed.BonusDamagePct, 0.001f);
-        Verify("净化(Aprg)同样减速", 1f - 1f / shamanPurgeType.DataAt(1, 'A'), buffed.SlowMovePct, 0.01f);
+        Verify("净化(Aprg)同样满减速", 0.95f, buffed.SlowMovePct, 0.01f);
     }
 
     /// <summary>Aams：对所有的魔法免疫，Dur=90s；魔法伤害进不来，物理伤害照旧。</summary>

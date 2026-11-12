@@ -45,6 +45,10 @@ public static partial class CombatProbe
         Verify("放逐目标虚无", 1f, footman.State.Ethereal ? 1f : 0f, 0f);
         Verify("放逐移速减少=DataA", banishType.DataAt(1, 'A'), footman.SlowMovePct, 0.001f);
         Verify("放逐时长=Dur", banishType.DurationAt(1), footman.Buffs[0].Remaining, 0.01f);
+
+        footman.ApplySlow(0.3f, 0.3f, 1f);
+        for (int index = 0; index < 30; index++) world.TickAbilities();
+        Verify("放逐减速有独立槽", banishType.DataAt(1, 'A'), footman.SlowMovePct, 0.01f);
         GD.Print($"[自检] 放逐 步兵 虚无={footman.State.Ethereal} 减速 {footman.SlowMovePct:P0}"
             + $" 时长 {footman.Buffs[0].Remaining:0.0}s");
     }

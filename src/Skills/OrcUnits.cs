@@ -112,8 +112,9 @@ public sealed class Purge : Ability
         if (!hostile) return true;
 
         float seconds = target.IsHero && HeroDuration > 0f ? HeroDuration : Duration;
-        float slow = SlowFactor > 1f ? 1f - 1f / SlowFactor : Mathf.Clamp(SlowFactor, 0f, 1f);
-        target.ApplySlow(slow, 0f, seconds);
+        int moveStages = Mathf.Max(1, Mathf.RoundToInt(Data('A')));
+        int attackStages = Mathf.Max(0, Mathf.RoundToInt(Data('B')));
+        target.AddSlow(1f, attackStages > 0 ? 1f : 0f, seconds, moveStages, attackStages);
 
         if (SummonDamage > 0f && target.IsSummon)
         {

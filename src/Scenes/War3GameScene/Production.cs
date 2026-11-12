@@ -237,6 +237,7 @@ public sealed partial class War3GameScene
     private bool StartTraining(Unit building, string unitId)
     {
         if (building == null || !building.Alive) return false;
+        if (building.ProductionBlocked) return false;
         if (Slot(building.Player) == null) return false;
 
         PlayerSlot slot = Slot(building.Player);

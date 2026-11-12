@@ -208,15 +208,7 @@ public sealed partial class World
                 if (unit.SummonRemaining <= 0f) unit.ExpireSummon();
             }
 
-            if (unit.SlowRemaining > 0f)
-            {
-                unit.SlowRemaining -= Tick;
-                if (unit.SlowRemaining <= 0f)
-                {
-                    unit.SlowMovePct = 0f;
-                    unit.SlowAttackPct = 0f;
-                }
-            }
+            unit.TickSlows(Tick);
 
             if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
 

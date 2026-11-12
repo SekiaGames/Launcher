@@ -37,12 +37,7 @@ public sealed partial class World
             removed++;
         }
 
-        if (removed > 0)
-        {
-            target.SlowRemaining = 0f;
-            target.SlowMovePct = 0f;
-            target.SlowAttackPct = 0f;
-        }
+        if (removed > 0) target.ClearSlows();
 
         if (summonDamage > 0f && target.IsSummon && target.Alive)
         {

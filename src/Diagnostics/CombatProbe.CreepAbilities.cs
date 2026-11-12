@@ -32,8 +32,15 @@ public static partial class CombatProbe
         Verify("拔根可用", 1f, uprooted ? 1f : 0f, 0f);
         Verify("拔根后不再是建筑", 0f, ancient.IsBuilding ? 1f : 0f, 0f);
         Verify("拔根后护甲类型 =DataD", type.DataAt(1, 'D'), (float)ancient.DefenseTypeOrDefault, 0f);
+        Verify("拔根过渡期不能生产", 1f, ancient.ProductionBlocked ? 1f : 0f, 0f);
 
         root.CooldownRemaining = 0f;
+        bool blocked = !world.TryCast(ancient, root, null, ancient.Position);
+        Verify("过渡期不能再按", 1f, blocked ? 1f : 0f, 0f);
+
+        for (int index = 0; index < 60; index++) world.TickAbilities();
+        Verify("过渡结束解生产锁", 0f, ancient.ProductionBlocked ? 1f : 0f, 0f);
+
         bool planted = world.TryCast(ancient, root, null, ancient.Position);
         Verify("再按一次扎根", 1f, planted && ancient.IsBuilding ? 1f : 0f, 0f);
         Verify("扎根后护甲类型还原", 0f, ancient.DefenseTypeOverride.HasValue ? 1f : 0f, 0f);

@@ -138,13 +138,6 @@ public sealed partial class Unit
     public float SlowRemaining;
     public bool Slowed => SlowRemaining > 0f;
 
-    /// <summary>取更强的减速：同类不叠加，刷新时长。</summary>
-    public void ApplySlow(float movePct, float attackPct, float seconds)
-    {
-        SlowMovePct = Mathf.Max(SlowMovePct, Mathf.Clamp(movePct, 0f, 0.95f));
-        SlowAttackPct = Mathf.Max(SlowAttackPct, Mathf.Clamp(attackPct, 0f, 0.95f));
-        SlowRemaining = Mathf.Max(SlowRemaining, seconds);
-    }
 
     public void Heal(float amount)
     {
