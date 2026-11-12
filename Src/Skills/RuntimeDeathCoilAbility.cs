@@ -46,7 +46,11 @@ public sealed class RuntimeDeathCoilAbility : Ability
             return;
         }
 
-        world.DealDamage(World.MakeAbilityDamage(Owner, target, Amount, AttackType.Spells, DamageType.Magic));
+        // 客户端 RuntimeUndeadHeroAbilities.cs:42-44：伤害分支是 HealAmount/2，且类型为 Death。
+        // Launcher 的 DamageType 只有 Normal/Magic/Universal，Death 与 Magic 在客户端同走 Spells 行、
+        // 同样吃魔免，这里用 Magic 表示；数值必须减半（原实现打全额，伤害翻倍）。
+        world.DealDamage(World.MakeAbilityDamage(Owner, target, Amount * 0.5f, AttackType.Spells, DamageType.Magic));
+
     }
 
     /// <summary>AI：优先补伤兵（亡灵友军），没有伤兵就打射程内最近的活物敌人。</summary>

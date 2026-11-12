@@ -18,25 +18,26 @@ public sealed class HolyLight : Ability
     {
         if (target == null || !target.Alive || Owner == null) return false;
         if (target == Owner) return false;
+        if (!InRange(target)) return false;
 
+        // 客户端 Src/Skills/HolyLight.cs:34-52：友军一律可治；敌军只有亡灵可选（吃 HealAmount/2）。
         bool ally = world != null ? world.AreAllied(Owner.Player, target.Player) : Owner.Player == target.Player;
-        if (!ally) return false;
-
-        return InRange(target);
+        return ally || IsUndead(target);
     }
 
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (target == null || !target.Alive || world == null) return false;
 
-        float amount = HealAmount;
-        if (IsUndead(target))
+        bool ally = world.AreAllied(Owner.Player, target.Player);
+        if (!ally)
         {
-            world.DealDamage(World.MakeAbilityDamage(Owner, target, amount * 0.5f, AttackType.Spells, DamageType.Universal));
+            // 敌方亡灵：半额神圣伤害（客户端 DamageType.Divine，Launcher 用 Universal 近似"无视护甲"）。
+            world.DealDamage(World.MakeAbilityDamage(Owner, target, HealAmount * 0.5f, AttackType.Spells, DamageType.Universal));
         }
         else
         {
-            target.Heal(amount);
+            target.Heal(HealAmount);
         }
         return true;
     }

@@ -59,8 +59,8 @@ public static partial class CombatProbe
         // —— 对亡灵：治疗量一半的伤害 ——
         if (orcType != null)
         {
-            // 亡灵必须是「友军」才走得到圣光术的目标校验（原版圣光只对友军施放，对亡灵友军造成一半伤害）
-            Unit skeleton = MakeUnit(orcType, 0);
+            // 敌方亡灵才吃圣光伤害（客户端 HolyLight.cs:34-52：敌对亡灵 HealAmount/2，友军一律治疗）
+            Unit skeleton = MakeUnit(orcType, 1);
             skeleton.Position = new Vector3(120f, 0f, 0f);
             world.Units.Add(skeleton);
             holy.CooldownRemaining = 0f;

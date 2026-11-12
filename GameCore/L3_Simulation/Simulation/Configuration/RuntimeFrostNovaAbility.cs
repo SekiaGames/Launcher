@@ -31,14 +31,16 @@ public sealed class RuntimeFrostNovaAbility : Ability
         float primary = Data('B');
         float splash = Data('A');
 
-        world.DealDamage(World.MakeAbilityDamage(Owner, target, primary, AttackType.Spells, DamageType.Magic));
-        if (target.Alive) target.ApplySlow(SlowMove, SlowAttack, Duration);
-
+        // 客户端 573b10：先对整个范围（含主目标）结算 DataA 并挂霜冻；
+        // 56da80 再给原始目标补一次 DataB。原实现把主目标排除在范围伤害外，少了一段。
         foreach (Unit other in world.EnemiesInRange(Owner, center, Area))
         {
-            if (ReferenceEquals(other, target)) continue;
             world.DealDamage(World.MakeAbilityDamage(Owner, other, splash, AttackType.Spells, DamageType.Magic));
             if (other.Alive) other.ApplySlow(SlowMove, SlowAttack, Duration);
+        }
+        if (target.Alive)
+        {
+            world.DealDamage(World.MakeAbilityDamage(Owner, target, primary, AttackType.Spells, DamageType.Magic));
         }
         return true;
     }
