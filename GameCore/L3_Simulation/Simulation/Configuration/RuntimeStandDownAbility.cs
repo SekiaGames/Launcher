@@ -11,7 +11,7 @@ public sealed class RuntimeStandDownAbility : Ability
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null) return false;
-        return world.UnloadAllCargo(Owner);
+        return world.Cargo.UnloadAllCargo(Owner);
     }
 
     public override bool TryAutoCast(World world) => false;

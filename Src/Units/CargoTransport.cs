@@ -5,11 +5,19 @@ namespace Launcher;
 
 /// <summary>
 /// 驻军（兽族地洞）：把苦工塞进地洞藏起来，地洞里有人才开火。
-/// 对标客户端 CargoTransport + RuntimeBunkerAbility 的最小口径：
+/// 对标客户端 Src/Units/CargoTransport.cs + RuntimeBunkerAbility 的最小口径：
 /// 装载时把乘客从世界单位表里摘掉（不参与索敌、伤害、寻路），卸货时按螺旋摆回建筑周围。
+/// 差异：客户端是每载具一个 CargoTransport 实例（Unit 持有），这里先保留"世界级服务 + holder 参数"的调用形态。
 /// </summary>
-public sealed partial class World
+public sealed class CargoTransport
 {
+    private readonly World _world;
+
+    public CargoTransport(World world)
+    {
+        _world = world;
+    }
+
     private const float CargoDropRadius = 52f;
 
     /// <summary>能不能把 passenger 装进 holder：同队、活着、非建筑非英雄；地洞只收农民。</summary>
@@ -29,7 +37,7 @@ public sealed partial class World
         if (holder == null || holder.CargoCapacity <= 0) return 0;
 
         var candidates = new List<Unit>();
-        foreach (Unit unit in Units)
+        foreach (Unit unit in _world.Units)
         {
             if (!CanEnterCargo(holder, unit)) continue;
             if (holder.DistanceTo(unit) > radius) continue;
@@ -68,7 +76,7 @@ public sealed partial class World
             passenger.View.Root.Position = holder.Position;
         }
 
-        Units.Remove(passenger);
+        _world.Units.Remove(passenger);
         holder.Cargo.Add(passenger);
         return true;
     }
@@ -112,6 +120,6 @@ public sealed partial class World
             passenger.View.Play("Stand");
         }
 
-        if (!Units.Contains(passenger)) Units.Add(passenger);
+        if (!_world.Units.Contains(passenger)) _world.Units.Add(passenger);
     }
 }

@@ -23,11 +23,11 @@ public sealed class RuntimeBunkerAbility : Ability
         if (world == null || Owner == null || !Owner.Alive) return false;
         ApplyGarrison();
 
-        if (Owner.Cargo.Count > 0) return world.UnloadAllCargo(Owner);
-        return world.LoadNearbyWorkers(Owner, LoadRadius) > 0;
+        if (Owner.Cargo.Count > 0) return world.Cargo.UnloadAllCargo(Owner);
+        return world.Cargo.LoadNearbyWorkers(Owner, LoadRadius) > 0;
     }
 
-    public override void OnOwnerDeath(World world) => world?.ReleaseCargoOnDeath(Owner);
+    public override void OnOwnerDeath(World world) => world?.Cargo.ReleaseCargoOnDeath(Owner);
     public override bool TryAutoCast(World world) => false;
 
     /// <summary>地洞只在装了人的时候开火，所以这里把容量与开关一起写进单位。</summary>

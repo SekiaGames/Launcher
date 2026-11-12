@@ -24,6 +24,10 @@ public sealed partial class World
     private readonly Random _random = new(20261111);
 
     public List<Unit> Units { get; } = new();
+
+    private CargoTransport _cargo;
+    /// <summary>驻军子系统（对标客户端 Src/Units/CargoTransport.cs）。</summary>
+    public CargoTransport Cargo => _cargo ??= new CargoTransport(this);
     public event Action<Unit> Died;
     public event Action<int, int> GoldDeposited;
     public event Action<int, int> LumberDeposited;

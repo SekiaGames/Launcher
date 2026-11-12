@@ -11,14 +11,14 @@ public sealed class RuntimeCargoLoadAbility : Ability
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null) return false;
-        return world.CanEnterCargo(Owner, target);
+        return world.Cargo.CanEnterCargo(Owner, target);
     }
 
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null || target == null) return false;
-        if (!world.CanEnterCargo(Owner, target)) return false;
-        return world.LoadCargo(Owner, target);
+        if (!world.Cargo.CanEnterCargo(Owner, target)) return false;
+        return world.Cargo.LoadCargo(Owner, target);
     }
 
     public override bool TryAutoCast(World world) => false;

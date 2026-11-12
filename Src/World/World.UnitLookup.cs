@@ -63,7 +63,7 @@ public sealed partial class World
         unit.IsCorpse = false;
         unit.Target = null;
         unit.MoveTarget = null;
-        ReleaseCargoOnDeath(unit);
+        Cargo.ReleaseCargoOnDeath(unit);
         Units.Remove(unit);
         UnitRemoved?.Invoke(unit);
     }
