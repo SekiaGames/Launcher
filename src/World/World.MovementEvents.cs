@@ -38,7 +38,8 @@ public sealed partial class World
             return;
         }
         Vector3 pathGoal = goal;
-        List<Vector3> path = _pathGrid.FindPath(unit.Position, pathGoal, unit.Radius);
+        PathLayer layer = unit.Type?.PathingLayer ?? PathLayer.Ground;
+        List<Vector3> path = _pathGrid.FindPath(unit.Position, pathGoal, unit.Radius, layer);
         if (path == null || path.Count == 0)
         {
             unit.Path = null;
@@ -83,7 +84,7 @@ public sealed partial class World
         float step = Mathf.Min(SpeedOf(unit) * Tick, distance);
         Vector2 next = from + direction * step;
 
-        float groundY = _terrain != null ? MapWorldBuilder.HeightAt(_terrain, next.X, next.Y) : unit.Position.Y;
+        float groundY = _terrain != null ? SurfaceY(unit.Type, next.X, next.Y) : unit.Position.Y;
         unit.Position = new Vector3(next.X, groundY, next.Y);
         unit.TargetFacing = Mathf.Pi + Mathf.Atan2(-direction.X, direction.Y);
 
@@ -93,6 +94,22 @@ public sealed partial class World
             ApplyFacing(unit);
             unit.View.Play("Walk");
         }
+    }
+
+    public float SurfaceY(UnitType type, float worldX, float worldZ)
+    {
+        if (_terrain == null || type == null) return 0f;
+        PathLayer layer = type.PathingLayer;
+        if (layer == PathLayer.Water)
+        {
+            return MapWorldBuilder.WaterHeightAt(_terrain, worldX, worldZ);
+        }
+        if (layer == PathLayer.Amphibious && _pathGrid != null
+            && !_pathGrid.IsBlockedWorld(worldX, worldZ, PathLayer.Water))
+        {
+            return MapWorldBuilder.WaterHeightAt(_terrain, worldX, worldZ);
+        }
+        return MapWorldBuilder.HeightAt(_terrain, worldX, worldZ);
     }
 
     /// <summary>瞬移/落点定位：改模拟坐标的同时把节点也挪过去（对标客户端 World.SetUnitPosition）。</summary>

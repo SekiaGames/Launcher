@@ -695,6 +695,78 @@ public sealed partial class War3GameScene
             if (++count >= 4) break;
         }
         GD.Print($"[RALLY] 共设 {count} 个集结点");
+        ProbeWaterPath();
+    }
+
+    private void ProbeWaterPath()
+    {
+        if (_pathGrid == null || _map?.Terrain == null)
+        {
+            GD.Print("[WATERPATH] 无寻路网格，跳过");
+            return;
+        }
+
+        var terrain = _map.Terrain;
+        Vector3 start = default;
+        Vector3 end = default;
+        bool found = false;
+        for (int cy = 4; cy < terrain.Height - 4 && !found; cy++)
+        {
+            for (int cx = 4; cx < terrain.Width - 4 && !found; cx++)
+            {
+                if (!terrain.Corners[cy * terrain.Width + cx].HasWater) continue;
+                var point = new Vector3(-cx * 128f, 0f, cy * 128f);
+                if (!OpenWater(point)) continue;
+
+                for (int dx = 4; dx < 12; dx++)
+                {
+                    if (cx + dx >= terrain.Width - 4) break;
+                    var other = new Vector3(-(cx + dx) * 128f, 0f, cy * 128f);
+                    if (!OpenWater(other)) continue;
+                    start = point;
+                    end = other;
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            GD.Print("[WATERPATH] 地图里找不到连续水面，跳过");
+            return;
+        }
+
+        bool groundBlocks = _pathGrid.IsBlockedWorld(start.X, start.Z, PathLayer.Ground);
+        bool airFree = !_pathGrid.IsBlockedWorld(start.X, start.Z, PathLayer.Air);
+        float waterY = MapWorldBuilder.WaterHeightAt(terrain, start.X, start.Z);
+        var waterPath = _pathGrid.FindPath(start, end, 24f, PathLayer.Water);
+        var airPath = _pathGrid.FindPath(start, end, 24f, PathLayer.Air);
+
+        GD.Print($"[WATERPATH] 水面 ({start.X:0},{start.Z:0})→({end.X:0},{end.Z:0}) 地面阻挡={groundBlocks} 空中可走={airFree}"
+            + $" 水面高度={waterY:0.0} 船航点={waterPath?.Count ?? -1} 空中航点={airPath?.Count ?? -1}");
+
+        Unit boat = Spawn("nbot", ViewPlayer, start.X, start.Z, 0f, 0f, 1f);
+        if (boat != null)
+        {
+            GD.Print($"[WATERPATH] 船生成 Y={boat.Position.Y:0.0} 水面={waterY:0.0} 分层={boat.Type.MoveType}");
+        }
+    }
+
+    private bool OpenWater(Vector3 point)
+    {
+        if (_pathGrid == null) return false;
+        if (!_pathGrid.IsAreaFree(point, 24f, PathLayer.Water)) return false;
+        for (int dz = -1; dz <= 1; dz++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                float x = point.X + dx * 32f;
+                float z = point.Z + dz * 32f;
+                if (_pathGrid.IsBlockedWorld(x, z, PathLayer.Air)) return false;
+            }
+        }
+        return true;
     }
 
     public void RunHireProbe()

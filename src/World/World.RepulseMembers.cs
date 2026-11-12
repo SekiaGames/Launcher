@@ -20,6 +20,7 @@ public sealed partial class World
                 Unit b = Units[j];
                 if (!b.Alive || b.IsBuilding) continue;
                 if (a.Type.Flying != b.Type.Flying) continue;
+                if ((a.Type.MoveType == "float") != (b.Type.MoveType == "float")) continue;
 
                 float min = a.Radius + b.Radius;
                 float dx = b.Position.X - a.Position.X;
@@ -61,9 +62,10 @@ public sealed partial class World
 
         float x = unit.Position.X + deltaX;
         float z = unit.Position.Z + deltaZ;
-        if (_pathGrid != null && _pathGrid.IsBlockedWorld(x, z)) return;
+        PathLayer layer = unit.Type?.PathingLayer ?? PathLayer.Ground;
+        if (_pathGrid != null && _pathGrid.IsBlockedWorld(x, z, layer)) return;
 
-        float y = _terrain != null ? MapWorldBuilder.HeightAt(_terrain, x, z) : unit.Position.Y;
+        float y = SurfaceY(unit.Type, x, z);
         unit.Position = new Vector3(x, y, z);
         if (unit.View != null) unit.View.Root.Position = unit.Position;
     }

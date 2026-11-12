@@ -5,17 +5,26 @@ using WorldEdit.Core.Formats.W3x;
 
 namespace Launcher;
 
+public enum PathLayer
+{
+    Ground,
+    Water,
+    Air,
+    Amphibious,
+}
+
 public sealed class PathGrid
 {
     private const float CellWorld = 32f;
+    private const int TerrainCornerCells = 4;
 
     private readonly bool[] _blocked;
+    private readonly bool[] _water;
+    private readonly bool[] _unflyable;
     private readonly bool[] _cleared;
     private readonly bool[] _dynamic;
     private readonly int _width;
     private readonly int _height;
-    private readonly float _offsetX;
-    private readonly float _offsetY;
 
     public bool Ready { get; }
 
@@ -23,9 +32,9 @@ public sealed class PathGrid
     {
         _width = pathing.Width;
         _height = pathing.Height;
-        _offsetX = terrain.OffsetX;
-        _offsetY = terrain.OffsetY;
         _blocked = new bool[_width * _height];
+        _water = new bool[_width * _height];
+        _unflyable = new bool[_width * _height];
         _cleared = new bool[_width * _height];
         _dynamic = new bool[_width * _height];
 
@@ -33,7 +42,14 @@ public sealed class PathGrid
         {
             for (int x = 0; x < _width; x++)
             {
-                _blocked[y * _width + x] = (pathing.At(x, y) & W3mPathing.Unwalkable) != 0;
+                int index = y * _width + x;
+                byte cell = pathing.At(x, y);
+                _blocked[index] = (cell & W3mPathing.Unwalkable) != 0;
+                _unflyable[index] = (cell & W3mPathing.Unflyable) != 0;
+
+                int terrainX = Mathf.Clamp(x / TerrainCornerCells, 0, terrain.Width - 1);
+                int terrainY = Mathf.Clamp(y / TerrainCornerCells, 0, terrain.Height - 1);
+                _water[index] = terrain.Corners[terrainY * terrain.Width + terrainX].HasWater;
             }
         }
         Ready = true;
@@ -44,13 +60,13 @@ public sealed class PathGrid
         return pathing == null || terrain == null ? null : new PathGrid(pathing, terrain);
     }
 
-    public bool IsBlockedWorld(float worldX, float worldZ)
+    public bool IsBlockedWorld(float worldX, float worldZ, PathLayer layer = PathLayer.Ground)
     {
         WorldToCell(worldX, worldZ, out int x, out int y);
-        return Blocked(x, y);
+        return Blocked(x, y, layer);
     }
 
-    public bool IsAreaFree(Vector3 world, float radiusWorld)
+    public bool IsAreaFree(Vector3 world, float radiusWorld, PathLayer layer = PathLayer.Ground)
     {
         int cells = Mathf.Max(1, Mathf.CeilToInt(radiusWorld / CellWorld));
         WorldToCell(world.X, world.Z, out int cx, out int cy);
@@ -58,7 +74,7 @@ public sealed class PathGrid
         {
             for (int dx = -cells; dx <= cells; dx++)
             {
-                if (Blocked(cx + dx, cy + dz)) return false;
+                if (Blocked(cx + dx, cy + dz, layer)) return false;
             }
         }
         return true;
@@ -115,13 +131,27 @@ public sealed class PathGrid
         }
     }
 
-    private bool Blocked(int x, int y)
+    private bool Blocked(int x, int y, PathLayer layer = PathLayer.Ground)
     {
         if (x < 0 || y < 0 || x >= _width || y >= _height) return true;
         int index = y * _width + x;
-        if (_cleared[index]) return false;
-        if (_dynamic[index]) return true;
-        return _blocked[index];
+
+        switch (layer)
+        {
+            case PathLayer.Air:
+                return _unflyable[index];
+            case PathLayer.Water:
+                return !_water[index];
+            case PathLayer.Amphibious:
+                if (_water[index]) return false;
+                if (_cleared[index]) return false;
+                if (_dynamic[index]) return true;
+                return _blocked[index];
+            default:
+                if (_cleared[index]) return false;
+                if (_dynamic[index]) return true;
+                return _blocked[index];
+        }
     }
 
     private void WorldToCell(float worldX, float worldZ, out int x, out int y)
@@ -135,7 +165,7 @@ public sealed class PathGrid
         return new Vector3(-(x + 0.5f) * CellWorld, 0f, (y + 0.5f) * CellWorld);
     }
 
-    public List<Vector3> FindPath(Vector3 start, Vector3 end, float unitRadius)
+    public List<Vector3> FindPath(Vector3 start, Vector3 end, float unitRadius, PathLayer layer = PathLayer.Ground)
     {
         if (!Ready) return null;
 
@@ -147,9 +177,9 @@ public sealed class PathGrid
         ey = Mathf.Clamp(ey, 0, _height - 1);
 
         int clearance = unitRadius > 16f ? 1 : 0;
-        if (SearchBlocked(ex, ey, clearance))
+        if (SearchBlocked(ex, ey, clearance, layer))
         {
-            if (!TryFindNear(ex, ey, clearance, out ex, out ey)) return null;
+            if (!TryFindNear(ex, ey, clearance, layer, out ex, out ey)) return null;
         }
 
         int startIndex = sy * _width + sx;
@@ -168,7 +198,7 @@ public sealed class PathGrid
         int guard = 0;
         while (open.TryDequeue(out int current, out _))
         {
-            if (current == goal) return BuildPath(cameFrom, goal, sx, sy, unitRadius);
+            if (current == goal) return BuildPath(cameFrom, goal, sx, sy, unitRadius, layer);
             if (++guard > 20000) return null;
 
             int cx = current % _width;
@@ -184,8 +214,8 @@ public sealed class PathGrid
                     int nx = cx + dx;
                     int ny = cy + dz;
                     if (nx < 0 || ny < 0 || nx >= _width || ny >= _height) continue;
-                    if (SearchBlocked(nx, ny, clearance)) continue;
-                    if (dx != 0 && dz != 0 && (SearchBlocked(cx + dx, cy, clearance) || SearchBlocked(cx, cy + dz, clearance)))
+                    if (SearchBlocked(nx, ny, clearance, layer)) continue;
+                    if (dx != 0 && dz != 0 && (SearchBlocked(cx + dx, cy, clearance, layer) || SearchBlocked(cx, cy + dz, clearance, layer)))
                     {
                         continue;
                     }
@@ -203,7 +233,7 @@ public sealed class PathGrid
         return null;
     }
 
-    private List<Vector3> BuildPath(Dictionary<int, int> cameFrom, int goal, int sx, int sy, float unitRadius)
+    private List<Vector3> BuildPath(Dictionary<int, int> cameFrom, int goal, int sx, int sy, float unitRadius, PathLayer layer)
     {
         var cells = new List<int>();
         int current = goal;
@@ -233,7 +263,7 @@ public sealed class PathGrid
             int farthest = index;
             for (int probe = points.Count - 1; probe >= index; probe--)
             {
-                if (Clear(anchor, points[probe], unitRadius))
+                if (Clear(anchor, points[probe], unitRadius, layer))
                 {
                     farthest = probe;
                     break;
@@ -246,7 +276,7 @@ public sealed class PathGrid
         return simplified;
     }
 
-    private bool Clear(Vector3 from, Vector3 to, float unitRadius)
+    private bool Clear(Vector3 from, Vector3 to, float unitRadius, PathLayer layer)
     {
         float distance = new Vector2(to.X - from.X, to.Z - from.Z).Length();
         int steps = Mathf.Max(1, Mathf.CeilToInt(distance / (CellWorld * 0.5f)));
@@ -255,24 +285,24 @@ public sealed class PathGrid
         {
             Vector3 point = from.Lerp(to, (float)i / steps);
             WorldToCell(point.X, point.Z, out int x, out int y);
-            if (SearchBlocked(x, y, clearance)) return false;
+            if (SearchBlocked(x, y, clearance, layer)) return false;
         }
         return true;
     }
 
-    private bool SearchBlocked(int x, int y, int clearance)
+    private bool SearchBlocked(int x, int y, int clearance, PathLayer layer)
     {
         for (int dz = -clearance; dz <= clearance; dz++)
         {
             for (int dx = -clearance; dx <= clearance; dx++)
             {
-                if (Blocked(x + dx, y + dz)) return true;
+                if (Blocked(x + dx, y + dz, layer)) return true;
             }
         }
         return false;
     }
 
-    private bool TryFindNear(int x, int y, int clearance, out int foundX, out int foundY)
+    private bool TryFindNear(int x, int y, int clearance, PathLayer layer, out int foundX, out int foundY)
     {
         for (int radius = 1; radius <= 8; radius++)
         {
@@ -282,7 +312,7 @@ public sealed class PathGrid
                 {
                     int nx = x + dx;
                     int ny = y + dz;
-                    if (!SearchBlocked(nx, ny, clearance))
+                    if (!SearchBlocked(nx, ny, clearance, layer))
                     {
                         foundX = nx;
                         foundY = ny;

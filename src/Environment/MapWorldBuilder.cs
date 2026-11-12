@@ -53,6 +53,26 @@ public sealed partial class MapWorldBuilder
         return InterpolatedHeight(terrain, x, y);
     }
 
+    private static readonly Dictionary<char, float> _waterOffsets = new();
+
+    public static float WaterHeightAt(W3eTerrain terrain, float worldX, float worldZ)
+    {
+        if (terrain == null) return 0f;
+        int x = Mathf.Clamp(Mathf.FloorToInt((0f - worldX) / 128f), 0, terrain.Width - 1);
+        int y = Mathf.Clamp(Mathf.FloorToInt(worldZ / 128f), 0, terrain.Height - 1);
+        W3eTerrain.Corner corner = terrain.Corners[y * terrain.Width + x];
+        if (!corner.HasWater) return HeightAt(terrain, worldX, worldZ);
+        return (corner.WaterWorld + WaterOffset(terrain.Tileset)) * 128f;
+    }
+
+    private static float WaterOffset(char tileset)
+    {
+        if (_waterOffsets.TryGetValue(tileset, out float offset)) return offset;
+        offset = War3WaterConfig.LoadHeightOffset(tileset);
+        _waterOffsets[tileset] = offset;
+        return offset;
+    }
+
     public static int ApplyUnitTextureFilter(Node node)
     {
         int num = 0;

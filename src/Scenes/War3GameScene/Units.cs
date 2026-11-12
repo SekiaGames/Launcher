@@ -326,7 +326,9 @@ public sealed partial class War3GameScene
             return null;
         }
 
-        float worldY = MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ);
+        float worldY = _world != null
+            ? _world.SurfaceY(type, worldX, worldZ)
+            : MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ);
         float scale = type.ModelScale * (entryScale > 0f ? entryScale : 1f);
 
         UnitSceneComponent view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(player), scale, type.IsBuilding, type.FootprintRadius);

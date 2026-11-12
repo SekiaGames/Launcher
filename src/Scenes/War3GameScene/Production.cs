@@ -696,6 +696,7 @@ public sealed partial class War3GameScene
         Vector3 center = building.Position;
         float radius = Mathf.Max(16f, type.CollisionRadius);
         float start = Mathf.Max(48f, building.Radius + radius + 24f);
+        PathLayer layer = type.PathingLayer;
         yaw = building.Facing;
 
         if (building.RallyPoint.HasValue)
@@ -719,8 +720,10 @@ public sealed partial class War3GameScene
                     center.X + Mathf.Sin(angle) * distance,
                     0f,
                     center.Z - Mathf.Cos(angle) * distance);
-                candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
-                if (_pathGrid == null || _pathGrid.IsAreaFree(candidate, radius))
+                candidate.Y = _world != null
+                    ? _world.SurfaceY(type, candidate.X, candidate.Z)
+                    : MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
+                if (_pathGrid == null || _pathGrid.IsAreaFree(candidate, radius, layer))
                 {
                     return candidate;
                 }
@@ -731,7 +734,9 @@ public sealed partial class War3GameScene
             center.X + Mathf.Sin(yaw) * start,
             0f,
             center.Z - Mathf.Cos(yaw) * start);
-        fallback.Y = MapWorldBuilder.HeightAt(_map.Terrain, fallback.X, fallback.Z);
+        fallback.Y = _world != null
+            ? _world.SurfaceY(type, fallback.X, fallback.Z)
+            : MapWorldBuilder.HeightAt(_map.Terrain, fallback.X, fallback.Z);
         return fallback;
     }
 
@@ -739,6 +744,7 @@ public sealed partial class War3GameScene
     private bool TryFindPurchaseSpot(Unit shop, UnitType type, out Vector3 spot)
     {
         float radius = shop.Radius + Mathf.Max(24f, type.CollisionRadius) + 32f;
+        PathLayer layer = type.PathingLayer;
         int steps = 16;
         for (int step = 0; step < steps; step++)
         {
@@ -747,8 +753,10 @@ public sealed partial class War3GameScene
                 shop.Position.X + Mathf.Cos(angle) * radius,
                 0f,
                 shop.Position.Z + Mathf.Sin(angle) * radius);
-            candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
-            if (_pathGrid != null && !_pathGrid.IsAreaFree(candidate, Mathf.Max(16f, type.CollisionRadius))) continue;
+            candidate.Y = _world != null
+                ? _world.SurfaceY(type, candidate.X, candidate.Z)
+                : MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
+            if (_pathGrid != null && !_pathGrid.IsAreaFree(candidate, Mathf.Max(16f, type.CollisionRadius), layer)) continue;
             spot = candidate;
             return true;
         }
@@ -777,6 +785,11 @@ public sealed partial class War3GameScene
         float facing = building.Facing;
         int player = building.Player;
         bool selected = _selected.Contains(building);
+        float hpRatio = Mathf.Clamp(building.Hp / Mathf.Max(1f, building.MaxHp), 0.01f, 1f);
+        Vector3? rallyPoint = building.RallyPoint;
+        Unit rallyTarget = building.RallyTarget;
+        TreeState rallyTree = building.RallyTree;
+        int gold = building.Gold;
 
         if (selected)
         {
@@ -791,6 +804,13 @@ public sealed partial class War3GameScene
 
         Unit replacement = Spawn(targetId, player, position.X, position.Z, facing, 0f, 1f);
         if (replacement == null) return;
+
+        replacement.Hp = Mathf.Clamp(replacement.MaxHp * hpRatio, 1f, replacement.MaxHp);
+        replacement.RallyPoint = rallyPoint;
+        replacement.RallyTarget = rallyTarget;
+        replacement.RallyTree = rallyTree;
+        replacement.Gold = gold;
+        replacement.View?.SetHp(hpRatio, true);
 
         _world?.Units.Add(replacement);
         Slot(player)?.KnownBuildings.Add(targetId);

@@ -17,6 +17,13 @@ public sealed class War3WaterConfig
     public Color DeepMax { get; private set; } = new Color(1f, 1f, 1f, 1f);
     public Texture2DArray Texture { get; private set; }
 
+    public static float LoadHeightOffset(char tileset)
+    {
+        SlkTable table = War3Tables.Water();
+        int row = table.FindRow("waterID", tileset + "Sha");
+        return row < 0 ? 0f : table.GetFloat(row, "height");
+    }
+
     public static War3WaterConfig Load(char tileset)
     {
         SlkTable table = War3Tables.Water();
