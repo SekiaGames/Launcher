@@ -256,7 +256,7 @@ public static class RuntimeAbilityFactory
         ["Apts"] = () => new RuntimePlagueTossAbility(),        // 投掷瘟疫（绞肉车，消耗尸体召 uplg）
         ["Astn"] = () => new RuntimeAlternateFormAbility(),         // 石像形态（石像鬼，护甲 + 定身）
         ["Auhf"] = () => new RuntimeUnholyFrenzyAbility(),      // 邪恶狂热（亡灵法师，攻速 + 掉血）
-        ["Acri"] = () => new RuntimeCrippleAbility(),           // 残废（亡灵巫师）
+        ["Acri"] = () => WithObjects<RuntimeCrippleAbility>(),           // 残废（亡灵巫师）
         ["Acrs"] = () => new RuntimeCurseAbility(),             // 诅咒（女妖）
         ["Aps2"] = () => new RuntimeCharmAbility(),             // 占据（女妖，同魅惑）
         ["Apos"] = () => new RuntimePossessionAbility(),        // 占据（女妖，转属后消耗自身）
@@ -273,7 +273,7 @@ public static class RuntimeAbilityFactory
         ["ACad"] = () => new RuntimeAnimateDeadAbility(),       // 野怪版操纵死尸
         ["ACam"] = () => new AntiMagicShield(),   // 野怪版反魔法盾
         ["ACbl"] = () => new RuntimeBloodlustAbility(),         // 野怪版嗜血
-        ["ACcr"] = () => new RuntimeCrippleAbility(),           // 野怪版残废
+        ["ACcr"] = () => WithObjects<RuntimeCrippleAbility>(),           // 野怪版残废
         ["ACct"] = () => new CriticalStrike(),    // 野怪版致命一击
         ["ACen"] = () => new Ensnare(),           // 野怪版诱捕
         ["ACif"] = () => new RuntimeInnerFireAbility(),         // 野怪版内火
@@ -290,7 +290,7 @@ public static class RuntimeAbilityFactory
         ["ACc3"] = () => new RuntimeCarrionSwarmAbility(),      // 野怪震荡波
         ["ACm2"] = () => new RuntimeMagicImmunityAbility(), // 阿克蒙德魔法免疫
         ["SCc1"] = () => new RuntimeCycloneAbility(),           // 塞纳留斯旋风
-        ["Scri"] = () => new RuntimeCrippleAbility(),           // 野怪术士残废
+        ["Scri"] = () => WithObjects<RuntimeCrippleAbility>(),           // 野怪术士残废
         ["Suhf"] = () => new RuntimeUnholyFrenzyAbility(),      // 野怪术士邪恶狂热
         ["Aclf"] = () => new CloudOfFog(),        // 云雾（龙鹰，区域未命中）
         ["Adtn"] = () => new RuntimeDetonateAbility(),          // 自爆（小精灵，驱散 + 伤害）
@@ -462,7 +462,7 @@ public static class RuntimeAbilityFactory
         ["Aasl"] = WithObjects<RuntimeSlowAuraAbility>,       // 缓慢光环（龙卷风）
         ["ANpi"] = () => new RuntimePermanentImmolationAbility(), // 永久献祭（地狱火）
         ["Apig"] = () => new RuntimePermanentImmolationAbility(), // 永久献祭（图形版）
-        ["Atdg"] = () => new RuntimeTornadoDamageAbility(),  // 龙卷风每秒伤害（Atsp/Atwa 仍为占位）
+        ["Atdg"] = () => WithObjects<RuntimeTornadoDamageAbility>(),  // 龙卷风每秒伤害（Atsp/Atwa 仍为占位）
         ["Agra"] = () => new RuntimeGrabTreeAbility(),       // 战棍（山岭巨人拔树：攻城攻击 + 射程）
         ["Aro1"] = () => new Root(),           // 扎根/拔根（古树）
         ["Aro2"] = () => new Root(),           // 扎根/拔根（远古守护者）
