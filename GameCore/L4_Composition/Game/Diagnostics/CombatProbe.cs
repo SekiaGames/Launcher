@@ -133,6 +133,7 @@ public static partial class CombatProbe
         CheckTavernAndItems();
         CheckItemUseAndAuras();
         CheckFormMechanics();
+        CheckUpkeep();
 
         GD.Print(_failures == 0 ? "[自检] 状态全部通过" : $"[自检] 状态 {_failures} 项不符");
         return _failures == 0 ? 0 : 1;
@@ -187,6 +188,14 @@ public static partial class CombatProbe
     {
         float actual = War3GameplayConfig.Resolve(raw, attack, defense, DamageType.Normal, armor, false, false);
         Verify(label, expected, actual, 0.001f);
+    }
+
+    /// <summary>维修费用（upkeep）：人口 50 内全额、51-80 七成、81+ 四成，只扣金。</summary>
+    private static void CheckUpkeep()
+    {
+        Verify("维修 人口50内 全额", 100f, War3GameplayConfig.GoldAfterUpkeep(100, 50), 0f);
+        Verify("维修 人口51-80 七成", 70f, War3GameplayConfig.GoldAfterUpkeep(100, 60), 0f);
+        Verify("维修 人口81+ 四成", 40f, War3GameplayConfig.GoldAfterUpkeep(100, 90), 0f);
     }
 
     private static void Verify(string label, float expected, float actual, float tolerance)

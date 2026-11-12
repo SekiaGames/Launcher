@@ -240,9 +240,11 @@ public sealed partial class War3GameScene
     private void OnGoldDeposited(int player, int amount)
     {
         if (Slot(player) == null) return;
-        Slot(player).Gold += amount;
+        // 维修费用：人口过高时只按比例入账（木头不扣）。
+        int credited = War3GameplayConfig.GoldAfterUpkeep(amount, FoodUsed(player));
+        Slot(player).Gold += credited;
         RefreshHud();
-        if (player == ViewPlayer) ShowResourceFloat(FindHall(player), amount, false, false);
+        if (player == ViewPlayer) ShowResourceFloat(FindHall(player), credited, false, false);
     }
 
     private void UpdateCommandCard()

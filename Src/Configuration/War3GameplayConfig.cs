@@ -30,6 +30,25 @@ public static class War3GameplayConfig
     public static readonly float ReviveTimeFactor = MiscRules.Value("Misc.ReviveTimeFactor", 0.65f);
     public static readonly float ReviveMaxTimeFactor = MiscRules.Value("Misc.ReviveMaxTimeFactor", 2f);
 
+    // —— 维修费用（Upkeep）：客户端 War3GameplayConfig.cs:191-210 ——
+    // 人口 <=50 无税，<=80 扣 30%，再高扣 60%；只扣金币，木材不扣。
+    public static readonly int UpkeepFoodLimitLow = (int)MiscRules.Value("Misc.UpkeepFoodLimitLow", 50f);
+    public static readonly int UpkeepFoodLimitHigh = (int)MiscRules.Value("Misc.UpkeepFoodLimitHigh", 80f);
+    private static readonly int[] UpkeepGoldTaxPct = { 0, 30, 60 };
+
+    /// <summary>阈值相同的人口留在低一级（客户端 241d30 的口径）。</summary>
+    public static int UpkeepTier(int foodUsed)
+    {
+        if (foodUsed <= UpkeepFoodLimitLow) return 0;
+        return foodUsed <= UpkeepFoodLimitHigh ? 1 : 2;
+    }
+
+    public static float GoldIncomeFactor(int foodUsed) => (100 - UpkeepGoldTaxPct[UpkeepTier(foodUsed)]) / 100f;
+
+    /// <summary>按整数百分比结算，避免 0.4f 这类浮点误差把 40 截成 39。</summary>
+    public static int GoldAfterUpkeep(int amount, int foodUsed) =>
+        Math.Max(0, amount * (100 - UpkeepGoldTaxPct[UpkeepTier(foodUsed)]) / 100);
+
     /// <summary>对标 GameplayConstants.HeroReviveGoldCost：花费 = 英雄造价 × min(Max, Base + Level×等级差)，上限 700。</summary>
     public static int HeroReviveGoldCost(int heroGoldCost, int level)
     {

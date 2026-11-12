@@ -439,9 +439,11 @@ public sealed partial class War3GameScene
             return false;
         }
 
-        if (slot.Gold < type.GoldCost)
+        if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
-            _hud?.SetHint($"{type.Name} 需要 {type.GoldCost} 金，当前 {slot.Gold}");
+            _hud?.SetHint(type.LumberCost > 0
+                ? $"{type.Name} 需要 {type.GoldCost} 金 / {type.LumberCost} 木，当前 {slot.Gold} 金 / {slot.Lumber} 木"
+                : $"{type.Name} 需要 {type.GoldCost} 金，当前 {slot.Gold}");
             return false;
         }
         if (!shop.TakeStock(itemId))
@@ -451,6 +453,7 @@ public sealed partial class War3GameScene
         }
 
         slot.Gold -= type.GoldCost;
+        slot.Lumber -= type.LumberCost;
 
         Unit carrier = NearestFriendlyHero(buyerPlayer, shop.Position, range);
         if (carrier != null && carrier.HasFreeSlot)
@@ -476,6 +479,7 @@ public sealed partial class War3GameScene
         if (item == null)
         {
             slot.Gold += type.GoldCost;
+            slot.Lumber += type.LumberCost;
             shop.AddStock(itemId);
             _hud?.SetHint($"买不了 {type.Name}（物品模型缺失）");
             return false;
