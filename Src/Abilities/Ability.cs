@@ -386,6 +386,8 @@ public abstract class Ability
 
     public virtual bool ProvidesResistantSkin => false;
 
+    public virtual bool HasPersistentTargetArts => false;
+
     public virtual float ExpectedChannelDuration => 0f;
 
     public float ConfiguredAreaOfEffect => Area;
