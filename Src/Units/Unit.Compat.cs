@@ -26,6 +26,8 @@ public sealed partial class Unit
 
     public bool Removed { get; set; }
 
+    public World World { get; set; }
+
     public float MoveSpeedBase => Type?.Speed ?? 0f;
 
     public void AddState(StateMod mod, float seconds = 0f) => State.Add(mod, seconds);

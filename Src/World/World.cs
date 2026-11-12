@@ -23,7 +23,7 @@ public sealed partial class World
     private readonly List<TreeState> _trees;
     private readonly Random _random = new(20261111);
 
-    public List<Unit> Units { get; } = new();
+    public UnitList Units { get; }
 
     private CargoTransport _cargo;
     /// <summary>驻军子系统（对标客户端 Src/Units/CargoTransport.cs）。</summary>
@@ -67,6 +67,7 @@ public sealed partial class World
         _terrain = terrain;
         _pathGrid = pathGrid;
         _trees = trees ?? new List<TreeState>();
+        Units = new UnitList(this);
     }
 
     public void Advance()
