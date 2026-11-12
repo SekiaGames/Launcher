@@ -328,6 +328,26 @@ public static partial class CombatProbe
         Verify("腐尸甲虫施放成功", 1f, scarabCast ? 1f : 0f, 0f);
         Verify("腐尸甲虫召出 1 只", 1f, beetles, 0f);
         Verify("腐尸甲虫吃掉尸体", 0f, scarabCorpse.IsCorpse ? 1f : 0f, 0f);
-        GD.Print($"[自检] 腐尸甲虫 召出 {beetles} 只，尸体已消耗 {!scarabCorpse.IsCorpse}");
+
+        int capped = beetles;
+        for (int attempt = 0; attempt < 8; attempt++)
+        {
+            Unit extra = MakeUnit(footmanType, 1);
+            extra.Position = new Vector3(200f, 0f, 0f);
+            extra.Alive = false;
+            extra.Hp = 0f;
+            extra.IsCorpse = true;
+            scarabWorld.Units.Add(extra);
+            scarabs.CooldownRemaining = 0f;
+            scarabLord.Mana = scarabLord.MaxMana;
+            scarabWorld.TryCast(scarabLord, scarabs, extra, extra.Position);
+        }
+        capped = 0;
+        foreach (Unit unit in scarabWorld.Units)
+        {
+            if (unit.Alive && unit.Type != null && unit.Type.Id.StartsWith("ucs", StringComparison.OrdinalIgnoreCase)) capped++;
+        }
+        Verify("腐尸甲虫上限 DataE=5", 5f, capped, 0f);
+        GD.Print($"[自检] 腐尸甲虫 连放 9 次后存活 {capped} 只（DataE 上限）");
     }
 }

@@ -50,6 +50,15 @@ public sealed class W3iEnvironment
     public byte[] WaterVertexColorBgra { get; init; } = new byte[4];
 }
 
+public sealed record W3iItemDrop(string ItemId, int Chance);
+
+/// <summary>w3i 的随机物品表：一个表里若干组，每组按 chance 掷一件。</summary>
+public sealed class W3iItemTable
+{
+    public string Name { get; init; } = "";
+    public readonly List<List<W3iItemDrop>> Sets = new();
+}
+
 public sealed class W3iInfo
 {
     public const int MeleeMapFlag = 0x0004;
@@ -100,6 +109,7 @@ public sealed class W3iInfo
 
     public List<W3iPlayer> Players { get; } = new();
     public List<W3iForce> Forces { get; } = new();
+    public List<W3iItemTable> ItemTables { get; } = new();
 
     public byte[] RawBytes { get; private set; }
 
@@ -210,7 +220,101 @@ public sealed class W3iInfo
         ReadMinimap(reader, info);
         ReadPlayers(reader, info);
         ReadForces(reader, info);
+        ReadDropTables(reader, info);
         return info;
+    }
+
+    /// <summary>势力之后是升级/科技可用性，再往后是随机单位表与随机物品表；布局不符就整体放弃，不影响地图打开。</summary>
+    private static void ReadDropTables(W3xBinaryReader reader, W3iInfo info)
+    {
+        if (reader.Remaining < 4)
+        {
+            return;
+        }
+
+        try
+        {
+            SkipAvailability(reader);
+            SkipAvailability(reader);
+            SkipRandomTables(reader);
+            ReadRandomItemTables(reader, info);
+        }
+        catch (InvalidDataException)
+        {
+            info.ItemTables.Clear();
+        }
+
+        foreach (W3iItemTable table in info.ItemTables)
+        {
+            if (!LooksLikeRawcode(table.Name) || table.Sets.Exists(set => set.Exists(drop => !LooksLikeRawcode(drop.ItemId))))
+            {
+                info.ItemTables.Clear();
+                break;
+            }
+        }
+    }
+
+    private static bool LooksLikeRawcode(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length != 4) return false;
+        foreach (char character in value)
+        {
+            if (!char.IsLetterOrDigit(character)) return false;
+        }
+        return true;
+    }
+
+    private static void SkipAvailability(W3xBinaryReader reader)
+    {
+        int count = reader.Count(4096);
+        for (int i = 0; i < count; i++)
+        {
+            reader.I32();
+            reader.FourCc();
+            reader.I32();
+            reader.I32();
+        }
+    }
+
+    private static void SkipRandomTables(W3xBinaryReader reader)
+    {
+        int tables = reader.Count(4096);
+        for (int t = 0; t < tables; t++)
+        {
+            reader.FourCc();
+            int sets = reader.Count(4096);
+            for (int s = 0; s < sets; s++)
+            {
+                int units = reader.Count(4096);
+                for (int u = 0; u < units; u++)
+                {
+                    reader.FourCc();
+                    reader.I32();
+                }
+            }
+        }
+    }
+
+    private static void ReadRandomItemTables(W3xBinaryReader reader, W3iInfo info)
+    {
+        int tables = reader.Count(4096);
+        for (int t = 0; t < tables; t++)
+        {
+            var table = new W3iItemTable { Name = reader.FourCc() };
+            int sets = reader.Count(4096);
+            for (int s = 0; s < sets; s++)
+            {
+                var set = new List<W3iItemDrop>();
+                int items = reader.Count(4096);
+                for (int i = 0; i < items; i++)
+                {
+                    string id = reader.FourCc();
+                    set.Add(new W3iItemDrop(id, reader.I32()));
+                }
+                table.Sets.Add(set);
+            }
+            info.ItemTables.Add(table);
+        }
     }
 
     private static W3iEnvironment ReadEnvironment(W3xBinaryReader reader)

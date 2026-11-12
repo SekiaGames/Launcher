@@ -25,6 +25,7 @@ public sealed partial class War3GameScene
         int missingType = 0;
         int missingScene = 0;
         int lootCount = 0;
+        int tableLoot = 0;
 
         if (_map.Units != null)
         {
@@ -49,6 +50,7 @@ public sealed partial class War3GameScene
                 {
                     placed++;
                     foreach (UnitItemDropSet set in entry.DroppedItemSets) unit.DropSets.Add(set);
+                    if (AttachDropTable(unit, entry.DroppedItemTable)) tableLoot++;
                     if (unit.DropSets.Count > 0) lootCount++;
                     ApplyPlacementInventory(unit, entry);
                 }
@@ -60,8 +62,26 @@ public sealed partial class War3GameScene
         int cleared = ClearExcessUnits();
         int melee = SpawnMeleeStarts();
 
-        GD.Print($"[INIT] 地图单位 {placed} 个（缺类型 {missingType} 缺模型 {missingScene}，带掉落集 {lootCount}），"
+        GD.Print($"[INIT] 地图单位 {placed} 个（缺类型 {missingType} 缺模型 {missingScene}，带掉落集 {lootCount}，"
+            + $"引用物品表 {tableLoot}，表 {_map.Info?.ItemTables.Count ?? 0} 张），"
             + $"出生点清场移除 {cleared} 个，开局基地单位 {melee} 个");
+    }
+
+    /// <summary>doo 的 DroppedItemTable 是 w3i 随机物品表的下标，按组展开成和实例掉落集同一种结构。</summary>
+    private bool AttachDropTable(Unit unit, int tableIndex)
+    {
+        if (tableIndex < 0) return false;
+        List<W3iItemTable> tables = _map.Info?.ItemTables;
+        if (tables == null || tableIndex >= tables.Count) return false;
+
+        W3iItemTable table = tables[tableIndex];
+        foreach (List<W3iItemDrop> group in table.Sets)
+        {
+            var dropSet = new UnitItemDropSet();
+            foreach (W3iItemDrop drop in group) dropSet.Items.Add(new UnitItemDrop(drop.ItemId, drop.Chance));
+            if (dropSet.Items.Count > 0) unit.DropSets.Add(dropSet);
+        }
+        return table.Sets.Count > 0;
     }
 
     /// <summary>MeleeClearExcessUnits：参战座位 1500 内清中立敌对、以及中立被动的非建筑。</summary>

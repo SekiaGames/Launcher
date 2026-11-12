@@ -415,6 +415,7 @@ public sealed partial class LauncherApp : Node
         }
 
         System.IO.File.WriteAllBytes("/tmp/war3map.w3e", Assets.ReadBytes("res://gmap/map/war3map.w3e") ?? Array.Empty<byte>());
+        System.IO.File.WriteAllBytes("/tmp/war3map.w3i", Assets.ReadBytes("res://gmap/map/war3map.w3i") ?? Array.Empty<byte>());
         System.IO.File.WriteAllBytes("/tmp/war3map.wts", Assets.ReadBytes("res://gmap/map/war3map.wts") ?? Array.Empty<byte>());
         foreach (string name in new[] { "FootmanWhat", "PeasantYes", "TownHallWhat", "GruntYes" })
         {
