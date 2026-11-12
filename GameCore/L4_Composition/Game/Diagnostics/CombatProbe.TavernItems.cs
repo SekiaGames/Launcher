@@ -55,12 +55,12 @@ public static partial class CombatProbe
         Unit ally = ProbeUnit(world, "ugho", 0, new Vector3(200f, 0f, 0f));
         ally.Hp = 100f;
 
-        world.RefreshAuras();
-        Verify("再生光环百分比=DataA", regenType.DataAt(1, 'A'), ally.AuraHpRegenPct, 0.0001f);
+        world.TickAbilities();
+        Verify("再生光环百分比=DataA", ally.MaxHp * regenType.DataAt(1, 'A'), ally.AlwaysLifeRegenBonus, 0.01f);
 
         float before = ally.Hp;
         for (int tick = 0; tick < 20; tick++) world.TickRegeneration();
-        float expected = (ally.Type.RegenHp + ally.MaxHp * regenType.DataAt(1, 'A')) * 1f;
+        float expected = (ally.Type.RegenHp + ally.AlwaysLifeRegenBonus) * 1f;
         Verify("再生光环按最大生命回血", expected, ally.Hp - before, 0.5f);
     }
 

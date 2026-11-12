@@ -299,13 +299,14 @@ public static partial class CombatProbe
         brillianceWorld.Units.Add(casterFriend);
 
         archMage.GiveAbility("AHab", 1);
-        brillianceWorld.RefreshAuras();
-        Verify("辉煌光环每秒 0.75 法力", 0.75f, casterFriend.AuraManaRegenPerSecond, 0.001f);
+        brillianceWorld.TickAbilities();
+        Verify("辉煌光环每秒 0.75 法力", 0.75f,
+            casterFriend.ManaRegen - (casterFriend.Type?.ManaRegen ?? 0f), 0.001f);
 
         casterFriend.Mana = 10f;
         for (int index = 0; index < 20; index++)
         {
-            brillianceWorld.RefreshAuras();
+            brillianceWorld.TickAbilities();
             brillianceWorld.TickRegeneration();
         }
         Verify("辉煌光环 1 秒回蓝 > 0.75", 1f, casterFriend.Mana > 10.7f ? 1f : 0f, 0f);
