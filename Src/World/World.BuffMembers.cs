@@ -18,6 +18,7 @@ public sealed partial class World
         buff.Remaining = Mathf.Max(Tick, seconds);
         unit.Buffs.Add(buff);
         buff.OnApply(this);
+        buff.OnAdd();
         return buff;
     }
 

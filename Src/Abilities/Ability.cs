@@ -356,9 +356,17 @@ public abstract class Ability
 
     public virtual void OnDisabledStateChanged() { }
 
-    public virtual void OnCastFinished(bool interrupted, bool completed) { }
+    protected virtual void OnCastFinished(bool interrupted, bool completed) { }
 
     public virtual bool CheckCanUse(Unit target, Vec2 point) => true;
+
+    public virtual void OnEffect(Unit target, Vec2 point) { }
+
+    bool? _onEffectPipeline;
+
+    /// <summary>客户端风格的技能：施法效果写在 OnEffect 里，而不是 Launcher 的 OnCast。</summary>
+    public bool UsesOnEffectPipeline => _onEffectPipeline ??=
+        GetType().GetMethod(nameof(OnEffect))?.DeclaringType != typeof(Ability);
 
     public virtual bool CheckCanTarget(Unit target, Vec2 point) => true;
 

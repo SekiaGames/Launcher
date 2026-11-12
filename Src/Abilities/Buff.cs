@@ -50,13 +50,13 @@ public class Buff
 
     public virtual bool Positive => !IsHarmful;
 
-    public virtual bool Magic => false;
+    public virtual bool Magic => true;
 
     public virtual bool Physical => false;
 
-    public virtual bool AutoDispel => false;
+    public virtual bool AutoDispel => true;
 
-    public virtual bool SpellStealable => false;
+    public virtual bool SpellStealable => true;
 
     public virtual bool Aura => false;
 
@@ -64,13 +64,13 @@ public class Buff
 
     public virtual float VisualAgeSeconds => 0f;
 
-    public virtual void OnAdd() { }
+    public virtual void OnAdd() => OnBuffAdd();
 
-    public virtual void OnRemove() { }
+    public virtual void OnRemove() => OnBuffRemove();
 
-    public virtual void OnBuffAdd() { }
+    protected virtual void OnBuffAdd() { }
 
-    public virtual void OnBuffRemove() { }
+    protected virtual void OnBuffRemove() { }
 
     public virtual void OnTick(float delta) { }
 }

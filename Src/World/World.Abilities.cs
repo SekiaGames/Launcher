@@ -141,7 +141,10 @@ public sealed partial class World
         float cost = ability.ManaCost;
         if (caster.Mana < cost) return false;
         if (!ability.CheckTarget(this, target, point)) return false;
-        if (!ability.OnCast(this, target, point)) return false;
+        Vec2 flat = new(point.X, point.Z);
+        if (!ability.CheckCanTarget(target, flat)) return false;
+        if (ability.UsesOnEffectPipeline) ability.OnEffect(target, flat);
+        else if (!ability.OnCast(this, target, point)) return false;
 
         // 施放别的技能会打断正在进行的引导（引导型技能自己刚开的不能打断）
         if (!ability.IsChanneled) InterruptChannel(caster);
@@ -171,6 +174,7 @@ public sealed partial class World
         ability.Level = next;
         hero.SkillPoints--;
         ability.OnLearned();
+        ability.OnLevelUp();
         AbilityLearned?.Invoke(hero, ability);
         return true;
     }
@@ -220,6 +224,7 @@ public sealed partial class World
                 if (kept.ToggledOn) kept.OnUpkeep(this);
                 if (!kept.Learned) continue;
                 kept.OnWorldTick(this, Tick);
+                kept.OnTick(Tick);
                 debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
             }
             unit.State.DebuffScale = debuffScale;

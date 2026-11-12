@@ -164,6 +164,7 @@ public sealed partial class Unit
         for (int index = Abilities.Count - 1; index >= 0; index--)
         {
             if (!string.Equals(Abilities[index].Id, id, System.StringComparison.OrdinalIgnoreCase)) continue;
+            Abilities[index].OnRemove();
             Abilities.RemoveAt(index);
             return true;
         }
@@ -208,6 +209,7 @@ public sealed partial class Unit
         ability.Owner = this;
         ability.Level = Mathf.Clamp(level, 0, type.MaxLevel);
         Abilities.Add(ability);
+        ability.OnAdd();
         if (ability.Learned) ability.OnLearned();
         return ability;
     }
