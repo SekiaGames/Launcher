@@ -10,7 +10,7 @@ public sealed class RuntimeCrippleAbility(War3ObjectData objects) : Ability
     public float AttackSpeedReduction { get; private set; }
     public float DamageReduction { get; private set; }
     public float NormalDuration { get; private set; }
-    public new float HeroDuration { get; private set; }
+    public float HeroDuration { get; private set; }
     public string CrippleBuffRawcode { get; private set; }="";
 
     public void RefreshCrippleData()

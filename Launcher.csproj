@@ -5,5 +5,7 @@
     <RootNamespace>Launcher</RootNamespace>
     <Nullable>annotations</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- 客户端照搬的主构造参数存在未读情形（能力类把参数留给派生用），保持文件原样 -->
+    <NoWarn>$(NoWarn);CS9113;CS0108</NoWarn>
   </PropertyGroup>
 </Project>
