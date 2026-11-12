@@ -58,7 +58,7 @@ public sealed partial class Unit
         }
     }
 
-    public string[] AnimationProperties { get; set; } = Array.Empty<string>();
+    public List<string> AnimationProperties { get; } = new();
 
     public bool Ethereal => State.Ethereal;
 
