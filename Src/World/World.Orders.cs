@@ -9,6 +9,8 @@ public enum UnitOrderKind
     Move,
     Attack,
     Patrol,
+    /// <summary>攻击移动：走到点，途中见敌就打（客户端 AttackMoveCommand → COrderTarget(Point)）。</summary>
+    AttackMove,
 }
 
 public sealed class UnitOrder
@@ -20,11 +22,13 @@ public sealed class UnitOrder
     public static UnitOrder Move(Vector3 point) => new() { Kind = UnitOrderKind.Move, Point = point };
     public static UnitOrder Attack(Unit target) => new() { Kind = UnitOrderKind.Attack, Target = target };
     public static UnitOrder Patrol(Vector3 point) => new() { Kind = UnitOrderKind.Patrol, Point = point };
+    public static UnitOrder AttackMove(Vector3 point) => new() { Kind = UnitOrderKind.AttackMove, Point = point };
 }
 
 public sealed partial class World
 {
-    public const int MaxQueuedOrders = 12;
+    // 客户端 OrderQueue.cs:58 的上限是 500。
+    public const int MaxQueuedOrders = 500;
 
     public void IssueOrder(Unit unit, UnitOrder order, bool queue)
     {
@@ -100,6 +104,7 @@ public sealed partial class World
         unit.Repairing = false;
         unit.HoldingPosition = false;
         unit.Patrolling = false;
+        unit.AttackMoving = false;
         unit.Path = null;
         unit.PathIndex = 0;
         unit.GroupSpeedCap = 0f;
@@ -124,6 +129,12 @@ public sealed partial class World
                 unit.PatrolTo = order.Point;
                 unit.MoveTarget = order.Point;
                 unit.Patrolling = true;
+                break;
+            case UnitOrderKind.AttackMove:
+                unit.Target = null;
+                unit.AttackMoveGoal = order.Point;
+                unit.MoveTarget = order.Point;
+                unit.AttackMoving = true;
                 break;
         }
     }
@@ -185,6 +196,7 @@ public sealed partial class World
         {
             UnitOrderKind.Attack => $"攻击 {order.Target?.Type?.Name ?? "?"}",
             UnitOrderKind.Patrol => $"巡逻 ({order.Point.X:0},{order.Point.Z:0})",
+            UnitOrderKind.AttackMove => $"攻击移动 ({order.Point.X:0},{order.Point.Z:0})",
             _ => $"移动 ({order.Point.X:0},{order.Point.Z:0})",
         };
     }

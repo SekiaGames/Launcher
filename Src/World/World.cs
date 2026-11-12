@@ -167,6 +167,14 @@ public sealed partial class World
             return;
         }
 
+        // 攻击移动：途中没有目标就按索敌范围找一下，找到先打；打完继续走向原目标点。
+        if (unit.AttackMoving && unit.Target == null)
+        {
+            Unit encountered = FindAcquireTarget(unit);
+            if (encountered != null) EngageTarget(unit, encountered);
+            else if (!unit.MoveTarget.HasValue) unit.MoveTarget = unit.AttackMoveGoal;
+        }
+
         if (unit.Target != null && !unit.Target.Alive)
         {
             unit.Target = null;
@@ -213,6 +221,7 @@ public sealed partial class World
                 unit.MoveTarget = null;
                 unit.GroupSpeedCap = 0f;
                 unit.GroupMoveId = 0;
+                unit.AttackMoving = false;
                 unit.View?.Play("Stand");
                 AdvanceOrder(unit);
             }

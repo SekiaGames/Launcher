@@ -48,12 +48,18 @@ public sealed partial class War3GameScene
         if (kind == PendingCommandKind.Attack)
         {
             Unit target = PickUnit(screenPosition, ViewPlayer, anyPlayer: true);
-            if (target == null)
+            if (target != null)
+            {
+                IssueAttackOrders(target, false);
+                return true;
+            }
+            // 客户端 A 键点地面就是攻击移动（COrderTarget(Point)），不是"没点到目标"。
+            if (!TryGroundPoint(screenPosition, out Vector3 attackGround))
             {
                 _hud?.SetHint("没点到攻击目标");
                 return true;
             }
-            IssueAttackOrders(target, false);
+            IssueAttackMoveOrders(attackGround, false);
             return true;
         }
 
@@ -122,6 +128,28 @@ public sealed partial class War3GameScene
         _hud?.SetHint(queue
             ? $"追加巡逻 {movers.Count} 个单位"
             : $"巡逻：{movers.Count} 个单位往返 ({ground.X:0}, {ground.Z:0})");
+    }
+
+    /// <summary>攻击移动：走到点，途中遇敌先打（客户端 AttackMoveCommand）。</summary>
+    public void IssueAttackMoveOrders(Vector3 ground, bool queue)
+    {
+        if (_world == null) return;
+
+        List<Unit> movers = SelectMovers(out Vector3 centroid);
+        if (movers.Count == 0) return;
+
+        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
+        foreach (Unit unit in movers)
+        {
+            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
+            _world.IssueOrder(unit, UnitOrder.AttackMove(spot), queue);
+        }
+        ApplyGroupSpeedCap(movers, slots, ground);
+        if (!queue) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        PlayVoice(movers[0], "Yes");
+        _hud?.SetHint(queue
+            ? $"追加攻击移动 {movers.Count} 个单位"
+            : $"攻击移动：{movers.Count} 个单位前往 ({ground.X:0}, {ground.Z:0})");
     }
 
     private void ApplyGroupSpeedCap(List<Unit> movers, Dictionary<Unit, Vector3> slots, Vector3 fallback)

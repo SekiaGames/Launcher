@@ -17,6 +17,24 @@ public static partial class CombatProbe
         CheckOrderChainAfterKill();
         CheckOrderQueueLimit();
         CheckOrderAttackMoveCancelsHarvest();
+        CheckOrderAttackMove();
+    }
+
+    /// <summary>攻击移动：先走向落点，途中进入索敌范围就锁定敌人（客户端 AttackMoveCommand）。</summary>
+    private static void CheckOrderAttackMove()
+    {
+        var world = new World(null, null);
+        Unit soldier = ProbeUnit(world, "hfoo", 0, Vector3.Zero);
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(900f, 0f, 0f));
+        if (soldier == null || enemy == null) return;
+
+        world.IssueOrder(soldier, UnitOrder.AttackMove(new Vector3(2000f, 0f, 0f)), false);
+        Verify("攻击移动标记生效", 1f, soldier.AttackMoving ? 1f : 0f, 0f);
+        Verify("攻击移动先走向落点", 2000f, soldier.MoveTarget.HasValue ? soldier.MoveTarget.Value.X : -1f, 1f);
+        Verify("路上还没敌人时不开打", 0f, soldier.Target != null ? 1f : 0f, 0f);
+
+        for (int tick = 0; tick < 300 && soldier.Target == null; tick++) world.Advance();
+        Verify("攻击移动途中锁定敌人", 1f, ReferenceEquals(soldier.Target, enemy) ? 1f : 0f, 0f);
     }
 
     private static void CheckOrderQueue()
@@ -132,7 +150,7 @@ public static partial class CombatProbe
         if (unit == null) return;
 
         world.IssueOrder(unit, UnitOrder.Move(new Vector3(2000f, 0f, 0f)), false);
-        for (int index = 0; index < 20; index++)
+        for (int index = 0; index < World.MaxQueuedOrders + 5; index++)
         {
             world.IssueOrder(unit, UnitOrder.Move(new Vector3(3000f, 0f, index * 20f)), true);
         }

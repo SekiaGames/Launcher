@@ -21,6 +21,9 @@ public sealed partial class Unit
     public bool Patrolling;
     public Vector3 PatrolFrom;
     public Vector3 PatrolTo;
+    /// <summary>攻击移动：走向 AttackMoveGoal，途中遇到敌人先打，打完继续走（客户端 AttackMoveCommand）。</summary>
+    public bool AttackMoving;
+    public Vector3 AttackMoveGoal;
     public readonly List<UnitOrder> PendingOrders = new();
     public int OrderLogBudget = 3;
     public float AttackCooldown;
