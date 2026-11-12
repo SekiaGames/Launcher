@@ -53,6 +53,8 @@ public sealed partial class Unit
         set => Player = value;
     }
 
+    public string Name => Type?.Name ?? "";
+
     public bool Is(Classification classification)
     {
         if (classification == Classification.None) return false;

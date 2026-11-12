@@ -22,7 +22,12 @@ public sealed partial class World
 
     public Func<int, bool> ComputerSpellAiQuery { get; set; } = _ => true;
 
-    public const bool LoggingEnabled = false;
+    public bool LoggingEnabled { get; set; }
+
+    public void Log(string message)
+    {
+        if (LoggingEnabled) GameLogger.Write(message);
+    }
 
     readonly System.Random _hardenedSkinRng = new(20261113);
 
