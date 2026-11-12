@@ -130,6 +130,7 @@ public static class SkillRegistry
         ["Ablo"] = () => new Bloodlust(),         // 嗜血（萨满，攻速/移速）
         ["Alsh"] = () => new LightningShield(),   // 闪电护盾（萨满）
         ["Apg2"] = () => new Purge(),             // 净化（萨满）
+        ["Aprg"] = () => new Purge(),             // 净化（萨满祭司 oshm）
         ["Awar"] = () => new Pulverize(),         // 粉碎（牛头人，概率范围伤害）
         ["Absk"] = () => new Berserk(),           // 狂暴（猎头者）
         ["Aliq"] = () => new LiquidFire(),        // 液体火焰（蝙蝠骑士，烧建筑）
@@ -249,6 +250,7 @@ public static class SkillRegistry
         ["Atau"] = () => new Taunt(),             // 嘲讽（山岭巨人）
         // —— 亡灵单位补充 ——
         ["Aam2"] = () => new AntiMagicShield(),   // 反魔法盾（女妖，吸收魔法伤害）
+        ["Aams"] = () => new AntiMagicShell(),    // 反魔法外壳（女妖，90s 全魔法免疫）
         ["Abur"] = () => new Burrow(),            // 钻地（地穴恶魔，隐形禁攻）
         ["Apts"] = () => new PlagueToss(),        // 投掷瘟疫（绞肉车，消耗尸体召 uplg）
         ["Astn"] = () => new StoneForm(),         // 石像形态（石像鬼，护甲 + 定身）
@@ -256,6 +258,7 @@ public static class SkillRegistry
         ["Acri"] = () => new Cripple(),           // 残废（亡灵巫师）
         ["Acrs"] = () => new Curse(),             // 诅咒（女妖）
         ["Aps2"] = () => new Charm(),             // 占据（女妖，同魅惑）
+        ["Apos"] = () => new Possession(),        // 占据（女妖，转属后消耗自身）
         ["Aeye"] = () => new HealingWard(),       // 岗哨守卫（萨满，召 oeye）
         ["Abu2"] = () => new Burrow(),            // 钻地（甲虫 2 级）
         ["Abu3"] = () => new Burrow(),            // 钻地（甲虫 3 级）

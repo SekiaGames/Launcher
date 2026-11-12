@@ -99,6 +99,56 @@ public static partial class CombatProbe
         sim.Units.Add(enemyVictim);
         sim.DealDamage(World.MakeAbilityDamage(enemyKiller, enemyVictim, 100000f, AttackType.Spells, DamageType.Universal));
         Verify("击杀敌方玩家单位不给赏金", 0f, awards, 0f);
+
+        CheckKillExperienceSharing();
+    }
+
+    /// <summary>
+    /// 击杀经验按收到经验的英雄数均分（客户端 ShareKillExperience = 赏金 / 接收者数，四舍五入），
+    /// 召唤物的赏金先乘 SummonedKillFactor 再分。
+    /// </summary>
+    private static void CheckKillExperienceSharing()
+    {
+        UnitType heroType = UnitCatalog.Get("Hpal");
+        UnitType soldier = UnitCatalog.Get("hfoo");
+        UnitType creepType = UnitCatalog.Get("nban");
+        if (heroType == null || soldier == null || creepType == null) return;
+
+        var alone = new World(null, null);
+        Unit killer = MakeUnit(soldier, 0);
+        Unit victim = MakeUnit(creepType, 12);
+        Unit soloHero = MakeHero(heroType, 0, 1, alone);
+        alone.Units.Add(killer);
+        alone.Units.Add(victim);
+        alone.Units.Add(soloHero);
+        alone.DealDamage(World.MakeAbilityDamage(killer, victim, 100000f, AttackType.Spells, DamageType.Universal));
+        int bounty = HeroRules.KillXpFor(victim);
+        Verify("单个英雄拿全量经验", bounty, soloHero.Xp, 0f);
+
+        var pair = new World(null, null);
+        Unit killer2 = MakeUnit(soldier, 0);
+        Unit victim2 = MakeUnit(creepType, 12);
+        Unit heroA = MakeHero(heroType, 0, 1, pair);
+        Unit heroB = MakeHero(heroType, 0, 1, pair);
+        pair.Units.Add(killer2);
+        pair.Units.Add(victim2);
+        pair.Units.Add(heroA);
+        pair.Units.Add(heroB);
+        pair.DealDamage(World.MakeAbilityDamage(killer2, victim2, 100000f, AttackType.Spells, DamageType.Universal));
+        int shared = Mathf.FloorToInt((float)bounty / 2f + 0.5f);
+        Verify("两个英雄各拿一半", shared, heroA.Xp, 0f);
+        Verify("两个英雄拿到的一样多", heroA.Xp, heroB.Xp, 0f);
+
+        var summon = new World(null, null);
+        Unit killer3 = MakeUnit(soldier, 0);
+        Unit summoned = MakeUnit(creepType, 12);
+        summoned.SummonRemaining = 30f;
+        Unit heroC = MakeHero(heroType, 0, 1, summon);
+        summon.Units.Add(killer3);
+        summon.Units.Add(summoned);
+        summon.Units.Add(heroC);
+        summon.DealDamage(World.MakeAbilityDamage(killer3, summoned, 100000f, AttackType.Spells, DamageType.Universal));
+        Verify("召唤物经验按 SummonedKillFactor 折算", (int)(bounty * MiscRules.SummonedKillFactor), heroC.Xp, 0f);
     }
 
     /// <summary>迫击炮 Farea=25 / Harea=150 / Qarea=250：全伤、半伤、四分之一、圈外不受伤。</summary>

@@ -171,30 +171,6 @@ public sealed partial class War3GameScene
         return true;
     }
 
-    private bool DemolishBuilding(Unit building)
-    {
-        if (building == null || !building.Alive || !building.IsBuilding || building.IsUnderConstruction) return false;
-
-        for (int index = _orders.Count - 1; index >= 0; index--)
-        {
-            if (ReferenceEquals(_orders[index].Building, building)) _orders.RemoveAt(index);
-        }
-
-        float footprint = Mathf.Max(32f, building.Type.FootprintRadius);
-        _pathGrid?.RemoveBlocker(building.Position, footprint);
-        _world?.Units.Remove(building);
-        _allUnits.Remove(building);
-        if (_selected.Remove(building)) _hud?.SetSelection(_selected);
-        building.Alive = false;
-        FadeOutUnitView(building.View?.Root);
-
-        GD.Print($"[BUILD] P{building.Player} 拆除 {building.Type.Name}");
-        RefreshHud();
-        UpdateCommandCard();
-        UpdateQueueLabel();
-        return true;
-    }
-
     private void AssignBuilders(Unit site, PlayerSlot slot, int wanted)
     {
         int assigned = 0;

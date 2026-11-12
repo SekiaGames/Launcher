@@ -7,24 +7,42 @@ namespace Launcher;
 
 public sealed partial class World
 {
-    /// <summary>击杀时给附近同阵营英雄发经验（HeroExpRange），逐级结算升级。</summary>
+    /// <summary>
+    /// 击杀经验：客户端 World.AwardHeroExperience → ShareKillExperience 是 `赏金 / 收到经验的英雄数`，
+    /// 再乘 handicap 与科技加成后四舍五入；召唤物赏金先按 SummonedKillFactor 折算。
+    /// Launcher 没有 handicap 表（全 100%）也没有加经验的科技，故只落「均分 + 召唤物折算」两条。
+    /// </summary>
     public void GrantKillExperience(Unit killer, Unit victim)
     {
         if (victim == null || victim.IsIllusion) return;
 
-        int xp = HeroRules.KillXpFor(victim);
-        if (xp <= 0) return;
+        int bounty = KillExperienceBounty(victim);
+        if (bounty <= 0) return;
 
         int team = killer != null ? killer.Player : -1;
         if (team < 0 || team > 11) return;
 
+        var receivers = new List<Unit>();
         foreach (Unit hero in Units)
         {
             if (!hero.Alive || !hero.IsHero) continue;
             if (hero.Player != team && !(Allied != null && Allied(hero.Player, team))) continue;
             if (hero.DistanceTo(victim) > HeroRules.ExpRange) continue;
-            AddExperience(hero, xp);
+            receivers.Add(hero);
         }
+        if (receivers.Count == 0) return;
+
+        int share = Mathf.FloorToInt((float)bounty / receivers.Count + 0.5f);
+        if (share <= 0) return;
+        foreach (Unit hero in receivers) AddExperience(hero, share);
+    }
+
+    /// <summary>赏金表按被击杀单位的等级读；召唤物的赏金再乘 SummonedKillFactor 并截断（同客户端 ScaleKillExperience）。</summary>
+    private static int KillExperienceBounty(Unit victim)
+    {
+        int bounty = HeroRules.KillXpFor(victim);
+        if (victim.SummonRemaining > 0f) bounty = (int)(bounty * MiscRules.SummonedKillFactor);
+        return bounty;
     }
 
     public void AddExperience(Unit hero, int amount)

@@ -106,6 +106,11 @@ public sealed class Purge : Ability
     {
         if (!CheckTarget(world, target, point)) return false;
 
+        bool hostile = !world.AreAllied(Owner.Player, target.Player);
+        // 对敌清掉正面增益，对友清掉负面减益（同 MassDispel 的口径）
+        world.DispelBuffs(target, Owner, harmful: !hostile, helpful: hostile, summonDamage: 0f);
+        if (!hostile) return true;
+
         float seconds = target.IsHero && HeroDuration > 0f ? HeroDuration : Duration;
         float slow = SlowFactor > 1f ? 1f - 1f / SlowFactor : Mathf.Clamp(SlowFactor, 0f, 1f);
         target.ApplySlow(slow, 0f, seconds);

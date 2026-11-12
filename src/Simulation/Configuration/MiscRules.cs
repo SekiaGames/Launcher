@@ -12,6 +12,8 @@ public static class MiscRules
     public static readonly float MaxGuardDistance = Value("Misc.MaxGuardDistance", 1000f);
     public static readonly float GuardReturnTime = Value("Misc.GuardReturnTime", 5f);
     public static readonly float CreepCallForHelp = Value("Misc.CreepCallForHelp", 600f);
+    /// <summary>击杀召唤物只按这个比例给经验（MiscData 的 SummonedKillFactor，对战表是 0.5）。</summary>
+    public static readonly float SummonedKillFactor = Value("Misc.SummonedKillFactor", 0.5f);
 
     public static string Text(string key)
     {

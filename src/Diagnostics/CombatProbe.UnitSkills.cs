@@ -16,6 +16,8 @@ public static partial class CombatProbe
         CheckFeedback();
         CheckAbolishMagic();
         CheckPurge();
+        CheckAntiMagicShell();
+        CheckPossession();
         CheckHardenedSkin();
         CheckElunesGrace();
         CheckWeb();
@@ -152,6 +154,71 @@ public static partial class CombatProbe
         Verify("净化施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("净化对召唤物伤害=DataC", Mathf.Max(0f, before - purgeType.DataAt(1, 'C')), summon.Hp, 0.5f);
         Verify("净化减速 1-1/DataA", 1f - 1f / purgeType.DataAt(1, 'A'), summon.SlowMovePct, 0.01f);
+
+        // 萨满祭司用的码是 Aprg（Apg2 只是同名别名），除了减速还要把目标身上的增益驱散掉
+        AbilityType shamanPurgeType = AbilityCatalog.Get("Aprg");
+        if (shamanPurgeType == null) return;
+
+        Unit shamanReal = ProbeUnit(world, "oshm", 0, new Vector3(600f, 0f, 0f), "Aprg");
+        Unit buffed = ProbeUnit(world, "hfoo", 1, new Vector3(900f, 0f, 0f));
+        world.ApplyBuff(buffed, new StatBuff { DamagePct = 0.5f }, 60f);
+        bool real = world.TryCast(shamanReal, shamanReal.FindAbility("Aprg"), buffed, buffed.Position);
+        Verify("净化(Aprg)施放成功", 1f, real ? 1f : 0f, 0f);
+        Verify("净化把敌方增益驱散", 0f, buffed.BonusDamagePct, 0.001f);
+        Verify("净化(Aprg)同样减速", 1f - 1f / shamanPurgeType.DataAt(1, 'A'), buffed.SlowMovePct, 0.01f);
+    }
+
+    /// <summary>Aams：对所有的魔法免疫，Dur=90s；魔法伤害进不来，物理伤害照旧。</summary>
+    private static void CheckAntiMagicShell()
+    {
+        AbilityType shellType = AbilityCatalog.Get("Aams");
+        if (shellType == null || UnitCatalog.Get("uban") == null) return;
+
+        var world = new World(null, null);
+        Unit banshee = ProbeUnit(world, "uban", 0, Vector3.Zero, "Aams");
+        banshee.Mana = 300f;
+        banshee.MaxMana = 300f;
+        Unit footman = ProbeUnit(world, "hfoo", 0, new Vector3(200f, 0f, 0f));
+        Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(600f, 0f, 0f));
+
+        bool cast = world.TryCast(banshee, banshee.FindAbility("Aams"), footman, footman.Position);
+        Verify("反魔法外壳施放成功", 1f, cast ? 1f : 0f, 0f);
+        Verify("外壳挂上 Buff", 1f, footman.FindBuff<AntiMagicShellBuff>() != null ? 1f : 0f, 0f);
+        Verify("外壳期间魔法免疫", 1f, footman.State.MagicImmune ? 1f : 0f, 0f);
+
+        footman.Hp = footman.MaxHp;
+        world.DealDamage(World.MakeAbilityDamage(enemy, footman, 100f, AttackType.Spells, DamageType.Magic));
+        Verify("魔法伤害被完全吸收", footman.MaxHp, footman.Hp, 0.01f);
+        world.DealDamage(World.MakeAbilityDamage(enemy, footman, 100f, AttackType.Normal, DamageType.Normal));
+        Verify("物理伤害照常结算", footman.MaxHp - 100f, footman.Hp, 0.01f);
+
+        Buff shell = footman.FindBuff<AntiMagicShellBuff>();
+        Verify("外壳持续 Dur", Mathf.Min(shellType.DurationAt(1), 90f), shell?.Remaining ?? 0f, 0.5f);
+    }
+
+    /// <summary>Apos：抢一个非英雄、非飞行、等级不超 DataA 的敌人，女妖自身被消耗。</summary>
+    private static void CheckPossession()
+    {
+        AbilityType possessionType = AbilityCatalog.Get("Apos");
+        if (possessionType == null || UnitCatalog.Get("uban") == null) return;
+
+        var world = new World(null, null);
+        Unit banshee = ProbeUnit(world, "uban", 0, Vector3.Zero, "Apos");
+        banshee.Mana = 400f;
+        banshee.MaxMana = 400f;
+        Unit footman = ProbeUnit(world, "hfoo", 1, new Vector3(200f, 0f, 0f));
+
+        Ability possession = banshee.FindAbility("Apos");
+        Verify("英雄不能被占据", 0f, possession.CheckTarget(world,
+            ProbeUnit(world, "Hpal", 1, new Vector3(300f, 0f, 0f)), Vector3.Zero) ? 1f : 0f, 0f);
+
+        bool cast = world.TryCast(banshee, possession, footman, footman.Position);
+        Verify("占据施放成功", 1f, cast ? 1f : 0f, 0f);
+        Verify("目标转到我方", 0f, footman.Player, 0f);
+
+        // 女妖的自毁延后两帧，避免施法管线收尾时对着已死单位扣法力
+        for (int tick = 0; tick < 4; tick++) world.Advance();
+        Verify("女妖代价生命归零", 1f, banshee.Alive ? 0f : 1f, 0f);
     }
 
     private static void CheckHardenedSkin()

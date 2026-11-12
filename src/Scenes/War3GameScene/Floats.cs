@@ -98,61 +98,6 @@ public sealed partial class War3GameScene
         });
     }
 
-    private sealed class FadingView
-    {
-        public Node3D Root;
-        public float Remaining;
-        public float Total;
-        public Vector3 StartScale;
-        public Vector3 StartPosition;
-    }
-
-    private readonly List<FadingView> _fadingViews = new();
-
-    private void FadeOutUnitView(Node3D root, float seconds = 0.45f)
-    {
-        if (root == null || !GodotObject.IsInstanceValid(root))
-        {
-            return;
-        }
-
-        _fadingViews.Add(new FadingView
-        {
-            Root = root,
-            Remaining = Mathf.Max(0.1f, seconds),
-            Total = Mathf.Max(0.1f, seconds),
-            StartScale = root.Scale,
-            StartPosition = root.Position,
-        });
-    }
-
-    private void TickFadingViews(float delta)
-    {
-        if (_fadingViews.Count == 0) return;
-
-        for (int index = _fadingViews.Count - 1; index >= 0; index--)
-        {
-            FadingView fading = _fadingViews[index];
-            if (fading.Root == null || !GodotObject.IsInstanceValid(fading.Root))
-            {
-                _fadingViews.RemoveAt(index);
-                continue;
-            }
-
-            fading.Remaining -= delta;
-            if (fading.Remaining <= 0f)
-            {
-                fading.Root.QueueFree();
-                _fadingViews.RemoveAt(index);
-                continue;
-            }
-
-            float progress = 1f - fading.Remaining / fading.Total;
-            fading.Root.Scale = fading.StartScale * Mathf.Lerp(1f, 0.55f, progress);
-            fading.Root.Position = fading.StartPosition + new Vector3(0f, -34f * progress, 0f);
-        }
-    }
-
     private void TickFloatingLabels(float delta)
     {
         if (_floatingLabels.Count == 0) return;
