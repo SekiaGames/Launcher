@@ -466,9 +466,18 @@ public abstract class Ability
 
     public virtual void OnAttackLaunched(Unit target, Weapon weapon, int effectId) { }
 
-    public virtual void SpawnSpecialArtsOnCast() { }
+    protected virtual bool SpawnSpecialArtsOnCast => true;
 
-    public virtual void SpawnTargetArtsOnCast() { }
+    protected virtual bool SpawnTargetArtsOnCast => true;
+
+    public virtual bool CheckBeforeQueue(Unit target, Vec2 point) => true;
+
+    public virtual bool CheckBeforeQueue(Unit target, Vec2 point, int orderId) => CheckBeforeQueue(target, point);
+
+    public virtual int IncomingDamagePriority => 1;
+
+
+    public int CastOrderId;
 
     public virtual bool TryAcquireAutoCastTarget(out Unit target, out Vec2 point)
     {
@@ -483,7 +492,9 @@ public abstract class Ability
 
     public virtual int ResolveCastOrderId(int orderId) => orderId;
 
-    public virtual bool ModifyOutgoingDamage(ref DamageData data) => true;
+    public virtual void ModifyOutgoingDamage(ref DamageData data) { }
+
+    public virtual void ModifyOutgoingDamage(Unit target, ref DamageData data) => ModifyOutgoingDamage(ref data);
 
     public virtual void ModifyIncomingDamage(ref DamageData data) { }
 }

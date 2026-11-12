@@ -37,6 +37,31 @@ public sealed partial class Unit
 
     public bool Invisible => State.Invisible;
 
+    public bool Hidden { get; set; }
+
+    public bool MagicImmune => State.MagicImmune;
+
+    public bool Snared => State.Snared;
+
+    public int Team => Player;
+
+    /// <summary>单位自身的目标类别位（客户端 Unit.TargetType）。</summary>
+    public TargetFlags TargetType
+    {
+        get
+        {
+            TargetFlags flags = TargetFlags.None;
+            if (IsBuilding) flags |= TargetFlags.Structure;
+            if (Type != null && Type.Flying) flags |= TargetFlags.Air;
+            else flags |= TargetFlags.Ground;
+            return flags;
+        }
+    }
+
+    public string[] AnimationProperties { get; set; } = Array.Empty<string>();
+
+    public bool Ethereal => State.Ethereal;
+
     /// <summary>客户端 Unit.ManaRegen 是法力回复字段；Launcher 在 Type 上放基础值，这里折成同样的可读写口径。</summary>
     public float ManaRegen
     {

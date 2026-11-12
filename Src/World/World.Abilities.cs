@@ -107,6 +107,8 @@ public sealed partial class World
 
     public bool AreAllied(Unit a, Unit b) => a != null && b != null && IsAllied(a.Player, b.Player);
 
+    public bool AreEnemies(Unit a, Unit b) => a != null && b != null && !IsAllied(a.Player, b.Player);
+
     public bool RollPercent(float percent)
     {
         if (percent <= 0f) return false;

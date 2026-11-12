@@ -97,6 +97,10 @@ public class Buff : Ability
 
     public virtual bool Aura => false;
 
+    public virtual bool TimedLife => false;
+
+    public virtual bool ShowsDurationBar => TimedLife;
+
     public virtual bool VisualAllowedWhileAirborne => !Aura;
 
     public override bool TickRunsWhilePaused => false;
@@ -113,9 +117,9 @@ public class Buff : Ability
 
     public override void OnDeath() { }
 
-    public new virtual void ModifyOutgoingDamage(ref DamageData damage) { }
+    public override void ModifyOutgoingDamage(ref DamageData damage) { }
 
-    public virtual void ModifyOutgoingDamage(Unit target, ref DamageData damage) => ModifyOutgoingDamage(ref damage);
+    public override void ModifyOutgoingDamage(Unit target, ref DamageData damage) => ModifyOutgoingDamage(ref damage);
 
     protected virtual void OnBuffAdd() { }
 
