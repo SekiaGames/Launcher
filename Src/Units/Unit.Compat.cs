@@ -191,6 +191,10 @@ public sealed partial class Unit
 
     static StateMod ToStateMod(StateModType type) => State.ToMod(type);
 
+    public UnitOrders Orders => _orders ??= new UnitOrders(this);
+
+    UnitOrders _orders;
+
     public void CancelOrders()
     {
         PendingOrders.Clear();
@@ -472,4 +476,17 @@ public sealed class Identity
     public Classification Classifications => _unit.Type?.Classifications ?? Classification.None;
 
     public bool Is(Classification classification) => _unit.Is(classification);
+}
+
+public sealed class UnitOrders
+{
+    readonly Unit _unit;
+
+    public UnitOrders(Unit unit) => _unit = unit;
+
+    public void InterruptCurrentCast()
+    {
+        _unit.CancelOrders();
+        _unit.World?.CancelChannel(_unit);
+    }
 }

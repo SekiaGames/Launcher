@@ -4,6 +4,8 @@ public sealed class AbilityContainer : IList<Ability>
 {
     readonly List<Ability> _items = new();
 
+    public Unit Owner { get; set; }
+
     public IReadOnlyList<Ability> Items => _items;
 
     public Ability Get(string rawcode)
@@ -17,6 +19,21 @@ public sealed class AbilityContainer : IList<Ability>
     }
 
     public bool Contains(string rawcode) => Get(rawcode) != null;
+
+    public void CancelChannel()
+    {
+        Unit owner = Owner;
+        if (owner == null)
+        {
+            for (int i = 0; i < _items.Count; i++)
+            {
+                if (_items[i].Owner == null) continue;
+                owner = _items[i].Owner;
+                break;
+            }
+        }
+        if (owner?.World != null) owner.World.CancelChannel(owner);
+    }
 
     public T Get<T>() where T : Ability
     {

@@ -12,6 +12,8 @@ namespace OpenWC3;
 public sealed partial class Unit
 {
     public readonly AbilityContainer Abilities = new();
+
+    void BindAbilityOwner() => Abilities.Owner = this;
     public readonly List<Buff> Buffs = new();
 
     // —— 加成（不含单位类型自身的数值） ——
