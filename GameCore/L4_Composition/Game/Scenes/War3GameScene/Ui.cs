@@ -848,7 +848,7 @@ public sealed partial class War3GameScene
         foreach (Buff buff in unit.Buffs)
         {
             if (buff == null || buff.Remaining <= 0f) continue;
-            string art = buff.Source?.Type?.IconArt;
+            string art = buff.SourceAbility?.Type?.IconArt;
             buffs.Add(new BuffEntry
             {
                 Icon = string.IsNullOrEmpty(art) ? null : TechTree.Icon(art),

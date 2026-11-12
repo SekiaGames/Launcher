@@ -35,7 +35,7 @@ public sealed class RuntimeShadowStrikeAbility : Ability
         target.Buffs.Add(new PeriodicDamageBuff
         {
             Owner = target,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = Duration,
             DamageSource = Owner,

@@ -81,7 +81,7 @@ public static partial class CombatProbe
         float speedWithout = World.SpeedOf(auraFriend);
         float cooldownWithout = World.AttackCooldownOf(auraFriend);
         auraChief.GiveAbility("AOae", 1);
-        enduranceWorld.RefreshAuras();
+        enduranceWorld.TickAbilities();
         Verify("耐久光环 +10% 移速", speedWithout * 1.1f, World.SpeedOf(auraFriend), 0.5f);
         Verify("耐久光环 +5% 攻速", cooldownWithout / 1.05f, World.AttackCooldownOf(auraFriend), 0.01f);
         GD.Print($"[自检] 耐久光环 移速 {speedWithout:0}→{World.SpeedOf(auraFriend):0}，"

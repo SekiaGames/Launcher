@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>Launcher</RootNamespace>
-    <Nullable>disable</Nullable>
+    <Nullable>annotations</Nullable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 </Project>

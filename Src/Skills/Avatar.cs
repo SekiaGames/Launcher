@@ -23,7 +23,7 @@ public sealed class Avatar : Ability
         var buff = new AvatarBuff
         {
             Owner = Owner,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = Duration > 0f ? Duration : 60f,
             ArmorBonus = ArmorBonus,

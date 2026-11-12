@@ -52,7 +52,7 @@ public static partial class CombatProbe
         bool burning = false;
         foreach (Buff buff in footman.Buffs)
         {
-            if (buff is PeriodicDamageBuff burn && ReferenceEquals(burn.Source, rain)) burning = true;
+            if (buff is PeriodicDamageBuff burn && ReferenceEquals(burn.SourceAbility, rain)) burning = true;
         }
         Verify("火焰雨挂上灼烧", 1f, burning ? 1f : 0f, 0f);
 

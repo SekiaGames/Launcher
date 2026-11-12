@@ -143,7 +143,7 @@ public sealed partial class World
 
             if (!noHpRegen && unit.Hp < unit.MaxHp)
             {
-                float hpPerSecond = unit.Type.RegenHp + unit.TechHpRegen + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
+                float hpPerSecond = unit.Type.RegenHp + unit.TechHpRegen + unit.AlwaysLifeRegenBonus + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
                 if (IsUndeadUnit(unit) && IsBlighted(unit.Position)) hpPerSecond += BlightHealPerSecond;
                 if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);

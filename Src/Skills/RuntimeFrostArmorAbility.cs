@@ -28,7 +28,7 @@ public sealed class RuntimeFrostArmorAbility : Ability
         var buff = new FrostArmorBuff
         {
             Owner = target,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = BuffDuration,
             ArmorBonus = ArmorBonus,

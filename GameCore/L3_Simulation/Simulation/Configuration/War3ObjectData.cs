@@ -67,6 +67,8 @@ public sealed class W3xObjectDefinition
 
 public sealed class War3ObjectData
 {
+    public BuffTypeData GetBuff(string typeId) => null;
+
     public const string UnitFile = "war3map.w3u";
     public const string DoodadFile = "war3map.w3d";
     public const string AbilityFile = "war3map.w3a";

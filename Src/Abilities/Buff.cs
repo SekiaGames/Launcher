@@ -16,7 +16,6 @@ public class Buff : Ability
 {
     public override bool IsPassive => true;
 
-    public Ability Source;
     string _name = "buff";
 
     public new virtual string Name
@@ -36,11 +35,19 @@ public class Buff : Ability
 
     public Unit Caster
     {
-        get => _caster ?? Source?.Owner;
+        get => _caster ?? SourceAbility?.Owner;
         set => _caster = value;
     }
 
     public Ability SourceAbility;
+
+    public void BindBuffObjectData(string rawcode, IRuntimeObjectData data, int level,
+        Unit caster = null, Ability sourceAbility = null)
+    {
+        BindObjectData(rawcode, data, level);
+        Caster = caster;
+        SourceAbility = sourceAbility;
+    }
 
     /// <summary>总时长（客户端 Buff.Duration）；Launcher 用 Remaining 倒计时。</summary>
     public new float Duration;
@@ -78,8 +85,6 @@ public class Buff : Ability
 
     // ---- 客户端 Buff 兼容层（对标 Src/Abilities/Buff.cs）----
 
-    public int AuraLevel;
-
     public virtual bool Positive => !IsHarmful;
 
     public virtual bool Magic => true;
@@ -91,6 +96,8 @@ public class Buff : Ability
     public override bool SpellStealable => true;
 
     public virtual bool Aura => false;
+
+    public virtual bool VisualAllowedWhileAirborne => !Aura;
 
     public override bool TickRunsWhilePaused => false;
 

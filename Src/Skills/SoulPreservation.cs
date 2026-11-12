@@ -34,7 +34,7 @@ public sealed class SoulPreservation : Ability
         var buff = new SoulPreservationBuff
         {
             Owner = target,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = Duration > 0f ? Duration : 3f,
             Taker = Owner,

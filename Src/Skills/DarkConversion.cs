@@ -42,7 +42,7 @@ public sealed class DarkConversion : Ability
         var buff = new DarkConversionBuff
         {
             Owner = target,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = Duration > 0f ? Duration : 6f,
             ResultUnitId = ResultUnitId,

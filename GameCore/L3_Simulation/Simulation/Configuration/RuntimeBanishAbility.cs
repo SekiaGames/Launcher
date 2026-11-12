@@ -32,7 +32,7 @@ public sealed class RuntimeBanishAbility : Ability
         var buff = new BanishBuff
         {
             Owner = target,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = seconds,
             MoveSlowPct = MoveSlowPct,

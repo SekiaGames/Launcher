@@ -207,6 +207,7 @@ public sealed partial class Unit
         if (ability == null) return null;
 
         ability.Owner = this;
+        ability.BindObjectData(type.Id, new AbilityTypeObjectData(type), Mathf.Clamp(level, 0, type.MaxLevel));
         ability.Level = Mathf.Clamp(level, 0, type.MaxLevel);
         Abilities.Add(ability);
         ability.OnAdd();

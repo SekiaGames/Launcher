@@ -141,8 +141,8 @@ public static partial class CombatProbe
 
             float armorBefore = world4.ArmorOf(friend);
             hero.GiveAbility("AHad", 1).Level = 1;
-            world4.RefreshAuras();
-            float auraArmor = friend.AuraArmor;
+            world4.TickAbilities();
+            float auraArmor = friend.NonStackArmor;
             Verify("光环 +1.5 护甲", 1.5f, auraArmor, 0.01f);
             Verify("护甲汇总带上光环", armorBefore + 1.5f, world4.ArmorOf(friend), 0.01f);
             GD.Print($"[自检] 专注光环 友军护甲 {armorBefore:0.00}→{world4.ArmorOf(friend):0.00}");

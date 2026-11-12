@@ -30,7 +30,7 @@ public sealed class RuntimeParasiteAbility : Ability
 
         world.ApplyBuff(target, new ParasiteBuff
         {
-            Source = this,
+            SourceAbility = this,
             Summoner = Owner,
             DamagePerSecond = DamagePerSecond,
             SpawnUnitId = SpawnUnitId,

@@ -43,7 +43,7 @@ public sealed class RuntimeBlackArrowAbility : Ability
         target.Buffs.Add(new BlackArrowMarkBuff
         {
             Owner = target,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = MarkSeconds,
             Summoner = Owner,

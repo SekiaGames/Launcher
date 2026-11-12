@@ -458,5 +458,5 @@ public abstract class Ability
 
     public virtual bool ModifyOutgoingDamage(ref DamageData data) => true;
 
-    public virtual bool ModifyIncomingDamage(ref DamageData data) => true;
+    public virtual void ModifyIncomingDamage(ref DamageData data) { }
 }

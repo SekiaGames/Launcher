@@ -56,7 +56,7 @@ public sealed class RuntimeRainOfFireAbility : Ability
         for (int index = 0; index < victim.Buffs.Count; index++)
         {
             if (victim.Buffs[index] is not PeriodicDamageBuff burn) continue;
-            if (!ReferenceEquals(burn.Source, this)) continue;
+            if (!ReferenceEquals(burn.SourceAbility, this)) continue;
             burn.Remaining = Mathf.Max(burn.Remaining, BurnSeconds);
             return;
         }
@@ -64,7 +64,7 @@ public sealed class RuntimeRainOfFireAbility : Ability
         victim.Buffs.Add(new PeriodicDamageBuff
         {
             Owner = victim,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = BurnSeconds,
             DamageSource = Owner,

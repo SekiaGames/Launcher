@@ -64,12 +64,27 @@ public sealed partial class Unit
 
     public float NonStackArmor { get; internal set; }
 
+    /// <summary>生命之泉/腐地这类常驻回复（客户端 buff 直接加在单位上的字段）。</summary>
+    public float AlwaysLifeRegenBonus;
+
+    public float SpeedBonus
+    {
+        get => BonusMoveSpeedFlat;
+        set => BonusMoveSpeedFlat = value;
+    }
+
+    public float AttackSpeedBonusPct
+    {
+        get => BonusAttackSpeedPct;
+        set => BonusAttackSpeedPct = value;
+    }
+
     Health _health;
 
     public void AddAbility(Ability ability)
     {
-        if (ability == null || string.IsNullOrEmpty(ability.Id)) return;
-        if (Abilities.Get(ability.Id) != null) return;
+        if (ability == null) return;
+        if (!string.IsNullOrEmpty(ability.Id) && Abilities.Get(ability.Id) != null) return;
         ability.Owner = this;
         Abilities.Add(ability);
         ability.OnAdd();
@@ -92,11 +107,15 @@ public sealed partial class Unit
         if (wantDead) return false;
 
         if ((rules & TargetFlags.Structure) == 0 && IsBuilding) return false;
-        if (Type != null && Type.Flying)
+        bool restrictDomain = (rules & (TargetFlags.Ground | TargetFlags.Air)) != 0;
+        if (restrictDomain)
         {
-            if ((rules & TargetFlags.Air) == 0) return false;
+            if (Type != null && Type.Flying)
+            {
+                if ((rules & TargetFlags.Air) == 0) return false;
+            }
+            else if ((rules & TargetFlags.Ground) == 0) return false;
         }
-        else if ((rules & TargetFlags.Ground) == 0) return false;
 
         if ((rules & TargetFlags.Hero) != 0 && !IsHero) return false;
         if ((rules & TargetFlags.NonHero) != 0 && IsHero) return false;
@@ -114,7 +133,7 @@ public sealed partial class Unit
             }
             else if (same)
             {
-                if ((rules & TargetFlags.Player) == 0) return false;
+                if ((rules & (TargetFlags.Player | TargetFlags.Ally)) == 0) return false;
             }
             else if (ally)
             {

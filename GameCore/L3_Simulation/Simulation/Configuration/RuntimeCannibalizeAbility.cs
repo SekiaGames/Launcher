@@ -25,7 +25,7 @@ public sealed class RuntimeCannibalizeAbility : Ability
         Owner.Buffs.Add(new CannibalizeBuff
         {
             Owner = Owner,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = Duration > 0f ? Duration : 33f,
             HealPerSecond = HealPerSecond,

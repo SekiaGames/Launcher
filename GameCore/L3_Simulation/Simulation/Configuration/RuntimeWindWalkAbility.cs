@@ -30,7 +30,7 @@ public sealed class RuntimeWindWalkAbility : Ability
         var buff = new WindWalkBuff
         {
             Owner = Owner,
-            Source = this,
+            SourceAbility = this,
             Name = Name,
             Remaining = EffectiveDuration > 0f ? EffectiveDuration : 20f,
             FadeSeconds = FadeSeconds,
