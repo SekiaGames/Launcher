@@ -537,6 +537,9 @@ public sealed partial class War3GameScene
             float fastBase = World.SpeedOf(fast);
             IssueMoveOrders(hero.Position + new Vector3(800f, 0f, 800f), false);
             GD.Print($"[UI] 群组限速 骑兵 {fastBase:0}->{World.SpeedOf(fast):0} 步兵 {World.SpeedOf(slow):0} cap={fast.GroupSpeedCap:0}");
+            GD.Print($"[UI] 群组路径 航点 {fast.Path?.Count ?? 0}/{slow.Path?.Count ?? 0} 组 {fast.GroupMoveId}/{slow.GroupMoveId}");
+            for (int tick = 0; tick < 40; tick++) _world.Advance();
+            GD.Print($"[UI] 群组路径 40tick 索引 {fast.PathIndex}/{slow.PathIndex} 偏移 {Mathf.Abs(fast.PathIndex - slow.PathIndex)}");
         }
     }
 

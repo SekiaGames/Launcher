@@ -206,6 +206,7 @@ public sealed partial class World
                 }
                 unit.MoveTarget = null;
                 unit.GroupSpeedCap = 0f;
+                unit.GroupMoveId = 0;
                 unit.View?.Play("Stand");
                 AdvanceOrder(unit);
             }

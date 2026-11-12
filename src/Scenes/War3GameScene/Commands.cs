@@ -96,6 +96,7 @@ public sealed partial class War3GameScene
             _world.IssueOrder(unit, UnitOrder.Move(spot), queue);
         }
         ApplyGroupSpeedCap(movers, slots, ground);
+        if (!queue) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
         PlayVoice(movers[0], "Yes");
         _hud?.SetHint(queue
             ? $"追加移动 {movers.Count} 个单位"
@@ -116,6 +117,7 @@ public sealed partial class War3GameScene
             _world.IssueOrder(unit, UnitOrder.Patrol(spot), queue);
         }
         ApplyGroupSpeedCap(movers, slots, ground);
+        if (!queue) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
         PlayVoice(movers[0], "Yes");
         _hud?.SetHint(queue
             ? $"追加巡逻 {movers.Count} 个单位"

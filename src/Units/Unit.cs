@@ -30,6 +30,7 @@ public sealed partial class Unit
     public int SepCooldown;
     public float GroupSpeedCap;
     public Vector3 GroupMoveGoal;
+    public int GroupMoveId;
 
     public Unit GoldMine;
     public Unit HomeHall;

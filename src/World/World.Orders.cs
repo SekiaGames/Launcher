@@ -104,6 +104,7 @@ public sealed partial class World
         unit.PathIndex = 0;
         unit.GroupSpeedCap = 0f;
         unit.GroupMoveGoal = default;
+        unit.GroupMoveId = 0;
         unit.Returning = false;
         unit.ReturnDelay = 0f;
 

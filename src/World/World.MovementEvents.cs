@@ -52,6 +52,7 @@ public sealed partial class World
         unit.PathFailed = false;
         unit.Path = path;
         unit.PathIndex = 0;
+        unit.GroupMoveId = 0;
         if (_pathLogBudget > 0 && path.Count > 1)
         {
             _pathLogBudget--;
@@ -61,7 +62,7 @@ public sealed partial class World
 
     private static int _pathLogBudget = 4;
 
-    private static Vector3 CurrentWaypoint(Unit unit, Vector3 goal)
+    private Vector3 CurrentWaypoint(Unit unit, Vector3 goal)
     {
         if (unit.Path == null || unit.PathIndex >= unit.Path.Count) return goal;
 
@@ -69,7 +70,8 @@ public sealed partial class World
         Vector2 flat = new(unit.Position.X - waypoint.X, unit.Position.Z - waypoint.Z);
         if (flat.Length() < 24f)
         {
-            unit.PathIndex++;
+            int floor = GroupWaypointFloor(unit);
+            if (floor < 0 || unit.PathIndex <= floor) unit.PathIndex++;
             return unit.PathIndex < unit.Path.Count ? unit.Path[unit.PathIndex] : goal;
         }
         return waypoint;
@@ -124,6 +126,7 @@ public sealed partial class World
         unit.Path = null;
         unit.PathIndex = 0;
         unit.PathFailed = false;
+        unit.GroupMoveId = 0;
         unit.RepathTimer = 0f;
         if (unit.View != null) unit.View.Root.Position = position;
     }
