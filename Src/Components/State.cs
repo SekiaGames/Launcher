@@ -44,6 +44,19 @@ public sealed class State
     private static bool IsDebuff(StateMod mod) => mod is StateMod.Stun or StateMod.Snare or StateMod.Sleep
         or StateMod.Disarm or StateMod.Silence or StateMod.Ethereal or StateMod.Morph or StateMod.Pause;
 
+    public bool Channeling => false;
+
+    public bool Is(StateMod mod) => Has(mod);
+
+    public bool Is(StateModType type) => Has(ToMod(type));
+
+    public bool Paused => Has(StateMod.Pause) || Has(StateMod.InternalPause);
+
+    public bool Sleeping => Has(StateMod.Sleep);
+
+    internal static StateMod ToMod(StateModType type)
+        => Enum.TryParse(type.ToString(), out StateMod mod) ? mod : StateMod.Pause;
+
     public bool Has(StateMod mod) => _counts.TryGetValue(mod, out int count) && count > 0;
 
     public int Count(StateMod mod) => _counts.TryGetValue(mod, out int count) ? count : 0;

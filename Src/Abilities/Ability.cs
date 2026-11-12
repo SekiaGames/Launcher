@@ -208,6 +208,10 @@ public abstract class Ability
     /// <summary>地面点：把高度换成施法者脚下的高度，避免点在山坡上时落点悬空。</summary>
     protected Vector3 Flatten(Vector3 point) => new(point.X, Owner?.Position.Y ?? 0f, point.Z);
 
+    public virtual bool CheckTarget(Unit target, Vec2 point) => true;
+
+    public virtual bool CheckTarget(World world, Unit target) => CheckTarget(world, target, target?.Position ?? default);
+
     public virtual bool CheckTarget(World world, Unit target, Vector3 point) => true;
 
     /// <summary>执行技能效果；返回 false 表示没放出去（不扣法力、不进冷却）。被动技能用默认实现。</summary>

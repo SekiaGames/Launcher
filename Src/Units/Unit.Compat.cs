@@ -187,8 +187,7 @@ public sealed partial class Unit
 
     public bool HasState(StateModType type) => State.Has(ToStateMod(type));
 
-    static StateMod ToStateMod(StateModType type)
-        => Enum.TryParse(type.ToString(), out StateMod mod) ? mod : StateMod.Pause;
+    static StateMod ToStateMod(StateModType type) => State.ToMod(type);
 
     public void CancelOrders()
     {

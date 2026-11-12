@@ -152,7 +152,7 @@ public static class RuntimeAbilityFactory
         ["Aadm"] = () => new AbolishMagic(),      // 废除魔法（树妖）
         ["Aspo"] = () => new RuntimeSlowPoisonAbility(),        // 慢性毒（树妖）
         ["Amfl"] = () => new RuntimeManaFlareAbility(),         // 法力闪耀（仙女龙）
-        ["Apsh"] = () => new RuntimePhaseShiftAbility(),        // 相位转移（仙女龙）
+        ["Apsh"] = () => WithObjects<RuntimePhaseShiftAbility>(),        // 相位转移（仙女龙）
         ["Atau"] = () => new RuntimeTauntAbility(),             // 嘲讽（山岭巨人）
         ["Assk"] = () => new RuntimeHardenedSkinAbility(),      // 硬化皮肤（山岭巨人）
         ["Aegr"] = () => new ElunesGrace(),       // 艾露恩恩泽（弓箭手）
@@ -239,7 +239,7 @@ public static class RuntimeAbilityFactory
         // —— 暗夜单位补充 ——
         ["Apiv"] = () => new RuntimeInvisibleGhostAbility(),             // 永久隐身
         ["Agho"] = () => new RuntimeInvisibleGhostAbility(),             // 幽灵（阴影，永久隐身）
-        ["Apsh"] = () => new RuntimePhaseShiftAbility(),        // 相位转移
+        ["Apsh"] = () => WithObjects<RuntimePhaseShiftAbility>(),        // 相位转移
         ["Acpf"] = () => new RuntimeCorporealFormAbility(),     // 实体形态（灵魂行者，取消虚无）
         ["Aimp"] = () => new RuntimeImpalingBoltAbility(),      // 穿刺之箭（弩车，直线穿透）
         ["Adcn"] = () => new MassDispel(),        // 驱散（灵魂行者）
