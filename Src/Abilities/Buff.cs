@@ -97,6 +97,8 @@ public class Buff : Ability
 
     public virtual bool Aura => false;
 
+    public virtual bool CanAutoDispelBy(Unit caster) => Magic && AutoDispel;
+
     public virtual bool TimedLife => false;
 
     public virtual bool ShowsDurationBar => TimedLife;
