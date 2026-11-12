@@ -163,7 +163,7 @@ public sealed partial class World
     {
         float cooldown = (weapon ?? unit.Type.Weapon).Cooldown;
         if (unit.IsHero) cooldown /= 1f + unit.Agility * HeroRules.AgiAttackSpeedBonus;
-        cooldown /= 1f + Mathf.Max(0f, unit.BonusAttackSpeedPct);
+        cooldown /= 1f + Mathf.Max(0f, unit.BonusAttackSpeedPct + unit.TechAttackSpeedPct);
         cooldown /= 1f + Mathf.Max(0f, unit.AuraAttackSpeedPct);
         if (unit.Slowed) cooldown /= Mathf.Max(0.1f, 1f - unit.SlowAttackPct);
         return Mathf.Max(0.15f, cooldown);

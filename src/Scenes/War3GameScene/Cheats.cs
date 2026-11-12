@@ -460,6 +460,59 @@ public sealed partial class War3GameScene
         _hud?.ShowItemDetailForTest(0);
         GD.Print($"[CARD] 命令卡 {DescribeCommandCard(hero)}");
         GD.Print($"[CARD] 物品 {carried}/{Unit.InventorySize} 格，命令卡格位 0..4 是移动/停止/据守/攻击/巡逻");
+
+        ProbeShopEntry(hero);
+    }
+
+    private void ProbeShopEntry(Unit hero)
+    {
+        Unit shop = Spawn("hvlt", ViewPlayer, hero.Position.X + 160f, hero.Position.Z + 160f, 0f, 0f, 1f);
+        if (shop == null)
+        {
+            GD.Print("[SHOPCARD] 人类商店模型缺失");
+            return;
+        }
+        _world.Units.Add(shop);
+        GD.Print($"[SHOPCARD] 人类藏宝室 商品 {shop.Type.SellItems.Length} IsShop={shop.Type.IsShop}");
+
+        _selected.Clear();
+        _selected.Add(shop);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        GD.Print($"[SHOPCARD] 自有商店卡：{_hud?.DescribeVisibleCommands()}");
+
+        string first = shop.Type.SellItems.Length > 0 ? shop.Type.SellItems[0] : null;
+        if (first != null)
+        {
+            _world.DropItemFromSlot(hero, 0);
+            int beforeFull = hero.ItemCount;
+            bool direct = BuyItemFromShop(shop, ViewPlayer, first);
+            int groundAfterDirect = _world.GroundItems.Count;
+            bool dropWhenFull = false;
+            for (int guard = 0; guard < Unit.InventorySize && hero.HasFreeSlot; guard++)
+            {
+                _world.DropItemFromSlot(hero, hero.FreeSlot);
+            }
+            dropWhenFull = BuyItemFromShop(shop, ViewPlayer, first) && _world.GroundItems.Count > groundAfterDirect;
+            GD.Print($"[SHOPCARD] 买 {first}: 进包={direct}（{beforeFull}→{hero.ItemCount}，地面 {groundAfterDirect}）"
+                + $" 满包落地={dropWhenFull}（地面 {_world.GroundItems.Count}）");
+        }
+
+        Unit tavern = Spawn("ntav", MeleeRules.PlayerNeutralPassive,
+            hero.Position.X - 160f, hero.Position.Z - 160f, 0f, 0f, 1f);
+        if (tavern == null)
+        {
+            GD.Print("[SHOPCARD] 酒馆模型缺失");
+            return;
+        }
+        _world.Units.Add(tavern);
+        GD.Print($"[SHOPCARD] 中立酒馆 IsNeutralShop={IsNeutralShop(tavern)}");
+
+        _selected.Clear();
+        _selected.Add(tavern);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        GD.Print($"[SHOPCARD] 中立商店卡：{_hud?.DescribeVisibleCommands()}");
     }
 
     /// <summary>
@@ -628,6 +681,17 @@ public sealed partial class War3GameScene
             point.Y = MapWorldBuilder.HeightAt(_map.Terrain, point.X, point.Z);
             _world.SetRally(unit, point);
             GD.Print($"[RALLY] {unit.Type?.Name}({unit.Type?.Id}) 集结点 {point}");
+
+            UnitType infantry = UnitCatalog.Get("hfoo");
+            if (infantry != null)
+            {
+                UnitType probe = infantry;
+                Vector3 spot = ResolveTrainedSpot(unit, probe, out float yaw);
+                float radius = Mathf.Max(16f, probe.CollisionRadius);
+                bool free = _pathGrid == null || _pathGrid.IsAreaFree(spot, radius);
+                float distance = new Vector2(spot.X - unit.Position.X, spot.Z - unit.Position.Z).Length();
+                GD.Print($"[RALLY] 出兵落点 ({spot.X:0},{spot.Z:0}) 朝向 {yaw:0.00} 可走={free} 距建筑 {distance:0}（建筑半径 {unit.Radius:0}）");
+            }
             if (++count >= 4) break;
         }
         GD.Print($"[RALLY] 共设 {count} 个集结点");

@@ -410,16 +410,14 @@ public sealed partial class War3GameScene
         PlayerSlot slot = Slot(order.Player);
         slot.Research[order.Id] = order.Level;
         _world?.SetResearchLevel(slot.Id, order.Id, order.Level);
+        _world?.RefreshUpgradeStats(slot.Id);
+        _hud?.SetSelection(_selected);
         GD.Print($"[TECH] P{slot.Id} 研究完成 {upgrade.Id} {upgrade.NameFor(order.Level)} {order.Level}/{upgrade.MaxLevel}");
         PlayUiSound($"ResearchComplete{RaceSoundSuffix(slot.Id)}", order.Building.Position, slot.Id);
         RefreshHud();
         UpdateCommandCard();
     }
 
-    /// <summary>
-    /// 商店买物品：扣金 → 在商店旁边落地 → 交给拾取逻辑（英雄站在旁边就自动拿到）。
-    /// 商品列表来自 `*UnitFunc` 的 Sellitems（地精商店 ngme = phea,pman,pinv,…）。
-    /// </summary>
     public bool BuyItemFromShop(Unit shop, int buyerPlayer, string itemId)
     {
         if (shop?.Type == null || _world == null) return false;
@@ -429,6 +427,14 @@ public sealed partial class War3GameScene
 
         PlayerSlot slot = Slot(buyerPlayer);
         if (slot == null) return false;
+
+        float range = ShopPurchaseRange(shop);
+        if (NearestShopBuyer(shop, buyerPlayer, range) == null)
+        {
+            _hud?.SetHint($"需要己方单位在 {shop.Type.Name} 的 {range:0} 范围内");
+            return false;
+        }
+
         if (slot.Gold < type.GoldCost)
         {
             _hud?.SetHint($"{type.Name} 需要 {type.GoldCost} 金，当前 {slot.Gold}");
@@ -441,6 +447,21 @@ public sealed partial class War3GameScene
         }
 
         slot.Gold -= type.GoldCost;
+
+        Unit carrier = NearestFriendlyHero(buyerPlayer, shop.Position, range);
+        if (carrier != null && carrier.HasFreeSlot)
+        {
+            var carried = new Item { Type = type, Position = shop.Position };
+            if (carrier.AddItem(carried))
+            {
+                _world.ApplyItemBonus(carrier, carried);
+                _world.NotifyItemPickedUp(carrier, carried);
+                _hud?.SetHint($"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金，进了 {carrier.Type.Name} 背包）");
+                RefreshHud();
+                return true;
+            }
+        }
+
         float angle = (float)(GD.Randi() % 628) / 100f;
         var spot = new Vector3(
             shop.Position.X + Mathf.Cos(angle) * (shop.Radius + 40f),
@@ -457,7 +478,7 @@ public sealed partial class War3GameScene
         }
 
         _world.TickItemPickup();
-        _hud?.SetHint($"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金）");
+        _hud?.SetHint($"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金，掉在店旁）");
         RefreshHud();
         return true;
     }
@@ -574,6 +595,7 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (unit == null || !unit.Alive || ReferenceEquals(unit, shop)) continue;
+            if (unit.IsBuilding) continue;
             if (unit.Player != player) continue;
             float distance = unit.DistanceTo(shop);
             if (distance >= bestDistance) continue;
@@ -669,6 +691,50 @@ public sealed partial class War3GameScene
         return "";
     }
 
+    private Vector3 ResolveTrainedSpot(Unit building, UnitType type, out float yaw)
+    {
+        Vector3 center = building.Position;
+        float radius = Mathf.Max(16f, type.CollisionRadius);
+        float start = Mathf.Max(48f, building.Radius + radius + 24f);
+        yaw = building.Facing;
+
+        if (building.RallyPoint.HasValue)
+        {
+            Vector3 delta = building.RallyPoint.Value - center;
+            if (delta.LengthSquared() > 1f)
+            {
+                yaw = Mathf.Pi + Mathf.Atan2(-delta.X, delta.Z);
+            }
+        }
+
+        for (float ring = 0f; ring <= 160f; ring += 32f)
+        {
+            int steps = ring <= 0f ? 1 : 9;
+            for (int step = 0; step < steps; step++)
+            {
+                float offset = steps == 1 ? 0f : (step - (steps - 1) * 0.5f) * 0.42f;
+                float angle = yaw + offset;
+                float distance = start + ring;
+                var candidate = new Vector3(
+                    center.X + Mathf.Sin(angle) * distance,
+                    0f,
+                    center.Z - Mathf.Cos(angle) * distance);
+                candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
+                if (_pathGrid == null || _pathGrid.IsAreaFree(candidate, radius))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        var fallback = new Vector3(
+            center.X + Mathf.Sin(yaw) * start,
+            0f,
+            center.Z - Mathf.Cos(yaw) * start);
+        fallback.Y = MapWorldBuilder.HeightAt(_map.Terrain, fallback.X, fallback.Z);
+        return fallback;
+    }
+
     /// <summary>落点：绕建筑找一圈能放下该单位碰撞体的空地（客户端 TryResolveSpawnPlacement 的近似）。</summary>
     private bool TryFindPurchaseSpot(Unit shop, UnitType type, out Vector3 spot)
     {
@@ -692,10 +758,11 @@ public sealed partial class War3GameScene
 
     private void SpawnTrainedUnit(BuildingOrder order)
     {
-        float angle = _allUnits.Count * 0.9f;
-        float worldX = order.Building.Position.X + Mathf.Cos(angle) * 150f;
-        float worldZ = order.Building.Position.Z + Mathf.Sin(angle) * 150f;
-        Unit unit = Spawn(order.Id, order.Player, worldX, worldZ, Mathf.Pi + angle, 0f, 1f);
+        UnitType type = UnitCatalog.Get(order.Id);
+        if (type == null) return;
+
+        Vector3 spot = ResolveTrainedSpot(order.Building, type, out float yaw);
+        Unit unit = Spawn(order.Id, order.Player, spot.X, spot.Z, yaw, 0f, 1f);
         if (unit == null) return;
 
         _world?.Units.Add(unit);

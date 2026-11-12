@@ -124,7 +124,6 @@ public sealed class UnitType
         return null;
     }
 
-    /// <summary>商店卖的东西（没有就是空）。</summary>
     public string[] SellItems = Array.Empty<string>();
     /// <summary>中立建筑卖的兵（酒馆/雇佣兵营地/地精实验室）。</summary>
     public string[] SellUnits = Array.Empty<string>();
@@ -313,7 +312,7 @@ public static class UnitCatalog
             type.Researches = row.Researches;
             type.UpgradeTo = row.UpgradeTo;
             type.Requires = row.Requires;
-            type.SellItems = row.SellItems;
+            type.SellItems = MergeShopItems(row.SellItems, row.MakeItems);
             type.SellUnits = row.SellUnits;
             string missileScene = PathResolve.ModelScene(row.MissileArt);
             type.Weapon.MissileScene = missileScene;
@@ -370,6 +369,24 @@ public static class UnitCatalog
         weapon.SplashHalfRatio = Number(weapons.Get(row, "Hfact" + slot), 0.5f);
         weapon.SplashQuarterRatio = Number(weapons.Get(row, "Qfact" + slot), 0.25f);
         return weapon;
+    }
+
+    private static string[] MergeShopItems(string[] sellItems, string[] makeItems)
+    {
+        if ((makeItems?.Length ?? 0) == 0) return sellItems ?? Array.Empty<string>();
+        if ((sellItems?.Length ?? 0) == 0) return makeItems;
+
+        var merged = new List<string>(sellItems.Length + makeItems.Length);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string id in sellItems)
+        {
+            if (seen.Add(id)) merged.Add(id);
+        }
+        foreach (string id in makeItems)
+        {
+            if (seen.Add(id)) merged.Add(id);
+        }
+        return merged.ToArray();
     }
 
     private static string[] SplitList(string csv)

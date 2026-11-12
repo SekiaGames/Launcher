@@ -50,7 +50,7 @@ public sealed partial class World
             if (unit.WorkTimer >= WorkSeconds)
             {
                 unit.WorkTimer = 0f;
-                unit.CarryLumber = 10;
+                unit.CarryLumber = 10 + Mathf.RoundToInt(unit.TechLumberBonus);
                 tree.Chop(10f);
                 TreeChopped?.Invoke(unit);
                 if (!tree.Alive) _pathGrid?.ClearArea(tree.Position, 24f);

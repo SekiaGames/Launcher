@@ -329,7 +329,11 @@ public sealed partial class War3GameScene
         {
             if (!unit.Alive && !(includeCorpses && unit.IsCorpse)) continue;
             if (unit.IsCargoed) continue;
-            if (!anyPlayer && unit.Player != player) continue;
+            if (!anyPlayer && unit.Player != player)
+            {
+                if (!IsNeutralShop(unit)) continue;
+                if (_fog != null && _fog.Enabled && !_fog.IsVisible(unit.Position)) continue;
+            }
             // 隐身敌方单位点不到（附近有反隐单位时照常可点）
             if (unit.Alive && unit.State.Invisible && unit.Player != ViewPlayer
                 && (_world == null || !_world.IsDetectedBy(ViewPlayer, unit))) continue;

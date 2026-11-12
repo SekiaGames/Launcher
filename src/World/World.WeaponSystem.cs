@@ -17,6 +17,8 @@ public sealed partial class World
 
     private readonly List<PendingHit> _pendingHits = new();
 
+    public event System.Action<Unit> AttackMissed;
+
     public int PendingHitCount => _pendingHits.Count;
 
     /// <summary>每 tick 推进所有单位的攻击时序，再结算飞到点的投射物。</summary>
@@ -79,7 +81,11 @@ public sealed partial class World
 
         if (target == null || !target.Alive) return;
 
-        if (unit.AttackMissChance > 0f && _random.NextDouble() < unit.AttackMissChance) return;
+        if (unit.AttackMissChance > 0f && _random.NextDouble() < unit.AttackMissChance)
+        {
+            AttackMissed?.Invoke(unit);
+            return;
+        }
 
         float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
             + DamageBonus(unit) + unit.OrbDamage;

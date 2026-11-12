@@ -26,6 +26,7 @@ public sealed partial class War3GameScene
     private static readonly Color LumberColor = new(0f, 0.78f, 0.31f);
     private static readonly Color BountyColor = new(1f, 0.86f, 0f);
     private static readonly Color ManaBurnColor = new(0.32f, 0.32f, 1f);
+    private static readonly Color MissColor = new(0.82f, 0.82f, 0.82f, 0.95f);
 
     private void OnDamageApplied(DamageInfo info)
     {
@@ -40,6 +41,12 @@ public sealed partial class War3GameScene
 
         if (!ShowDamageNumbers || !info.IsAttack) return;
         ShowUnitFloat(info.Target, $"{(int)info.Amount}", OrdinaryDamageColor, 19f, 0.95f);
+    }
+
+    private void ShowMissFloat(Unit attacker)
+    {
+        if (attacker == null || !attacker.Alive || !IsAudible(attacker.Position)) return;
+        ShowUnitFloat(attacker, "Miss", MissColor, 20f, 0.9f);
     }
 
     private void ShowManaBurnFloat(Unit target, float drained)

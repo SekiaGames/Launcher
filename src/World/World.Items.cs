@@ -265,6 +265,12 @@ public sealed partial class World
 
     private int _logItemBudget = 8;
 
+    public void NotifyItemPickedUp(Unit picker, Item item)
+    {
+        if (picker == null || item == null) return;
+        ItemPickedUp?.Invoke(picker, item);
+    }
+
     /// <summary>
     /// 死亡掉落：对每个掉落集逐件按 chance(%) 掷骰，每个集最多掉一件。
     /// 数据来自 war3mapUnits.doo 的单位实例掉落集（UnitPlacement.DroppedItemSets）。

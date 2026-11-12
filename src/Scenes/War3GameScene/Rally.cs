@@ -65,6 +65,7 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || AreAllied(unit.Player, ViewPlayer)) continue;
+            if (IsNeutralShop(unit)) continue;
             if (_fog != null && _fog.Enabled && !_fog.IsVisible(unit.Position)) continue;
 
             Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);

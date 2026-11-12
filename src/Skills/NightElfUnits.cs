@@ -348,7 +348,7 @@ public sealed class MoonGlaive : Ability
 {
     public override bool IsPassive => true;
 
-    public int Bounces => 2;
+    public int Bounces => 2 + (Owner?.TechTargetCountBonus ?? 0);
     public float Radius => 400f;
 
     public override void OnAttackLanded(World world, DamageInfo info)

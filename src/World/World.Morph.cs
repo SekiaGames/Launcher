@@ -81,6 +81,8 @@ public sealed partial class World
         unit.Type = newType;
         unit.IsHero = newType.IsHero;
         unit.IsBuilding = newType.IsBuilding;
+        unit.BaseMaxHp = Mathf.Max(1f, newType.Hp);
+        unit.BaseMaxMana = newType.ManaMax > 0f ? newType.ManaMax : 0f;
         unit.MaxHp = newType.IsHero
             ? Mathf.Max(1f, HeroRules.MaxHpOf(newType, unit.Strength) + unit.BonusMaxHp)
             : Mathf.Max(1f, newType.Hp);
@@ -90,6 +92,7 @@ public sealed partial class World
         unit.CancelAttack();
 
         SyncAbilitiesToType(unit);
+        RefreshUpgradeStats(unit);
         UnitMorphed?.Invoke(unit);
         return true;
     }

@@ -54,8 +54,25 @@ public sealed partial class Unit
     /// <summary>护甲类型：有覆盖先看覆盖。</summary>
     public DefenseType DefenseTypeOrDefault => DefenseTypeOverride ?? (Type?.DefenseType ?? DefenseType.Unarmored);
 
-    /// <summary>实际攻击射程 = 武器射程 + 加成（取目标判定与逼近距离都用它）。</summary>
-    public float AttackReach => (Type?.AttackRange ?? 0f) + AttackRangeBonus;
+    public float AttackReach => (Type?.AttackRange ?? 0f) + AttackRangeBonus + TechAttackRange;
+
+    public float BaseMaxHp;
+    public float BaseMaxMana;
+    public float TechFlatHp;
+    public float TechHpPercent;
+    public float TechMaxManaFlat;
+    public float TechHpRegen;
+    public float TechManaRegen;
+    public float TechAttackRange;
+    public float TechAttackSpeedPct;
+    public float TechMoveSpeedFlat;
+    public float TechDamageFlat;
+    public float TechArmor;
+    public float TechLumberBonus;
+    public float TechSpikeDamage;
+    public int TechTargetCountBonus;
+    public float TechSummonLifeBonus;
+    public int TechSummonLevelBonus;
     /// <summary>装备给的法力上限（不随智力重算清零）。</summary>
     public float BonusMaxMana;
     /// <summary>魔法伤害减免（符文护腕 0.33）。</summary>

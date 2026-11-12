@@ -14,8 +14,8 @@ public sealed class UnitFuncRow
     public string[] Researches = Array.Empty<string>();
     public string[] UpgradeTo = Array.Empty<string>();
     public string[] Requires = Array.Empty<string>();
-    /// <summary>UnitFunc 的 Sellitems：商店卖的物品 id 列表（地精商店 ngme 就是 phea,pman,pinv,…）。</summary>
     public string[] SellItems = Array.Empty<string>();
+    public string[] MakeItems = Array.Empty<string>();
     /// <summary>UnitFunc 的 Sellunits：中立建筑卖的兵（酒馆 ntav = Nalc,Ntin,…；雇佣兵营地 nmer = nftb,nfsp,…）。</summary>
     public string[] SellUnits = Array.Empty<string>();
     /// <summary>只取 Requires 本体（不含 Requires1..12），买兵前置按它判，多档要求是「或」不是「与」。</summary>
@@ -39,10 +39,36 @@ public sealed class UpgradeType
     public float TimeMod;
     public float DamageBase;
     public float DamageMod;
+    public float ExtraDamageBase;
+    public float ExtraDamageMod;
     public float ArmorBase;
     public float ArmorMod;
     public float HpPercentBase;
     public float HpPercentMod;
+    public float FlatHpBase;
+    public float FlatHpMod;
+    public float MaxManaBase;
+    public float MaxManaMod;
+    public float ManaRegenBase;
+    public float ManaRegenMod;
+    public float HpRegenBase;
+    public float HpRegenMod;
+    public float RangeBase;
+    public float RangeMod;
+    public float AttackSpeedBase;
+    public float AttackSpeedMod;
+    public float MoveSpeedBase;
+    public float MoveSpeedMod;
+    public float LumberYieldBase;
+    public float LumberYieldMod;
+    public float SpikedBase;
+    public float SpikedMod;
+    public float TargetCountBase;
+    public float TargetCountMod;
+    public float SummonLifeBase;
+    public float SummonLifeMod;
+    public float SummonLevelBase;
+    public float SummonLevelMod;
     public string IconPath;
     public string[] Requires = Array.Empty<string>();
     public string[] LevelNames = Array.Empty<string>();
@@ -52,8 +78,21 @@ public sealed class UpgradeType
     public float SecondsFor(int level) => Mathf.Max(1f, TimeBase + TimeMod * Mathf.Max(0, level - 1));
 
     public float DamageAt(int level) => LevelValue(DamageBase, DamageMod, level);
+    public float ExtraDamageAt(int level) => LevelValue(ExtraDamageBase, ExtraDamageMod, level);
     public float ArmorAt(int level) => LevelValue(ArmorBase, ArmorMod, level);
     public float HpPercentAt(int level) => LevelValue(HpPercentBase, HpPercentMod, level);
+    public float FlatHpAt(int level) => LevelValue(FlatHpBase, FlatHpMod, level);
+    public float MaxManaAt(int level) => LevelValue(MaxManaBase, MaxManaMod, level);
+    public float ManaRegenAt(int level) => LevelValue(ManaRegenBase, ManaRegenMod, level);
+    public float HpRegenAt(int level) => LevelValue(HpRegenBase, HpRegenMod, level);
+    public float RangeAt(int level) => LevelValue(RangeBase, RangeMod, level);
+    public float AttackSpeedAt(int level) => LevelValue(AttackSpeedBase, AttackSpeedMod, level);
+    public float MoveSpeedAt(int level) => LevelValue(MoveSpeedBase, MoveSpeedMod, level);
+    public float LumberYieldAt(int level) => LevelValue(LumberYieldBase, LumberYieldMod, level);
+    public float SpikedAt(int level) => LevelValue(SpikedBase, SpikedMod, level);
+    public float TargetCountAt(int level) => LevelValue(TargetCountBase, TargetCountMod, level);
+    public float SummonLifeAt(int level) => LevelValue(SummonLifeBase, SummonLifeMod, level);
+    public float SummonLevelAt(int level) => LevelValue(SummonLevelBase, SummonLevelMod, level);
 
     private float LevelValue(float baseValue, float modValue, int level)
     {
@@ -204,9 +243,16 @@ public static class TechTree
                 switch (effect.Trim().ToLowerInvariant())
                 {
                     case "ratd":
-                    case "ratc":
                         upgrade.DamageBase = baseValue;
                         upgrade.DamageMod = modValue;
+                        break;
+                    case "ratx":
+                        upgrade.ExtraDamageBase = baseValue;
+                        upgrade.ExtraDamageMod = modValue;
+                        break;
+                    case "ratc":
+                        upgrade.TargetCountBase = baseValue;
+                        upgrade.TargetCountMod = modValue;
                         break;
                     case "rarm":
                         upgrade.ArmorBase = baseValue;
@@ -215,6 +261,50 @@ public static class TechTree
                     case "rhpo":
                         upgrade.HpPercentBase = baseValue;
                         upgrade.HpPercentMod = modValue;
+                        break;
+                    case "rhpx":
+                        upgrade.FlatHpBase = baseValue;
+                        upgrade.FlatHpMod = modValue;
+                        break;
+                    case "rmnx":
+                        upgrade.MaxManaBase = baseValue;
+                        upgrade.MaxManaMod = modValue;
+                        break;
+                    case "rmnr":
+                        upgrade.ManaRegenBase = baseValue;
+                        upgrade.ManaRegenMod = modValue;
+                        break;
+                    case "rhpr":
+                        upgrade.HpRegenBase = baseValue;
+                        upgrade.HpRegenMod = modValue;
+                        break;
+                    case "ratr":
+                        upgrade.RangeBase = baseValue;
+                        upgrade.RangeMod = modValue;
+                        break;
+                    case "rats":
+                        upgrade.AttackSpeedBase = baseValue;
+                        upgrade.AttackSpeedMod = modValue;
+                        break;
+                    case "rmvx":
+                        upgrade.MoveSpeedBase = baseValue;
+                        upgrade.MoveSpeedMod = modValue;
+                        break;
+                    case "rlum":
+                        upgrade.LumberYieldBase = baseValue;
+                        upgrade.LumberYieldMod = modValue;
+                        break;
+                    case "rspi":
+                        upgrade.SpikedBase = baseValue;
+                        upgrade.SpikedMod = modValue;
+                        break;
+                    case "rrai":
+                        upgrade.SummonLifeBase = baseValue;
+                        upgrade.SummonLifeMod = modValue;
+                        break;
+                    case "rlev":
+                        upgrade.SummonLevelBase = baseValue;
+                        upgrade.SummonLevelMod = modValue;
                         break;
                 }
             }
@@ -260,6 +350,7 @@ public static class TechTree
             Requires = SplitList(Get(fields, "Requires"), fields, "Requires"),
             RequiresPrimary = SplitList(Get(fields, "Requires")),
             SellItems = SplitList(Get(fields, "Sellitems")),
+            MakeItems = SplitList(Get(fields, "Makeitems")),
             SellUnits = SplitList(Get(fields, "Sellunits")),
             MissileArt = Get(fields, "Missileart"),
             MissileSpeed = Number(Get(fields, "Missilespeed"), 0f),

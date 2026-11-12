@@ -120,6 +120,7 @@ public sealed partial class War3GameScene : Node3D
         _world.AttackLanded += OnAttackLanded;
         _world.DamageApplied += OnDamageApplied;
         _world.ManaBurned += ShowManaBurnFloat;
+        _world.AttackMissed += ShowMissFloat;
         _world.TreeChopped += OnTreeChopped;
         _world.ConstructionFinished += OnConstructionFinished;
         _world.BountyAwarded += OnBountyAwarded;

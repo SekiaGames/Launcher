@@ -459,7 +459,7 @@ public sealed partial class War3GameScene
         {
             if (!unit.Alive || !unit.IsShop) continue;
             float distance = hero.DistanceTo(unit);
-            if (distance >= bestDistance) continue;
+            if (distance >= Mathf.Min(bestDistance, ShopPurchaseRange(unit))) continue;
             bestDistance = distance;
             shop = unit;
         }

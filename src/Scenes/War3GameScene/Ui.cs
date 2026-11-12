@@ -102,6 +102,13 @@ public sealed partial class War3GameScene
             + $"    速度 {unit.Type.Speed:0}    供给 {unit.Type.FoodMade}";
     }
 
+    private static bool IsNeutralShop(Unit unit)
+    {
+        if (unit == null || !unit.IsBuilding || unit.Type == null) return false;
+        if (unit.Player != MeleeRules.PlayerNeutralPassive && unit.Player != MeleeRules.PlayerNeutralHostile) return false;
+        return unit.Type.IsShop || unit.Type.SellsUnits;
+    }
+
     private bool HasBuilding(PlayerSlot slot, string id)
     {
         if (string.IsNullOrEmpty(id)) return true;
@@ -237,7 +244,7 @@ public sealed partial class War3GameScene
         _hud.SetInventory(null);
         PlayerSlot slot = Slot(ViewPlayer);
         var commands = new List<CommandEntry>();
-        if (_selected.Count > 0 && _selected[0].Player == slot.Id)
+        if (_selected.Count > 0 && (_selected[0].Player == slot.Id || IsNeutralShop(_selected[0])))
         {
             Unit single = _selected.Count == 1 ? _selected[0] : null;
             if (single != null && single.IsBuilding && single.IsUnderConstruction)
@@ -246,13 +253,17 @@ public sealed partial class War3GameScene
             }
             else if (single != null && single.IsBuilding && !single.IsUnderConstruction)
             {
-                AddTrainingCommands(commands, slot, single);
+                bool own = single.Player == slot.Id;
+                if (own) AddTrainingCommands(commands, slot, single);
                 AddSellUnitCommands(commands, slot, single);
-                AddResearchCommands(commands, slot, single);
-                AddUpgradeCommands(commands, slot, single);
+                if (own)
+                {
+                    AddResearchCommands(commands, slot, single);
+                    AddUpgradeCommands(commands, slot, single);
+                }
                 if (single.Type.IsShop) AddShopCommands(commands, slot, single);
-                // 古树的扎根/拔根、神像这类建筑主动技能也挂在命令卡上
-                AddUnitAbilityCommands(commands, single);
+                // 古树的扎根/拔根、神像这类建筑主动技能也挂在命令卡上（中立商店没有）
+                if (own) AddUnitAbilityCommands(commands, single);
             }
             else if (single != null && single.IsHero)
             {
@@ -488,6 +499,10 @@ public sealed partial class War3GameScene
     /// </summary>
     private void AddShopCommands(List<CommandEntry> commands, PlayerSlot slot, Unit shop)
     {
+        const int commandSlots = 12;
+        float range = ShopPurchaseRange(shop);
+        bool buyerNearby = NearestShopBuyer(shop, slot.Id, range) != null;
+
         int shown = 0;
         foreach (string itemId in shop.Type.SellItems)
         {
@@ -498,24 +513,28 @@ public sealed partial class War3GameScene
             Unit target = shop;
             int stock = shop.StockOf(itemId);
             int max = shop.StockMaxOf(itemId);
+            bool afford = slot.Gold >= type.GoldCost;
             commands.Add(new CommandEntry
             {
                 Id = id,
                 Name = $"买 {type.Name}",
                 Cost = $"{type.GoldCost}金",
-                Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}\n库存 {stock}/{max}",
+                Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}\n库存 {stock}/{max}"
+                    + (buyerNearby ? "" : $"\n需要己方单位在 {range:0} 范围内")
+                    + (afford ? "" : $"\n金币不足（{type.GoldCost}）"),
                 Icon = TechTree.Icon(type.IconArt),
-                Enabled = stock > 0 && slot.Gold >= type.GoldCost,
+                Enabled = stock > 0 && afford && buyerNearby,
                 Action = () => BuyItemFromShop(target, slot.Id, id),
             });
 
-            if (++shown >= 6) break;
+            if (++shown >= commandSlots) break;
         }
 
         Unit seller = NearestFriendlyHero(slot.Id, shop.Position, 700f);
         if (seller == null) return;
 
-        for (int index = 0; index < Unit.InventorySize; index++)
+        int sellSlots = Mathf.Max(0, commandSlots - shown);
+        for (int index = 0; index < Unit.InventorySize && sellSlots > 0; index++)
         {
             Item item = seller.Inventory[index];
             if (item?.Type == null || item.Type.GoldCost <= 0) continue;
@@ -534,6 +553,7 @@ public sealed partial class War3GameScene
                 Enabled = true,
                 Action = () => SellItemToShop(shopRef, sellerRef, captured),
             });
+            sellSlots--;
         }
     }
 

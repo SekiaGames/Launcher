@@ -596,6 +596,17 @@ public sealed class MeleeHudController
         _queueLabel.Text = text;
     }
 
+    public string DescribeVisibleCommands()
+    {
+        var parts = new List<string>();
+        foreach (CommandEntry entry in _commands)
+        {
+            if (entry == null) continue;
+            parts.Add($"{entry.Name}{(entry.Enabled ? "" : "(禁用)")}");
+        }
+        return parts.Count == 0 ? "(空)" : string.Join(" | ", parts);
+    }
+
     private static Label Label(string text, int size, Vector2 position, Color color)
     {
         var label = new Label

@@ -361,6 +361,8 @@ public sealed partial class War3GameScene
             View = view,
         };
 
+        unit.BaseMaxHp = maxHp;
+
         if (type.IsHero)
         {
             // 英雄生命/法力由属性推导：生命 = 基础 + 力量*25，法力 = 智力*15；1 级自带 1 点技能点
@@ -372,21 +374,17 @@ public sealed partial class War3GameScene
         }
         else if (type.ManaMax > 0f)
         {
+            unit.BaseMaxMana = type.ManaMax;
             unit.MaxMana = type.ManaMax;
             unit.Mana = Mathf.Min(type.ManaMax, type.ManaStart);
-        }
-
-        if (_world != null && type.IsBuilding)
-        {
-            float multiplier = _world.HpMultiplier(unit, player);
-            unit.MaxHp = maxHp * multiplier;
-            unit.Hp = unit.MaxHp;
         }
 
         // 自带技能（abilList）直接 1 级；英雄技能（heroAbilList）从 0 级开始等加点
         foreach (string abilityId in type.Abilities) unit.GiveAbility(abilityId, 1);
         foreach (string abilityId in type.HeroAbilList) unit.GiveAbility(abilityId, 0);
         if (type.HasStock) unit.InitShopStock();
+
+        _world?.RefreshUpgradeStats(unit);
 
         view.Play("Stand");
         view.SetHp(1f, true);

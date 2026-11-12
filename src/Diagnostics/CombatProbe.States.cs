@@ -224,6 +224,136 @@ public static partial class CombatProbe
         Verify("显式 enemy 掩码不误伤友军", 0f, friendly.Hp < friendlyBefore ? 1f : 0f, 0f);
     }
 
+    private static void CheckShopAndUpgradeData()
+    {
+        CheckShop("hvlt", 9, "人类神秘藏宝室");
+        CheckShop("ovln", 8, "兽族巫毒商店");
+        CheckShop("utom", 8, "亡灵古墓废墟");
+        CheckShop("eden", 9, "暗夜奇迹古树");
+        CheckShop("ngme", 11, "地精商店");
+
+        var world = new World(null, null);
+        UnitType footman = UnitCatalog.Get("hfoo");
+        if (footman != null)
+        {
+            Unit unit = MakeUnit(footman, 0);
+            unit.BaseMaxHp = footman.Hp;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rhme", 3);
+            world.SetResearchLevel(0, "Rhar", 3);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 步兵攻击 +3", 3f, world.DamageBonus(unit), 0.01f);
+            Verify("科技 步兵护甲 +3", 3f, world.ArmorOf(unit) - footman.Armor, 0.01f);
+        }
+
+        UnitType rifleman = UnitCatalog.Get("hrif");
+        if (rifleman != null)
+        {
+            Unit unit = MakeUnit(rifleman, 0);
+            unit.BaseMaxHp = rifleman.Hp;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rhri", 1);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 火枪射程 +200", rifleman.AttackRange + 200f, unit.AttackReach, 0.01f);
+        }
+
+        UnitType ghoul = UnitCatalog.Get("ugho");
+        if (ghoul != null)
+        {
+            Unit unit = MakeUnit(ghoul, 0);
+            unit.BaseMaxHp = ghoul.Hp;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rugf", 1);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 食尸鬼攻速 +25%", World.AttackCooldownOf(unit) * 1.25f, ghoul.AttackCooldown, 0.01f);
+            Verify("科技 食尸鬼移速 +80", World.SpeedOf(unit), ghoul.Speed + 80f, 0.01f);
+        }
+
+        UnitType priest = UnitCatalog.Get("hmpr");
+        if (priest != null)
+        {
+            Unit unit = MakeUnit(priest, 0);
+            unit.BaseMaxHp = priest.Hp;
+            unit.BaseMaxMana = priest.ManaMax;
+            unit.MaxMana = priest.ManaMax;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rhpt", 1);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 牧师生命 +40", priest.Hp + 40f, unit.MaxHp, 0.01f);
+            Verify("科技 牧师法力 +100", priest.ManaMax + 100f, unit.MaxMana, 0.01f);
+            Verify("科技 牧师回蓝 +0.325", 0.325f, unit.TechManaRegen, 0.001f);
+        }
+
+        UnitType tower = UnitCatalog.Get("otrb");
+        if (tower != null)
+        {
+            Unit unit = MakeUnit(tower, 0);
+            unit.BaseMaxHp = tower.Hp;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rosp", 3);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 尖刺路障 4+6×2", 16f, unit.TechSpikeDamage, 0.01f);
+        }
+
+        UnitType hall = UnitCatalog.Get("htow");
+        if (hall != null)
+        {
+            Unit unit = MakeUnit(hall, 0);
+            unit.BaseMaxHp = hall.Hp;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rhac", 3);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 建筑生命 +30%", hall.Hp * 1.3f, unit.MaxHp, 0.5f);
+        }
+
+        UnitType peasant = UnitCatalog.Get("hpea");
+        if (peasant != null)
+        {
+            Unit unit = MakeUnit(peasant, 0);
+            unit.BaseMaxHp = peasant.Hp;
+            world.Units.Add(unit);
+            world.SetResearchLevel(0, "Rhlh", 2);
+            world.RefreshUpgradeStats(unit);
+            Verify("科技 伐木 +20", 20f, unit.TechLumberBonus, 0.01f);
+        }
+
+        GD.Print("[自检] 商店与研究效果码校验完成");
+    }
+
+    private static void CheckMissEvent()
+    {
+        UnitType footman = UnitCatalog.Get("hfoo");
+        if (footman == null) return;
+
+        var world = new World(null, null);
+        Unit attacker = MakeUnit(footman, 0);
+        Unit victim = MakeUnit(footman, 12);
+        victim.Position = new Vector3(60f, 0f, 0f);
+        world.Units.Add(attacker);
+        world.Units.Add(victim);
+
+        int misses = 0;
+        world.AttackMissed += _ => misses++;
+        attacker.AttackMissChance = 1f;
+        attacker.Target = victim;
+        for (int tick = 0; tick < 100 && misses == 0; tick++) world.Advance();
+
+        Verify("落空事件触发", 1f, misses > 0 ? 1f : 0f, 0f);
+        Verify("落空不掉血", victim.MaxHp, victim.Hp, 0.01f);
+    }
+
+    private static void CheckShop(string id, int expectedItems, string label)
+    {
+        UnitType type = UnitCatalog.Get(id);
+        if (type == null)
+        {
+            GD.Print($"[自检] 缺单位表 {id}，跳过商店检查");
+            return;
+        }
+        Verify($"{label} 商品数", expectedItems, type.SellItems.Length, 0f);
+        Verify($"{label} IsShop", 1f, type.IsShop ? 1f : 0f, 0f);
+    }
+
     private static void CheckRegeneration()
     {
         UnitType footman = UnitCatalog.Get("hfoo");

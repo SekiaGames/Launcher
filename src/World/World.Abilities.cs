@@ -93,7 +93,11 @@ public sealed partial class World
         if (created == null) return null;
 
         created.Summoner = caster;
-        if (lifetime > 0f) created.SummonRemaining = lifetime;
+        if (lifetime > 0f) created.SummonRemaining = lifetime + (caster?.TechSummonLifeBonus ?? 0f);
+        if (caster != null && caster.TechSummonLevelBonus > 0)
+        {
+            created.Level += caster.TechSummonLevelBonus;
+        }
         if (!Units.Contains(created)) Units.Add(created);
         return created;
     }
@@ -390,11 +394,12 @@ public sealed partial class World
             return;
         }
 
-        float newMaxHp = HeroRules.MaxHpOf(type, hero.Strength) + hero.BonusMaxHp;
+        float newMaxHp = (HeroRules.MaxHpOf(type, hero.Strength) + hero.BonusMaxHp + hero.TechFlatHp)
+            * (1f + hero.TechHpPercent);
         hero.Hp = Mathf.Max(1f, Mathf.Min(newMaxHp, hero.Hp + Mathf.Max(0f, newMaxHp - hero.MaxHp)));
         hero.MaxHp = newMaxHp;
 
-        float newMaxMana = HeroRules.MaxManaOf(hero.Intelligence) + hero.BonusMaxMana;
+        float newMaxMana = HeroRules.MaxManaOf(hero.Intelligence) + hero.BonusMaxMana + hero.TechMaxManaFlat;
         hero.Mana = Mathf.Max(0f, Mathf.Min(newMaxMana, hero.Mana + Mathf.Max(0f, newMaxMana - hero.MaxMana)));
         hero.MaxMana = newMaxMana;
 
@@ -405,7 +410,7 @@ public sealed partial class World
     public static float SpeedOf(Unit unit)
     {
         if (unit?.Type == null) return 0f;
-        float speed = unit.Type.Speed + unit.BonusMoveSpeedFlat;
+        float speed = unit.Type.Speed + unit.BonusMoveSpeedFlat + unit.TechMoveSpeedFlat;
         speed *= 1f + Mathf.Max(0f, unit.AuraMoveSpeedPct);
         if (unit.Slowed) speed *= 1f - unit.SlowMovePct;
         return Mathf.Max(40f, speed);

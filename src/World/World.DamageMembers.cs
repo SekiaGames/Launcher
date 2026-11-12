@@ -10,13 +10,7 @@ public sealed partial class World
     public float DamageBonus(Unit unit)
     {
         float bonus = unit.IsHero ? PrimaryAttributeOf(unit) : 0f;
-        bonus += unit.BonusDamageFlat;
-        foreach (string upgradeId in unit.Type.UpgradesApplied)
-        {
-            UpgradeType upgrade = TechTree.Upgrade(upgradeId);
-            if (upgrade == null) continue;
-            bonus += upgrade.DamageAt(ResearchLevel(unit.Player, upgradeId));
-        }
+        bonus += unit.BonusDamageFlat + unit.TechDamageFlat;
         return bonus;
     }
 
@@ -37,31 +31,102 @@ public sealed partial class World
     {
         float armor = unit.Type.Armor;
         if (unit.IsHero) armor += HeroRules.AgilityArmor(unit.Agility);
-        armor += unit.BonusArmor + unit.AuraArmor;
+        armor += unit.BonusArmor + unit.AuraArmor + unit.TechArmor;
         // 被动技能的常驻护甲（尖刺甲壳这类）
         foreach (Ability ability in unit.Abilities)
         {
             if (ability.Learned) armor += ability.PassiveArmor;
         }
-        foreach (string upgradeId in unit.Type.UpgradesApplied)
-        {
-            UpgradeType upgrade = TechTree.Upgrade(upgradeId);
-            if (upgrade == null) continue;
-            armor += upgrade.ArmorAt(ResearchLevel(unit.Player, upgradeId));
-        }
         return armor;
     }
 
-    public float HpMultiplier(Unit unit, int player)
+    public float HpMultiplier(Unit unit, int player) => 1f + (unit?.TechHpPercent ?? 0f);
+
+    public void RefreshUpgradeStats(Unit unit)
     {
-        float multiplier = 1f;
+        if (unit?.Type == null) return;
+
+        float flatHp = 0f, hpPercent = 0f, maxMana = 0f, manaRegen = 0f, hpRegen = 0f;
+        float attackRange = 0f, attackSpeed = 0f, moveSpeed = 0f, damage = 0f, armor = 0f;
+        float lumber = 0f, spiked = 0f, summonLife = 0f, summonLevel = 0f, targetCount = 0f;
+
         foreach (string upgradeId in unit.Type.UpgradesApplied)
         {
             UpgradeType upgrade = TechTree.Upgrade(upgradeId);
             if (upgrade == null) continue;
-            multiplier += upgrade.HpPercentAt(ResearchLevel(player, upgradeId));
+            int level = ResearchLevel(unit.Player, upgradeId);
+            if (level <= 0) continue;
+
+            flatHp += upgrade.FlatHpAt(level);
+            hpPercent += upgrade.HpPercentAt(level);
+            maxMana += upgrade.MaxManaAt(level);
+            manaRegen += upgrade.ManaRegenAt(level);
+            hpRegen += upgrade.HpRegenAt(level);
+            attackRange += upgrade.RangeAt(level);
+            attackSpeed += upgrade.AttackSpeedAt(level);
+            moveSpeed += upgrade.MoveSpeedAt(level);
+            damage += upgrade.DamageAt(level) + upgrade.ExtraDamageAt(level);
+            armor += upgrade.ArmorAt(level);
+            lumber += upgrade.LumberYieldAt(level);
+            spiked += upgrade.SpikedAt(level);
+            summonLife += upgrade.SummonLifeAt(level);
+            summonLevel += upgrade.SummonLevelAt(level);
+            targetCount += upgrade.TargetCountAt(level);
         }
-        return multiplier;
+
+        unit.TechFlatHp = flatHp;
+        unit.TechHpPercent = hpPercent;
+        unit.TechMaxManaFlat = maxMana;
+        unit.TechManaRegen = manaRegen;
+        unit.TechHpRegen = hpRegen;
+        unit.TechAttackRange = attackRange;
+        unit.TechAttackSpeedPct = attackSpeed;
+        unit.TechMoveSpeedFlat = moveSpeed;
+        unit.TechDamageFlat = damage;
+        unit.TechArmor = armor;
+        unit.TechLumberBonus = lumber;
+        unit.TechSpikeDamage = spiked;
+        unit.TechSummonLifeBonus = summonLife;
+        unit.TechSummonLevelBonus = Mathf.RoundToInt(summonLevel);
+        unit.TechTargetCountBonus = Mathf.RoundToInt(targetCount);
+
+        RecomposeMaxStats(unit);
+    }
+
+    public void RefreshUpgradeStats(int player)
+    {
+        foreach (Unit unit in Units)
+        {
+            if (unit == null || !unit.Alive || unit.Player != player) continue;
+            RefreshUpgradeStats(unit);
+        }
+    }
+
+    private void RecomposeMaxStats(Unit unit)
+    {
+        if (unit.IsHero)
+        {
+            RefreshHeroAttributes(unit);
+            return;
+        }
+
+        float newMaxHp = (unit.BaseMaxHp + unit.TechFlatHp) * (1f + unit.TechHpPercent);
+        newMaxHp = Mathf.Max(1f, newMaxHp);
+        float hpGain = newMaxHp - unit.MaxHp;
+        unit.MaxHp = newMaxHp;
+        if (hpGain > 0f) unit.Hp += hpGain;
+        unit.Hp = Mathf.Min(unit.Hp, unit.MaxHp);
+
+        if (unit.BaseMaxMana > 0f || unit.TechMaxManaFlat > 0f)
+        {
+            float newMaxMana = unit.BaseMaxMana + unit.BonusMaxMana + unit.TechMaxManaFlat;
+            float manaGain = newMaxMana - unit.MaxMana;
+            unit.MaxMana = newMaxMana;
+            if (manaGain > 0f) unit.Mana += manaGain;
+            unit.Mana = Mathf.Min(unit.Mana, unit.MaxMana);
+        }
+
+        unit.View?.SetHp(unit.Hp / Mathf.Max(1f, unit.MaxHp), unit.Alive);
     }
 
     /// <summary>
@@ -78,7 +143,7 @@ public sealed partial class World
 
             if (!noHpRegen && unit.Hp < unit.MaxHp)
             {
-                float hpPerSecond = unit.Type.RegenHp + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
+                float hpPerSecond = unit.Type.RegenHp + unit.TechHpRegen + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
                 if (IsUndeadUnit(unit) && IsBlighted(unit.Position)) hpPerSecond += BlightHealPerSecond;
                 if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
@@ -86,7 +151,7 @@ public sealed partial class World
 
             if (unit.MaxMana > 0f && unit.Mana < unit.MaxMana)
             {
-                float manaPerSecond = unit.Type.ManaRegen + unit.AuraManaRegenPerSecond + unit.BonusManaRegenPerSecond;
+                float manaPerSecond = unit.Type.ManaRegen + unit.TechManaRegen + unit.AuraManaRegenPerSecond + unit.BonusManaRegenPerSecond;
                 if (unit.IsHero) manaPerSecond += unit.Intelligence * HeroRules.IntRegenBonus;
                 if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * Tick);
             }
@@ -136,6 +201,7 @@ public sealed partial class World
         {
             info.Amount = 0f;
             info.Cancelled = true;
+            if (info.IsAttack) AttackMissed?.Invoke(info.Source);
             DamageApplied?.Invoke(info);
             return;
         }
@@ -152,6 +218,7 @@ public sealed partial class World
         {
             info.Amount = 0f;
             info.Cancelled = true;
+            AttackMissed?.Invoke(info.Source);
             DamageApplied?.Invoke(info);
             return;
         }
@@ -241,7 +308,7 @@ public sealed partial class World
     {
         if (target == null || ranged) return 0f;
 
-        float flat = 0f;
+        float flat = Mathf.Max(0f, target.TechSpikeDamage);
         foreach (Ability ability in target.Abilities)
         {
             if (!ability.Learned) continue;
