@@ -30,11 +30,18 @@ public class DruidForm : Ability
         return form != null && world.BeginMorph(Owner, form, 0f, disable: false);
     }
 
-    /// <summary>AI：利爪德鲁伊见到敌人就变熊；猛禽德鲁伊保持人形放法术，不自动变形。</summary>
+    /// <summary>AI：利爪德鲁伊见到敌人就变熊，脱离交战后再变回人形；猛禽德鲁伊保持人形放法术。</summary>
     public override bool TryAutoCast(World world)
     {
-        if (Owner == null || Owner.Morphed) return false;
+        if (Owner == null) return false;
         if (!string.Equals(Id, "Abrf", System.StringComparison.OrdinalIgnoreCase)) return false;
+
+        if (Owner.Morphed)
+        {
+            if (HasEnemyNearby(world, 900f)) return false;
+            return world.TryCast(Owner, this, null, Owner.Position);
+        }
+
         if (!HasEnemyNearby(world, 700f)) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }

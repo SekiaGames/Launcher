@@ -40,7 +40,7 @@ public static class AiTactics
     /// 没有侧翼数据时退化成「从原点看向目标」的垂直方向（即目标正侧方）。
     /// </summary>
     public static Vector3 FlankPoint(Unit focus, Vector3 origin, IReadOnlyList<Unit> units,
-        Func<int, int, bool> allied, int player, float offset = 420f)
+        Func<int, int, bool> allied, int player, float offset = 420f, Func<Vector3, bool> passable = null)
     {
         if (focus == null) return origin;
 
@@ -52,9 +52,29 @@ public static class AiTactics
 
         Vector3 left = focus.Position + lateral * offset;
         Vector3 right = focus.Position - lateral * offset;
-        return CountNear(units, allied, player, left, 600f) <= CountNear(units, allied, player, right, 600f)
-            ? left
-            : right;
+        bool leftOk = passable == null || passable(left);
+        bool rightOk = passable == null || passable(right);
+        if (leftOk || rightOk)
+        {
+            if (leftOk && rightOk)
+            {
+                return CountNear(units, allied, player, left, 600f) <= CountNear(units, allied, player, right, 600f)
+                    ? left
+                    : right;
+            }
+            return leftOk ? left : right;
+        }
+
+        for (int step = 0; step < 6; step++)
+        {
+            float angle = Mathf.Tau * step / 6f;
+            var candidate = new Vector3(
+                focus.Position.X + Mathf.Cos(angle) * offset,
+                focus.Position.Y,
+                focus.Position.Z + Mathf.Sin(angle) * offset);
+            if (passable(candidate)) return candidate;
+        }
+        return focus.Position;
     }
 
     private static int CountNear(IReadOnlyList<Unit> units, Func<int, int, bool> allied, int player,

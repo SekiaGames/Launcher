@@ -208,7 +208,9 @@ public sealed partial class War3GameScene
         }
         if (attackers.Count == 0) return;
 
-        Vector3 flank = AiTactics.FlankPoint(focus, hall.Position, _allUnits, AreAllied, slot.Id);
+        Vector3 flank = AiTactics.FlankPoint(focus, hall.Position, _allUnits, AreAllied, slot.Id,
+            passable: point => _world != null && _world.CanStandAt(point, 32f)
+                && (_pathGrid == null || _pathGrid.FindPath(hall.Position, point, 32f, PathLayer.Ground) != null));
         Dictionary<Unit, Vector3> approach = GroupFormation.Layout(attackers, flank, flank - hall.Position);
 
         int assigned = 0;
@@ -396,7 +398,7 @@ public sealed partial class War3GameScene
             if (!unit.Alive || unit.Player != slot.Id) continue;
             if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered) continue;
             if (unit.KiteCooldown > 0f) unit.KiteCooldown -= 0.3f;
-            if (!AiTactics.IsBackline(unit) || unit.IsHero) continue;
+            if (unit.IsHero) continue;
             if (unit.Type.AttackRange < 250f) continue;
 
             Unit threat = unit.Target;

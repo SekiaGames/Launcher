@@ -70,6 +70,11 @@ public static partial class CombatProbe
         Verify("再放一次变回人形", 1f, back && druid.Type.Id == druidType.Id ? 1f : 0f, 0f);
         Verify("变回后不再处于形态", 0f, druid.Morphed ? 1f : 0f, 0f);
         Verify("人形技能栏恢复", 1f, druid.FindAbility("Aroa") != null ? 1f : 0f, 0f);
+
+        bool toBearAgain = world.TryCast(druid, druid.FindAbility("Abrf"), null, druid.Position);
+        Ability bearAgain = druid.FindAbility("Abrf");
+        bool autoBack = toBearAgain && bearAgain != null && bearAgain.TryAutoCast(world);
+        Verify("脱离交战时自动变回人形", 1f, autoBack && !druid.Morphed ? 1f : 0f, 0f);
         GD.Print($"[自检] 德鲁伊 {druidType.Id}→{bearType.Id}→{druid.Type.Id}，生命比例 0.50，"
             + $"法力 {druid.Mana:0}/100（每次 25）");
     }
