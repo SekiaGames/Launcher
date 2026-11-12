@@ -7,7 +7,7 @@ namespace Launcher;
 /// 野怪、古树与召唤物自带的技能（客户端 L3_Simulation/Configuration/Runtime*Ability 的同款实现）：
 /// 吃树回血、狂暴、缓慢光环、永久献祭、龙卷风伤害。都不需要玩家下指令，全部走被动 tick。
 /// </summary>
-public sealed class EatTree : Ability
+public sealed class RuntimeEatTreeAbility : Ability
 {
     /// <summary>物编 Rng 只是「够得着」，实际按这个接近半径找树。</summary>
     private const float ReachPadding = 160f;

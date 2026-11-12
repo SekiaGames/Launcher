@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class BallsOfFire : Ability
+public sealed class RuntimeBurningOilAbility : Ability
 {
     public override bool IsPassive => true;
 

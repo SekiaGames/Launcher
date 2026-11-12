@@ -632,7 +632,7 @@ public sealed partial class War3GameScene
         return count;
     }
 
-    /// <summary>Blizzard.j 两条英雄限制：总数 bj_MELEE_HERO_LIMIT=3，同名 bj_MELEE_HERO_TYPE_LIMIT=1。</summary>
+    /// <summary>RuntimeBlizzardAbility.j 两条英雄限制：总数 bj_MELEE_HERO_LIMIT=3，同名 bj_MELEE_HERO_TYPE_LIMIT=1。</summary>
     private bool HeroSlotBlocked(PlayerSlot slot, UnitType type)
     {
         if (slot == null || type == null || !type.IsHero) return false;

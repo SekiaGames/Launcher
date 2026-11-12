@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Monsoon : Ability
+public sealed class RuntimeMonsoonAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

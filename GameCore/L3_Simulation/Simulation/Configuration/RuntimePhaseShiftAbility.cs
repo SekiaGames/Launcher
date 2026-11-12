@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class PhaseShift : Ability
+public sealed class RuntimePhaseShiftAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class Volcano : Ability
+public sealed class RuntimeVolcanoAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

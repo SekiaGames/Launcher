@@ -9,7 +9,7 @@ namespace Launcher;
 /// DataA 是地狱火技能码（ANin），在 Area(900) 内随机砸下 DataB 只地狱火单位；
 /// 每颗落地按 ANin 的 DataA 伤害 / Area 半径 / Dur 眩晕，召唤物寿命取 ANin 的 DataB。
 /// </summary>
-public sealed class RainOfChaos : Ability
+public sealed class RuntimeRainOfChaosAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

@@ -3,7 +3,7 @@ using Godot;
 namespace Launcher;
 
 /// <summary>反魔法外壳的载体：期间魔法免疫，到期摘掉。</summary>
-public sealed class AntiMagicShellBuff : Buff
+public sealed class RuntimeAntiMagicShellBuff : Buff
 {
     public override bool IsHarmful => false;
 

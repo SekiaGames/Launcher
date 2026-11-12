@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class SlowUnit : Ability
+public sealed class RuntimeSlowAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

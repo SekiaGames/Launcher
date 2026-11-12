@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class PlagueToss : Ability
+public sealed class RuntimePlagueTossAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

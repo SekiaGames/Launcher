@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class WarDrums : Ability
+public sealed class RuntimeCommandAuraAbility : Ability
 {
     public override bool IsPassive => true;
     public override bool IsAura => true;

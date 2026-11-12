@@ -8,7 +8,7 @@ namespace Launcher;
 /// 物编：Cool=150 Cost=250 Rng=1000 Area=300/400 Dur=35 DataA=0.04（单位每秒 4%）DataB=1（建筑每秒 1%）。
 /// 客户端没有这份实现，字段语义按物编「百分比」用法取（DataA 是 0.04 而不是 4）。
 /// </summary>
-public sealed class DeathAndDecay : Ability
+public sealed class RuntimeDeathAndDecayAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override bool IsChanneled => true;

@@ -6,7 +6,7 @@ namespace Launcher;
 /// 吞尸 Acan（食尸鬼）。对标客户端：吃掉附近的一具尸体，边吃边回血。
 /// 物编：Rng=50 Dur=33 DataA=10（每秒回 10 点），没有冷却与法力。
 /// </summary>
-public sealed class Cannibalize : Ability
+public sealed class RuntimeCannibalizeAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

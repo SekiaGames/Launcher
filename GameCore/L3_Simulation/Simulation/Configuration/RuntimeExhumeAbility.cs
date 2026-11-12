@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Launcher;
 
 /// <summary>掘尸（Aexh）：每 Dur 秒往货舱里补一具 UnitID 尸体，货舱满或到 DataA 上限就停。</summary>
-public sealed class Exhume : Ability
+public sealed class RuntimeExhumeAbility : Ability
 {
     public override bool IsPassive => true;
 
@@ -18,7 +18,7 @@ public sealed class Exhume : Ability
     {
         if (world == null || Owner == null || !Owner.Alive) return;
 
-        MeatCargo cargo = Owner.FindPassive<MeatCargo>() as MeatCargo;
+        RuntimeMeatLoadAbility cargo = Owner.FindPassive<RuntimeMeatLoadAbility>() as RuntimeMeatLoadAbility;
         if (cargo == null) return;
         if (cargo.CorpseCount >= Mathf.Min(cargo.Capacity, Mathf.Max(1, MaxCorpses))) return;
 

@@ -8,7 +8,7 @@ namespace Launcher;
 /// 寄生虫（ANpa / ACpa）。对标客户端 RuntimeParasiteAbility：
 /// 命中挂一个每秒 DataA 点伤害的 Buff，目标在持续时间内死亡时召出 DataE 只 UnitID 小虫。
 /// </summary>
-public sealed class Parasite : Ability
+public sealed class RuntimeParasiteAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

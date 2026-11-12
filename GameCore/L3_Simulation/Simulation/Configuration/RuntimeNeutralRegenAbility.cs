@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class NeutralRegen : Ability
+public sealed class RuntimeNeutralRegenAbility : Ability
 {
     public override bool IsPassive => true;
 

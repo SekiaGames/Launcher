@@ -8,7 +8,7 @@ namespace Launcher;
 /// 尸体当场消失；甲虫不限期，直到被杀。上限 DataE=5：到上限就放不出来，超出的按等级低→离得远先死。
 /// 物编：Cool=6 Cost=30 Rng=900 Area=900。
 /// </summary>
-public sealed class CarrionScarabs : Ability
+public sealed class RuntimeCarrionBeetlesAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

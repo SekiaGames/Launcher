@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class StormHammers : Ability
+public sealed class RuntimeStormHammersAbility : Ability
 {
     public override bool IsPassive => true;
 

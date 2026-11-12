@@ -8,7 +8,7 @@ namespace Launcher;
 /// 目标在标记期内死亡就召出 UnitID（ndr1/2/3）的骷髅，存在 DataC(80) 秒。
 /// 英雄与建筑不挂标记。
 /// </summary>
-public sealed class BlackArrow : Ability
+public sealed class RuntimeBlackArrowAbility : Ability
 {
     public override bool IsPassive => true;
 

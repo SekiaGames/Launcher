@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class ManaBattery : Ability
+public sealed class RuntimeMoonWellReplenishAbility : Ability
 {
     public override bool IsPassive => true;
     public override bool IsAura => true;

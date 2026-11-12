@@ -7,7 +7,7 @@ namespace Launcher;
 /// 每次普攻有 DataA% 概率追加 DataC 点伤害并眩晕 Dur 秒。
 /// 物编：DataA=20(概率) DataC=25(伤害) Dur=2。
 /// </summary>
-public sealed class Bash : Ability
+public sealed class RuntimeBashAbility : Ability
 {
     public override bool IsPassive => true;
 

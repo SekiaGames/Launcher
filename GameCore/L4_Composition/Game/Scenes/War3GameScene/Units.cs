@@ -402,13 +402,13 @@ public sealed partial class War3GameScene
 
     private int _morphSerial;
 
-    /// <summary>物编写 hpxe 与 hphx 共用 phoenix 模型，蛋形态用导出时单独拆出来的 PhoenixEgg 场景。</summary>
+    /// <summary>物编写 hpxe 与 hphx 共用 phoenix 模型，蛋形态用导出时单独拆出来的 RuntimePhoenixEggBuff 场景。</summary>
     private static string ModelSceneOf(UnitType type)
     {
         if (type == null) return null;
         if (string.Equals(type.Id, "hpxe", StringComparison.OrdinalIgnoreCase))
         {
-            string egg = PathResolve.ModelScene("Units/Human/Phoenix/PhoenixEgg");
+            string egg = PathResolve.ModelScene("Units/Human/Phoenix/RuntimePhoenixEggBuff");
             if (egg != null) return egg;
         }
         return type.ModelPath;
@@ -448,7 +448,7 @@ public sealed partial class War3GameScene
         view.SetHp(unit.Hp / Mathf.Max(1f, unit.MaxHp), unit.Alive);
         view.Play(unit.Alive ? "Stand" : "Death");
 
-        string puff = PathResolve.ModelScene(@"Abilities\Spells\Human\Polymorph\PolyMorphDoneGround");
+        string puff = PathResolve.ModelScene(@"Abilities\Spells\Human\RuntimePolymorphAbility\PolyMorphDoneGround");
         if (puff != null)
         {
             Vector3 ground = position;

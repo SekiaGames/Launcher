@@ -30,14 +30,14 @@ public sealed partial class World
         foreach (Ability ability in unit.Abilities)
         {
             if (!ability.Learned || !ability.Ready) continue;
-            if (ability is Reincarnation || ability is SpiritOfVengeance) triggering.Add(ability);
+            if (ability is RuntimeReincarnationAbility || ability is RuntimeVengeanceAbility) triggering.Add(ability);
         }
         if (triggering.Count == 0) return false;
 
         bool reincarnating = false;
         foreach (Ability ability in triggering)
         {
-            if (ability is Reincarnation reincarnation)
+            if (ability is RuntimeReincarnationAbility reincarnation)
             {
                 reincarnation.CooldownRemaining = reincarnation.Cooldown;
                 unit.AwaitingRevive = false;
@@ -49,7 +49,7 @@ public sealed partial class World
                 });
                 reincarnating = true;
             }
-            else if (ability is SpiritOfVengeance vengeance)
+            else if (ability is RuntimeVengeanceAbility vengeance)
             {
                 vengeance.CooldownRemaining = vengeance.Cooldown;
                 vengeance.SummonSpirit(this, unit);

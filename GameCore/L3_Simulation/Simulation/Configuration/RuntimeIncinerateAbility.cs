@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Incinerate : Ability
+public sealed class RuntimeIncinerateAbility : Ability
 {
     public override bool IsPassive => true;
 

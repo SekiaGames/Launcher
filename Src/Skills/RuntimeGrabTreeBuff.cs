@@ -4,7 +4,7 @@ using System;
 namespace Launcher;
 
 /// <summary>战棍增益：攻城攻击 + 射程加成，挥满次数就恢复原口径。</summary>
-public sealed class GrabTreeBuff : Buff, IAttackLaunchBuff
+public sealed class RuntimeGrabTreeBuff : Buff, IAttackLaunchBuff
 {
     public int Charges;
     public float RangeBonus;

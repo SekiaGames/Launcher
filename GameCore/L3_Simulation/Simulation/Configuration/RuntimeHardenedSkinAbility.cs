@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class HardenedSkin : Ability
+public sealed class RuntimeHardenedSkinAbility : Ability
 {
     public override bool IsPassive => true;
 

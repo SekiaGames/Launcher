@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Feedback : Ability
+public sealed class RuntimeFeedbackAbility : Ability
 {
     public override bool IsPassive => true;
 

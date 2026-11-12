@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class UnholyFrenzy : Ability
+public sealed class RuntimeUnholyFrenzyAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
@@ -15,7 +15,7 @@ public sealed class UnholyFrenzy : Ability
         if (Owner == null || target == null || !target.Alive) return false;
         if (target.IsBuilding) return false;
         if (!world.AreAllied(Owner.Player, target.Player)) return false;
-        if (target.FindBuff<UnholyFrenzyBuff>() != null) return false;
+        if (target.FindBuff<RuntimeUnholyFrenzyBuff>() != null) return false;
         return InRange(target);
     }
 
@@ -23,7 +23,7 @@ public sealed class UnholyFrenzy : Ability
     {
         if (!CheckTarget(world, target, point)) return false;
 
-        world.ApplyBuff(target, new UnholyFrenzyBuff
+        world.ApplyBuff(target, new RuntimeUnholyFrenzyBuff
         {
             AttackSpeedPct = AttackSpeedPct,
             DrainPerSecond = DrainPerSecond,
@@ -39,7 +39,7 @@ public sealed class UnholyFrenzy : Ability
         foreach (Unit ally in world.AlliesInRange(Owner, Owner.Position, CastRange > 0f ? CastRange : 500f))
         {
             if (ally.IsBuilding || !ally.Alive || ally.IsHero) continue;
-            if (ally.FindBuff<UnholyFrenzyBuff>() != null) continue;
+            if (ally.FindBuff<RuntimeUnholyFrenzyBuff>() != null) continue;
             return world.TryCast(Owner, this, ally, ally.Position);
         }
         return false;

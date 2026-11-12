@@ -4,11 +4,11 @@ using System.Collections.Generic;
 namespace Launcher;
 
 /// <summary>
-/// 雷霆一击 AHtc。对标客户端 Src/Skills/ThunderClap.cs：
+/// 雷霆一击 AHtc。对标客户端 Src/Skills/RuntimeThunderClapAbility.cs：
 /// 无目标，以施法者为中心半径 Area 内的敌人 受伤 DataA + 减速 DataC(移速)/DataD(攻速) 持续 Dur。
 /// 物编：Cool=6 Cost=90 Area=250 DataA=60/100/140 DataC=0.5 DataD=0.5 Dur=5。
 /// </summary>
-public sealed class ThunderClap : Ability
+public sealed class RuntimeThunderClapAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

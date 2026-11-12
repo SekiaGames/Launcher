@@ -7,7 +7,7 @@ namespace Launcher;
 /// DataA（7s）后原地满血复活，不走祭坛、不扣金，技能自身进 Cool（240s）冷却。
 /// 物编 Cast=3 是施法前摇，死亡触发不走施法流程。
 /// </summary>
-public sealed class Reincarnation : Ability
+public sealed class RuntimeReincarnationAbility : Ability
 {
     public override bool IsPassive => true;
 

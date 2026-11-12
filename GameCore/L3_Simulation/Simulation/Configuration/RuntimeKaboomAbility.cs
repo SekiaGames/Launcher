@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class SelfDestruct : Ability
+public sealed class RuntimeKaboomAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

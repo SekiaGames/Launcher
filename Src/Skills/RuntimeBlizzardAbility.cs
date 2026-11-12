@@ -8,7 +8,7 @@ namespace Launcher;
 /// 点地面 → 引导 N 波，每波对半径内敌人结算伤害，引导中不能移动。
 /// 物编：Cool=6 Cost=75 Rng=800 Area=200 DataA=波数(6/8/10) DataB=每波伤害(30/40/50) DataD=波间隔(0.5)。
 /// </summary>
-public sealed class Blizzard : Ability
+public sealed class RuntimeBlizzardAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override bool IsChanneled => true;

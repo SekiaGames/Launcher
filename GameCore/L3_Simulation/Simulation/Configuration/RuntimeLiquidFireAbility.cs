@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class LiquidFire : Ability
+public sealed class RuntimeLiquidFireAbility : Ability
 {
     public override bool IsPassive => true;
 

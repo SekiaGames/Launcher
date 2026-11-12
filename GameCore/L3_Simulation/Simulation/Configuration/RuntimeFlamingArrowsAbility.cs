@@ -6,7 +6,7 @@ namespace Launcher;
 /// 灼热之箭 AHfa（月之女祭司）。对标客户端 Src/Skills 里的攻击附加型：每次普攻
 /// 额外打出 DataA(10/20/30) 点火焰伤害，并扣 Cost(8) 点法力；蓝不够就只是普通一箭。
 /// </summary>
-public sealed class SearingArrows : Ability
+public sealed class RuntimeFlamingArrowsAbility : Ability
 {
     public override bool IsPassive => true;
     public override bool AutoCastToggle => true;

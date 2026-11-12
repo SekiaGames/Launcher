@@ -7,7 +7,7 @@ namespace Launcher;
 /// 换类型时保留单位实例、生命比例与队伍，技能栏换成目标形态的 abilList；再点一次变回来。
 /// 物编 DataA 是「人形单位 id」、UnitID 是「变形后单位 id」，两份数据互为对方的形态，所以不写死。
 /// </summary>
-public class DruidForm : Ability
+public class RuntimeDruidFormAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

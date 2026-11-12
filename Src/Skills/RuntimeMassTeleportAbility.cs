@@ -7,7 +7,7 @@ namespace Launcher;
 /// 群体传送 AHmt（大法师终极）。点全图任意地面：把施法者 Area（700）内最多 DataA（24）个友军
 /// 一起挪到落点（自己站中心，其余围一圈）。物编 Cool=20 Cost=100 Rng=99999。
 /// </summary>
-public sealed class MassTeleport : Ability
+public sealed class RuntimeMassTeleportAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

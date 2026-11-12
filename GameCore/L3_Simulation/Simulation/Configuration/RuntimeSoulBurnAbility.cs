@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class SoulBurn : Ability
+public sealed class RuntimeSoulBurnAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

@@ -8,7 +8,7 @@ namespace Launcher;
 /// 小动物 id 来自物编 DataB..DataE 四列（每列一串 npig,nsea…），变形期间禁攻击禁施法、仍能移动。
 /// 物编：Cool=7 Cost=70 Rng=800。
 /// </summary>
-public sealed class Hex : Ability
+public sealed class RuntimeHexAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

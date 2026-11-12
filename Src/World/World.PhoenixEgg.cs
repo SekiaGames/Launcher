@@ -26,10 +26,10 @@ public sealed partial class World
     {
         if (unit == null || !unit.Alive || unit.Type == null) return false;
 
-        PhoenixEgg egg = null;
+        RuntimePhoenixEggBuff egg = null;
         foreach (Ability ability in unit.Abilities)
         {
-            if (ability is PhoenixEgg found && found.Learned)
+            if (ability is RuntimePhoenixEggBuff found && found.Learned)
             {
                 egg = found;
                 break;

@@ -39,7 +39,7 @@ public sealed partial class World
                 continue;
             }
 
-            RepairBuilding ability = FindRepairAbility(worker);
+            RuntimeRepairAbility ability = FindRepairAbility(worker);
             if (ability == null)
             {
                 ClearRepair(worker);
@@ -68,11 +68,11 @@ public sealed partial class World
         }
     }
 
-    private static RepairBuilding FindRepairAbility(Unit worker)
+    private static RuntimeRepairAbility FindRepairAbility(Unit worker)
     {
         foreach (Ability ability in worker.Abilities)
         {
-            if (ability is RepairBuilding repair && repair.Learned) return repair;
+            if (ability is RuntimeRepairAbility repair && repair.Learned) return repair;
         }
         return null;
     }

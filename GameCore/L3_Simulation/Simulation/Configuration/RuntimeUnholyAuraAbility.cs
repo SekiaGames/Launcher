@@ -7,7 +7,7 @@ namespace Launcher;
 /// 半径 Area(900) 内友军 +DataA 移速、每秒回 DataB 点生命。
 /// 物编：DataA=0.1/0.2/0.3（移速百分比）DataB=0.5/1/1.5（每秒回血）。
 /// </summary>
-public sealed class UnholyAura : Ability
+public sealed class RuntimeUnholyAuraAbility : Ability
 {
     public override bool IsPassive => true;
     public override bool IsAura => true;

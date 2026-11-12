@@ -3,11 +3,11 @@ using Godot;
 namespace Launcher;
 
 /// <summary>
-/// 风暴之锤 AHtb。对标客户端 Src/Skills/ThunderBolt.cs：
+/// 风暴之锤 AHtb。对标客户端 Src/Skills/RuntimeStormBoltAbility.cs：
 /// 起手即抛出弹道（StormBoltMissile），**飞到目标身上才结算**伤害与眩晕。
 /// 物编：Cool=9 Cost=75 Rng=600 DataA=100 Dur=5。
 /// </summary>
-public sealed class ThunderBolt : Ability
+public sealed class RuntimeStormBoltAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Flare : Ability
+public sealed class RuntimeFlareAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override bool CheckTarget(World world, Unit target, Vector3 point) => Owner != null;

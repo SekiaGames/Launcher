@@ -6,7 +6,7 @@ namespace Launcher;
 /// 战争践踏 AOws（牛头人酋长）。周围 Area(250/300/350) 内地面单位吃 DataA 伤害并眩晕 Dur(3/4/5) 秒。
 /// 物编：Cool=6 Cost=90。
 /// </summary>
-public sealed class WarStomp : Ability
+public sealed class RuntimeWarStompAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

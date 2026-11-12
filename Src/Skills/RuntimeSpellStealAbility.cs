@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class SpellSteal : Ability
+public sealed class RuntimeSpellStealAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

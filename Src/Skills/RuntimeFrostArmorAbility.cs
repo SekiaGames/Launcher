@@ -7,7 +7,7 @@ namespace Launcher;
 /// 物编：Cool=2 Cost=40 Rng=800 DataA=45（增益时长）DataB=3/5/7（护甲）Dur=5（攻击者减速时长，未做）。
 /// 被普攻命中时让攻击者减速 Dur(5) 秒（走 <see cref="Buff.OnAttacked"/>）。
 /// </summary>
-public sealed class FrostArmor : Ability
+public sealed class RuntimeFrostArmorAbility : Ability
 {
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
 

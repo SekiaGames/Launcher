@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class SlowPoison : Ability
+public sealed class RuntimeSlowPoisonAbility : Ability
 {
     public override bool IsPassive => true;
 

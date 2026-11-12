@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class FaerieFire : Ability
+public sealed class RuntimeFaerieFireAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

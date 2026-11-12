@@ -162,7 +162,7 @@ public static partial class CombatProbe
         world.KillUnit(victim, cart);
         Verify("步兵已阵亡留尸", 1f, victim.IsCorpse ? 1f : 0f, 0f);
 
-        MeatCargo cargo = cart.FindPassive<MeatCargo>() as MeatCargo;
+        RuntimeMeatLoadAbility cargo = cart.FindPassive<RuntimeMeatLoadAbility>() as RuntimeMeatLoadAbility;
         bool loaded = world.TryCast(cart, cart.FindAbility("Amel"), null, cart.Position);
         Verify("装尸体施放成功", 1f, loaded ? 1f : 0f, 0f);
         Verify("货舱里有一具尸体", 1f, cargo != null ? cargo.CorpseCount : 0f, 0f);

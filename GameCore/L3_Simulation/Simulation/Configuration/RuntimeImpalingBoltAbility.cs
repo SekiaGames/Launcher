@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class ImpalingBolt : Ability
+public sealed class RuntimeImpalingBoltAbility : Ability
 {
     public override bool IsPassive => true;
 

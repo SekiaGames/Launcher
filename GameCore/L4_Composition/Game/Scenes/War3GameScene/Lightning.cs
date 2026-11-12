@@ -34,7 +34,7 @@ public sealed partial class War3GameScene
         List<Unit> chain = ability switch
         {
             ChainLightning chainLightning => chainLightning.LastChain,
-            HealingWave healingWave => healingWave.LastChain,
+            RuntimeHealingWaveAbility healingWave => healingWave.LastChain,
             _ => null,
         };
         if (chain != null && chain.Count > 0)

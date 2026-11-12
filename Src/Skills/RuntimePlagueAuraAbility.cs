@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class PlagueAura : Ability
+public sealed class RuntimePlagueAuraAbility : Ability
 {
     public override bool IsPassive => true;
 

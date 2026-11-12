@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class RocketAttack : Ability
+public sealed class RuntimeBarrageAbility : Ability
 {
     public override bool IsPassive => true;
 

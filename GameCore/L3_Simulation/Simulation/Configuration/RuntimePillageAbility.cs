@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Pillage : Ability
+public sealed class RuntimePillageAbility : Ability
 {
     public override bool IsPassive => true;
 

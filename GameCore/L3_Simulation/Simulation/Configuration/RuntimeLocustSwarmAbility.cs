@@ -7,7 +7,7 @@ namespace Launcher;
 /// 每隔 DataB(0.2s) 放出一只 UnitID(uloc)，共 DataA(20) 只，Dur(30) 秒后消失；
 /// 蝗虫自带 Aloc（无碰撞），会自己扑向附近敌人。物编 Cool=180 Cost=150。
 /// </summary>
-public sealed class LocustSwarm : Ability
+public sealed class RuntimeLocustSwarmAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

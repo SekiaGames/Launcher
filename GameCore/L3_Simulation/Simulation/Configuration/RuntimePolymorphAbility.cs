@@ -6,7 +6,7 @@ namespace Launcher;
 /// 变形术 Aply（女巫）。把目标变成 DataB 指定的那只羊（nshe），持续 Dur(60) 秒。
 /// 和妖术共用同一条变形链路，区别只是目标类型固定、不随机。
 /// </summary>
-public sealed class Polymorph : Ability
+public sealed class RuntimePolymorphAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

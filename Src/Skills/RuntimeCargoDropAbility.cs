@@ -3,7 +3,7 @@ using Godot;
 namespace Launcher;
 
 /// <summary>卸载（Adro 全部卸下 / Sdro 战船卸下 / Adri 瞬时卸下）：把人摆回船周围。</summary>
-public sealed class DropCargoOrder : Ability
+public sealed class RuntimeCargoDropAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

@@ -5,9 +5,9 @@ namespace Launcher;
 /// <summary>
 /// 地洞驻军（Abun）。对标客户端 RuntimeBunkerAbility + CargoTransport：
 /// DataA 是容量（4 个苦工）、Area 是装载半径；点一下把半径内的苦工收进去，
-/// 再点一下（或者 Stand Down）全部放出来。地洞里有人才开火，见 <see cref="Battlestations"/>。
+/// 再点一下（或者 Stand Down）全部放出来。地洞里有人才开火，见 <see cref="RuntimeBattleStationsAbility"/>。
 /// </summary>
-public sealed class BunkerHold : Ability
+public sealed class RuntimeBunkerAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

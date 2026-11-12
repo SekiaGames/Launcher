@@ -7,7 +7,7 @@ namespace Launcher;
 /// 口径：尸体连人带尸体一起归施法者（原版就是这样抢尸体），到期消失、不留尸、不给经验。
 /// 英雄尸体不拉（原版只拉普通单位）。
 /// </summary>
-public sealed class AnimateDead : Ability
+public sealed class RuntimeAnimateDeadAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

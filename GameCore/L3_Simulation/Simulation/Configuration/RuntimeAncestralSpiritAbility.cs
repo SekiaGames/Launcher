@@ -8,7 +8,7 @@ namespace Launcher;
 /// 不选目标，在 Rng(350) 内自己找一具己方牛头人尸体（优先等级高的），
 /// 按 DataA 生命比例、DataB 法力比例原地复活；尸体要还在场地、不能被别的载体占着。
 /// </summary>
-public sealed class AncestralSpirit : Ability
+public sealed class RuntimeAncestralSpiritAbility : Ability
 {
     /// <summary>原版靠单位分类 Tauren 选目标，导出的表里没有分类列，这里按牛头人单位码认。</summary>
     private static readonly string[] TaurenTypes = { "otau", "otot" };

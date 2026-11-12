@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class MoonGlaive : Ability
+public sealed class RuntimeMoonGlaiveAbility : Ability
 {
     public override bool IsPassive => true;
 

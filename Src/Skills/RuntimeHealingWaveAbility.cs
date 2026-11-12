@@ -3,11 +3,11 @@ using Godot;
 namespace Launcher;
 
 /// <summary>
-/// 医疗波 AOhw（暗影猎手）。对标客户端 HealingWave 的跳跃口径：
+/// 医疗波 AOhw（暗影猎手）。对标客户端 RuntimeHealingWaveAbility 的跳跃口径：
 /// 首个目标回 DataA(130/215/300) 点，之后每跳减 DataC(25%)，最多跳 DataB(3/4/5) 次，跳跃半径 Area(500)。
 /// 物编：Cool=9 Cost=90 Rng=700。
 /// </summary>
-public sealed class HealingWave : Ability
+public sealed class RuntimeHealingWaveAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

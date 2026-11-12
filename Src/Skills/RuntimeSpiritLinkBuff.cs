@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class SpiritLinkBuff : Buff
+public sealed class RuntimeSpiritLinkBuff : Buff
 {
     public SpiritLinkGroup Group;
 

@@ -7,7 +7,7 @@ namespace Launcher;
 /// 龙卷风自身伤害（Atdg）：每秒一波，取「包含目标且半径最小」的那一圈结算，
 /// 多圈不叠加（客户端 RuntimeTornadoDamageAbility 同口径）。
 /// </summary>
-public sealed class TornadoDamage : Ability
+public sealed class RuntimeTornadoDamageAbility : Ability
 {
     public override bool IsPassive => true;
 

@@ -67,7 +67,7 @@ public static partial class CombatProbe
         world.Units.Add(ranger);
 
         Ability charm = ranger.GiveAbility("ANch", 1);
-        var charmAbility = charm as Charm;
+        var charmAbility = charm as RuntimeCharmAbility;
         Verify("魅惑最高单位等级=物编 DataA", charmType.DataAt(1, 'A'), charmAbility?.MaxUnitLevel ?? 0, 0f);
 
         Unit footman = MakeUnit(footmanType, 1);

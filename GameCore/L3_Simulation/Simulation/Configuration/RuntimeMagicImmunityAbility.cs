@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class MagicImmunityPassive : Ability
+public sealed class RuntimeMagicImmunityAbility : Ability
 {
     public override bool IsPassive => true;
 

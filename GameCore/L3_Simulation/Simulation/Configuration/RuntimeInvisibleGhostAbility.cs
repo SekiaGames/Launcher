@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Ghost : Ability
+public sealed class RuntimeInvisibleGhostAbility : Ability
 {
     public override bool IsPassive => true;
 

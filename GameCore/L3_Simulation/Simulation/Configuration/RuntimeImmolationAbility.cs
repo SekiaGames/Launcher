@@ -7,7 +7,7 @@ namespace Launcher;
 /// 同时每秒烧掉 DataB(7) 点法力；法力见底自动关闭。开启瞬间扣物编 Cost(25)。
 /// 物编：Cool=0 Area=160 DataA=10/15/20 DataB=7 DataC=10（关闭后余烬时长，未做）。
 /// </summary>
-public sealed class Immolation : Ability
+public sealed class RuntimeImmolationAbility : Ability
 {
     public override bool IsToggle => true;
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;

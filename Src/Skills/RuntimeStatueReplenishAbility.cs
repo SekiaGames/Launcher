@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Replenish : Ability
+public sealed class RuntimeStatueReplenishAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

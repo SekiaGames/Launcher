@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Pulverize : Ability
+public sealed class RuntimePulverizeAbility : Ability
 {
     public override bool IsPassive => true;
 

@@ -7,7 +7,7 @@ namespace Launcher;
 /// 每次普攻附加 DataA(5/10/15) 伤害，并给目标挂 DataB 移速 / DataC 攻速的减速，
 /// 普通单位 Dur(5/6) 秒、英雄 HeroDur(1.5/1) 秒；每箭扣 Cost(8~10) 蓝。
 /// </summary>
-public sealed class ColdArrows : Ability
+public sealed class RuntimeColdArrowsAbility : Ability
 {
     public override bool IsPassive => true;
     public override bool AutoCastToggle => true;

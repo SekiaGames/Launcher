@@ -7,7 +7,7 @@ namespace Launcher;
 /// 之后每 Cast(3) 秒造成 DataA(10/30/45)，持续 Dur(15.1) 秒；期间减速 DataB(0.5) 持续 DataD(3) 秒。
 /// 物编：Cool=8 Cost=75 Rng=300。
 /// </summary>
-public sealed class ShadowStrike : Ability
+public sealed class RuntimeShadowStrikeAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

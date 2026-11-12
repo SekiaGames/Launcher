@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class HealingWard : Ability
+public sealed class RuntimeHealingWardAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

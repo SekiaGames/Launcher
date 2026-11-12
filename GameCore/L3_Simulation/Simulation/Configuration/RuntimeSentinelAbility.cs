@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Sentinel : Ability
+public sealed class RuntimeSentinelAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

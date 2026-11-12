@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Burrow : Ability
+public sealed class RuntimeBurrowFormAbility : Ability
 {
     public override bool IsToggle => true;
 

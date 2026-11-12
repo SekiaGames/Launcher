@@ -5,7 +5,7 @@ namespace Launcher;
 /// <summary>
 /// 凤凰 AHpx（血法师终极）。对标 Wiki RuntimePhoenixAbility：
 /// 在施法者身边召出 UnitID(hphx)，凤凰自带每秒 -25 生命（50 秒自然烧尽），
-/// 阵亡时由 <see cref="PhoenixEgg"/> 接管变蛋 10 秒再孵化。物编 Cool=180 Cost=175 Area=200。
+/// 阵亡时由 <see cref="RuntimePhoenixEggBuff"/> 接管变蛋 10 秒再孵化。物编 Cool=180 Cost=175 Area=200。
 /// </summary>
 public sealed class Phoenix : Ability
 {

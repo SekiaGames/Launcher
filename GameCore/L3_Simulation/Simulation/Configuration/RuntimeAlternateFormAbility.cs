@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class StoneForm : Ability
+public sealed class RuntimeAlternateFormAbility : Ability
 {
     public override bool IsToggle => true;
 

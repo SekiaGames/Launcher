@@ -328,7 +328,7 @@ public static partial class CombatProbe
                 corpses.Add(dead);
             }
 
-            var revive = (Resurrection)paladin2.GiveAbility("AHre", 1);
+            var revive = (RuntimeResurrectionAbility)paladin2.GiveAbility("AHre", 1);
             revive.Level = 1;
             paladin2.Mana = paladin2.MaxMana;
 
@@ -437,7 +437,7 @@ public static partial class CombatProbe
             world15.Units.Add(corpse);
 
             ghoul.Hp = ghoul.MaxHp * 0.3f;
-            var eat = (Cannibalize)ghoul.GiveAbility("Acan", 1);
+            var eat = (RuntimeCannibalizeAbility)ghoul.GiveAbility("Acan", 1);
             eat.Level = 1;
 
             float hpBefore = ghoul.Hp;

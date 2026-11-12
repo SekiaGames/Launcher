@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class ClusterRockets : Ability
+public sealed class RuntimeClusterRocketsAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

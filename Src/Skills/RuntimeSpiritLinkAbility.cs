@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class SpiritLink : Ability
+public sealed class RuntimeSpiritLinkAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
@@ -21,7 +21,7 @@ public sealed class SpiritLink : Ability
         {
             if (members.Count >= MaxTargets) break;
             if (ally == Owner || !ally.Alive || ally.IsBuilding) continue;
-            if (ally.FindBuff<SpiritLinkBuff>() != null) continue;
+            if (ally.FindBuff<RuntimeSpiritLinkBuff>() != null) continue;
             members.Add(ally);
         }
         if (members.Count < 2) return false;
@@ -30,7 +30,7 @@ public sealed class SpiritLink : Ability
         float seconds = Duration > 0f ? Duration : 75f;
         foreach (Unit member in members)
         {
-            world.ApplyBuff(member, new SpiritLinkBuff { Group = group }, seconds);
+            world.ApplyBuff(member, new RuntimeSpiritLinkBuff { Group = group }, seconds);
         }
         return true;
     }
@@ -38,7 +38,7 @@ public sealed class SpiritLink : Ability
     public override bool TryAutoCast(World world)
     {
         if (!HasEnemyNearby(world, 900f)) return false;
-        if (Owner.FindBuff<SpiritLinkBuff>() != null) return false;
+        if (Owner.FindBuff<RuntimeSpiritLinkBuff>() != null) return false;
         if (world.AlliesInRange(Owner, Owner.Position, Radius).Count < 2) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }

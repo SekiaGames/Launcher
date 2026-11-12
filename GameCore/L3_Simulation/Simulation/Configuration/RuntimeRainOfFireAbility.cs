@@ -8,7 +8,7 @@ namespace Launcher;
 /// 建筑乘 DataD(0.5)；中招的还会挂 DataE(5/10/15)/s 的灼烧，持续 Dur(3s)。
 /// 物编 Cool=8 Cost=85 Rng=800。
 /// </summary>
-public sealed class RainOfFire : Ability
+public sealed class RuntimeRainOfFireAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

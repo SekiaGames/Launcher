@@ -3,7 +3,7 @@ using Godot;
 namespace Launcher;
 
 /// <summary>装载（Aloa 运输船 / Slo3 战船）：点一个友军把它装进来。</summary>
-public sealed class LoadCargoOrder : Ability
+public sealed class RuntimeCargoLoadAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

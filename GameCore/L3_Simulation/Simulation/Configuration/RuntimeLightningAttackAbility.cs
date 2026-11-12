@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class LightningAttack : Ability
+public sealed class RuntimeLightningAttackAbility : Ability
 {
     public override bool IsPassive => true;
 

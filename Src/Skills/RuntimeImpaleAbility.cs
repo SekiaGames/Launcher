@@ -6,7 +6,7 @@ namespace Launcher;
 /// 穿刺 AUim（地穴领主）。朝落点射一条地刺，轨迹上的地面敌人吃 DataC(50/80/110) 伤害并眩晕 Dur(2/3/4) 秒。
 /// 物编：Cool=9 Cost=100 Rng=700 Area=250 DataA=600（长度）DataB=0.3（尖刺推进间隔）。
 /// </summary>
-public sealed class Impale : Ability
+public sealed class RuntimeImpaleAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

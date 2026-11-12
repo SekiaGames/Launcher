@@ -10,7 +10,7 @@ namespace Launcher;
 /// ANrg 机器人地精（双向形态 + 力量/护甲）、ANeg 工程升级（移速/攻击 + 技能等级替换）、
 /// ANde 粉碎（对建筑倍率）、ANsy 口袋工厂（召工厂并定时出兵）。
 /// </summary>
-public sealed class RoboGoblin : Ability
+public sealed class RuntimeRoboGoblinAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

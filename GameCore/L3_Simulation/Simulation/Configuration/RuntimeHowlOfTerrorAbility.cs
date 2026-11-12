@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class HowlOfTerror : Ability
+public sealed class RuntimeHowlOfTerrorAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Detonate : Ability
+public sealed class RuntimeDetonateAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

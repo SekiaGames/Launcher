@@ -7,7 +7,7 @@ namespace Launcher;
 /// 敌人近战攻击反弹 DataA(15%/30%/45%) 伤害。
 /// 护甲走 <see cref="Ability.PassiveArmor"/>（ArmorOf 汇总），反弹走 Ability.ReflectRatio。
 /// </summary>
-public sealed class SpikedCarapace : Ability
+public sealed class RuntimeSpikedCarapaceAbility : Ability
 {
     public override bool IsPassive => true;
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class FreezingBreath : Ability
+public sealed class RuntimeFreezingBreathAbility : Ability
 {
     public override bool IsPassive => true;
 

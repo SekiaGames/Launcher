@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class PhoenixFireAbility : Ability
+public sealed class RuntimePhoenixFireAbility : Ability
 {
     public override bool IsPassive => true;
 

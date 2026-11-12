@@ -3,10 +3,10 @@ using Godot;
 namespace Launcher;
 
 /// <summary>
-/// 魅惑 ANch（黑暗游侠终极）。对标客户端 Src/Skills/Charm.cs：
+/// 魅惑 ANch（黑暗游侠终极）。对标客户端 Src/Skills/RuntimeCharmAbility.cs：
 /// 把 DataA（5）级以内的非英雄敌方单位永久变成自己的。物编 Cool=45 Cost=150 Rng=700，只有 1 级。
 /// </summary>
-public sealed class Charm : Ability
+public sealed class RuntimeCharmAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

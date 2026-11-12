@@ -8,7 +8,7 @@ namespace Launcher;
 /// 原版是等着的一方不下令、飞过去的一方贴身后合成；这里两边都能点，
 /// 施放后同伴会朝自己飞，贴到一起就换成角鹰兽骑士，血量按两者比例平均保留。
 /// </summary>
-public sealed class Couple : Ability
+public sealed class RuntimeCoupleAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

@@ -6,7 +6,7 @@ namespace Launcher;
 /// 巫毒 AOvd（暗影猎手终极）。引导 HeroDur(30) 秒，每秒把 Area(800) 内友军刷成无敌，
 /// **施法者自己不无敌**（原版口径）。物编：Cool=180 Cost=200。
 /// </summary>
-public sealed class BigBadVoodoo : Ability
+public sealed class RuntimeBigBadVoodooAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

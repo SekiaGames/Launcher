@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class DrunkenBrawler : Ability
+public sealed class RuntimeDrunkenBrawlerAbility : Ability
 {
     public override bool IsPassive => true;
 

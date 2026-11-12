@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class RegenerationAura : Ability
+public sealed class RuntimeLifeRegenerationAuraAbility : Ability
 {
     public override bool IsPassive => true;
     public override bool IsAura => true;

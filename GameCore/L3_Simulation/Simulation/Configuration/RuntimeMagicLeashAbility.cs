@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class AerialShackles : Ability
+public sealed class RuntimeMagicLeashAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

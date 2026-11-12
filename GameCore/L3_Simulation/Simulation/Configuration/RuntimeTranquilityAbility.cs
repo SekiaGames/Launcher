@@ -6,7 +6,7 @@ namespace Launcher;
 /// 宁静 AEtq（丛林守护者终极）。引导 HeroDur(30) 秒，每秒给 Area(900) 内友军回 DataA(20) 生命。
 /// 物编：Cool=60 Cost=125。
 /// </summary>
-public sealed class Tranquility : Ability
+public sealed class RuntimeTranquilityAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

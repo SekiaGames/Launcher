@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class EngineeringUpgrade : Ability
+public sealed class RuntimeEngineeringUpgradeAbility : Ability
 {
     private static readonly char[] PairSlots = { 'C', 'D', 'E', 'F' };
 

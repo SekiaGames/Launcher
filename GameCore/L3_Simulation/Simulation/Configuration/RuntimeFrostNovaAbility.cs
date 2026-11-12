@@ -7,7 +7,7 @@ namespace Launcher;
 /// DataA(50/100/150) 新星伤害，Dur(4/6/8) 秒内减速。
 /// 减速比例物编没导出，按原版 50% 移速 / 50% 攻速。
 /// </summary>
-public sealed class FrostNova : Ability
+public sealed class RuntimeFrostNovaAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

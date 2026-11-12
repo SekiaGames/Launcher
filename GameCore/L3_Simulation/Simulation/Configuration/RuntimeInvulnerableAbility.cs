@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class InvulnerablePassive : Ability
+public sealed class RuntimeInvulnerableAbility : Ability
 {
     public override bool IsPassive => true;
 

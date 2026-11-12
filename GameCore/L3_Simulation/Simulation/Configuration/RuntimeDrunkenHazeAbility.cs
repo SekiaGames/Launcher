@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class DrunkenHaze : Ability
+public sealed class RuntimeDrunkenHazeAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

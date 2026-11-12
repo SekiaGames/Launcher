@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class DevourMagic : Ability
+public sealed class RuntimeDevourMagicAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

@@ -7,7 +7,7 @@ namespace Launcher;
 /// DataA(0.6s) 淡入隐身 → Dur(20/35/50) 秒隐形并 +DataB(10%/40%/70%) 移速；
 /// 期间第一次出手破隐，这一击额外打 DataC(40/70/100)。
 /// </summary>
-public sealed class WindWalk : Ability
+public sealed class RuntimeWindWalkAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

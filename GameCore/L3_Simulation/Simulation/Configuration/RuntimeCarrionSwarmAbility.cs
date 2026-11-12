@@ -6,7 +6,7 @@ namespace Launcher;
 /// 腐臭蜂群 AUcs（恐惧魔王）。朝落点放一条直线，Area(100) 宽的带子上敌人吃 DataA 伤害。
 /// 物编：Cool=10 Cost=110 Rng=700 Area=100 DataA=75/125/200 DataC=800（直线长度）。
 /// </summary>
-public sealed class CarrionSwarm : Ability
+public sealed class RuntimeCarrionSwarmAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class RepairBuilding : Ability
+public sealed class RuntimeRepairAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

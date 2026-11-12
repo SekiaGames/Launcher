@@ -7,7 +7,7 @@ namespace Launcher;
 /// 而是换成 UnitID(hpxe) 蛋形态，HeroDur(10) 秒后孵化回 hphx 并满血。
 /// 蛋被打死就真的死了。技能不出现在命令卡上（原版 NativeCommandProviderEmpty）。
 /// </summary>
-public sealed class PhoenixEgg : Ability
+public sealed class RuntimePhoenixEggBuff : Ability
 {
     public override bool IsPassive => true;
 

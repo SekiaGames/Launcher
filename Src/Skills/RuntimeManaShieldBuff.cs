@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class ManaShieldBuff : Buff
+public sealed class RuntimeManaShieldBuff : Buff
 {
     public float ManaPerDamage = 2f;
 

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class UnholyFrenzyBuff : StatBuff
+public sealed class RuntimeUnholyFrenzyBuff : StatBuff
 {
     public Unit DamageSource;
     public float DrainPerSecond;

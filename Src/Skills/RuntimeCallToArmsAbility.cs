@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class CallToArms : Ability
+public sealed class RuntimeCallToArmsAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

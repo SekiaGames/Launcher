@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class LightningShield : Ability
+public sealed class RuntimeLightningShieldAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

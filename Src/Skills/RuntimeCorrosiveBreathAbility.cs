@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class CorrosiveBreath : Ability
+public sealed class RuntimeCorrosiveBreathAbility : Ability
 {
     public override bool IsPassive => true;
 

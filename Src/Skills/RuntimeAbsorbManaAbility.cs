@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class AbsorbMana : Ability
+public sealed class RuntimeAbsorbManaAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

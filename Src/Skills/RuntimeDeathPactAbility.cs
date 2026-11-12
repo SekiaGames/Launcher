@@ -6,7 +6,7 @@ namespace Launcher;
 /// 死亡契约 AUdp（死亡骑士）。杀死一个友军非英雄单位，按它最大生命的 DataB 倍回自己的血。
 /// 物编 DataB=1/2/3（1 = 100%），ubertip 里当百分号显示是暴雪自己的写法问题，这里按倍数读。
 /// </summary>
-public sealed class DeathPact : Ability
+public sealed class RuntimeDeathPactAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

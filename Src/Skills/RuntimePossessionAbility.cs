@@ -6,7 +6,7 @@ namespace Launcher;
 /// 占据（Apos）：抢一个非英雄、非飞行、等级不超过 DataA 的敌方单位，代价是女妖自己。
 /// 转属在施法当帧完成，自毁延后一帧，避免施法管线在扣法力/进冷却时对着已死单位收尾。
 /// </summary>
-public sealed class Possession : Ability
+public sealed class RuntimePossessionAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

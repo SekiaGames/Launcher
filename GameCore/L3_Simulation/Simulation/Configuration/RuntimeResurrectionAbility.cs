@@ -4,9 +4,9 @@ namespace Launcher;
 
 /// <summary>
 /// 复活 AHre：把半径 Area 内最多 DataA 个友军尸体满血复活（物编 DataA=6 Area=900）。
-/// 只复活非英雄（英雄走祭坛流程），与客户端 Resurrection 的口径一致。
+/// 只复活非英雄（英雄走祭坛流程），与客户端 RuntimeResurrectionAbility 的口径一致。
 /// </summary>
-public sealed class Resurrection : Ability
+public sealed class RuntimeResurrectionAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

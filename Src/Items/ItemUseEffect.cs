@@ -586,7 +586,7 @@ public static class ItemUseEffect
         float seconds = Seconds(type, 75f);
         foreach (Unit member in members)
         {
-            world.ApplyBuff(member, new SpiritLinkBuff { Group = group }, seconds);
+            world.ApplyBuff(member, new RuntimeSpiritLinkBuff { Group = group }, seconds);
         }
         return true;
     }

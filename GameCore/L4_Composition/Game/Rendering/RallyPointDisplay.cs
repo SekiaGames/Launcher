@@ -89,7 +89,7 @@ public sealed class RallyPointDisplay
             "nightelf" => "NightElfRallyFlag",
             _ => "RallyPoint",
         };
-        return "res://extract/UI/Feedback/RallyPoint/" + name + ".tscn";
+        return "res://extract/UI/RuntimeFeedbackAbility/RallyPoint/" + name + ".tscn";
     }
 
     /// <summary>模型缺失时的兜底：一根杆子加一面队伍色方块。</summary>

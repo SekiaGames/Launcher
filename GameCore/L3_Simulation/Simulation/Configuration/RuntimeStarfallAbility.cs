@@ -7,7 +7,7 @@ namespace Launcher;
 /// 每波对 Area(1000) 内敌人造成 DataA(50) 伤害。
 /// 物编：Cool=180 Cost=200。
 /// </summary>
-public sealed class Starfall : Ability
+public sealed class RuntimeStarfallAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

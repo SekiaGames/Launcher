@@ -6,7 +6,7 @@ namespace Launcher;
 /// 纠缠根须 AEer（丛林守护者）。目标 Dur(9/24/36) 秒被定身，每秒吃 DataA(15/15/25) 伤害。
 /// 物编：Cool=8 Cost=75 Rng=800；定身走 StateMod.Snare，持续伤害走 PeriodicDamageBuff。
 /// </summary>
-public sealed class EntanglingRoots : Ability
+public sealed class RuntimeEntanglingRootsAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

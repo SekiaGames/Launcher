@@ -7,7 +7,7 @@ namespace Launcher;
 /// 然后召出 UnitID(ninf) 存在 DataB(180) 秒。
 /// 物编 Cost=175 Cool=180 Rng=900。
 /// </summary>
-public sealed class Inferno : Ability
+public sealed class RuntimeInfernoAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
 

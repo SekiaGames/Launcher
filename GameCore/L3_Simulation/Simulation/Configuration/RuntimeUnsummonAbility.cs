@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Unsummon : Ability
+public sealed class RuntimeUnsummonAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

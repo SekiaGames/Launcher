@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Taunt : Ability
+public sealed class RuntimeTauntAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

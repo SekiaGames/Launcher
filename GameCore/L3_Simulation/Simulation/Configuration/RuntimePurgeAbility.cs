@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Purge : Ability
+public sealed class RuntimePurgeAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

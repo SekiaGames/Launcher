@@ -6,7 +6,7 @@ namespace Launcher;
 /// 震荡波 AOsh（牛头人酋长）。朝落点放一条 Area(125) 宽的能量波，轨迹上的地面单位与建筑吃 DataA 伤害。
 /// 物编：Cool=8 Cost=100 Rng=700 Area=125 DataA=75/130/200 DataC=800（长度）。
 /// </summary>
-public sealed class ShockWave : Ability
+public sealed class RuntimeShockwaveAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

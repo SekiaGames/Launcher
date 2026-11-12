@@ -1338,7 +1338,7 @@ public sealed partial class War3GameScene
                 float hpBefore = creep.Hp;
                 bool started = _world.TryCast(mage, blizzard, null, spot);
                 GD.Print($"[SKILL] 暴风雪 {(started ? "开始引导" : "施放失败")} 落点({spot.X:0},{spot.Z:0})"
-                    + $" 波数{(blizzard as Blizzard)?.Waves} 半径{(blizzard as Blizzard)?.Radius:0}"
+                    + $" 波数{(blizzard as RuntimeBlizzardAbility)?.Waves} 半径{(blizzard as RuntimeBlizzardAbility)?.Radius:0}"
                     + $" 引导{blizzard.Duration:0}s 野怪血量 {hpBefore:0}");
 
                 SceneTreeTimer waveTimer = GetTree().CreateTimer(3.4);
@@ -1783,7 +1783,7 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>
-    /// 凤凰整条链路：召唤 hphx → 生命归零被 Aphx 接管变成 hpxe 蛋 → 模型换成 PhoenixEgg → 10 秒后孵回。
+    /// 凤凰整条链路：召唤 hphx → 生命归零被 Aphx 接管变成 hpxe 蛋 → 模型换成 RuntimePhoenixEggBuff → 10 秒后孵回。
     /// 只看类型/生命/模型节点，不截图。
     /// </summary>
     private void DemoPhoenix(Unit creep)

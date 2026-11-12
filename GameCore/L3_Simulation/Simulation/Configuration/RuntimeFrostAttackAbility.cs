@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class FrostBreath : Ability
+public sealed class RuntimeFrostAttackAbility : Ability
 {
     public override bool IsPassive => true;
 

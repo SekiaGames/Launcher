@@ -6,7 +6,7 @@ namespace Launcher;
 /// 复仇之魂 AEsv（守望者终极）。阵亡时召出 UnitID（espv）代替自己继续战斗 Dur（180s），
 /// 本人照常死亡；技能自身进 Cool（180s）冷却。物编 Targ=自身、无施法流程。
 /// </summary>
-public sealed class SpiritOfVengeance : Ability
+public sealed class RuntimeVengeanceAbility : Ability
 {
     public override bool IsPassive => true;
 

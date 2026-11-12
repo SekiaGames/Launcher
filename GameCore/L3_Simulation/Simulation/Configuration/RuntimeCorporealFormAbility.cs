@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class CorporealForm : Ability
+public sealed class RuntimeCorporealFormAbility : Ability
 {
     public override bool IsToggle => true;
 

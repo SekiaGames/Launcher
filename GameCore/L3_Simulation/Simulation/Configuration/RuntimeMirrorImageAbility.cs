@@ -9,7 +9,7 @@ namespace Launcher;
 /// 物编 DataA 幻象数(1/2/3)、DataB 造成伤害倍率(0)、DataC 受到伤害倍率(2)、
 /// Rng(128) 站位半径、Dur(60) 秒。再放一次会先收掉上一批，避免越叠越多。
 /// </summary>
-public sealed class MirrorImage : Ability
+public sealed class RuntimeMirrorImageAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

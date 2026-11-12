@@ -38,7 +38,7 @@ public static partial class CombatProbe
         world.Units.Add(mage);
         world.Units.Add(victim);
 
-        var storm = (Blizzard)mage.GiveAbility("AHbz", 1);
+        var storm = (RuntimeBlizzardAbility)mage.GiveAbility("AHbz", 1);
         storm.Level = 1;
         mage.Mana = mage.MaxMana;
 
@@ -100,7 +100,7 @@ public static partial class CombatProbe
         world.Units.Add(lich);
         world.Units.Add(victim);
 
-        var decay = (DeathAndDecay)lich.GiveAbility("AUdd", 1);
+        var decay = (RuntimeDeathAndDecayAbility)lich.GiveAbility("AUdd", 1);
         decay.Level = 1;
         lich.Mana = lich.MaxMana;
 
@@ -234,7 +234,7 @@ public static partial class CombatProbe
         world.Units.Add(lich);
         world.Units.Add(soldier);
 
-        var frost = (FrostArmor)lich.GiveAbility("AUfa", 1);
+        var frost = (RuntimeFrostArmorAbility)lich.GiveAbility("AUfa", 1);
         frost.Level = 1;
         lich.Mana = lich.MaxMana;
 

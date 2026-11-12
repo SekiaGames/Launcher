@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Roar : Ability
+public sealed class RuntimeRoarAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

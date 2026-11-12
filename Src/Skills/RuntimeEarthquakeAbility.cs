@@ -7,7 +7,7 @@ namespace Launcher;
 /// 引导 Dur(25) 秒，每秒结算一次——半径内建筑吃 DataB(50) 固定伤害，
 /// 地面单位吃 DataC(75%) 减速 2 秒（空中不掉）。物编 Cool=90 Cost=150 Rng=1000 Area=250。
 /// </summary>
-public sealed class Earthquake : Ability
+public sealed class RuntimeEarthquakeAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

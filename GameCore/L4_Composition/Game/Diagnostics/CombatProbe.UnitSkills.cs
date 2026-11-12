@@ -188,7 +188,7 @@ public static partial class CombatProbe
 
         bool cast = world.TryCast(banshee, banshee.FindAbility("Aams"), footman, footman.Position);
         Verify("反魔法外壳施放成功", 1f, cast ? 1f : 0f, 0f);
-        Verify("外壳挂上 Buff", 1f, footman.FindBuff<AntiMagicShellBuff>() != null ? 1f : 0f, 0f);
+        Verify("外壳挂上 Buff", 1f, footman.FindBuff<RuntimeAntiMagicShellBuff>() != null ? 1f : 0f, 0f);
         Verify("外壳期间魔法免疫", 1f, footman.State.MagicImmune ? 1f : 0f, 0f);
 
         footman.Hp = footman.MaxHp;
@@ -197,7 +197,7 @@ public static partial class CombatProbe
         world.DealDamage(World.MakeAbilityDamage(enemy, footman, 100f, AttackType.Normal, DamageType.Normal));
         Verify("物理伤害照常结算", footman.MaxHp - 100f, footman.Hp, 0.01f);
 
-        Buff shell = footman.FindBuff<AntiMagicShellBuff>();
+        Buff shell = footman.FindBuff<RuntimeAntiMagicShellBuff>();
         Verify("外壳持续 Dur", Mathf.Min(shellType.DurationAt(1), 90f), shell?.Remaining ?? 0f, 0.5f);
     }
 
@@ -523,16 +523,16 @@ public static partial class CombatProbe
     {
         var aliases = new (string Code, Type Expected)[]
         {
-            ("AOr3", typeof(Reincarnation)),
-            ("AOs2", typeof(ShockWave)),
-            ("AOw2", typeof(WarStomp)),
+            ("AOr3", typeof(RuntimeReincarnationAbility)),
+            ("AOs2", typeof(RuntimeShockwaveAbility)),
+            ("AOw2", typeof(RuntimeWarStompAbility)),
             ("AEIl", typeof(Metamorphosis)),
-            ("ANhw", typeof(HealingWave)),
-            ("ANhx", typeof(Hex)),
+            ("ANhw", typeof(RuntimeHealingWaveAbility)),
+            ("ANhx", typeof(RuntimeHexAbility)),
             ("Arsw", typeof(SerpentWard)),
-            ("AOls", typeof(LocustSwarm)),
+            ("AOls", typeof(RuntimeLocustSwarmAbility)),
             ("Arsg", typeof(SummonUnit)),
-            ("ANsb", typeof(ThunderBolt)),
+            ("ANsb", typeof(RuntimeStormBoltAbility)),
         };
 
         int matched = 0;

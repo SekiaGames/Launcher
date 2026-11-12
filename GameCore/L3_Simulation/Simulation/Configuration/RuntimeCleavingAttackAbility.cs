@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Launcher;
 
-public sealed class CleavingAttack : Ability
+public sealed class RuntimeCleavingAttackAbility : Ability
 {
     public override bool IsPassive => true;
 

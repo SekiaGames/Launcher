@@ -6,7 +6,7 @@ namespace Launcher;
 /// 法力燃烧 AEmb（恶魔猎手）。烧掉目标 DataA(50/100/150) 点法力，并造成等量的魔法伤害。
 /// 物编：Cool=7/6/5 Cost=50 Rng=300。
 /// </summary>
-public sealed class ManaBurn : Ability
+public sealed class RuntimeManaBurnAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

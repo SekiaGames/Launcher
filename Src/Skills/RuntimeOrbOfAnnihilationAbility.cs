@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class OrbOfAnnihilation : Ability
+public sealed class RuntimeOrbOfAnnihilationAbility : Ability
 {
     public override bool IsPassive => true;
 

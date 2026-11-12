@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class TwoWayForm : Ability
+public sealed class RuntimeDestroyerFormAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

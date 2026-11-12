@@ -3,7 +3,7 @@ using Godot;
 namespace Launcher;
 
 /// <summary>Stand Down（Astd）：把地洞里的人全放出来。</summary>
-public sealed class StandDown : Ability
+public sealed class RuntimeStandDownAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Defend : Ability
+public sealed class RuntimeDefendAbility : Ability
 {
     public override bool IsToggle => true;
 

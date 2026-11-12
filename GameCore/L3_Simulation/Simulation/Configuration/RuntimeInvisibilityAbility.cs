@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class InvisibilitySpell : Ability
+public sealed class RuntimeInvisibilityAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

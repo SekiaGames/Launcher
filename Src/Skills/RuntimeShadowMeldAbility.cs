@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class ShadowMeld : Ability
+public sealed class RuntimeShadowMeldAbility : Ability
 {
     public override bool IsPassive => true;
 

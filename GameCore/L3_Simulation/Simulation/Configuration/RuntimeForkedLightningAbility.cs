@@ -8,7 +8,7 @@ namespace Launcher;
 /// 以主目标方向为轴取一个扇形（起点宽 Area 125、末端宽 DataD 300、长度 DataC 900），
 /// 扇形内按「离主目标近」排序取 DataB(3) 个，每个吃 DataA(85/160/250)。物编 Cool=11 Cost=110 Rng=600。
 /// </summary>
-public sealed class ForkedLightning : Ability
+public sealed class RuntimeForkedLightningAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

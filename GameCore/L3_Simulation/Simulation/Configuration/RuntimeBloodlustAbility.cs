@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Bloodlust : Ability
+public sealed class RuntimeBloodlustAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

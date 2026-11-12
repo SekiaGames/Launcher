@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Curse : Ability
+public sealed class RuntimeCurseAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;

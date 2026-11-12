@@ -8,7 +8,7 @@ namespace Launcher;
 /// 绞肉车/憎恶（这里是亡灵绞肉车 umtw）把地面尸体收进货舱，尸体的衰减暂停、模型隐藏、位置跟随车体；
 /// 卸货时按螺旋摆回车身周围。掘尸（Aexh）每 Dur 秒自己产一具 UnitID 尸体，最多 DataA 具。
 /// </summary>
-public sealed class MeatCargo : Ability
+public sealed class RuntimeMeatLoadAbility : Ability
 {
     public const int DefaultCapacity = 5;
 

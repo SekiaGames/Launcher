@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Launcher;
 
 /// <summary>缓慢光环（龙卷风 Aasl）：DataA/DataB 是带符号的移动/攻击速度增量，对范围内敌人持续刷新减速。</summary>
-public sealed class SlowAura : Ability
+public sealed class RuntimeSlowAuraAbility : Ability
 {
     public override bool IsPassive => true;
 

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class UnstableConcoction : Ability
+public sealed class RuntimeUnstableConcoctionAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

@@ -6,7 +6,7 @@ namespace Launcher;
 /// 死亡缠绕 AUdc（死亡骑士）。对标客户端口径：亡灵友军治疗、活物敌人伤害，走弹道飞行后结算。
 /// 物编：Cool=6 Cost=75 Rng=800 DataA=200/400/600（1/2/3 级）。弹道速度表里没导出，按同族锤子取 900。
 /// </summary>
-public sealed class DeathCoil : Ability
+public sealed class RuntimeDeathCoilAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
@@ -14,7 +14,7 @@ public sealed class DeathCoil : Ability
     public override bool UsesMissile => true;
     public override float MissileSpeed => 900f;
     public override string MissileArt =>
-        @"Abilities\Spells\Undead\DeathCoil\DeathCoilMissile.mdl";
+        @"Abilities\Spells\Undead\RuntimeDeathCoilAbility\DeathCoilMissile.mdl";
 
     public float Amount => Data('A');
 

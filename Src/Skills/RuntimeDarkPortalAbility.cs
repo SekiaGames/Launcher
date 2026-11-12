@@ -7,7 +7,7 @@ namespace Launcher;
 /// <summary>
 /// 黑暗之门（ANdp）：在 Area 内随机位置召出 DataB(3) 只 DataA 列表里的单位（nbal / nfel）。
 /// </summary>
-public sealed class DarkPortal : Ability
+public sealed class RuntimeDarkPortalAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

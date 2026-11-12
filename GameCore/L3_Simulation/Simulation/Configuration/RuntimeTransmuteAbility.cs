@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class Transmute : Ability
+public sealed class RuntimeTransmuteAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

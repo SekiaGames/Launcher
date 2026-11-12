@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class AttributeModifier : Ability
+public sealed class RuntimeAttributeModSkillAbility : Ability
 {
     public override bool IsPassive => true;
 

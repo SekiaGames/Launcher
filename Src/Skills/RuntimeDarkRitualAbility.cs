@@ -6,7 +6,7 @@ namespace Launcher;
 /// 黑暗仪式 AUdr（巫妖）。牺牲一个友军单位，把它最大生命的 DataA 比例换成自己的法力。
 /// 物编：Cool=15 Cost=25 Rng=800 DataA=0.33/0.66/1.00。
 /// </summary>
-public sealed class DarkRitual : Ability
+public sealed class RuntimeDarkRitualAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

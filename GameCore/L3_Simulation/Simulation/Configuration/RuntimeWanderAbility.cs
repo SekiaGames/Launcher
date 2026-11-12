@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Launcher;
 
 /// <summary>漫游（Awan）：野怪没敌人、没指令时在营地附近随机走动（对标客户端 RuntimeWanderAbility）。</summary>
-public sealed class Wander : Ability
+public sealed class RuntimeWanderAbility : Ability
 {
     public override bool IsPassive => true;
 

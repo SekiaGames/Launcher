@@ -5,7 +5,7 @@ using Godot;
 namespace Launcher;
 
 /// <summary>
-/// 客户端对战开局模板，逐条对应 War3.mpq/Scripts/Blizzard.j 的 Melee* 函数：
+/// 客户端对战开局模板，逐条对应 War3.mpq/Scripts/RuntimeBlizzardAbility.j 的 Melee* 函数：
 /// MeleeStartingVisibility / MeleeStartingResources / MeleeStartingHeroLimit /
 /// MeleeClearExcessUnits / MeleeStartingUnits{雷族} / MeleeStartingAI。
 /// 所有坐标都是「地图坐标」（x 向东、y 向北），由调用方转成世界坐标。

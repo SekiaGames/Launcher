@@ -6,7 +6,7 @@ namespace Launcher;
 /// 腐地扩散（Abgl 大 / Abgs 小）。对标客户端 RuntimeBlightGrowthAbility：
 /// 亡灵建筑把自己这圈腐地铺出去，半径就是物编 Area（960 / 768）。
 /// </summary>
-public sealed class BlightGrowth : Ability
+public sealed class RuntimeBlightGrowthAbility : Ability
 {
     public override bool IsPassive => true;
 

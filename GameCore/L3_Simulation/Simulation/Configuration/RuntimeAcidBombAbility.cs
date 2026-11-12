@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class AcidBomb : Ability
+public sealed class RuntimeAcidBombAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Unit;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

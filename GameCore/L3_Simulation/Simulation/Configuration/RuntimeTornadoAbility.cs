@@ -7,7 +7,7 @@ namespace Launcher;
 /// 在落点召出 UnitID(ntor)，施法者要一直引导 Dur(40) 秒（第 2、3 级 30 秒）。
 /// 引导一断（被打断、自己动、蓝不够）龙卷风立刻散掉。物编 Cool=120 Cost=200 Rng=700。
 /// </summary>
-public sealed class Tornado : Ability
+public sealed class RuntimeTornadoAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;

@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class VenomSpears : Ability
+public sealed class RuntimeVenomSpearAbility : Ability
 {
     public override bool IsPassive => true;
 

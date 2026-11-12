@@ -8,7 +8,7 @@ namespace Launcher;
 /// 之后每 DataD(1s) 结算一次 DataC(4) 的余烬伤害，总共 Dur(9s)，建筑乘 DataE(0.75)。
 /// 不引导，施法者可以立刻走开（地面效果挂在 <see cref="IGroundSpell"/> 上推进）。
 /// </summary>
-public sealed class FlameStrike : Ability
+public sealed class RuntimeFlameStrikeAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;

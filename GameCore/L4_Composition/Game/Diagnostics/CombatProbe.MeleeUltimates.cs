@@ -137,9 +137,9 @@ public static partial class CombatProbe
         Verify("传送者本人到位", 0f, FlatDistance(mage.Position, landing), 1f);
         Verify("半径内友军一起走", 1f, FlatDistance(near.Position, landing) < 200f ? 1f : 0f, 0f);
         Verify("半径外友军留在原地", 900f, far.Position.X, 0.01f);
-        Verify("传送上限=物编 DataA", teleportType.DataAt(1, 'A'), (teleport as MassTeleport)?.MaxUnits ?? 0, 0f);
+        Verify("传送上限=物编 DataA", teleportType.DataAt(1, 'A'), (teleport as RuntimeMassTeleportAbility)?.MaxUnits ?? 0, 0f);
         GD.Print($"[自检] 群体传送 3 个单位 → ({landing.X:0},{landing.Z:0})，"
-            + $"半径外单位仍在 {far.Position.X:0}（上限 {(teleport as MassTeleport)?.MaxUnits}，半径 {(teleport as MassTeleport)?.GatherRadius:0}）");
+            + $"半径外单位仍在 {far.Position.X:0}（上限 {(teleport as RuntimeMassTeleportAbility)?.MaxUnits}，半径 {(teleport as RuntimeMassTeleportAbility)?.GatherRadius:0}）");
     }
 
     private static float FlatDistance(Vector3 a, Vector3 b)

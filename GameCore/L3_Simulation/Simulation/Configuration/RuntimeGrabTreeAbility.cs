@@ -7,7 +7,7 @@ namespace Launcher;
 /// 战棍（Agra）：让山岭巨人拔一棵树当武器——攻击变成攻城型、射程 +DataE，持续 DataE 次攻击。
 /// 点树施放（对标客户端 RuntimeGrabTreeAbility 的可破坏物目标）。
 /// </summary>
-public sealed class GrabTree : Ability
+public sealed class RuntimeGrabTreeAbility : Ability
 {
     private const float ReachPadding = 160f;
     private const float TreePickRadius = 96f;
@@ -29,7 +29,7 @@ public sealed class GrabTree : Ability
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null || !Owner.Alive) return false;
-        if (Owner.FindBuff<GrabTreeBuff>() != null) return false;
+        if (Owner.FindBuff<RuntimeGrabTreeBuff>() != null) return false;
         if (Owner.GrabbedTree) return false;
 
         TreeState tree = world.TakeNearestTree(point, TreePickRadius)
@@ -37,7 +37,7 @@ public sealed class GrabTree : Ability
         if (tree == null) return false;
 
         world.ConsumeTree(tree);
-        world.ApplyBuff(Owner, new GrabTreeBuff
+        world.ApplyBuff(Owner, new RuntimeGrabTreeBuff
         {
             Charges = Mathf.RoundToInt(Charges),
             RangeBonus = RangeBonus,

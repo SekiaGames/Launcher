@@ -6,7 +6,7 @@ namespace Launcher;
 /// 分离（Adec）。对标客户端 RuntimeDecoupleAbility：DataA / DataB 是要拆出来的两个单位，
 /// 角鹰兽骑士按当前血量比例拆回弓箭手与角鹰兽。
 /// </summary>
-public sealed class Decouple : Ability
+public sealed class RuntimeDecoupleAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Utility;

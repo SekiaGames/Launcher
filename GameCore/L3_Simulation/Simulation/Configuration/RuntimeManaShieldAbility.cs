@@ -2,7 +2,7 @@ using Godot;
 
 namespace Launcher;
 
-public sealed class ManaShield : Ability
+public sealed class RuntimeManaShieldAbility : Ability
 {
     public override AbilityTargetMode TargetMode => AbilityTargetMode.None;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Support;
@@ -13,7 +13,7 @@ public sealed class ManaShield : Ability
     {
         if (world == null || Owner == null || !Owner.Alive) return false;
 
-        world.ApplyBuff(Owner, new ManaShieldBuff { ManaPerDamage = ManaPerDamage }, Duration > 0f ? Duration : 30f);
+        world.ApplyBuff(Owner, new RuntimeManaShieldBuff { ManaPerDamage = ManaPerDamage }, Duration > 0f ? Duration : 30f);
         return true;
     }
 
@@ -21,7 +21,7 @@ public sealed class ManaShield : Ability
     {
         if (Owner == null || Owner.Mana <= 0f) return false;
         if (!HasEnemyNearby(world, 700f)) return false;
-        if (Owner.FindBuff<ManaShieldBuff>() != null) return false;
+        if (Owner.FindBuff<RuntimeManaShieldBuff>() != null) return false;
         return world.TryCast(Owner, this, null, Owner.Position);
     }
 }
