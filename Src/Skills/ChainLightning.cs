@@ -11,6 +11,10 @@ namespace OpenWC3;
 /// </summary>
 public sealed class ChainLightning : Ability
 {
+    /// <summary>连锁闪电的默认目标掩码（客户端 ChainLightning.AllowedTargets）。</summary>
+    public const TargetFlags AllowedTargets = TargetFlags.Ground | TargetFlags.Air
+        | TargetFlags.Enemy | TargetFlags.Alive;
+
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     public float Damage => Data('A');
