@@ -31,6 +31,10 @@ public sealed partial class Unit
     public float BonusEvasionPct;
     /// <summary>物品给的每秒回蓝（AIrn/AIrm）。</summary>
     public float BonusManaRegenPerSecond;
+
+    public float BonusHpRegenPerSecond;
+
+    public float TechManaPercent;
     /// <summary>物品给的视野加成（AIsi）。</summary>
     public float BonusSight;
     /// <summary>法球：命中附加伤害与触发效果。</summary>

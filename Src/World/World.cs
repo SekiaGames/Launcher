@@ -20,6 +20,8 @@ public sealed partial class World
 
     public System.Random Rng => _random;
 
+    public const bool LoggingEnabled = false;
+
     readonly System.Random _hardenedSkinRng = new(20261113);
 
     /// <summary>硬化皮肤/减伤掷骰的独立随机流（与战斗随机分开，避免扰动既有序列）。</summary>

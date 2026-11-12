@@ -101,6 +101,8 @@ public sealed partial class Unit
 
     public bool MagicImmune => State.MagicImmune;
 
+    public bool Silenced => State.Silenced;
+
     public bool Snared => State.Snared;
 
     public int Team => Player;
@@ -294,6 +296,43 @@ public sealed class Health
 
     public float InitialMana => _unit.Type?.ManaStart ?? 0f;
 
+    public float LifeRegen
+    {
+        get => _unit.BonusHpRegenPerSecond;
+        set => _unit.BonusHpRegenPerSecond = value;
+    }
+
+    public float TechManaRegenBonus
+    {
+        get => _unit.TechManaRegen;
+        set => _unit.TechManaRegen = value;
+    }
+
+    public float MaxManaBonus
+    {
+        get => _unit.BonusMaxMana;
+        set => _unit.BonusMaxMana = value;
+    }
+
+    public float TechMaxManaMul
+    {
+        get => _unit.TechManaPercent;
+        set => _unit.TechManaPercent = value;
+    }
+
+
+    public float Mana
+    {
+        get => _unit.Mana;
+        set => _unit.Mana = value;
+    }
+
+    public float MaxMana
+    {
+        get => _unit.MaxMana;
+        set => _unit.MaxMana = value;
+    }
+
     public void Heal(float amount)
     {
         if (amount <= 0f) return;
@@ -335,6 +374,18 @@ public sealed class Stats
     {
         get => _unit.BonusAttackSpeedPct;
         set => _unit.BonusAttackSpeedPct = value;
+    }
+
+    public float ArmorBonus
+    {
+        get => _unit.BonusArmor;
+        set => _unit.BonusArmor = value;
+    }
+
+    public float MaxLifeBonus
+    {
+        get => _unit.BonusMaxHp;
+        set => _unit.BonusMaxHp = value;
     }
 
     public float TechDamageBonus => _unit.TechDamageFlat;
