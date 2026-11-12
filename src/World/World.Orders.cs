@@ -135,6 +135,7 @@ public sealed partial class World
         }
 
         FaceTarget(unit, unit.Target);
+        if (unit.DistanceTo(unit.Target) > unit.AttackReach + unit.Target.Radius) return;
         BeginAttack(unit, unit.Target);
     }
 
@@ -153,6 +154,7 @@ public sealed partial class World
     {
         if (unit.Type == null || !unit.Type.CanAttack || !unit.State.CanAttack) return null;
 
+        float reach = unit.Type.AcquireRange + unit.Radius;
         Unit best = null;
         float bestDistance = float.MaxValue;
         foreach (Unit other in Units)
@@ -164,7 +166,7 @@ public sealed partial class World
             if (other.State.Invisible && !unit.State.Has(StateMod.Detect)) continue;
 
             float distance = unit.DistanceTo(other);
-            if (distance > unit.AttackReach + other.Radius) continue;
+            if (distance > reach + other.Radius) continue;
             if (distance < bestDistance)
             {
                 bestDistance = distance;

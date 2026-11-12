@@ -347,6 +347,13 @@ public static class UnitCatalog
         weapon.SplashHalf = Number(weapons.Get(row, "Harea" + slot), 0f);
         weapon.SplashQuarter = Number(weapons.Get(row, "Qarea" + slot), 0f);
         weapon.SplashTargets = Mathf.Max(1, weapons.GetInt(row, "targCount" + slot, 1));
+
+        string spill = weapons.Get(row, "splashTargs" + slot);
+        TargetKind spillShapes = CombatCodes.ParseTargets(spill);
+        weapon.SpillTargets = spillShapes != TargetKind.None ? spillShapes : weapon.Targets;
+        weapon.SpillRelations = CombatCodes.ParseRelations(spill);
+        weapon.SplashHalfRatio = Number(weapons.Get(row, "Hfact" + slot), 0.5f);
+        weapon.SplashQuarterRatio = Number(weapons.Get(row, "Qfact" + slot), 0.25f);
         return weapon;
     }
 

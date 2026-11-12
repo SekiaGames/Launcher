@@ -58,6 +58,27 @@ public static class CombatCodes
         return kind;
     }
 
+    /// <summary>归属关系位：掩码里没写关系就是「全部」（客户端 68c7b0 的默认，友军也会吃溅射）。</summary>
+    public static TargetRelation ParseRelations(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || raw == "_" || raw == "-") return TargetRelation.All;
+
+        TargetRelation relation = TargetRelation.None;
+        foreach (string part in raw.Split(',', StringSplitOptions.TrimEntries))
+        {
+            relation |= part.ToLowerInvariant() switch
+            {
+                "self" => TargetRelation.Self,
+                "player" => TargetRelation.Player,
+                "ally" => TargetRelation.Ally,
+                "neutral" => TargetRelation.Neutral,
+                "enemy" => TargetRelation.Enemy,
+                _ => TargetRelation.None,
+            };
+        }
+        return relation == TargetRelation.None ? TargetRelation.All : relation;
+    }
+
     public static string AttackLabel(AttackType attack) => attack switch
     {
         AttackType.Normal => "普通",

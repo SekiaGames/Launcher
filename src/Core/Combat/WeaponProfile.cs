@@ -25,6 +25,13 @@ public sealed class WeaponProfile
     public float SplashHalf;
     public float SplashQuarter;
     public int SplashTargets = 1;
+    /// <summary>溅射落点判定的掩码（splashTargs），None 表示退回 Targets。</summary>
+    public TargetKind SpillTargets;
+    /// <summary>溅射允许的归属关系，默认全部（友军也会被打）。</summary>
+    public TargetRelation SpillRelations = TargetRelation.All;
+    /// <summary>中/外圈的伤害系数（Hfact / Qfact）。</summary>
+    public float SplashHalfRatio = 0.5f;
+    public float SplashQuarterRatio = 0.25f;
 
     public string MissileScene;
     public float MissileSpeed = 900f;

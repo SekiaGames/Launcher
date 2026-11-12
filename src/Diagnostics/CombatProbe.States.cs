@@ -135,9 +135,43 @@ public static partial class CombatProbe
 
         GD.Print($"[自检] 溅射 主目标{centerLoss:0.0} 100距离{nearLoss:0.0} 200距离{midLoss:0.0} 400距离{farLoss:0.0}"
             + $"（Farea={mortar.SplashFull:0} Harea={mortar.SplashHalf:0} Qarea={mortar.SplashQuarter:0}）");
-        Verify("溅射半伤档", 0.5f, centerLoss <= 0f ? 0f : nearLoss / centerLoss, 0.02f);
-        Verify("溅射四分之一档", 0.25f, centerLoss <= 0f ? 0f : midLoss / centerLoss, 0.02f);
+        Verify("溅射中圈系数按 Hfact", mortar.Weapon.SplashHalfRatio, centerLoss <= 0f ? 0f : nearLoss / centerLoss, 0.02f);
+        Verify("溅射外圈系数按 Qfact", mortar.Weapon.SplashQuarterRatio, centerLoss <= 0f ? 0f : midLoss / centerLoss, 0.02f);
         Verify("超出 Qarea 不受伤", 0f, farLoss, 0.01f);
+
+        Unit ally = MakeUnit(footman, 0);
+        ally.Position = new Vector3(100f, 0f, 0f);
+        world.Units.Add(ally);
+        UnitType gyro = UnitCatalog.Get("hgyr");
+        Unit flyer = gyro != null ? MakeUnit(gyro, 1) : null;
+        if (flyer != null)
+        {
+            flyer.Position = new Vector3(100f, 0f, 0f);
+            world.Units.Add(flyer);
+        }
+
+        float allyBefore = ally.Hp;
+        float flyerBefore = flyer?.Hp ?? 0f;
+        world.ApplySplash(world.MakeAttackDamage(attacker, center, 100f));
+        Verify("溅射掩码没写关系 → 误伤友军", 1f, ally.Hp < allyBefore ? 1f : 0f, 0f);
+        if (flyer != null)
+        {
+            Verify("溅射掩码不含空中 → 飞机不吃", 0f, flyer.Hp < flyerBefore ? 1f : 0f, 0f);
+        }
+
+        UnitType marked = UnitCatalog.Get("hwat");
+        if (marked?.Weapon == null) return;
+        var markedWorld = new World(null, null);
+        Unit caster = MakeUnit(marked, 0);
+        Unit target = MakeUnit(footman, 1);
+        Unit friendly = MakeUnit(footman, 0);
+        friendly.Position = new Vector3(60f, 0f, 0f);
+        markedWorld.Units.Add(caster);
+        markedWorld.Units.Add(target);
+        markedWorld.Units.Add(friendly);
+        float friendlyBefore = friendly.Hp;
+        markedWorld.ApplySplash(markedWorld.MakeAttackDamage(caster, target, 100f));
+        Verify("显式 enemy 掩码不误伤友军", 0f, friendly.Hp < friendlyBefore ? 1f : 0f, 0f);
     }
 
     private static void CheckRegeneration()

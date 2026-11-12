@@ -93,6 +93,15 @@ public static partial class CombatProbe
         float drift = new Vector2(guard.Position.X - before.X, guard.Position.Z - before.Z).Length();
         Verify("据守不追人", 0f, drift, 6f);
 
+        Unit beyond = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
+        if (beyond == null) return;
+        world.HoldPosition(guard);
+        Verify("据守按 acquire 索敌（超出攻击距离也锁定）", 1f,
+            ReferenceEquals(guard.Target, beyond) ? 1f : 0f, 0f);
+        float beyondHp = beyond.Hp;
+        for (int tick = 0; tick < 60; tick++) world.Advance();
+        Verify("据守不隔空挥砍", 0f, beyond.Hp < beyondHp ? 1f : 0f, 0f);
+
         Unit near = ProbeUnit(world, "hfoo", 1, new Vector3(70f, 0f, 0f));
         if (near == null) return;
         float hpBefore = near.Hp;

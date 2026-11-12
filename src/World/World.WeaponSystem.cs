@@ -184,7 +184,7 @@ public sealed partial class World
         }
     }
 
-    /// <summary>溅射：距离主目标 ≤ Farea 全额、≤ Harea 半额、≤ Qarea 四分之一。</summary>
+    /// <summary>溅射：距离主目标 ≤ Farea 全额、≤ Harea 中型、≤ Qarea 小型，系数取 Hfact/Qfact；范围与归属按 splashTargs。</summary>
     public void ApplySplash(DamageInfo primary)
     {
         Unit attacker = primary.Source;
@@ -197,16 +197,19 @@ public sealed partial class World
         float quarter = weapon.SplashQuarter;
         if (quarter <= 0f) return;
 
+        TargetKind spillShapes = weapon.SpillTargets != TargetKind.None ? weapon.SpillTargets : weapon.Targets;
+
         var victims = new List<(Unit Unit, float Ratio, float Distance)>();
         foreach (Unit other in Units)
         {
-            if (other == center || !other.Alive) continue;
-            if (IsAllied(attacker.Player, other.Player)) continue;
+            if (other == center || !other.Alive || other.Type == null) continue;
+            if ((other.Type.Kind & spillShapes) == 0) continue;
+            if ((RelationOf(attacker, other) & weapon.SpillRelations) == 0) continue;
 
             float distance = center.DistanceTo(other);
             float ratio = distance <= full ? 1f
-                : distance <= half ? 0.5f
-                : distance <= quarter ? 0.25f
+                : distance <= half ? weapon.SplashHalfRatio
+                : distance <= quarter ? weapon.SplashQuarterRatio
                 : 0f;
             if (ratio <= 0f) continue;
             victims.Add((other, ratio, distance));
