@@ -201,6 +201,7 @@ public sealed partial class War3GameScene
         {
             if (!unit.Alive || unit.Player != slot.Id) continue;
             if (unit.IsBuilding || unit.IsWorker || unit.RetreatOrdered || unit.Kiting) continue;
+            if (unit.HireShop != null) continue;
             // 召唤物当前排：不受基地 1800 限制，直接压上去当肉盾
             if (unit.DistanceTo(hall) > 1800f && !unit.IsSummon) continue;
             attackers.Add(unit);
@@ -415,11 +416,13 @@ public sealed partial class War3GameScene
             away = away.Normalized();
 
             Vector3 spot = unit.Position;
-            float[] turns = { 0f, 0.6f, -0.6f, 1.2f, -1.2f };
+            float[] turns = { 0f, 0.6f, -0.6f, 1.2f, -1.2f, 1.8f, -1.8f };
             foreach (float turn in turns)
             {
                 Vector3 candidate = unit.Position + away.Rotated(Vector3.Up, turn) * (range * 0.6f + 60f);
                 if (!_world.CanStandAt(candidate, unit.Radius)) continue;
+                if (_pathGrid != null && unit.Type != null
+                    && _pathGrid.FindPath(unit.Position, candidate, unit.Radius, unit.Type.PathingLayer) == null) continue;
                 spot = candidate;
                 break;
             }
@@ -509,6 +512,7 @@ public sealed partial class War3GameScene
                 if (pick == null) continue;
                 if (!BuyUnitFromShop(shop, slot.Id, pick)) continue;
 
+                ClearHireTrips(slot.Id, shop);
                 if (_hireLogBudget > 0)
                 {
                     _hireLogBudget--;
@@ -516,6 +520,82 @@ public sealed partial class War3GameScene
                 }
                 return;
             }
+        }
+
+        DispatchHireTrip(slot);
+    }
+
+    private void DispatchHireTrip(PlayerSlot slot)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != slot.Id) continue;
+            if (unit.HireShop != null)
+            {
+                if (!unit.HireShop.Alive || PickHire(slot, unit.HireShop) == null)
+                {
+                    unit.HireShop = null;
+                    unit.MoveTarget = null;
+                }
+                continue;
+            }
+        }
+
+        foreach (Unit shop in _allUnits)
+        {
+            if (shop == null || !shop.Alive || !shop.Type.SellsUnits) continue;
+
+            bool inbound = false;
+            foreach (Unit unit in _allUnits)
+            {
+                if (unit != null && unit.Player == slot.Id && unit.HireShop == shop) { inbound = true; break; }
+            }
+            if (inbound) continue;
+
+            string pick = PickHire(slot, shop);
+            if (pick == null) continue;
+
+            Unit carrier = null;
+            float best = float.MaxValue;
+            foreach (Unit own in _allUnits)
+            {
+                if (own == null || !own.Alive || own.Player != slot.Id) continue;
+                if (own.IsBuilding || own.IsWorker || own.IsHero || own.HireShop != null) continue;
+                if (own.RetreatOrdered || own.Kiting) continue;
+                float distance = own.DistanceTo(shop);
+                if (distance <= ShopPurchaseRange(shop) || distance >= best) continue;
+                best = distance;
+                carrier = own;
+            }
+            if (carrier == null) continue;
+
+            Vector3 offset = carrier.Position - shop.Position;
+            offset.Y = 0f;
+            if (offset.LengthSquared() < 1f) offset = new Vector3(1f, 0f, 0f);
+            offset = offset.Normalized() * (ShopPurchaseRange(shop) * 0.6f);
+            var spot = new Vector3(shop.Position.X + offset.X, shop.Position.Y, shop.Position.Z + offset.Z);
+
+            carrier.HireShop = shop;
+            carrier.Target = null;
+            carrier.MoveTarget = spot;
+            carrier.Path = null;
+            if (_hireLogBudget > 0)
+            {
+                _hireLogBudget--;
+                GD.Print($"[AI] P{slot.Id} 派 {carrier.Type.Name} 去 {shop.Type.Name} 买 {UnitCatalog.Get(pick)?.Name}");
+            }
+            return;
+        }
+    }
+
+    private void ClearHireTrips(int player, Unit shop)
+    {
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || unit.Player != player || unit.HireShop != shop) continue;
+            unit.HireShop = null;
+            if (unit.MoveTarget.HasValue && unit.DistanceTo(shop) <= ShopPurchaseRange(shop))
+                unit.MoveTarget = null;
         }
     }
 

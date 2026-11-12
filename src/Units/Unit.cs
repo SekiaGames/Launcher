@@ -33,6 +33,7 @@ public sealed partial class Unit
     public int GroupMoveId;
     public bool ProductionBlocked;
     public bool IsCreepSleeper;
+    public Unit HireShop;
 
     public Unit GoldMine;
     public Unit HomeHall;

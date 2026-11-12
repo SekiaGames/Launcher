@@ -569,6 +569,32 @@ public sealed partial class War3GameScene
             _hud?.RefreshCooldownNow();
             GD.Print($"[UI] 冷却 {_hud?.DescribeExtras()}");
             UpdateCommandCard();
+
+            Unit hireShop = null;
+            foreach (Unit unit in _world.Units)
+            {
+                if (unit != null && unit.Alive && unit.Type != null && unit.Type.SellsUnits) { hireShop = unit; break; }
+            }
+            PlayerSlot ownSlot = Slot(ViewPlayer);
+            if (hireShop != null && ownSlot != null)
+            {
+                ownSlot.Gold = 2000;
+                ownSlot.Lumber = 2000;
+                Unit mercCamp = Spawn("nmer", MeleeRules.PlayerNeutralPassive,
+                    hireShop.Position.X + 400f, hireShop.Position.Z, 0f, 0f, 1f);
+                if (mercCamp != null)
+                {
+                    _world.Units.Add(mercCamp);
+                    foreach (string soldId in mercCamp.Type.SellUnits) mercCamp.UnitStock[soldId] = 2;
+                }
+                Unit extraFarm = Spawn("hhou", ViewPlayer, hero.Position.X + 700f, hero.Position.Z, 0f, 0f, 1f);
+                if (extraFarm != null) _world.Units.Add(extraFarm);
+                fast.Position = hireShop.Position + new Vector3(1500f, 0f, 0f);
+                fast.HireShop = null;
+                fast.MoveTarget = null;
+                TickAiHiring(ownSlot);
+                GD.Print($"[UI] 买兵派工 shop={hireShop.Type.Id} 派={fast.HireShop?.Type?.Id}");
+            }
         }
     }
 

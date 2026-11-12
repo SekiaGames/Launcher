@@ -1,3 +1,4 @@
+using Godot;
 using System;
 using System.Collections.Generic;
 
@@ -13,6 +14,8 @@ public sealed class EnemyComposition
     public int Air;
     public int Ground;
     public int Heroes;
+    public float Casters;
+    public float Auras;
     public float Total;
 
     public bool IsEmpty => Total <= 0f;
@@ -55,6 +58,12 @@ public static class AiCounters
             if (unit.Type.Flying) composition.Air++;
             else composition.Ground++;
             if (unit.IsHero) composition.Heroes++;
+            foreach (Ability ability in unit.Abilities)
+            {
+                if (ability == null || !ability.Learned) continue;
+                if (ability.IsAura) composition.Auras += weight;
+                else if (!ability.IsPassive && ability.ManaCost > 0f) composition.Casters += weight;
+            }
         }
         return composition;
     }
@@ -89,6 +98,19 @@ public static class AiCounters
             score -= 0.6f * enemy.Air / Math.Max(1f, enemy.Total) + 0.2f;
         }
         if (candidate.Weapon.SplashFull > 0f && enemy.Ground >= 3) score += 0.1f;
+
+        if (enemy.Casters > 0f && enemy.Total > 0f)
+        {
+            float share = Mathf.Clamp(enemy.Casters / enemy.Total, 0f, 1f);
+            score += 0.08f * share * Mathf.Clamp((candidate.Hp - 300f) / 900f, 0f, 1f);
+        }
+        if (enemy.Auras > 0f) score += 0.02f;
+
+        float dps = (candidate.Weapon.MinDamage + candidate.Weapon.MaxDamage) * 0.5f
+            / Mathf.Max(0.5f, candidate.Weapon.Cooldown);
+        float cost = Mathf.Max(1f, candidate.GoldCost + candidate.LumberCost * 2f);
+        float efficiency = (candidate.Hp + dps * 60f) / cost;
+        score += 0.2f * Mathf.Clamp(efficiency / 8f, 0f, 1f);
         return score;
     }
 
@@ -106,6 +128,8 @@ public static class AiCounters
         string text = $"对手 {string.Join(" ", parts)}";
         if (enemy.Air > 0) text += $" 空中{enemy.Air}";
         if (enemy.Heroes > 0) text += $" 英雄{enemy.Heroes}";
+        if (enemy.Casters > 0f) text += $" 法师{enemy.Casters:0.#}";
+        if (enemy.Auras > 0f) text += $" 光环{enemy.Auras:0.#}";
         return text;
     }
 
