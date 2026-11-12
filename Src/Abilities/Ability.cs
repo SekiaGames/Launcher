@@ -396,6 +396,17 @@ public abstract class Ability
 
     public virtual void OnAttackHit(Unit target, float damage) { }
 
+    public virtual void OnAttackLaunched(Unit target, Weapon weapon, int effectId) { }
+
+    public virtual bool TryAcquireAutoCastTarget(out Unit target, out Vec2 point)
+    {
+        target = null;
+        point = default;
+        return false;
+    }
+
+    public virtual void ModifyNativeDamagePacket(ref DamageData damage) { }
+
     public virtual bool CheckCastOrder(int orderId) => true;
 
     public virtual int ResolveCastOrderId(int orderId) => orderId;
