@@ -45,6 +45,8 @@ public sealed partial class Unit
 
     public string TypeId => Type?.Id ?? "";
 
+    public int TypeLevel => Level > 0 ? Level : 1;
+
     public bool Is(Classification classification)
     {
         if (classification == Classification.None) return false;
@@ -102,6 +104,24 @@ public sealed partial class Unit
     public bool MagicImmune => State.MagicImmune;
 
     public bool Silenced => State.Silenced;
+
+    public UnitFlags Flags
+    {
+        get
+        {
+            UnitFlags flags = UnitFlags.None;
+            if (State.Stunned) flags |= UnitFlags.Stunned;
+            if (State.Silenced) flags |= UnitFlags.Silenced;
+            if (State.Channeling) flags |= UnitFlags.Channeling;
+            if (!Alive) flags |= UnitFlags.Dead;
+            return flags;
+        }
+        set
+        {
+            if ((value & UnitFlags.Stunned) != 0) State.Add(StateMod.Stun);
+            if ((value & UnitFlags.Channeling) != 0 && World != null) World.BeginChannel(this, null, Position, 0f, 0f);
+        }
+    }
 
     public bool Snared => State.Snared;
 
@@ -444,6 +464,8 @@ public sealed class Death
     public Death(Unit unit) => _unit = unit;
 
     public bool IsCorpse => _unit.IsCorpse;
+
+    public bool RevivalForbidden => _unit.IsCorpse && _unit.CorpseRemaining <= 0f;
 
     public bool IsDead => !_unit.Alive;
 

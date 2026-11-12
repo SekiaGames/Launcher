@@ -7,4 +7,10 @@ namespace StandalonePathing.Sim;
 public static class CantPathSearchPoint
 {
     public static float NativeMultiply(float a, float b) => a * b;
+
+    public static float NativeAdd(float a, float b) => a + b;
+
+    public static float NativeSubtract(float a, float b) => a - b;
+
+    public static float NativeDivide(float a, float b) => MathF.Abs(b) < 1e-9f ? 0f : a / b;
 }

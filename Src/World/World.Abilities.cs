@@ -347,6 +347,23 @@ public sealed partial class World
 
     public IReadOnlyList<Effect> Effects => _effects;
 
+    public SpecialEffect AddSpecialEffect(string modelPath, Vec2 position,
+        float lifeSpan = 0f, float scale = 1f, float height = 0f)
+    {
+        var effect = new SpecialEffect(modelPath, position, lifeSpan, scale, height);
+        AddEffect(effect);
+        return effect;
+    }
+
+    public SpecialEffect AddSpecialEffectTarget(string modelPath, Unit target,
+        string attachmentPoint = "origin", float lifeSpan = 0f, float scale = 1f)
+    {
+        if (target == null) return null;
+        var effect = new SpecialEffect(modelPath, target, attachmentPoint, lifeSpan, scale);
+        AddEffect(effect);
+        return effect;
+    }
+
     public void AddSpecialEffect(SpecialEffect effect)
     {
         if (effect != null) _effects.Add(effect);

@@ -508,6 +508,12 @@ public abstract class Ability
         Owner?.World?.CancelChannel(Owner);
     }
 
+    public void FinishChannel(bool interrupted)
+    {
+        if (interrupted) CancelCast();
+        else FinishChannel();
+    }
+
     public void FinishChannel()
     {
         FinishCasting();

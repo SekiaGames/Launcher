@@ -20,6 +20,8 @@ public sealed partial class World
 
     public System.Random Rng => _random;
 
+    public Func<int, bool> ComputerSpellAiQuery { get; set; } = _ => true;
+
     public const bool LoggingEnabled = false;
 
     readonly System.Random _hardenedSkinRng = new(20261113);

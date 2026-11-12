@@ -150,3 +150,6 @@ public sealed class State
         return parts.Count == 0 ? "-" : string.Join(",", parts);
     }
 }
+
+[Flags]
+public enum UnitFlags { None = 0, Stunned = 1, Silenced = 2, Channeling = 4, Dead = 8 }
