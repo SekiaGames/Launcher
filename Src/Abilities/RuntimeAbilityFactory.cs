@@ -134,7 +134,7 @@ public static class RuntimeAbilityFactory
         ["Aprg"] = () => new RuntimePurgeAbility(),             // 净化（萨满祭司 oshm）
         ["Awar"] = () => new RuntimePulverizeAbility(),         // 粉碎（牛头人，概率范围伤害）
         ["Absk"] = () => new Berserk(),           // 狂暴（猎头者）
-        ["Aliq"] = () => new RuntimeLiquidFireAbility(),        // 液体火焰（蝙蝠骑士，烧建筑）
+        ["Aliq"] = () => WithObjects<RuntimeLiquidFireAbility>(),        // 液体火焰（蝙蝠骑士，烧建筑）
         ["Auco"] = () => new RuntimeUnstableConcoctionAbility(),// 不稳定化合物（蝙蝠骑士自爆）
         ["Aven"] = () => new RuntimeVenomSpearAbility(),       // 毒矛（双足飞龙，持续毒伤）
         ["Asal"] = () => new RuntimePillageAbility(),           // 掠夺（兽族步兵，拆建筑得金）
