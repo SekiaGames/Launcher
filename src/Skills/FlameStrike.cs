@@ -55,7 +55,7 @@ public sealed class FlameStrike : Ability
     {
         Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.State.MagicImmune);
         if (target == null) return false;
-        return world.TryCast(Owner, this, null, target.Position);
+        return world.TryCast(Owner, this, null, AiTactics.LeadPoint(target));
     }
 }
 

@@ -232,6 +232,10 @@ public static partial class CombatProbe
         CheckShop("eden", 9, "暗夜奇迹古树");
         CheckShop("ngme", 11, "地精商店");
 
+        UnitFuncRow temple = TechTree.Row("utod");
+        Verify("utod 研究项=4", 4f, temple?.Researches?.Length ?? 0, 0f);
+        GD.Print($"[自检] 亡灵寺院研究 {string.Join(",", temple?.Researches ?? Array.Empty<string>())}");
+
         var world = new World(null, null);
         UnitType footman = UnitCatalog.Get("hfoo");
         if (footman != null)

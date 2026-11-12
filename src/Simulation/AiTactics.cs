@@ -29,6 +29,28 @@ public static class AiTactics
         return score + 0.5f * (1f - Mathf.Clamp(ratio, 0f, 1f));
     }
 
+    public static Vector3 LeadPoint(Unit target, float seconds = 0.45f)
+    {
+        if (target == null || target.Type == null) return target != null ? target.Position : Vector3.Zero;
+
+        Vector3 destination = target.Position;
+        if (target.Path != null && target.PathIndex < target.Path.Count)
+        {
+            destination = target.Path[target.PathIndex];
+        }
+        else if (target.MoveTarget.HasValue)
+        {
+            destination = target.MoveTarget.Value;
+        }
+
+        Vector3 direction = destination - target.Position;
+        direction.Y = 0f;
+        if (direction.LengthSquared() < 1f) return target.Position;
+
+        float lead = Mathf.Clamp(target.Type.Speed * seconds, 0f, 260f);
+        return target.Position + direction.Normalized() * lead;
+    }
+
     /// <summary>远程/法师（物编 formation=2）：交战时值得往后拉。</summary>
     public static bool IsBackline(Unit unit)
     {
