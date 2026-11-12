@@ -16,13 +16,36 @@ public class Buff
 {
     public Unit Owner;
     public Ability Source;
-    public string Name = "buff";
+    string _name = "buff";
+
+    public virtual string Name
+    {
+        get => _name;
+        set => _name = value;
+    }
     public float Remaining;
 
     public bool Expired => Remaining <= 0f;
 
     /// <summary>是否为负面效果：驱散时对敌取负面、对友取正面。</summary>
     public virtual bool IsHarmful => true;
+
+    /// <summary>施加者（客户端 Buff.Caster）。Launcher 里 Buff 只记 Source 技能。</summary>
+    public Unit Caster => Source?.Owner;
+
+    /// <summary>总时长（客户端 Buff.Duration）；Launcher 用 Remaining 倒计时。</summary>
+    public float Duration;
+
+    public IRuntimeObjectData ObjectData { get; set; }
+
+    public float RemainingSeconds => Remaining;
+
+    public virtual bool Permanent => false;
+
+    public virtual void RefreshExpiration()
+    {
+        if (Duration > 0f) Remaining = Duration;
+    }
 
     public virtual void OnApply(World world) { }
 

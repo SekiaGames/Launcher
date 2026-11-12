@@ -388,6 +388,8 @@ public abstract class Ability
 
     public virtual float ExpectedChannelDuration => 0f;
 
+    public float ConfiguredAreaOfEffect => Area;
+
     public virtual bool SpellStealable => true;
 
     public virtual void OnCombatAlarm(Unit attacker, Unit victim) { }
