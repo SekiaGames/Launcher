@@ -9,6 +9,18 @@ public sealed class DamageData
     public float Raw;
     public float Amount;
 
+    /// <summary>附加伤害（客户端 bonusDamage，监听器可叠加）。</summary>
+    public float BonusAmount;
+
+    /// <summary>伤害倍率（客户端 DamageModResult.damageMultiplier）。</summary>
+    public float DamageMultiplier = 1f;
+
+    public bool IsRanged
+    {
+        get => Ranged;
+        set => Ranged = value;
+    }
+
     /// <summary>开火用的那套武器（第一或第二套），溅射与命中音都按它来。</summary>
     public Weapon Weapon;
     public AttackType AttackType = AttackType.Normal;

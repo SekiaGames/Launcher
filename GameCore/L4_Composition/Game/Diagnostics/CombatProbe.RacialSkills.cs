@@ -177,8 +177,9 @@ public static partial class CombatProbe
         thornsWorld.Units.Add(thornAttacker);
 
         thornKeeper.GiveAbility("AEah", 1);
-        thornsWorld.RefreshAuras();
-        Verify("荆棘光环 10%", 0.1f, thornVictim.AuraThornsPct, 0.001f);
+        thornsWorld.TickAbilities();
+        RuntimeThornsAuraBuff thornsBuff = thornVictim.Abilities.OfType<RuntimeThornsAuraBuff>().FirstOrDefault();
+        Verify("荆棘光环 10%", 0.1f, thornsBuff?.ReturnedDamage ?? 0f, 0.001f);
 
         float attackerHp = thornAttacker.Hp;
         float victimHp = thornVictim.Hp;

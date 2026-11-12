@@ -56,5 +56,7 @@ public sealed class Weapon
 
     public float AcquireRange = 500f;
 
+    public WeaponType WeaponType => string.IsNullOrEmpty(MissileScene) ? WeaponType.Melee : WeaponType.Missile;
+
     public bool CanTarget(TargetKind kind) => Targets == TargetKind.None || (Targets & kind) != 0;
 }

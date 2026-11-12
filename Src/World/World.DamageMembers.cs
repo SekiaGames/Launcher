@@ -249,6 +249,10 @@ public sealed partial class World
         info.ThornsBase = Mathf.Max(0f, info.Amount);
         info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.Default.ArmorFactor(info.Armor);
         info.ClassRatio = War3GameplayConfig.Default.ClassRatio(info.AttackType, info.DefenseType);
+        if (info.BonusAmount != 0f || info.DamageMultiplier != 1f)
+        {
+            info.Amount = (info.Amount + info.BonusAmount) * info.DamageMultiplier;
+        }
         info.Amount = War3GameplayConfig.Default.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
             info.Armor, info.UnderConstruction, info.Ethereal);
 
@@ -337,11 +341,17 @@ public sealed partial class World
             target.Buffs[index].ModifyIncomingDamage(this, info);
         }
 
+        for (int index = 0; index < target.Buffs.Count; index++)
+        {
+            target.Buffs[index].ModifyIncomingDamage(ref info);
+        }
+
         if (target.Abilities == null) return;
         foreach (Ability ability in target.Abilities)
         {
             if (!ability.Learned) continue;
             ability.ModifyIncomingDamage(this, info);
+            ability.ModifyIncomingDamage(ref info);
         }
     }
 

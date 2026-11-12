@@ -12,6 +12,11 @@ public sealed partial class Unit
 
     public int PlayerId => Player;
 
+    static int _nextSimulationId;
+
+    /// <summary>客户端每单位唯一 id（命令光环按它区分来源）。</summary>
+    public int SimulationId { get; } = ++_nextSimulationId;
+
     public float Life
     {
         get => Hp;
@@ -80,6 +85,16 @@ public sealed partial class Unit
     }
 
     Health _health;
+
+    /// <summary>客户端 Unit.TakeDamage：把伤害包交给世界结算，返回实际掉血。</summary>
+    public float TakeDamage(DamageData damage)
+    {
+        if (damage == null || !Alive) return 0f;
+        damage.Target ??= this;
+        float before = Hp;
+        World?.DealDamage(damage);
+        return before - Hp;
+    }
 
     public void AddAbility(Ability ability)
     {
