@@ -342,6 +342,26 @@ public static partial class CombatProbe
         Verify("落空不掉血", victim.MaxHp, victim.Hp, 0.01f);
     }
 
+    private static void CheckSeparation()
+    {
+        UnitType footman = UnitCatalog.Get("hfoo");
+        if (footman == null) return;
+
+        var world = new World(null, null);
+        Unit a = MakeUnit(footman, 0);
+        Unit b = MakeUnit(footman, 12);
+        a.AutoAcquire = false;
+        b.AutoAcquire = false;
+        b.Position = new Vector3(60f, 0f, 0f);
+        world.Units.Add(a);
+        world.Units.Add(b);
+
+        float before = a.DistanceTo(b);
+        for (int tick = 0; tick < 80; tick++) world.Advance();
+        float after = a.DistanceTo(b);
+        Verify("软分离推开静止单位", 1f, after > before + 5f ? 1f : 0f, 0f);
+    }
+
     private static void CheckShop(string id, int expectedItems, string label)
     {
         UnitType type = UnitCatalog.Get(id);

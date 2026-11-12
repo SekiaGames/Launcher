@@ -93,6 +93,7 @@ public sealed partial class World
         TickItemPickup();
         TickItemCooldowns();
         TickShops();
+        TickSeparation();
         ResolveRepulse();
         TickHeroRevive(Tick);
         TickReincarnation();

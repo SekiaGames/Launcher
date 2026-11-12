@@ -15,6 +15,7 @@ public sealed partial class World
         if (!unit.State.CanMove) return false;
 
         EnsurePath(unit, goal, stopDistance);
+        if (unit.PathFailed) return false;
         Vector3 waypoint = CurrentWaypoint(unit, goal);
         MoveToward(unit, waypoint);
         return false;
@@ -44,9 +45,11 @@ public sealed partial class World
         {
             unit.Path = null;
             unit.PathIndex = 0;
+            unit.PathFailed = true;
             return;
         }
 
+        unit.PathFailed = false;
         unit.Path = path;
         unit.PathIndex = 0;
         if (_pathLogBudget > 0 && path.Count > 1)
@@ -120,6 +123,7 @@ public sealed partial class World
         unit.Position = position;
         unit.Path = null;
         unit.PathIndex = 0;
+        unit.PathFailed = false;
         unit.RepathTimer = 0f;
         if (unit.View != null) unit.View.Root.Position = position;
     }

@@ -25,6 +25,9 @@ public sealed partial class Unit
     public int OrderLogBudget = 3;
     public float AttackCooldown;
     public UnitSceneComponent View;
+    public float SepVelocityX;
+    public float SepVelocityZ;
+    public int SepCooldown;
 
     public Unit GoldMine;
     public Unit HomeHall;
@@ -85,6 +88,7 @@ public sealed partial class Unit
     public List<Vector3> Path;
     public int PathIndex;
     public float RepathTimer;
+    public bool PathFailed;
 
     public float Radius => Type == null
         ? 28f

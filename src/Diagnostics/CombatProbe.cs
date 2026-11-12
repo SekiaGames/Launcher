@@ -109,6 +109,7 @@ public static partial class CombatProbe
         CheckRegeneration();
         CheckShopAndUpgradeData();
         CheckMissEvent();
+        CheckSeparation();
         CheckRally();
         CheckOrders();
         CheckSecondWeapon();

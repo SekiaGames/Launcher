@@ -182,6 +182,11 @@ public sealed class PathGrid
             if (!TryFindNear(ex, ey, clearance, layer, out ex, out ey)) return null;
         }
 
+        if (SearchBlocked(sx, sy, clearance, layer))
+        {
+            if (!TryFindNear(sx, sy, clearance, layer, out sx, out sy)) return null;
+        }
+
         int startIndex = sy * _width + sx;
         int goal = ey * _width + ex;
         if (startIndex == goal)
