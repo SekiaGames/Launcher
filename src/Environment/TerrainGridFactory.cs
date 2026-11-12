@@ -9,6 +9,12 @@ public sealed partial class MapWorldBuilder
 {
     private TerrainTextureSet _groundLayers;
 
+    /// <summary>地形材质（腐地遮罩等运行时参数都挂在它上面）。</summary>
+    public ShaderMaterial TerrainMaterial { get; private set; }
+
+    /// <summary>腐地遮罩：场景每帧推进，亡灵建筑落成时往里盖章。</summary>
+    public BlightMask Blight { get; private set; }
+
     private List<string> _groundOrder = new List<string>();
 
     private void BuildTerrain(W3eTerrain terrain, bool[,] covered)
@@ -47,10 +53,6 @@ public sealed partial class MapWorldBuilder
                 list.Add(text);
             }
         }
-        if (Array.Exists(terrain.Corners, (W3eTerrain.Corner c) => c.Blight))
-        {
-            list.Add("@blight");
-        }
         TerrainTextureLoader tiles = new TerrainTextureLoader();
         List<string> list2 = new List<string>();
         TerrainTextureSet terrainTextureSet = TerrainTextureSet.Build(tiles, list, list2);
@@ -64,6 +66,9 @@ public sealed partial class MapWorldBuilder
             shaderMaterial.SetShaderParameter("ground_texture", terrainTextureSet.Texture);
         }
         ApplyBakedShadow(shaderMaterial, terrain);
+        TerrainMaterial = shaderMaterial;
+        Blight = new BlightMask(terrain, shaderMaterial,
+            Assets.LoadTexture(PathResolve.IconPng(TerrainTextureLoader.BlightPath)));
         _groundLayers = terrainTextureSet;
         _groundOrder = list2;
         int width = terrain.Width;
@@ -263,10 +268,6 @@ public sealed partial class MapWorldBuilder
                     }
                 }
             }
-        }
-        if (terrain.Corners[y * width + x].Blight)
-        {
-            return "@blight";
         }
         int groundTexture = terrain.Corners[y * width + x].GroundTexture;
         return (groundTexture >= 0 && groundTexture < terrain.GroundTextures.Count) ? terrain.GroundTextures[groundTexture] : null;

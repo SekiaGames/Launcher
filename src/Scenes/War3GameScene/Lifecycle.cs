@@ -291,6 +291,7 @@ public sealed partial class War3GameScene : Node3D
         }
 
         TickFog((float)delta);
+        _terrainBuilder?.Blight?.Tick((float)delta, _allUnits);
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
 

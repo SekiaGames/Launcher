@@ -14,21 +14,34 @@ public sealed class TerrainTextureLoader
 
     public static void SetBlightTileset(char tileset)
     {
-        _blightPath = tileset switch
-        {
-            'A' => "TerrainArt/Blight/Ashen_Blight.blp",
-            'B' => "TerrainArt/Blight/Barrens_Blight.blp",
-            'D' => "TerrainArt/Blight/Cave_Blight.blp",
-            'F' => "TerrainArt/Blight/Felwood_Blight.blp",
-            'G' => "TerrainArt/Blight/G_Blight.blp",
-            'L' => "TerrainArt/Blight/Lords_Blight.blp",
-            'N' => "TerrainArt/Blight/North_Blight.blp",
-            'X' => "TerrainArt/Blight/Village_Blight.blp",
-            'Y' => "TerrainArt/Blight/VillageFall_Blight.blp",
-            'Z' => "TerrainArt/Blight/Lordf_Blight.blp",
-            _ => "TerrainArt/Blight/Ashen_Blight.blp",
-        };
+        string fromTable = BlightPathFromTable(tileset);
+        if (!string.IsNullOrEmpty(fromTable)) _blightPath = fromTable;
     }
+
+    /// <summary>腐地贴图：`UI\WorldEditData` 的 [TileSets] 每行第二段就是该地形集的 blight 贴图。</summary>
+    private static string BlightPathFromTable(char tileset)
+    {
+        Variant json = Assets.ReadJson("res://extract/Texts/UIWorldEditData.json");
+        if (json.VariantType != Variant.Type.Dictionary) return null;
+
+        Godot.Collections.Dictionary root = json.AsGodotDictionary();
+        if (!root.ContainsKey("keys")) return null;
+
+        Godot.Collections.Dictionary keys = root["keys"].AsGodotDictionary();
+        string key = "TileSets." + char.ToUpperInvariant(tileset);
+        if (!keys.ContainsKey(key)) return null;
+
+        string[] parts = keys[key].AsString().Split(',');
+        if (parts.Length < 2) return null;
+
+        string path = parts[1].Trim();
+        if (path.Length == 0) return null;
+        if (!path.EndsWith(".blp", StringComparison.OrdinalIgnoreCase)) path += ".blp";
+        return path;
+    }
+
+    /// <summary>当前地形集的腐地贴图（war3 路径）。</summary>
+    public static string BlightPath => _blightPath;
 
     private static SlkTable _slk;
     private readonly Dictionary<string, Image> _images = new(StringComparer.OrdinalIgnoreCase);
