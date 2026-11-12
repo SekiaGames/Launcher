@@ -247,6 +247,7 @@ public sealed partial class War3GameScene
             else if (single != null && single.IsBuilding && !single.IsUnderConstruction)
             {
                 AddTrainingCommands(commands, slot, single);
+                AddSellUnitCommands(commands, slot, single);
                 AddResearchCommands(commands, slot, single);
                 AddUpgradeCommands(commands, slot, single);
                 if (single.Type.IsShop) AddShopCommands(commands, slot, single);
@@ -328,7 +329,8 @@ public sealed partial class War3GameScene
             bool food = FoodUsed(slot.Id) + type.FoodUsed <= FoodCap(slot.Id);
             bool requires = RequirementsMet(slot, type.Requires);
             bool room = QueueLength(building) < 5;
-            bool enabled = afford && food && requires && room;
+            bool heroRoom = !HeroSlotBlocked(slot, type);
+            bool enabled = afford && food && requires && room && heroRoom;
 
             string cost = type.GoldCost > 0 ? $"{type.GoldCost}金" : "";
             if (type.LumberCost > 0) cost += (cost.Length > 0 ? "/" : "") + $"{type.LumberCost}木";
@@ -342,11 +344,71 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = queued ? $"训练 {type.Name}（队列）" : $"训练 {type.Name}",
                 Cost = cost,
-                Tooltip = $"训练 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.TrainSeconds:0}s\n右键：取消该建筑最后一个订单并退钱",
+                Tooltip = $"训练 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.TrainSeconds:0}s"
+                    + (heroRoom ? "" : $"\n{HeroBlockReason(slot, type)}")
+                    + "\n右键：取消该建筑最后一个订单并退钱",
                 Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
                 Enabled = enabled,
                 Action = () => StartTraining(target, id),
                 RightAction = () => CancelBuildingOrder(target, id),
+            });
+        }
+    }
+
+    /// <summary>
+    /// 中立建筑卖兵：酒馆（`ntav` 卖中立英雄）、雇佣兵营地（`nmer`）、地精实验室（`ngad`）、
+    /// 船坞（`nshp`）、龙巢（`ndro`）。清单来自 `*UnitFunc.Sellunits`，库存来自 UnitBalance 的
+    /// stockMax/stockRegen/stockStart；买的条件与客户端一致：己方单位在购买半径内。
+    /// </summary>
+    private void AddSellUnitCommands(List<CommandEntry> commands, PlayerSlot slot, Unit building)
+    {
+        if (!building.Type.SellsUnits) return;
+
+        float range = ShopPurchaseRange(building);
+        bool buyerNearby = NearestShopBuyer(building, slot.Id, range) != null;
+
+        foreach (string unitId in building.Type.SellUnits)
+        {
+            UnitType type = UnitCatalog.Get(unitId);
+            if (type == null) continue;
+
+            int stock = building.UnitStockOf(unitId);
+            int max = building.UnitStockMaxOf(unitId);
+            bool unlimited = type.StockRegen <= 0f;
+
+            bool afford = slot.Gold >= type.GoldCost && slot.Lumber >= type.LumberCost;
+            bool food = FoodUsed(slot.Id) + type.FoodUsed <= FoodCap(slot.Id);
+            bool heroRoom = !HeroSlotBlocked(slot, type);
+            string[] requires = TechTree.Row(unitId)?.RequiresPrimary ?? Array.Empty<string>();
+            bool requiresOk = PurchaseRequirementsMet(slot, requires);
+            bool enabled = buyerNearby && stock > 0 && afford && food && heroRoom && requiresOk;
+
+            string cost = type.GoldCost > 0 ? $"{type.GoldCost}金" : "";
+            if (type.LumberCost > 0) cost += (cost.Length > 0 ? "/" : "") + $"{type.LumberCost}木";
+            if (type.FoodUsed > 0) cost += (cost.Length > 0 ? " " : "") + $"{type.FoodUsed}食";
+
+            var reasons = new List<string>();
+            if (!buyerNearby) reasons.Add($"需要己方单位在 {range:0} 范围内");
+            if (stock <= 0) reasons.Add(unlimited ? "没货" : $"没货（{type.StockRegen:0}s 补一件）");
+            if (!afford) reasons.Add($"资源不足（{type.GoldCost}金 {type.LumberCost}木）");
+            if (!food) reasons.Add("人口已满");
+            if (!heroRoom) reasons.Add(HeroBlockReason(slot, type));
+            if (!requiresOk) reasons.Add($"缺少前置：{DescribeMissingPurchaseRequirement(slot, requires)}");
+
+            string stockText = unlimited ? "不限量" : $"{stock}/{max}";
+            Unit target = building;
+            string id = unitId;
+            commands.Add(new CommandEntry
+            {
+                Id = id,
+                Name = $"买 {type.Name}",
+                Cost = cost,
+                Tooltip = $"{type.Name}（库存 {stockText}）\n"
+                    + (string.IsNullOrWhiteSpace(type.Tip) ? "" : type.Tip + "\n")
+                    + (reasons.Count == 0 ? "点击买下，出现在建筑旁" : string.Join("\n", reasons)),
+                Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
+                Enabled = enabled,
+                Action = () => BuyUnitFromShop(target, slot.Id, id),
             });
         }
     }

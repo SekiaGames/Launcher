@@ -75,6 +75,7 @@ public sealed partial class Unit
     public float ShopAge;
 
     public bool IsShop => Type != null && Type.IsShop;
+    public bool HasStock => Type != null && Type.HasStock;
 
     /// <summary>店里最短的补货周期（只用于显示与探针；实际按每件商品自己的节奏走）。</summary>
     public float RestockInterval
@@ -93,11 +94,125 @@ public sealed partial class Unit
         }
     }
 
+    // —— 单位库存（UnitFunc.Sellunits）：酒馆卖英雄、雇佣兵营地/地精实验室卖兵。 ——
+    //    口径同客户端 AddConfiguredStock/StepStocks/ConsumeStock：
+    //    开局按 stockStart 决定有没有货；stockRegen=0 表示不限量（酒馆英雄买不完）。
+
+    public readonly Dictionary<string, int> UnitStock = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>每件单位离下次进货还剩的秒数（开局这段就是 stockStart）。</summary>
+    public readonly Dictionary<string, float> UnitStockTimers = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool SellsUnits => Type != null && Type.SellUnits.Length > 0;
+
+    public int UnitStockOf(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return 0;
+        return UnitStock.TryGetValue(id, out int count) ? count : 0;
+    }
+
+    public int UnitStockMaxOf(string id)
+    {
+        UnitType type = UnitCatalog.Get(id);
+        return type != null ? Mathf.Max(1, type.StockMax) : 0;
+    }
+
+    /// <summary>开店：stockStart<=0 直接满仓，否则先空着等 stockStart 秒。</summary>
+    public void InitUnitStock()
+    {
+        UnitStock.Clear();
+        UnitStockTimers.Clear();
+        if (!SellsUnits) return;
+
+        foreach (string id in Type.SellUnits)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) continue;
+
+            int max = Mathf.Max(1, type.StockMax);
+            if (type.StockStart <= 0f)
+            {
+                UnitStock[id] = max;
+                UnitStockTimers[id] = 0f;
+                continue;
+            }
+            UnitStock[id] = 0;
+            UnitStockTimers[id] = type.StockStart;
+        }
+    }
+
+    /// <summary>买走一个；没货返回 false。stockRegen=0 的建筑不扣库存（酒馆英雄随时可买）。</summary>
+    public bool TakeUnitStock(string id)
+    {
+        int count = UnitStockOf(id);
+        if (count <= 0) return false;
+
+        UnitType type = UnitCatalog.Get(id);
+        if (type == null) return false;
+        if (type.StockRegen <= 0f) return true;
+
+        UnitStock[id] = count - 1;
+        if (!UnitStockTimers.ContainsKey(id) || UnitStockTimers[id] <= 0f)
+        {
+            UnitStockTimers[id] = Mathf.Max(1f, type.StockRegen);
+        }
+        return true;
+    }
+
+    /// <summary>推进进货：到点补一件；stockRegen=0 的建筑到点直接补满。返回这次补上的件数。</summary>
+    public int TickUnitStock(float delta)
+    {
+        if (!SellsUnits || delta <= 0f) return 0;
+
+        int restocked = 0;
+        foreach (string id in Type.SellUnits)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) continue;
+
+            int max = Mathf.Max(1, type.StockMax);
+            int current = UnitStockOf(id);
+            if (current >= max)
+            {
+                UnitStockTimers[id] = 0f;
+                continue;
+            }
+
+            float timer = (UnitStockTimers.TryGetValue(id, out float value) ? value : 0f) - delta;
+            if (timer > 0f)
+            {
+                UnitStockTimers[id] = timer;
+                continue;
+            }
+
+            if (type.StockRegen <= 0f)
+            {
+                restocked += max - current;
+                current = max;
+                timer = 0f;
+            }
+            else
+            {
+                float regen = Mathf.Max(1f, type.StockRegen);
+                while (timer <= 0f && current < max)
+                {
+                    current++;
+                    restocked++;
+                    timer += regen;
+                }
+            }
+
+            UnitStock[id] = current;
+            UnitStockTimers[id] = current >= max ? 0f : timer;
+        }
+        return restocked;
+    }
+
     public void InitShopStock()
     {
         ShopStock.Clear();
         ShopRestockTimers.Clear();
         ShopAge = 0f;
+        InitUnitStock();
         if (!IsShop) return;
 
         foreach (string id in Type.SellItems)
@@ -144,10 +259,10 @@ public sealed partial class Unit
     /// </summary>
     public int TickShop(float delta)
     {
-        if (!IsShop) return 0;
+        if (!HasStock) return 0;
 
         ShopAge += delta;
-        int restocked = 0;
+        int restocked = TickUnitStock(delta);
 
         foreach (string id in Type.SellItems)
         {

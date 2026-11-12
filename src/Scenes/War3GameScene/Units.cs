@@ -386,7 +386,7 @@ public sealed partial class War3GameScene
         // 自带技能（abilList）直接 1 级；英雄技能（heroAbilList）从 0 级开始等加点
         foreach (string abilityId in type.Abilities) unit.GiveAbility(abilityId, 1);
         foreach (string abilityId in type.HeroAbilList) unit.GiveAbility(abilityId, 0);
-        if (type.IsShop) unit.InitShopStock();
+        if (type.HasStock) unit.InitShopStock();
 
         view.Play("Stand");
         view.SetHp(1f, true);

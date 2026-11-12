@@ -16,6 +16,10 @@ public sealed class UnitFuncRow
     public string[] Requires = Array.Empty<string>();
     /// <summary>UnitFunc 的 Sellitems：商店卖的物品 id 列表（地精商店 ngme 就是 phea,pman,pinv,…）。</summary>
     public string[] SellItems = Array.Empty<string>();
+    /// <summary>UnitFunc 的 Sellunits：中立建筑卖的兵（酒馆 ntav = Nalc,Ntin,…；雇佣兵营地 nmer = nftb,nfsp,…）。</summary>
+    public string[] SellUnits = Array.Empty<string>();
+    /// <summary>只取 Requires 本体（不含 Requires1..12），买兵前置按它判，多档要求是「或」不是「与」。</summary>
+    public string[] RequiresPrimary = Array.Empty<string>();
     public string MissileArt;
     public float MissileSpeed;
     public float MissileArc;
@@ -68,34 +72,40 @@ public static class TechTree
 {
     private const string TextRoot = "res://extract/Texts/";
 
+    // 客户端 War3ObjectData.Load 只读基础 Units\*UnitFunc.txt 这六族；
+    // Melee_V0 是 RoC 精简档（没有酒馆 ntav、四族商店与 TFT 单位），不能当技术树数据源。
     private static readonly string[] FuncTables =
     {
-        "MeleeV0UnitsHumanUnitFunc", "MeleeV0UnitsOrcUnitFunc", "MeleeV0UnitsUndeadUnitFunc",
-        "MeleeV0UnitsNightElfUnitFunc", "MeleeV0UnitsNeutralUnitFunc", "MeleeV0UnitsCampaignUnitFunc",
+        "UnitsHumanUnitFunc", "UnitsOrcUnitFunc", "UnitsUndeadUnitFunc",
+        "UnitsNightElfUnitFunc", "UnitsNeutralUnitFunc", "UnitsCampaignUnitFunc",
     };
 
     private static readonly string[] StringTables =
     {
-        "MeleeV0UnitsHumanUnitStrings", "MeleeV0UnitsOrcUnitStrings", "MeleeV0UnitsUndeadUnitStrings",
-        "MeleeV0UnitsNightElfUnitStrings", "MeleeV0UnitsNeutralUnitStrings", "MeleeV0UnitsCampaignUnitStrings",
+        "UnitsHumanUnitStrings", "UnitsOrcUnitStrings", "UnitsUndeadUnitStrings",
+        "UnitsNightElfUnitStrings", "UnitsNeutralUnitStrings", "UnitsCampaignUnitStrings",
     };
 
     private static readonly string[] UpgradeStringTables =
     {
-        "MeleeV0UnitsHumanUpgradeStrings", "MeleeV0UnitsOrcUpgradeStrings", "MeleeV0UnitsUndeadUpgradeStrings",
-        "MeleeV0UnitsNightElfUpgradeStrings", "MeleeV0UnitsNeutralUpgradeStrings", "MeleeV0UnitsCampaignUpgradeStrings",
+        "UnitsHumanUpgradeStrings", "UnitsOrcUpgradeStrings", "UnitsUndeadUpgradeStrings",
+        "UnitsNightElfUpgradeStrings", "UnitsNeutralUpgradeStrings", "UnitsCampaignUpgradeStrings",
     };
 
     private static readonly string[] UpgradeFuncTables =
     {
-        "MeleeV0UnitsHumanUpgradeFunc", "MeleeV0UnitsOrcUpgradeFunc", "MeleeV0UnitsUndeadUpgradeFunc",
-        "MeleeV0UnitsNightElfUpgradeFunc", "MeleeV0UnitsNeutralUpgradeFunc", "MeleeV0UnitsCampaignUpgradeFunc",
+        "UnitsHumanUpgradeFunc", "UnitsOrcUpgradeFunc", "UnitsUndeadUpgradeFunc",
+        "UnitsNightElfUpgradeFunc", "UnitsNeutralUpgradeFunc", "UnitsCampaignUpgradeFunc",
     };
+
+    /// <summary>ItemFunc.txt 里的依赖别名段（TALT=任一祭坛、TWN2=二级主基…）。</summary>
+    private const string ItemFuncTable = "UnitsItemFunc";
 
     private static Dictionary<string, Dictionary<string, string>> _unitFields;
     private static Dictionary<string, Dictionary<string, string>> _unitText;
     private static Dictionary<string, Dictionary<string, string>> _upgradeText;
     private static Dictionary<string, Dictionary<string, string>> _upgradeFields;
+    private static Dictionary<string, Dictionary<string, string>> _itemFields;
     private static readonly Dictionary<string, UnitFuncRow> Rows = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, UpgradeType> Upgrades = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, Texture2D> IconCache = new(StringComparer.OrdinalIgnoreCase);
@@ -110,9 +120,21 @@ public static class TechTree
         _unitText = LoadTables(StringTables);
         _upgradeText = LoadTables(UpgradeStringTables);
         _upgradeFields = LoadTables(UpgradeFuncTables);
+        _itemFields = LoadTables(new[] { ItemFuncTable });
         LoadUpgradeData();
 
-        GD.Print($"[TECH] 单位功能 {_unitFields.Count} 条，本单位中文名 {_unitText.Count} 条，科技 {Upgrades.Count} 项");
+        GD.Print($"[TECH] 单位功能 {_unitFields.Count} 条，本单位中文名 {_unitText.Count} 条，"
+            + $"依赖别名 {CountDependencyGroups()} 项，科技 {Upgrades.Count} 项");
+    }
+
+    private static int CountDependencyGroups()
+    {
+        int count = 0;
+        foreach (Dictionary<string, string> row in _itemFields.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(Get(row, "DependencyOr"))) count++;
+        }
+        return count;
     }
 
     private static Dictionary<string, Dictionary<string, string>> LoadTables(string[] tables)
@@ -236,7 +258,9 @@ public static class TechTree
             Researches = SplitList(Get(fields, "Researches")),
             UpgradeTo = SplitList(Get(fields, "Upgrade")),
             Requires = SplitList(Get(fields, "Requires"), fields, "Requires"),
+            RequiresPrimary = SplitList(Get(fields, "Requires")),
             SellItems = SplitList(Get(fields, "Sellitems")),
+            SellUnits = SplitList(Get(fields, "Sellunits")),
             MissileArt = Get(fields, "Missileart"),
             MissileSpeed = Number(Get(fields, "Missilespeed"), 0f),
             MissileArc = Number(Get(fields, "Missilearc"), 0f),
@@ -275,6 +299,18 @@ public static class TechTree
         EnsureLoaded();
         if (_unitFields == null || !_unitFields.TryGetValue(id, out Dictionary<string, string> fields)) return "";
         return Get(fields, "Requires");
+    }
+
+    /// <summary>
+    /// 依赖别名的或列表：ItemFunc.txt 里 TALT = halt,oalt,eate,uaod（任一祭坛），
+    /// TWN2/TWN3 = 二/三级主基。买中立英雄的 Requires 用的是这些别名，不是建筑 id。
+    /// </summary>
+    public static string[] DependencyOr(string id)
+    {
+        EnsureLoaded();
+        if (string.IsNullOrEmpty(id) || _itemFields == null) return Array.Empty<string>();
+        if (!_itemFields.TryGetValue(id, out Dictionary<string, string> fields)) return Array.Empty<string>();
+        return SplitList(Get(fields, "DependencyOr"));
     }
 
     public static UpgradeType Upgrade(string id)

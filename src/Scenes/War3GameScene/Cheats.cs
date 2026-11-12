@@ -455,6 +455,126 @@ public sealed partial class War3GameScene
         GD.Print($"[CARD] 物品 {carried}/{Unit.InventorySize} 格，命令卡格位 0..4 是移动/停止/据守/攻击/巡逻");
     }
 
+    /// <summary>
+    /// --hire-probe：中立建筑买兵。在自家基地旁摆一座酒馆与一个买家，
+    /// 打印卖兵清单与命令卡，等过 stockStart 后买一个中立英雄，再摆雇佣兵营地买一个巨魔。
+    /// </summary>
+    public void RunHireProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        if (hall == null)
+        {
+            GD.Print("[HIRE] 找不到主基地，跳过");
+            return;
+        }
+
+        PlayerSlot slot = Slot(ViewPlayer);
+        slot.Gold = 3000;
+        slot.Lumber = 800;
+        RefreshHud();
+
+        if (!HasBuilding(slot, "halt"))
+        {
+            Unit altar = Spawn("halt", ViewPlayer, hall.Position.X + 240f, hall.Position.Z - 200f, 0f, 0f, 1f);
+            if (altar != null) _world.Units.Add(altar);
+        }
+
+        Unit tavern = Spawn("ntav", ViewPlayer, hall.Position.X + 520f, hall.Position.Z + 200f, 0f, 0f, 1f);
+        if (tavern == null)
+        {
+            GD.Print("[HIRE] 酒馆模型缺失");
+            return;
+        }
+        _world.Units.Add(tavern);
+
+        Unit buyer = Spawn("hfoo", ViewPlayer, tavern.Position.X + 96f, tavern.Position.Z, 0f, 0f, 1f);
+        if (buyer != null) _world.Units.Add(buyer);
+
+        GD.Print($"[HIRE] 酒馆({tavern.Type.Name}) 卖 {tavern.Type.SellUnits.Length} 种：{DescribeSellUnits(tavern)}");
+        GD.Print($"[HIRE] 购买半径 {ShopPurchaseRange(tavern):0}，初始库存 {DescribeUnitStock(tavern)}");
+
+        var commands = new List<CommandEntry>();
+        AddSellUnitCommands(commands, slot, tavern);
+        var parts = new List<string>();
+        foreach (CommandEntry entry in commands) parts.Add($"{entry.Name}／{entry.Cost}／{(entry.Enabled ? "可买" : "禁用")}");
+        GD.Print($"[HIRE] 命令卡 {commands.Count} 格：{string.Join(" | ", parts)}");
+
+        bool early = BuyUnitFromShop(tavern, ViewPlayer, "Nalc");
+        GD.Print($"[HIRE] 未到 stockStart 直接买 Nalc：{(early ? "成功（不对）" : "失败（正确）")}");
+
+        AdvanceShopSeconds(150f);
+        GD.Print($"[HIRE] 过 150s 库存 {DescribeUnitStock(tavern)}");
+        int goldBefore = slot.Gold;
+        bool bought = BuyUnitFromShop(tavern, ViewPlayer, "Nalc");
+        GD.Print($"[HIRE] 买 Nalc：{(bought ? "成功" : "失败")}  金币 {goldBefore}→{slot.Gold}"
+            + $"  英雄 {HeroCount(ViewPlayer)}  剩余货 {tavern.UnitStockOf("Nalc")}");
+
+        bool duplicate = BuyUnitFromShop(tavern, ViewPlayer, "Nalc");
+        GD.Print($"[HIRE] 再买同名英雄：{(duplicate ? "成功（不对）" : "失败（正确，同名上限 1）")}");
+
+        Unit camp = Spawn("nmer", ViewPlayer, hall.Position.X - 520f, hall.Position.Z + 200f, 0f, 0f, 1f);
+        if (camp == null)
+        {
+            GD.Print("[HIRE] 雇佣兵营地模型缺失");
+            return;
+        }
+        _world.Units.Add(camp);
+        Unit campBuyer = Spawn("hfoo", ViewPlayer, camp.Position.X + 96f, camp.Position.Z, 0f, 0f, 1f);
+        if (campBuyer != null) _world.Units.Add(campBuyer);
+
+        GD.Print($"[HIRE] 雇佣兵营地({camp.Type.Name}) 卖 {camp.Type.SellUnits.Length} 种：{DescribeSellUnits(camp)}");
+
+        // 佣兵占人口，先把供给补上（不然一定是「人口不足」而不是链路问题）
+        for (int index = 0; index < 2; index++)
+        {
+            Unit farm = Spawn("hhou", ViewPlayer,
+                hall.Position.X - 360f + index * 200f, hall.Position.Z - 260f, 0f, 0f, 1f);
+            if (farm != null) _world.Units.Add(farm);
+        }
+        GD.Print($"[HIRE] 补两座农场后人口 {FoodUsed(ViewPlayer)}/{FoodCap(ViewPlayer)}");
+
+        AdvanceShopSeconds(240f);
+        GD.Print($"[HIRE] 过 240s 库存 {DescribeUnitStock(camp)}");
+        bool merc = BuyUnitFromShop(camp, ViewPlayer, "nftb");
+        GD.Print($"[HIRE] 买森林巨魔：{(merc ? "成功" : "失败")}  金币 {slot.Gold}  剩余货 {camp.UnitStockOf("nftb")}");
+
+        UpdateCommandCard();
+    }
+
+    private string DescribeSellUnits(Unit shop)
+    {
+        var parts = new List<string>();
+        foreach (string id in shop.Type.SellUnits)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null)
+            {
+                parts.Add($"{id}(缺数据)");
+                continue;
+            }
+            parts.Add($"{type.Name}({id}) {type.GoldCost}金/{type.LumberCost}木/{type.FoodUsed}食");
+        }
+        return string.Join("、", parts);
+    }
+
+    private string DescribeUnitStock(Unit shop)
+    {
+        var parts = new List<string>();
+        foreach (string id in shop.Type.SellUnits)
+        {
+            UnitType type = UnitCatalog.Get(id);
+            if (type == null) continue;
+            parts.Add($"{id} {shop.UnitStockOf(id)}/{shop.UnitStockMaxOf(id)}");
+        }
+        return string.Join("、", parts);
+    }
+
+    private void AdvanceShopSeconds(float seconds)
+    {
+        int steps = Mathf.CeilToInt(seconds / World.Tick);
+        for (int step = 0; step < steps; step++) _world.TickShops();
+    }
+
     public void SpawnDebugItems(IReadOnlyList<string> ids)
     {
         Unit hall = FindHall(ViewPlayer);

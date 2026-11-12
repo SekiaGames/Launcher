@@ -182,7 +182,7 @@ public sealed partial class World
     {
         foreach (Unit shop in Units)
         {
-            if (!shop.Alive || !shop.IsShop) continue;
+            if (!shop.Alive || !shop.HasStock) continue;
             int restocked = shop.TickShop(Tick);
             if (restocked > 0 && _shopStockLogBudget > 0)
             {

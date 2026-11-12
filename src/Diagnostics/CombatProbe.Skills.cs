@@ -516,20 +516,33 @@ public static partial class CombatProbe
         world.Units.Add(shop);
         world.Units.Add(hero);
 
-        int max = shop.StockMaxOf("phea");
-        Verify("药水满仓 3", 3f, max, 0f);
-        Verify("开局库存等于上限", max, shop.StockOf("phea"), 0f);
+        // 商品按店铺自己的 Sellitems 取（TFT 的地精商店卖 stwp/dust 这批，不卖药水）
+        string goodsId = null;
+        ItemType goodsType = null;
+        foreach (string id in shopType.SellItems)
+        {
+            ItemType candidate = ItemCatalog.Get(id);
+            if (candidate == null || candidate.StockMax <= 0) continue;
+            goodsId = id;
+            goodsType = candidate;
+            break;
+        }
+        if (goodsId == null) return;
 
-        for (int index = 0; index < max; index++) shop.TakeStock("phea");
-        Verify("买空后为 0", 0f, shop.StockOf("phea"), 0f);
-        Verify("没货买不了", 0f, shop.TakeStock("phea") ? 1f : 0f, 0f);
+        int max = shop.StockMaxOf(goodsId);
+        Verify("货架满仓等于 stockMax", Mathf.Max(1, goodsType.StockMax), max, 0f);
+        Verify("开局库存等于上限", max, shop.StockOf(goodsId), 0f);
+
+        for (int index = 0; index < max; index++) shop.TakeStock(goodsId);
+        Verify("买空后为 0", 0f, shop.StockOf(goodsId), 0f);
+        Verify("没货买不了", 0f, shop.TakeStock(goodsId) ? 1f : 0f, 0f);
 
         // 补货要等 stockStart（开店初始延迟）过了才开始按 stockRegen 计时
-        ItemType potionType = ItemCatalog.Get("phea");
+        ItemType potionType = goodsType;
         float need = (potionType != null ? potionType.StockStart + potionType.StockRegen : shop.RestockInterval) + 5f;
         int steps = (int)(need / World.Tick) + 4;
         for (int index = 0; index < steps; index++) world.TickShops();
-        Verify("过了 stockStart + 补货周期后补回 1", 1f, shop.StockOf("phea"), 0f);
+        Verify("过了 stockStart + 补货周期后补回 1", 1f, shop.StockOf(goodsId), 0f);
         Verify("补货时刻已越过 stockStart", 1f,
             shop.ShopAge >= (potionType?.StockStart ?? 0f) ? 1f : 0f, 0f);
 

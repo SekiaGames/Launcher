@@ -490,6 +490,75 @@ public sealed partial class War3GameScene
     private int _shopLogBudget = 8;
 
     /// <summary>
+    /// 中立建筑买兵：己方单位站在酒馆/雇佣兵营地/地精实验室的购买范围内时，
+    /// 挑一个买得起、有货、人口与前置都满足的买下；贵的优先（战力口径同换兵）。
+    /// 客户端也是「有单位在店里才能买」，AI 不额外跑腿，只看路过时能不能顺手补一个。
+    /// </summary>
+    private void TickAiHiring(PlayerSlot slot)
+    {
+        foreach (Unit own in _allUnits)
+        {
+            if (own == null || !own.Alive || own.Player != slot.Id || own.IsBuilding) continue;
+
+            foreach (Unit shop in _allUnits)
+            {
+                if (shop == null || !shop.Alive || !shop.Type.SellsUnits) continue;
+                if (own.DistanceTo(shop) > ShopPurchaseRange(shop)) continue;
+
+                string pick = PickHire(slot, shop);
+                if (pick == null) continue;
+                if (!BuyUnitFromShop(shop, slot.Id, pick)) continue;
+
+                if (_hireLogBudget > 0)
+                {
+                    _hireLogBudget--;
+                    GD.Print($"[AI] P{slot.Id} 在 {shop.Type.Name} 买了 {UnitCatalog.Get(pick)?.Name}");
+                }
+                return;
+            }
+        }
+    }
+
+    private int _hireLogBudget = 8;
+
+    private string PickHire(PlayerSlot slot, Unit shop)
+    {
+        string pick = null;
+        int pickCost = -1;
+
+        foreach (string unitId in shop.Type.SellUnits)
+        {
+            UnitType type = UnitCatalog.Get(unitId);
+            if (type == null) continue;
+            if (shop.UnitStockOf(unitId) <= 0) continue;
+            if (type.GoldCost + 100 > slot.Gold || type.LumberCost > slot.Lumber) continue;
+            if (type.FoodUsed > 0 && FoodUsed(slot.Id) + type.FoodUsed > FoodCap(slot.Id)) continue;
+            if (type.IsHero && HeroSlotBlocked(slot, type)) continue;
+
+            string[] requires = TechTree.Row(unitId)?.RequiresPrimary ?? Array.Empty<string>();
+            if (!PurchaseRequirementsMet(slot, requires)) continue;
+            if (CountUnitsOfType(slot.Id, unitId) >= 3) continue;
+            if (type.GoldCost <= pickCost) continue;
+
+            pickCost = type.GoldCost;
+            pick = unitId;
+        }
+        return pick;
+    }
+
+    private int CountUnitsOfType(int player, string id)
+    {
+        int count = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != player) continue;
+            if (!string.Equals(unit.Type?.Id, id, StringComparison.OrdinalIgnoreCase)) continue;
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>
     /// AI 英雄喝药：血低于 60% 喝回血、蓝低于 40% 喝回蓝，只动「点了即用」的药水，
     /// 目标型物品不进这里（AI 不选目标）。
     /// </summary>
@@ -707,6 +776,13 @@ public sealed partial class War3GameScene
         {
             slot.ItemTimer = 0f;
             TickAiItems(slot);
+        }
+
+        slot.HireTimer += 0.3f;
+        if (slot.HireTimer >= 8f)
+        {
+            slot.HireTimer = 0f;
+            TickAiHiring(slot);
         }
 
         slot.FormationTimer += 0.3f;

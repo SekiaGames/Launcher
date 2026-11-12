@@ -126,7 +126,18 @@ public sealed class UnitType
 
     /// <summary>商店卖的东西（没有就是空）。</summary>
     public string[] SellItems = Array.Empty<string>();
+    /// <summary>中立建筑卖的兵（酒馆/雇佣兵营地/地精实验室）。</summary>
+    public string[] SellUnits = Array.Empty<string>();
+    /// <summary>卖物品的商店（能买卖、能回收物品）。酒馆只卖兵，不算。</summary>
     public bool IsShop => SellItems.Length > 0;
+    public bool SellsUnits => SellUnits.Length > 0;
+    /// <summary>有货架就要跑库存（物品或单位任一）。</summary>
+    public bool HasStock => IsShop || SellsUnits;
+
+    /// <summary>UnitBalance 的 stockMax / stockRegen / stockStart：出售时的库存上限、补一件的秒数、开局延迟。</summary>
+    public int StockMax;
+    public float StockRegen;
+    public float StockStart;
 
     public bool IsWorkerType => Builds.Length > 0;
     public bool CanGatherGold => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Aaha");
@@ -259,6 +270,9 @@ public static class UnitCatalog
             type.BuildSeconds = Number(balance.Get(balanceRow, "bldtm"), 30f);
             type.FoodUsed = Mathf.Max(0, balance.GetInt(balanceRow, "fused"));
             type.FoodMade = Mathf.Max(0, balance.GetInt(balanceRow, "fmade"));
+            type.StockMax = Mathf.Max(0, balance.GetInt(balanceRow, "stockMax"));
+            type.StockRegen = Number(balance.Get(balanceRow, "stockRegen"), 0f);
+            type.StockStart = Number(balance.Get(balanceRow, "stockStart"), 0f);
             type.UpgradesApplied = SplitList(balance.Get(balanceRow, "upgrades"));
             string comment = balance.Get(balanceRow, "comment(s)");
             if (!string.IsNullOrWhiteSpace(comment)) type.Name = comment.Trim();
@@ -300,6 +314,7 @@ public static class UnitCatalog
             type.UpgradeTo = row.UpgradeTo;
             type.Requires = row.Requires;
             type.SellItems = row.SellItems;
+            type.SellUnits = row.SellUnits;
             string missileScene = PathResolve.ModelScene(row.MissileArt);
             type.Weapon.MissileScene = missileScene;
             type.Weapon.MissileArc = row.MissileArc;

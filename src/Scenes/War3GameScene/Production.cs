@@ -486,6 +486,234 @@ public sealed partial class War3GameScene
         return true;
     }
 
+    /// <summary>
+    /// 中立建筑买单位：酒馆卖英雄、雇佣兵营地/地精实验室/船坞/龙巢卖兵。
+    /// 客户端口径（JassGameNatives.StockAndShops.PurchaseStock 的 unit 分支）：
+    /// 必须有一个己方单位在购买半径内、按 Requires 判前置、占人口、英雄有名额，落在建筑旁的空地。
+    /// </summary>
+    public bool BuyUnitFromShop(Unit shop, int buyerPlayer, string unitId)
+    {
+        if (shop?.Type == null || _world == null) return false;
+
+        PlayerSlot slot = Slot(buyerPlayer);
+        if (slot == null) return false;
+
+        UnitType type = UnitCatalog.Get(unitId);
+        if (type == null) return false;
+
+        float range = ShopPurchaseRange(shop);
+        if (NearestShopBuyer(shop, buyerPlayer, range) == null)
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId, $"没有己方单位在 {range:0} 范围内");
+        }
+
+        if (shop.UnitStockOf(unitId) <= 0)
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId, "没货");
+        }
+
+        if (type.IsHero && HeroSlotBlocked(slot, type))
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId, HeroBlockReason(slot, type));
+        }
+
+        if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId,
+                $"资源不足（需要 {type.GoldCost}金/{type.LumberCost}木，当前 {slot.Gold}/{slot.Lumber}）");
+        }
+
+        if (FoodUsed(slot.Id) + type.FoodUsed > FoodCap(slot.Id))
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId,
+                $"人口不足（需要 {type.FoodUsed}，当前 {FoodUsed(slot.Id)}/{FoodCap(slot.Id)}）");
+        }
+
+        string[] requires = TechTree.Row(unitId)?.RequiresPrimary ?? Array.Empty<string>();
+        if (!PurchaseRequirementsMet(slot, requires))
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId,
+                $"缺少前置：{DescribeMissingPurchaseRequirement(slot, requires)}");
+        }
+
+        if (!TryFindPurchaseSpot(shop, type, out Vector3 spot))
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId, "建筑旁没有空地");
+        }
+
+        Unit unit = Spawn(unitId, slot.Id, spot.X, spot.Z, shop.Facing, 0f, 1f);
+        if (unit == null)
+        {
+            return RejectUnitPurchase(shop, buyerPlayer, unitId, $"{type.Name} 模型缺失");
+        }
+
+        _world.Units.Add(unit);
+        slot.Gold -= type.GoldCost;
+        slot.Lumber -= type.LumberCost;
+        shop.TakeUnitStock(unitId);
+
+        PlayVoice(unit, "Ready", null);
+        GD.Print($"[SHOP] P{slot.Id} 在 {shop.Type.Name} 买了 {type.Name}"
+            + $"（-{type.GoldCost}金/-{type.LumberCost}木，剩货 {shop.UnitStockOf(unitId)}）");
+        RefreshHud();
+        UpdateCommandCard();
+        return true;
+    }
+
+    /// <summary>买兵失败的唯一出口：提示 + 日志带上具体原因，便于对着跑测输出定位。</summary>
+    private bool RejectUnitPurchase(Unit shop, int player, string unitId, string reason)
+    {
+        PlayErrorSound();
+        _hud?.SetHint($"{shop?.Type?.Name} 买不了 {unitId}：{reason}");
+        GD.Print($"[SHOP] P{player} 在 {shop?.Type?.Name} 买 {unitId} 失败：{reason}");
+        return false;
+    }
+
+    /// <summary>购买半径：物编 Aneu/Aall 的 DataA1（商店 450，全员共享 600）；没有这个技能退 600。</summary>
+    private static float ShopPurchaseRange(Unit shop)
+    {
+        if (shop?.Abilities != null)
+        {
+            foreach (Ability ability in shop.Abilities)
+            {
+                string code = ability.Type?.Code;
+                if (string.IsNullOrEmpty(code)) continue;
+                if (!code.Equals("Aneu", StringComparison.OrdinalIgnoreCase)
+                    && !code.Equals("Aall", StringComparison.OrdinalIgnoreCase)) continue;
+
+                float range = ability.Type.DataAt(1, 'A');
+                return range > 0f ? range : ShopPurchaseFallbackRange;
+            }
+        }
+        return ShopPurchaseFallbackRange;
+    }
+
+    private const float ShopPurchaseFallbackRange = 600f;
+
+    /// <summary>店里有没有己方单位：客户端 FindUnitStockBuyer 只要求活着、同玩家、在半径内，建筑也算。</summary>
+    private Unit NearestShopBuyer(Unit shop, int player, float range)
+    {
+        Unit best = null;
+        float bestDistance = range;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || ReferenceEquals(unit, shop)) continue;
+            if (unit.Player != player) continue;
+            float distance = unit.DistanceTo(shop);
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            best = unit;
+        }
+        return best;
+    }
+
+    private int HeroCount(int player)
+    {
+        int count = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != player || !unit.IsHero) continue;
+            count++;
+        }
+        return count;
+    }
+
+    private int HeroTypeCount(int player, string heroId)
+    {
+        int count = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != player || !unit.IsHero) continue;
+            if (!string.Equals(unit.Type?.Id, heroId, StringComparison.OrdinalIgnoreCase)) continue;
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>Blizzard.j 两条英雄限制：总数 bj_MELEE_HERO_LIMIT=3，同名 bj_MELEE_HERO_TYPE_LIMIT=1。</summary>
+    private bool HeroSlotBlocked(PlayerSlot slot, UnitType type)
+    {
+        if (slot == null || type == null || !type.IsHero) return false;
+        if (HeroCount(slot.Id) >= MeleeRules.HeroLimit) return true;
+        return HeroTypeCount(slot.Id, type.Id) >= MeleeRules.HeroTypeLimit;
+    }
+
+    private string HeroBlockReason(PlayerSlot slot, UnitType type)
+    {
+        if (slot == null || type == null) return "";
+        if (HeroCount(slot.Id) >= MeleeRules.HeroLimit) return $"英雄已到上限 {MeleeRules.HeroLimit}";
+        return $"已经有 {type.Name} 了（同名英雄上限 {MeleeRules.HeroTypeLimit}）";
+    }
+
+    /// <summary>买兵前置：Requires 里的别名（TALT 任一祭坛、TWN2/TWN3 主基等级）按 ItemFunc.DependencyOr 展开成「或」。</summary>
+    private bool PurchaseRequirementsMet(PlayerSlot slot, string[] requires, int depth = 0)
+    {
+        if (requires == null || requires.Length == 0) return true;
+
+        foreach (string id in requires)
+        {
+            if (string.IsNullOrWhiteSpace(id)) continue;
+            if (HasBuilding(slot, id)) continue;
+            if (depth >= 4) return false;
+
+            string[] alternatives = TechTree.DependencyOr(id);
+            bool satisfied = false;
+            foreach (string alternative in alternatives)
+            {
+                if (!PurchaseRequirementsMet(slot, new[] { alternative }, depth + 1)) continue;
+                satisfied = true;
+                break;
+            }
+            if (satisfied) continue;
+            return false;
+        }
+        return true;
+    }
+
+    private string DescribeMissingPurchaseRequirement(PlayerSlot slot, string[] requires)
+    {
+        if (requires == null) return "";
+        foreach (string id in requires)
+        {
+            if (string.IsNullOrWhiteSpace(id) || HasBuilding(slot, id)) continue;
+            string[] alternatives = TechTree.DependencyOr(id);
+            if (alternatives.Length == 0)
+            {
+                UnitType type = UnitCatalog.Get(id);
+                return type != null ? type.Name : id;
+            }
+            var names = new List<string>();
+            foreach (string alternative in alternatives)
+            {
+                UnitType type = UnitCatalog.Get(alternative);
+                names.Add(type != null ? type.Name : alternative);
+            }
+            return string.Join(" 或 ", names);
+        }
+        return "";
+    }
+
+    /// <summary>落点：绕建筑找一圈能放下该单位碰撞体的空地（客户端 TryResolveSpawnPlacement 的近似）。</summary>
+    private bool TryFindPurchaseSpot(Unit shop, UnitType type, out Vector3 spot)
+    {
+        float radius = shop.Radius + Mathf.Max(24f, type.CollisionRadius) + 32f;
+        int steps = 16;
+        for (int step = 0; step < steps; step++)
+        {
+            float angle = Mathf.Tau * step / steps;
+            var candidate = new Vector3(
+                shop.Position.X + Mathf.Cos(angle) * radius,
+                0f,
+                shop.Position.Z + Mathf.Sin(angle) * radius);
+            candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
+            if (_pathGrid != null && !_pathGrid.IsAreaFree(candidate, Mathf.Max(16f, type.CollisionRadius))) continue;
+            spot = candidate;
+            return true;
+        }
+        spot = Vector3.Zero;
+        return false;
+    }
+
     private void SpawnTrainedUnit(BuildingOrder order)
     {
         float angle = _allUnits.Count * 0.9f;

@@ -236,10 +236,17 @@ public sealed class W3iInfo
         {
             SkipAvailability(reader);
             SkipAvailability(reader);
+            // RoC 老图的 w3i 到「升级/科技可用性」两段就结束，后面没有随机单位表与随机物品表
+            if (reader.Remaining < 4) return;
             SkipRandomTables(reader);
+            if (reader.Remaining < 4) return;
             ReadRandomItemTables(reader, info);
         }
         catch (InvalidDataException)
+        {
+            info.ItemTables.Clear();
+        }
+        catch (EndOfStreamException)
         {
             info.ItemTables.Clear();
         }
