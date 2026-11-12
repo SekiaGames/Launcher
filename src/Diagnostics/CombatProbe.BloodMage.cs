@@ -236,8 +236,18 @@ public static partial class CombatProbe
         world.PrepareArrowMissile(priestess, footman);
         float plain = world.ApplyAttackModifiers(priestess, footman, 50f);
         Verify("没蓝时只是普通一箭", 50f, plain, 0.01f);
+
+        arrows.AutoCastEnabled = false;
+        priestess.Mana = 100f;
+        string offArt = world.PrepareArrowMissile(priestess, footman);
+        float offDamage = world.ApplyAttackModifiers(priestess, footman, 50f);
+        Verify("关掉自动施法不扣蓝", 100f, priestess.Mana, 0.01f);
+        Verify("关掉自动施法不附加伤害", 50f, offDamage, 0.01f);
+        Verify("关掉自动施法不换箭模型", 1f, offArt == null ? 1f : 0f, 0f);
+        arrows.AutoCastEnabled = true;
+        Verify("灼热之箭支持开关", 1f, arrows.SupportsAutoCast ? 1f : 0f, 0f);
         GD.Print($"[自检] 灼热之箭 +{arrowType.DataAt(1, 'A'):0} 伤害 / 每箭 {arrowType.CostAt(1):0} 蓝，"
-            + $"蓝不够时 {plain:0} 伤害");
+            + $"蓝不够时 {plain:0} 伤害，开关可关");
     }
 
     private static void CheckFrostArmorAutocast()

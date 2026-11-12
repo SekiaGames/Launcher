@@ -209,6 +209,8 @@ public abstract class Ability
 
     public bool AutoCastEnabled = true;
 
+    public virtual bool AutoCastToggle => false;
+
     private bool? _supportsAutoCast;
 
     public bool SupportsAutoCast
@@ -217,7 +219,8 @@ public abstract class Ability
         {
             if (_supportsAutoCast.HasValue) return _supportsAutoCast.Value;
             bool overridden = GetType().GetMethod(nameof(TryAutoCast))?.DeclaringType != typeof(Ability);
-            _supportsAutoCast = overridden && !IsPassive && !IsAura;
+            bool toggle = AutoCastToggle;
+            _supportsAutoCast = (overridden || toggle) && (!IsPassive || toggle) && !IsAura;
             return _supportsAutoCast.Value;
         }
     }

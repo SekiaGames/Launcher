@@ -231,6 +231,12 @@ public sealed partial class War3GameScene
                 continue;
             }
 
+            if (ability.IsPassive && ability.SupportsAutoCast)
+            {
+                AddArrowCommand(commands, hero, ability);
+                continue;
+            }
+
             // 已学的被动（重击/闪避/重生这类）：占一格但不给点
             if (ability.IsPassive)
             {
@@ -282,7 +288,12 @@ public sealed partial class War3GameScene
     {
         foreach (Ability ability in unit.Abilities)
         {
-            if (!ability.Learned || ability.IsPassive || ability.IsAura) continue;
+            if (!ability.Learned || ability.IsAura) continue;
+            if (ability.IsPassive)
+            {
+                if (ability.SupportsAutoCast) AddArrowCommand(commands, unit, ability);
+                continue;
+            }
 
             bool toggledOn = ability.IsToggle && ability.ToggledOn;
             bool autoOn = ability.SupportsAutoCast && ability.AutoCastEnabled && unit.AutoCast;
@@ -307,6 +318,22 @@ public sealed partial class War3GameScene
                 RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(unit, ability) : null,
             });
         }
+    }
+
+    private void AddArrowCommand(System.Collections.Generic.List<CommandEntry> commands, Unit owner, Ability ability)
+    {
+        commands.Add(new CommandEntry
+        {
+            Id = ability.Id,
+            Name = ability.Name,
+            Cost = ability.AutoCastEnabled ? "自动" : "关闭",
+            Hotkey = ability.Hotkey,
+            Tooltip = AbilityTooltip(ability, ability.Level) + "\n左键/右键：开/关自动施法",
+            Icon = TechTree.Icon(ability.IconArt),
+            Active = ability.AutoCastEnabled,
+            Action = () => ToggleAutoCast(owner, ability),
+            RightAction = () => ToggleAutoCast(owner, ability),
+        });
     }
 
     private static bool LevelRequirementMet(Unit hero, Ability ability)

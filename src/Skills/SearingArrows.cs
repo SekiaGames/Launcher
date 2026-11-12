@@ -9,12 +9,14 @@ namespace Launcher;
 public sealed class SearingArrows : Ability
 {
     public override bool IsPassive => true;
+    public override bool AutoCastToggle => true;
 
     public float BonusDamage => Data('A');
 
     public override string PrepareAttackMissile(World world, Unit target)
     {
         if (Owner == null || target == null || BonusDamage <= 0f) return null;
+        if (!AutoCastEnabled) return null;
         if (Owner.Mana < ManaCost) return null;
 
         Owner.Mana -= ManaCost;
