@@ -54,7 +54,9 @@ public static partial class CombatProbe
         float reference = 100000f - probe.Hp;
         float before = victim.Hp;
 
-        for (int tick = 0; tick < 65; tick++) world.TickChannels();
+        // 引导时长跟着物编 Cast 走（AHbz 是 1s/波），不能写死 tick 数。
+        int stormTicks = (int)(storm.ChannelLength / World.Tick) + 5;
+        for (int tick = 0; tick < stormTicks; tick++) world.TickChannels();
         float total = before - victim.Hp;
 
         float expected = reference * storm.Waves;

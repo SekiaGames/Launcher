@@ -162,10 +162,12 @@ public sealed partial class World
     public static float AttackCooldownOf(Unit unit, Weapon weapon = null)
     {
         float cooldown = (weapon ?? unit.Type.Weapon).Cooldown;
-        if (unit.IsHero) cooldown /= 1f + unit.Agility * HeroRules.AgiAttackSpeedBonus;
-        cooldown /= 1f + Mathf.Max(0f, unit.BonusAttackSpeedPct + unit.TechAttackSpeedPct);
-        cooldown /= 1f + Mathf.Max(0f, unit.AuraAttackSpeedPct);
-        if (unit.Slowed) cooldown /= Mathf.Max(0.1f, 1f - unit.SlowAttackPct);
+        // 客户端把敏捷折算进 AttackSpeedBonusPct（Hero.cs:206），最终单桶 factor = 1 + 全部加成，
+        // 再按 NativeAttackSpeedFactor 夹到 [0.2, 5]。原实现拆成三个桶连乘，多来源加速会被放大。
+        float bonus = unit.BonusAttackSpeedPct + unit.TechAttackSpeedPct + unit.AuraAttackSpeedPct;
+        if (unit.IsHero) bonus += unit.Agility * HeroRules.AgiAttackSpeedBonus;
+        if (unit.Slowed) bonus -= unit.SlowAttackPct;
+        cooldown /= Mathf.Clamp(1f + bonus, 0.2f, 5f);
         return Mathf.Max(0.15f, cooldown);
     }
 
