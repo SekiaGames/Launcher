@@ -98,6 +98,9 @@ public sealed partial class Unit
 
     public float ProjectileLaunchZ => Type?.ShadowHeight ?? 0f;
 
+    /// <summary>弹道落点高度偏移（客户端默认 60）。</summary>
+    public float? ProjectileImpactZ { get; set; }
+
     public float CollisionSize => Type == null ? 16f : (IsBuilding ? Type.FootprintRadius : Type.CollisionRadius);
 
     public Ability GetAbility(string id) => FindAbility(id);

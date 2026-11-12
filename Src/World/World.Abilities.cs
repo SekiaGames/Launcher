@@ -109,6 +109,11 @@ public sealed partial class World
 
     public bool AreEnemies(Unit a, Unit b) => a != null && b != null && !IsAllied(a.Player, b.Player);
 
+    public List<Unit> RentEnemiesInRange(Unit source, Vec2 center, float radius)
+        => EnemiesInRange(source, new Vector3(center.X, source?.Position.Y ?? 0f, center.Y), radius);
+
+    public void ReturnEnemiesInRange(List<Unit> list) { }
+
     public bool RollPercent(float percent)
     {
         if (percent <= 0f) return false;
