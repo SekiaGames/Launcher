@@ -12,6 +12,12 @@ public sealed partial class World
     /// <summary>客户端 World.Tick：单帧秒数（A 侧是编译期常量，这里给实例口径）。</summary>
     public float Tick => FrameSeconds;
 
+    public const float TickSeconds = FrameSeconds;
+
+    public object Terrain => null;
+
+    public System.Random ScriptRandom => _random;
+
     /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
     public bool IsNight;
     /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>

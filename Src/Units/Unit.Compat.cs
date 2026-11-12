@@ -39,6 +39,8 @@ public sealed partial class Unit
 
     public bool Hidden { get; set; }
 
+    public string TypeId => Type?.Id ?? "";
+
     public bool MagicImmune => State.MagicImmune;
 
     public bool Snared => State.Snared;

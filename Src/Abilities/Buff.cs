@@ -56,7 +56,7 @@ public class Buff : Ability
 
     public float RemainingSeconds => Remaining;
 
-    public virtual bool Permanent => false;
+    public virtual bool Permanent { get; set; }
 
     public virtual void RefreshExpiration()
     {

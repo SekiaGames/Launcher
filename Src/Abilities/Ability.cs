@@ -476,6 +476,24 @@ public abstract class Ability
 
     public virtual int IncomingDamagePriority => 1;
 
+    public virtual bool TriggersSphereOnCast => false;
+
+    public virtual bool RepeatsChannelAnimation => false;
+
+    public virtual bool EffectEventBeforePayment => true;
+
+    protected virtual float ObjectDataArtLifeSpan => 0f;
+
+    public virtual Unit ResolveCastApproachTarget(Unit target, Vec2 point) => target;
+
+    public virtual bool CheckCanUse(Unit target, Vec2 point, int orderId) => true;
+
+    public virtual void OnSetUnitType() { }
+
+    public virtual void ApplyIncomingDamage(ref DamageData data) { }
+
+    public virtual void OnOwnerActionStarted() { }
+
 
     public int CastOrderId;
 
