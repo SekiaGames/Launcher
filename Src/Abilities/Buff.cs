@@ -97,6 +97,15 @@ public class Buff : Ability
 
     public virtual bool Aura => false;
 
+    /// <summary>普通/英雄两套时长：英雄身上用英雄时长（物编 Dur 与 HeroDur）。</summary>
+    public virtual void ApplyDuration(float seconds, float heroSeconds)
+        => ApplyDuration(Owner != null && Owner.IsHero && heroSeconds > 0f ? heroSeconds : seconds);
+
+    public virtual void ApplyDuration(float seconds)
+    {
+        if (seconds > 0f) Duration = Mathf.Max(Duration, seconds);
+    }
+
     public virtual bool CanAutoDispelBy(Unit caster) => Magic && AutoDispel;
 
     public virtual bool TimedLife => false;

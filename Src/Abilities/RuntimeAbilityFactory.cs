@@ -416,7 +416,7 @@ public static class RuntimeAbilityFactory
         ["Ambd"] = () => new RuntimeManaBurnAbility(),          // 法力燃烧
         ["Anh1"] = () => new Heal(),              // 治疗
         ["ACcb"] = () => new FrostBolt(),         // 冰霜箭（伤害 + 减速）
-        ["ANms"] = () => new RuntimeManaShieldAbility(),        // 法力盾（海巫）
+        ["ANms"] = () => WithObjects<RuntimeManaShieldAbility>(),        // 法力盾（海巫）
         ["ANb2"] = () => new RuntimeBashAbility(),              // 重击（狂熊）
         ["ANtr"] = () => new DetectPassive(),     // 真实视域（战鹰）
         ["Andt"] = () => new RevealArea(),        // 中立反隐揭示
@@ -424,7 +424,7 @@ public static class RuntimeAbilityFactory
         ["Asd2"] = () => new RuntimeKaboomAbility(),
         ["Asd3"] = () => new RuntimeKaboomAbility(),
         ["AIgu"] = () => new RuntimeUltravisionAbility(),       // 超级视力神符
-        ["ACmf"] = () => new RuntimeManaShieldAbility(),        // 法力盾（扣蓝抵伤）
+        ["ACmf"] = () => WithObjects<RuntimeManaShieldAbility>(),        // 法力盾（扣蓝抵伤）
         ["Aslp"] = () => new SummonUnit(),        // 召唤龙虾
         ["Aspd"] = () => new SummonUnit(),        // 召唤蜘蛛
         ["Aspt"] = () => new SummonUnit(),        // 孵化

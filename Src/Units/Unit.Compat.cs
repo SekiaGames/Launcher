@@ -217,7 +217,7 @@ public sealed partial class Unit
     }
 
     /// <summary>客户端的合法目标判定：TargetFlags 位掩码 + 阵营关系 + 状态门。</summary>
-    public bool CanBeTargetedBy(Unit caster, TargetFlags rules, bool useHeroSpellRules = false)
+    public bool CanBeTargetedBy(Unit caster, TargetFlags rules, bool useHeroSpellRules = false, bool ignoreVisibility = false)
     {
         if (rules == TargetFlags.None) return true;
         // 缺阵营位表示双方都允许（客户端 TargetRules.Normalize 的 Relations 默认）
