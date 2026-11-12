@@ -50,6 +50,7 @@ public sealed partial class Unit
         if (classification == Classification.None) return false;
         Classification flags = Type?.Classifications ?? Classification.None;
         if (IsHero) flags |= Classification.Hero;
+        if (SummonRemaining > 0f) flags |= Classification.Summoned;
         if (IsBuilding && (flags & Classification.TownHall) == 0) flags |= Classification.None;
         if (!IsBuilding && (flags & Classification.Mechanical) == 0 && (flags & Classification.Undead) == 0)
             flags |= Classification.Organic;
@@ -219,6 +220,13 @@ public sealed partial class Unit
     public bool CanBeTargetedBy(Unit caster, TargetFlags rules, bool useHeroSpellRules = false)
     {
         if (rules == TargetFlags.None) return true;
+        // 缺阵营位表示双方都允许（客户端 TargetRules.Normalize 的 Relations 默认）
+        if ((rules & (TargetFlags.Self | TargetFlags.Player | TargetFlags.Ally
+            | TargetFlags.Neutral | TargetFlags.Enemy)) == 0)
+        {
+            rules |= TargetFlags.Self | TargetFlags.Player | TargetFlags.Ally
+                | TargetFlags.Neutral | TargetFlags.Enemy;
+        }
 
         bool wantDead = (rules & TargetFlags.Dead) != 0;
         if (!Alive) return wantDead;
