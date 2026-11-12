@@ -414,6 +414,8 @@ public sealed class Stats
         set => _unit.BonusMaxHp = value;
     }
 
+    public AttackType AttackType => _unit.ActiveWeapon?.AttackType ?? AttackType.Normal;
+
     public float TechDamageBonus => _unit.TechDamageFlat;
 
     public float DamageBonus
