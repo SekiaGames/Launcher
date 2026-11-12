@@ -73,6 +73,9 @@ public sealed partial class Unit
 
     public Unit CurrentTarget() => Target;
 
+    /// <summary>客户端 Unit.Attack 组件：Launcher 侧用当前武器代表「能打」。</summary>
+    public Weapon Attack => ActiveWeapon;
+
     public Classification Classifications => Type?.Classifications ?? Classification.None;
 
     public bool IsDetectedByPlayer(int player) => !Hidden || true;
