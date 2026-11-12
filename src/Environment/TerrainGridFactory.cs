@@ -63,6 +63,7 @@ public sealed partial class MapWorldBuilder
         {
             shaderMaterial.SetShaderParameter("ground_texture", terrainTextureSet.Texture);
         }
+        ApplyBakedShadow(shaderMaterial, terrain);
         _groundLayers = terrainTextureSet;
         _groundOrder = list2;
         int width = terrain.Width;
@@ -116,6 +117,37 @@ public sealed partial class MapWorldBuilder
             MaterialOverride = shaderMaterial,
             Name = "MapTerrain"
         }, forceReadableName: false, Node.InternalMode.Disabled);
+    }
+
+    /// <summary>地图自带的 war3map.shd：一格地形一个字节，越大越暗（客户端按 1/2 折算成半强度）。</summary>
+    private static void ApplyBakedShadow(ShaderMaterial material, W3eTerrain terrain)
+    {
+        int width = terrain.Width;
+        int height = terrain.Height;
+        byte[] data = Assets.ReadBytes("res://gmap/map/war3map.shd");
+        if (data == null || data.Length < width * height)
+        {
+            GD.Print($"[MAP] 阴影图缺失：要 {width * height} 字节，实得 {(data == null ? 0 : data.Length)}");
+            return;
+        }
+
+        var shadow = new byte[width * height];
+        Array.Copy(data, shadow, shadow.Length);
+
+        int darkest = 0;
+        long total = 0;
+        foreach (byte value in shadow)
+        {
+            total += value;
+            if (value > darkest) darkest = value;
+        }
+
+        Image image = Image.CreateFromData(width, height, false, Image.Format.L8, shadow);
+        material.SetShaderParameter("shadow_map", ImageTexture.CreateFromImage(image));
+        material.SetShaderParameter("shadow_scale", new Vector2(1f / (width * CellSize), 1f / (height * CellSize)));
+        material.SetShaderParameter("shadow_strength", 0.5f);
+        material.SetShaderParameter("shadow_enabled", true);
+        GD.Print($"[MAP] 阴影图 {width}x{height}，最深 {darkest}，均值 {(double)total / shadow.Length:0.0}");
     }
 
     private Vector4 TileLayers(string t00, string t10, string t01, string t11, W3eTerrain.Corner c00)
