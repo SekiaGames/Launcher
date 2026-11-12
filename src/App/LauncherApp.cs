@@ -31,6 +31,7 @@ public sealed partial class LauncherApp : Node
     private bool _combatProbe;
     private bool _stateProbe;
     private bool _effectProbe;
+    private bool _attachProbe;
     private bool _reviveProbe;
     private bool _skillProbe;
     private bool _morphProbe;
@@ -177,6 +178,10 @@ public sealed partial class LauncherApp : Node
             {
                 _effectProbe = true;
             }
+            else if (argument == "--attach-probe")
+            {
+                _attachProbe = true;
+            }
             else if (argument == "--state-probe")
             {
                 _stateProbe = true;
@@ -276,6 +281,12 @@ public sealed partial class LauncherApp : Node
         {
             RunEffectProbe();
             GetTree().Quit(0);
+            return;
+        }
+
+        if (_attachProbe)
+        {
+            GetTree().Quit(AttachmentProbe.Run());
             return;
         }
 

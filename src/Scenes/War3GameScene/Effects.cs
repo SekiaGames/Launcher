@@ -44,8 +44,12 @@ public sealed partial class War3GameScene
         _sceneEffects.Add(new SceneEffect { Node = node, Remaining = seconds });
         if (_effectLogBudget <= 0) return;
         _effectLogBudget--;
+        string anchorName = AttachmentPoints.Describe(anchor.View?.Root, mount);
+        string mountText = anchorName.Length > 0
+            ? anchorName
+            : mount + "（按身高估）";
         GD.Print($"[FX] {ability.Id} {ability.Name} → {System.IO.Path.GetFileName(resPath)}"
-            + $"（挂在 {anchor.Type?.Name} 的 {mount}，{seconds:0.0}s）");
+            + $"（挂在 {anchor.Type?.Name} 的 {mountText}，{seconds:0.0}s）");
     }
 
     private bool RefreshStickEffect(Unit anchor, string effectName, float seconds)

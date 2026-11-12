@@ -46,8 +46,9 @@ public sealed partial class War3GameScene
             };
         }
 
-        Vector3 from = attacker.Position + new Vector3(0f, attacker.View.Height * 0.6f, 0f);
-        Vector3 to = target.Position + new Vector3(0f, (target.View?.Height ?? 100f) * 0.5f, 0f);
+        Vector3 from = LaunchPoint(attacker);
+        float impactHeight = ImpactHeight(target);
+        Vector3 to = target.Position + new Vector3(0f, impactHeight, 0f);
         node.Position = from;
         node.Name = $"Missile_{attacker.Type.Id}";
         AddChild(node);
@@ -61,7 +62,7 @@ public sealed partial class War3GameScene
             Speed = Mathf.Max(200f, attacker.Type.MissileSpeed),
             Length = Mathf.Max(1f, from.DistanceTo(to)),
             Target = target,
-            TargetHeight = (target.View?.Height ?? 100f) * 0.5f,
+            TargetHeight = impactHeight,
         };
         _projectiles.Add(projectile);
         if (_missileLogBudget > 0)
@@ -102,8 +103,9 @@ public sealed partial class War3GameScene
             };
         }
 
-        Vector3 from = caster.Position + new Vector3(0f, caster.View.Height * 0.6f, 0f);
-        Vector3 to = target.Position + new Vector3(0f, (target.View?.Height ?? 100f) * 0.5f, 0f);
+        Vector3 from = LaunchPoint(caster);
+        float impactHeight = ImpactHeight(target);
+        Vector3 to = target.Position + new Vector3(0f, impactHeight, 0f);
         node.Position = from;
         node.Name = $"AbilityMissile_{ability.Id}";
         AddChild(node);
@@ -117,7 +119,7 @@ public sealed partial class War3GameScene
             Speed = Mathf.Max(200f, ability.MissileSpeed),
             Length = Mathf.Max(1f, from.DistanceTo(to)),
             Target = target,
-            TargetHeight = (target.View?.Height ?? 100f) * 0.5f,
+            TargetHeight = impactHeight,
         });
 
         if (_missileLogBudget > 0)
@@ -126,6 +128,27 @@ public sealed partial class War3GameScene
             GD.Print($"[MISSILE] 技能 {ability.Name} → {target.Type?.Id} 距离 {from.DistanceTo(to):0}"
                 + $" 速度 {ability.MissileSpeed:0} 模型 {(scene != null ? ability.MissileArt : "占位球")}");
         }
+    }
+
+    /// <summary>出手点：武器挂点优先，其次是右手，最后按身高估。</summary>
+    private static Vector3 LaunchPoint(Unit shooter)
+    {
+        if (shooter == null) return Vector3.Zero;
+        Node3D root = shooter.View?.Root;
+        Node3D attach = AttachmentPoints.Find(root, "weapon")
+            ?? AttachmentPoints.Find(root, "hand right")
+            ?? AttachmentPoints.Find(root, "origin");
+        if (attach != null) return attach.GlobalPosition;
+        return shooter.Position + new Vector3(0f, (shooter.View?.Height ?? 100f) * 0.6f, 0f);
+    }
+
+    /// <summary>命中高度：胸口挂点优先，缺失时按身高一半。</summary>
+    private static float ImpactHeight(Unit target)
+    {
+        if (target == null) return 0f;
+        Node3D attach = AttachmentPoints.Find(target.View?.Root, "chest");
+        if (attach != null) return attach.GlobalPosition.Y - target.Position.Y;
+        return (target.View?.Height ?? 100f) * 0.5f;
     }
 
     /// <summary>引导中的范围盘：一个半透明圆盘放在落点上，半径取技能 Area。</summary>
