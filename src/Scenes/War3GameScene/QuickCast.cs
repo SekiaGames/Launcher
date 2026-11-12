@@ -275,6 +275,8 @@ public sealed partial class War3GameScene
                 Enabled = ability.Ready && (toggledOn || hero.Mana >= ability.ManaCost),
                 Action = () => BeginCast(hero, ability),
                 RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(hero, ability) : null,
+                CooldownRemaining = ability.CooldownRemaining,
+                CooldownTotal = ability.Type.CooldownAt(Mathf.Max(1, ability.Level)),
             });
         }
 
@@ -316,6 +318,8 @@ public sealed partial class War3GameScene
                 Enabled = ability.Ready && (toggledOn || unit.Mana >= ability.ManaCost),
                 Action = () => BeginCast(unit, ability),
                 RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(unit, ability) : null,
+                CooldownRemaining = ability.CooldownRemaining,
+                CooldownTotal = ability.Type.CooldownAt(Mathf.Max(1, ability.Level)),
             });
         }
     }
@@ -481,6 +485,10 @@ public sealed partial class War3GameScene
                 Enabled = ready,
                 Action = () => ActivateItem(hero, item, captured),
                 RightAction = () => GiveOrDropItem(hero, captured),
+                CooldownRemaining = item.CooldownRemaining,
+                CooldownTotal = plan.Cooldown > 0f ? plan.Cooldown : item.CooldownRemaining,
+                Charges = charges,
+                MaxCharges = item.Type.Uses,
             });
         }
         _hud?.SetInventory(entries);

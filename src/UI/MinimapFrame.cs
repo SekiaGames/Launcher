@@ -22,6 +22,9 @@ public sealed partial class MinimapFrame : Control
     private Func<Unit, bool> _filter;
     private float _refresh;
     private bool _dragging;
+    private Vector3 _pingWorld;
+    private float _pingRemaining;
+    private float _pingAge;
 
     public Action<Vector3, bool> RightNavigate;
 
@@ -52,8 +55,25 @@ public sealed partial class MinimapFrame : Control
         QueueRedraw();
     }
 
+    public bool PingActive => _pingRemaining > 0f;
+
+    public void Ping(Vector3 world)
+    {
+        _pingWorld = world;
+        _pingRemaining = 2.2f;
+        _pingAge = 0f;
+        QueueRedraw();
+    }
+
     public override void _Process(double delta)
     {
+        if (_pingRemaining > 0f)
+        {
+            _pingRemaining -= (float)delta;
+            _pingAge += (float)delta;
+            QueueRedraw();
+        }
+
         _refresh += (float)delta;
         if (_refresh < 0.15f) return;
         _refresh = 0f;
@@ -101,6 +121,16 @@ public sealed partial class MinimapFrame : Control
         {
             Vector2 center = WorldToMap(_cameraFocus());
             DrawRect(new Rect2(center.X - 16f, center.Y - 11f, 32f, 22f), new Color(1f, 1f, 1f, 0.8f), false, 1f);
+        }
+
+        if (_terrain != null && _pingRemaining > 0f)
+        {
+            Vector2 ping = WorldToMap(_pingWorld);
+            float cycle = _pingAge % 0.9f;
+            float radius = 3f + cycle * 14f;
+            float alpha = Mathf.Clamp(1f - cycle / 0.9f, 0f, 1f);
+            DrawArc(ping, radius, 0f, Mathf.Tau, 24, new Color(0.35f, 1f, 0.45f, alpha), 2f);
+            DrawCircle(ping, 2.5f, new Color(0.35f, 1f, 0.45f, 0.9f));
         }
 
         DrawRect(new Rect2(0f, 0f, MapSize, MapSize), new Color(0.45f, 0.42f, 0.3f, 1f), false, 1f);

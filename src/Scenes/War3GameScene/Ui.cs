@@ -189,6 +189,7 @@ public sealed partial class War3GameScene
         _hud?.SetPlayerInfo(PlayerInfoText());
         _hud?.SetClock(ClockText());
         UpdateQueueLabel();
+        UpdateUnitSummary();
     }
 
     private string PlayerInfoText()
@@ -780,19 +781,95 @@ public sealed partial class War3GameScene
     private void UpdateQueueLabel()
     {
         if (_hud == null) return;
-        if (_orders.Count == 0)
+
+        var entries = new List<QueueEntry>();
+        BuildingOrder first = null;
+        foreach (BuildingOrder order in _orders)
+        {
+            if (order.Player != ViewPlayer) continue;
+            if (first == null) first = order;
+            if (entries.Count >= 5) continue;
+
+            entries.Add(new QueueEntry
+            {
+                Icon = QueueIconOf(order),
+                Name = QueueNameOf(order),
+                Remaining = order.Remaining,
+                Total = order.Total,
+            });
+        }
+        _hud.SetQueueSlots(entries);
+
+        if (first == null)
         {
             _hud.SetQueue("");
             return;
         }
 
-        BuildingOrder order = _orders[0];
-        string label = order.Kind switch
+        _hud.SetQueue($"{first.Building.Type.Name}：{QueueNameOf(first)} {Mathf.Max(0f, first.Remaining):0.0}s（{entries.Count}）");
+    }
+
+    private static string QueueNameOf(BuildingOrder order)
+    {
+        return order.Kind switch
         {
             OrderKind.Train => $"训练 {UnitCatalog.Get(order.Id)?.Name}",
             OrderKind.Research => $"研究 {TechTree.Upgrade(order.Id)?.NameFor(order.Level)}",
             _ => $"升级 {UnitCatalog.Get(order.Id)?.Name}",
         };
-        _hud.SetQueue($"P{order.Player} {order.Building.Type.Name}：{label} {Mathf.Max(0f, order.Remaining):0.0}s（队列 {_orders.Count}）");
+    }
+
+    private static Texture2D QueueIconOf(BuildingOrder order)
+    {
+        if (order.Kind == OrderKind.Research) return TechTree.Icon(TechTree.Upgrade(order.Id)?.IconPath);
+        UnitType type = UnitCatalog.Get(order.Id);
+        return type == null || string.IsNullOrEmpty(type.IconPath) ? null : Assets.LoadTexture(type.IconPath);
+    }
+
+    private void UpdateUnitSummary()
+    {
+        if (_hud == null || _selected.Count != 1)
+        {
+            _hud?.SetUnitSummary(null, "", "");
+            _hud?.SetBuffs(null);
+            return;
+        }
+
+        Unit unit = _selected[0];
+        UnitType type = unit.Type;
+        Texture2D portrait = type != null && !string.IsNullOrEmpty(type.IconPath) ? Assets.LoadTexture(type.IconPath) : null;
+        string attack = type != null && type.CanAttack ? $"{type.Weapon.MinDamage:0}-{type.Weapon.MaxDamage:0}" : "—";
+        float armor = _world != null ? _world.ArmorOf(unit) : 0f;
+        _hud.SetUnitSummary(portrait, attack, $"{armor:0.#}");
+
+        var buffs = new List<BuffEntry>();
+        foreach (Buff buff in unit.Buffs)
+        {
+            if (buff == null || buff.Remaining <= 0f) continue;
+            string art = buff.Source?.Type?.IconArt;
+            buffs.Add(new BuffEntry
+            {
+                Icon = string.IsNullOrEmpty(art) ? null : TechTree.Icon(art),
+                Name = buff.Name,
+                Remaining = buff.Remaining,
+            });
+            if (buffs.Count >= 8) break;
+        }
+        if (buffs.Count < 8)
+        {
+            foreach (Ability ability in unit.Abilities)
+            {
+                if (ability == null || !ability.Learned || !ability.IsAura) continue;
+                buffs.Add(new BuffEntry
+                {
+                    Icon = TechTree.Icon(ability.IconArt),
+                    Name = ability.Name,
+                    Remaining = 0f,
+                    Aura = true,
+                });
+                if (buffs.Count >= 8) break;
+            }
+        }
+        _hud.SetBuffs(buffs);
     }
 }

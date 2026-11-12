@@ -18,6 +18,43 @@ public sealed class CommandEntry
     public string Hotkey = "";
     public Action Action;
     public Action RightAction;
+    public float CooldownRemaining;
+    public float CooldownTotal;
+    public double CooldownEnd;
+    public int Charges;
+    public int MaxCharges;
+}
+
+public sealed partial class ChargeRing : Control
+{
+    public int Charges;
+    public int MaxCharges;
+
+    public override void _Draw()
+    {
+        if (MaxCharges <= 0) return;
+        float radius = Mathf.Min(Size.X, Size.Y) * 0.42f;
+        var center = Size * 0.5f;
+        DrawArc(center, radius, -Mathf.Pi * 0.5f, Mathf.Pi * 1.5f, 28, new Color(0f, 0f, 0f, 0.55f), 3f);
+        float span = Mathf.Tau * Mathf.Clamp((float)Charges / MaxCharges, 0f, 1f);
+        DrawArc(center, radius, -Mathf.Pi * 0.5f, -Mathf.Pi * 0.5f + span, 28, new Color(0.95f, 0.86f, 0.35f, 0.9f), 3f);
+    }
+}
+
+public sealed class QueueEntry
+{
+    public Texture2D Icon;
+    public string Name;
+    public float Remaining;
+    public float Total;
+}
+
+public sealed class BuffEntry
+{
+    public Texture2D Icon;
+    public string Name;
+    public float Remaining;
+    public bool Aura;
 }
 
 public sealed class MeleeHudController
@@ -53,6 +90,16 @@ public sealed class MeleeHudController
     private readonly Panel _detailPanel;
     private readonly Label _detailText;
     private readonly TextureRect _detailIcon;
+    private readonly List<ColorRect> _slotCooldown = new();
+    private readonly List<ColorRect> _itemCooldown = new();
+    private readonly List<ChargeRing> _itemCharges = new();
+    private readonly List<TextureRect> _queueIcons = new();
+    private readonly List<ColorRect> _queueBars = new();
+    private readonly List<TextureRect> _buffIcons = new();
+    private readonly List<Label> _buffTimers = new();
+    private TextureRect _portrait;
+    private Label _attackLabel;
+    private Label _armorLabel;
 
     public Func<Unit, string> DetailProvider;
     public MinimapFrame MinimapFrame { get; }
@@ -178,13 +225,13 @@ public sealed class MeleeHudController
         };
         layer.AddChild(bottomBar);
 
-        _selection = Label("未选中单位", 18, new Vector2(222f, 690f), Colors.White);
+        _selection = Label("未选中单位", 18, new Vector2(292f, 690f), Colors.White);
         layer.AddChild(_selection);
 
-        _selectionDetail = Label("", 15, new Vector2(222f, 724f), new Color(0.78f, 0.8f, 0.84f));
+        _selectionDetail = Label("", 15, new Vector2(292f, 724f), new Color(0.78f, 0.8f, 0.84f));
         layer.AddChild(_selectionDetail);
 
-        _queueLabel = Label("", 14, new Vector2(222f, 758f), new Color(0.85f, 0.85f, 0.85f));
+        _queueLabel = Label("", 13, new Vector2(500f, 756f), new Color(0.85f, 0.85f, 0.85f));
         layer.AddChild(_queueLabel);
 
         _hint = Label("左键选中/框选  双击选同类  Ctrl+数字编队  右键移动/攻击/采集  Shift+右键排队  M移动 S停 H据守 A攻击 P巡逻  中键拖拽  滚轮缩放  WASD 平移  ESC 返回",
@@ -247,6 +294,104 @@ public sealed class MeleeHudController
 
         BuildCommandSlots(layer);
         BuildItemSlots(layer);
+        BuildUnitPanelExtras(layer);
+        BuildCooldownTimer(layer);
+    }
+
+    private void BuildUnitPanelExtras(Node layer)
+    {
+        _portrait = new TextureRect
+        {
+            Name = "UnitPortrait",
+            Position = new Vector2(222f, 688f),
+            Size = new Vector2(62f, 62f),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        layer.AddChild(_portrait);
+
+        var attackIcon = new TextureRect
+        {
+            Position = new Vector2(760f, 690f),
+            Size = new Vector2(24f, 24f),
+            Texture = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNAttack.blp"),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        layer.AddChild(attackIcon);
+        _attackLabel = Label("", 15, new Vector2(788f, 694f), new Color(1f, 0.86f, 0.55f));
+        layer.AddChild(_attackLabel);
+
+        var armorIcon = new TextureRect
+        {
+            Position = new Vector2(880f, 690f),
+            Size = new Vector2(24f, 24f),
+            Texture = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNHumanArmorUpOne.blp"),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        layer.AddChild(armorIcon);
+        _armorLabel = Label("", 15, new Vector2(908f, 694f), new Color(0.75f, 0.88f, 1f));
+        layer.AddChild(_armorLabel);
+
+        for (int index = 0; index < 5; index++)
+        {
+            var icon = new TextureRect
+            {
+                Position = new Vector2(292f + index * 38f, 752f),
+                Size = new Vector2(34f, 34f),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            layer.AddChild(icon);
+            _queueIcons.Add(icon);
+
+            var bar = new ColorRect
+            {
+                Position = new Vector2(icon.Position.X, icon.Position.Y + 31f),
+                Size = new Vector2(34f, 3f),
+                Color = new Color(0.3f, 0.9f, 0.35f, 0.9f),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            layer.AddChild(bar);
+            _queueBars.Add(bar);
+        }
+
+        for (int index = 0; index < 8; index++)
+        {
+            var icon = new TextureRect
+            {
+                Position = new Vector2(222f + index * 34f, 798f),
+                Size = new Vector2(30f, 30f),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            layer.AddChild(icon);
+            _buffIcons.Add(icon);
+
+            var timer = Label("", 10, new Vector2(icon.Position.X + 1f, icon.Position.Y + 16f), Colors.White);
+            timer.Size = new Vector2(28f, 13f);
+            timer.HorizontalAlignment = HorizontalAlignment.Center;
+            timer.Visible = false;
+            layer.AddChild(timer);
+            _buffTimers.Add(timer);
+        }
+    }
+
+    private void BuildCooldownTimer(Node layer)
+    {
+        var timer = new Timer { Name = "CooldownOverlayTimer", WaitTime = 0.05f, Autostart = true };
+        timer.Timeout += RefreshCooldownOverlays;
+        layer.AddChild(timer);
     }
 
     private void BuildItemSlots(Node layer)
@@ -291,14 +436,37 @@ public sealed class MeleeHudController
                 cost.Position = new Vector2(button.Position.X + 3f, button.Position.Y + SlotSize - 17f);
                 cost.Size = new Vector2(SlotSize - 6f, 15f);
                 cost.HorizontalAlignment = HorizontalAlignment.Center;
+                cost.ZIndex = 2;
                 cost.Visible = false;
                 layer.AddChild(cost);
                 _itemCosts.Add(cost);
+
+                var cooldown = new ColorRect
+                {
+                    Position = button.Position,
+                    Size = new Vector2(SlotSize, 0f),
+                    Color = new Color(0f, 0f, 0f, 0.62f),
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Visible = false,
+                };
+                layer.AddChild(cooldown);
+                _itemCooldown.Add(cooldown);
+
+                var ring = new ChargeRing
+                {
+                    Position = button.Position,
+                    Size = new Vector2(SlotSize, SlotSize),
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Visible = false,
+                };
+                layer.AddChild(ring);
+                _itemCharges.Add(ring);
 
                 var hotkey = Label("", 11, Vector2.Zero, new Color(0.85f, 0.9f, 1f));
                 hotkey.Position = new Vector2(button.Position.X + SlotSize - 14f, button.Position.Y + 1f);
                 hotkey.Size = new Vector2(13f, 14f);
                 hotkey.HorizontalAlignment = HorizontalAlignment.Right;
+                hotkey.ZIndex = 2;
                 hotkey.Visible = false;
                 layer.AddChild(hotkey);
                 _itemHotkeys.Add(hotkey);
@@ -346,14 +514,27 @@ public sealed class MeleeHudController
                 cost.Position = new Vector2(button.Position.X + 3f, button.Position.Y + SlotSize - 17f);
                 cost.Size = new Vector2(SlotSize - 6f, 15f);
                 cost.HorizontalAlignment = HorizontalAlignment.Center;
+                cost.ZIndex = 2;
                 cost.Visible = false;
                 layer.AddChild(cost);
                 _slotCosts.Add(cost);
+
+                var cooldown = new ColorRect
+                {
+                    Position = button.Position,
+                    Size = new Vector2(SlotSize, 0f),
+                    Color = new Color(0f, 0f, 0f, 0.62f),
+                    MouseFilter = Control.MouseFilterEnum.Ignore,
+                    Visible = false,
+                };
+                layer.AddChild(cooldown);
+                _slotCooldown.Add(cooldown);
 
                 var hotkey = Label("", 11, Vector2.Zero, new Color(0.85f, 0.9f, 1f));
                 hotkey.Position = new Vector2(button.Position.X + SlotSize - 14f, button.Position.Y + 1f);
                 hotkey.Size = new Vector2(13f, 14f);
                 hotkey.HorizontalAlignment = HorizontalAlignment.Right;
+                hotkey.ZIndex = 2;
                 hotkey.Visible = false;
                 layer.AddChild(hotkey);
                 _slotHotkeys.Add(hotkey);
@@ -504,7 +685,11 @@ public sealed class MeleeHudController
             _itemSlots[index].Visible = used;
             _itemCosts[index].Visible = used && !string.IsNullOrEmpty(entry.Cost);
             _itemHotkeys[index].Visible = used && !string.IsNullOrEmpty(entry.Hotkey);
-            if (!used) continue;
+            if (!used)
+            {
+                _itemCharges[index].Visible = false;
+                continue;
+            }
 
             _itemSlots[index].Icon = entry.Icon;
             _itemSlots[index].Disabled = !entry.Enabled;
@@ -512,7 +697,13 @@ public sealed class MeleeHudController
             _itemSlots[index].TooltipText = BuildTooltip(entry);
             _itemCosts[index].Text = entry.Cost ?? "";
             _itemHotkeys[index].Text = entry.Hotkey ?? "";
+            _itemCharges[index].Charges = entry.Charges;
+            _itemCharges[index].MaxCharges = entry.MaxCharges;
+            _itemCharges[index].Visible = entry.MaxCharges > 0;
+            _itemCharges[index].QueueRedraw();
+            entry.CooldownEnd = Time.GetTicksMsec() / 1000.0 + Mathf.Max(0f, entry.CooldownRemaining);
         }
+        RefreshCooldownOverlays();
     }
 
     /// <summary>
@@ -569,7 +760,45 @@ public sealed class MeleeHudController
             _slots[index].TooltipText = BuildTooltip(entry);
             _slotCosts[index].Text = entry.Cost ?? "";
             _slotHotkeys[index].Text = entry.Hotkey ?? "";
+            entry.CooldownEnd = Time.GetTicksMsec() / 1000.0 + Mathf.Max(0f, entry.CooldownRemaining);
         }
+        RefreshCooldownOverlays();
+    }
+
+    private void RefreshCooldownOverlays()
+    {
+        double now = Time.GetTicksMsec() / 1000.0;
+        for (int index = 0; index < _slotCooldown.Count; index++)
+        {
+            CommandEntry entry = index < _commands.Count ? _commands[index] : null;
+            UpdateCooldownOverlay(_slotCooldown[index], _slots[index], entry, now);
+        }
+        for (int index = 0; index < _itemCooldown.Count; index++)
+        {
+            CommandEntry entry = index < _items.Count ? _items[index] : null;
+            UpdateCooldownOverlay(_itemCooldown[index], _itemSlots[index], entry, now);
+        }
+    }
+
+    private static void UpdateCooldownOverlay(ColorRect overlay, Button button, CommandEntry entry, double now)
+    {
+        if (entry == null || !button.Visible || entry.CooldownTotal <= 0f)
+        {
+            overlay.Visible = false;
+            return;
+        }
+
+        float remaining = (float)(entry.CooldownEnd - now);
+        if (remaining <= 0f)
+        {
+            overlay.Visible = false;
+            return;
+        }
+
+        float ratio = Mathf.Clamp(remaining / entry.CooldownTotal, 0f, 1f);
+        overlay.Visible = true;
+        overlay.Position = new Vector2(button.Position.X, button.Position.Y + SlotSize * (1f - ratio));
+        overlay.Size = new Vector2(SlotSize, SlotSize * ratio);
     }
 
     private static string BuildTooltip(CommandEntry entry)
@@ -594,6 +823,63 @@ public sealed class MeleeHudController
     public void SetQueue(string text)
     {
         _queueLabel.Text = text;
+    }
+
+    public void SetQueueSlots(IReadOnlyList<QueueEntry> entries)
+    {
+        for (int index = 0; index < _queueIcons.Count; index++)
+        {
+            bool show = entries != null && index < entries.Count && entries[index] != null;
+            _queueIcons[index].Visible = show;
+            _queueBars[index].Visible = show;
+            if (!show) continue;
+
+            QueueEntry entry = entries[index];
+            _queueIcons[index].Texture = entry.Icon;
+            _queueIcons[index].TooltipText = entry.Name ?? "";
+            float ratio = entry.Total > 0f ? Mathf.Clamp(1f - entry.Remaining / entry.Total, 0f, 1f) : 0f;
+            _queueBars[index].Size = new Vector2(34f * ratio, 3f);
+        }
+    }
+
+    public void SetBuffs(IReadOnlyList<BuffEntry> entries)
+    {
+        for (int index = 0; index < _buffIcons.Count; index++)
+        {
+            bool show = entries != null && index < entries.Count && entries[index] != null;
+            _buffIcons[index].Visible = show;
+            _buffTimers[index].Visible = show;
+            if (!show) continue;
+
+            BuffEntry entry = entries[index];
+            _buffIcons[index].Texture = entry.Icon;
+            _buffIcons[index].TooltipText = entry.Name ?? "";
+            _buffTimers[index].Text = entry.Aura || entry.Remaining <= 0f ? "" : $"{Mathf.CeilToInt(entry.Remaining)}";
+        }
+    }
+
+    public void SetUnitSummary(Texture2D portrait, string attack, string armor)
+    {
+        _portrait.Texture = portrait;
+        _portrait.Visible = portrait != null;
+        _attackLabel.Text = attack ?? "";
+        _armorLabel.Text = armor ?? "";
+    }
+
+    public void RefreshCooldownNow() => RefreshCooldownOverlays();
+
+    public string DescribeExtras()
+    {
+        int queue = 0;
+        foreach (TextureRect icon in _queueIcons) if (icon.Visible) queue++;
+        int buffs = 0;
+        foreach (TextureRect icon in _buffIcons) if (icon.Visible) buffs++;
+        int cooldowns = 0;
+        foreach (ColorRect overlay in _slotCooldown) if (overlay.Visible) cooldowns++;
+        foreach (ColorRect overlay in _itemCooldown) if (overlay.Visible) cooldowns++;
+        int rings = 0;
+        foreach (ChargeRing ring in _itemCharges) if (ring.Visible) rings++;
+        return $"头像={_portrait.Visible} 攻={_attackLabel.Text} 甲={_armorLabel.Text} 队列格={queue} 增益={buffs} 冷却遮罩={cooldowns} 充能环={rings}";
     }
 
     public string DescribeVisibleCommands()

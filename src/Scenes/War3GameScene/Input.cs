@@ -118,6 +118,13 @@ public sealed partial class War3GameScene
             }
             else if (button.ButtonIndex == MouseButton.Left)
             {
+                if (button.AltPressed && _placingId == null)
+                {
+                    if (button.Pressed && TryGroundPoint(button.Position, out Vector3 pingPoint))
+                        _hud?.MinimapFrame.Ping(pingPoint);
+                    return;
+                }
+
                 _leftDown = button.Pressed;
                 if (button.Pressed)
                 {

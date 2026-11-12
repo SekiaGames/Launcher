@@ -523,6 +523,8 @@ public sealed partial class War3GameScene
         _hud?.SetSelection(_selected);
         MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
         GD.Print($"[UI] 小地图右键下令 MoveTarget={hero.MoveTarget.HasValue}");
+        _hud?.MinimapFrame.Ping(hero.Position);
+        GD.Print($"[UI] 小地图信号 active={_hud?.MinimapFrame.PingActive}");
 
         Unit fast = Spawn("hkni", ViewPlayer, hero.Position.X + 300f, hero.Position.Z + 300f, 0f, 0f, 1f);
         Unit slow = Spawn("hfoo", ViewPlayer, hero.Position.X + 360f, hero.Position.Z + 360f, 0f, 0f, 1f);
@@ -534,6 +536,24 @@ public sealed partial class War3GameScene
             _selected.Add(fast);
             _selected.Add(slow);
             _hud?.SetSelection(_selected);
+            _selected.Clear();
+            _selected.Add(hero);
+            _hud?.SetSelection(_selected);
+            UpdateUnitSummary();
+            _hud?.SetQueueSlots(new List<QueueEntry>
+            {
+                new() { Name = "训练 步兵", Total = 20f, Remaining = 10f },
+            });
+            _hud?.SetBuffs(new List<BuffEntry>
+            {
+                new() { Name = "测试增益", Remaining = 5f },
+            });
+            GD.Print($"[UI] 面板 {_hud?.DescribeExtras()}");
+
+            _selected.Clear();
+            _selected.Add(fast);
+            _selected.Add(slow);
+            _hud?.SetSelection(_selected);
             ProbeCreepSleepEntry();
             float fastBase = World.SpeedOf(fast);
             IssueMoveOrders(hero.Position + new Vector3(800f, 0f, 800f), false);
@@ -541,6 +561,14 @@ public sealed partial class War3GameScene
             GD.Print($"[UI] 群组路径 航点 {fast.Path?.Count ?? 0}/{slow.Path?.Count ?? 0} 组 {fast.GroupMoveId}/{slow.GroupMoveId}");
             for (int tick = 0; tick < 40; tick++) _world.Advance();
             GD.Print($"[UI] 群组路径 40tick 索引 {fast.PathIndex}/{slow.PathIndex} 偏移 {Mathf.Abs(fast.PathIndex - slow.PathIndex)}");
+
+            _hud?.SetCommands(new List<CommandEntry>
+            {
+                new() { Name = "测试冷却", CooldownRemaining = 3f, CooldownTotal = 5f },
+            });
+            _hud?.RefreshCooldownNow();
+            GD.Print($"[UI] 冷却 {_hud?.DescribeExtras()}");
+            UpdateCommandCard();
         }
     }
 
