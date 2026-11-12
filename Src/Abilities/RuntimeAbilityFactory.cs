@@ -581,6 +581,15 @@ public static class RuntimeAbilityFactory
     public static bool IsImplemented(string id) => Map.ContainsKey(id);
 
     /// <summary>按技能 ID（找不到再按基类码）建实例；都不认识就返回占位实现。</summary>
+    public static float ReadFloat(IRuntimeObjectData data, string field, int level, float fallback)
+        => data?.GetFloat(field, Math.Max(1, level), 0, fallback) ?? fallback;
+
+    public static int ReadInt(IRuntimeObjectData data, string field, int level, int fallback)
+        => data?.GetInt(field, Math.Max(1, level), 0, fallback) ?? fallback;
+
+    public static string ReadString(IRuntimeObjectData data, string field, int level, string fallback = "")
+        => data?.GetString(field, Math.Max(1, level), 0, fallback) ?? fallback;
+
     public static Ability Create(AbilityType type)
     {
         if (type == null) return null;

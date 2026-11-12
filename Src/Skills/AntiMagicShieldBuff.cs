@@ -4,7 +4,7 @@ namespace OpenWC3;
 
 public sealed class AntiMagicShieldBuff : Buff
 {
-    public Unit Caster;
+    public new Unit Caster;
     public float Absorb;
 
     public override bool IsHarmful => false;

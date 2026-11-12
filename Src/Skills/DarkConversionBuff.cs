@@ -6,7 +6,7 @@ namespace OpenWC3;
 public sealed class DarkConversionBuff : Buff
 {
     public string ResultUnitId;
-    public Unit Caster;
+    public new Unit Caster;
 
     public override void OnApply(World world)
     {

@@ -211,7 +211,7 @@ public sealed class CurseBuff : StatBuff
 
 public sealed class DoomBuff : Buff
 {
-    public Unit Caster;
+    public new Unit Caster;
     public string SummonUnitId = "";
     public int SummonCount;
     public float SummonSeconds;

@@ -12,13 +12,14 @@ public interface IAttackLaunchBuff
 /// 时限增益/减益。对标客户端 Src/Abilities/Buff.cs：
 /// 只负责「到期撤销」，具体加成由子类在 OnApply/OnRemove 里加减到单位字段上。
 /// </summary>
-public class Buff
+public class Buff : Ability
 {
-    public Unit Owner;
+    public override bool IsPassive => true;
+
     public Ability Source;
     string _name = "buff";
 
-    public virtual string Name
+    public new virtual string Name
     {
         get => _name;
         set => _name = value;
@@ -34,9 +35,9 @@ public class Buff
     public Unit Caster => Source?.Owner;
 
     /// <summary>总时长（客户端 Buff.Duration）；Launcher 用 Remaining 倒计时。</summary>
-    public float Duration;
+    public new float Duration;
 
-    public IRuntimeObjectData ObjectData { get; set; }
+    public new IRuntimeObjectData ObjectData { get; set; }
 
     public float RemainingSeconds => Remaining;
 
@@ -55,7 +56,7 @@ public class Buff
     public virtual void OnAttacked(World world, Unit attacker, DamageData info) { }
 
     /// <summary>受到伤害修正（护甲与类型矩阵之前）：反魔法盾吸收、灵魂链分摊、相位转移都挂这里。</summary>
-    public virtual void ModifyIncomingDamage(World world, DamageData info) { }
+    public override void ModifyIncomingDamage(World world, DamageData info) { }
 
     /// <summary>持有者死亡时（黑蚀箭的标记到点召骷髅）。</summary>
     public virtual void OnDeath(World world) { }
@@ -79,25 +80,25 @@ public class Buff
 
     public virtual bool AutoDispel => true;
 
-    public virtual bool SpellStealable => true;
+    public override bool SpellStealable => true;
 
     public virtual bool Aura => false;
 
-    public virtual bool TickRunsWhilePaused => false;
+    public override bool TickRunsWhilePaused => false;
 
     public virtual float VisualAgeSeconds => 0f;
 
-    public virtual void OnAdd() => OnBuffAdd();
+    public override void OnAdd() => OnBuffAdd();
 
-    public virtual void OnRemove() => OnBuffRemove();
+    public override void OnRemove() => OnBuffRemove();
 
-    public virtual bool ExpirationRunsWhilePaused => false;
+    public override bool ExpirationRunsWhilePaused => false;
 
     public virtual bool BlocksWebAutoCast => false;
 
-    public virtual void OnDeath() { }
+    public override void OnDeath() { }
 
-    public virtual void ModifyOutgoingDamage(ref DamageData damage) { }
+    public new virtual void ModifyOutgoingDamage(ref DamageData damage) { }
 
     public virtual void ModifyOutgoingDamage(Unit target, ref DamageData damage) => ModifyOutgoingDamage(ref damage);
 
@@ -105,7 +106,7 @@ public class Buff
 
     protected virtual void OnBuffRemove() { }
 
-    public virtual void OnTick(float delta) { }
+    public override void OnTick(float delta) { }
 }
 
 /// <summary>霜冻护甲：+护甲，被普攻命中时让攻击者减速。</summary>
