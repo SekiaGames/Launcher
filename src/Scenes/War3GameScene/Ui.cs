@@ -19,6 +19,7 @@ public sealed partial class War3GameScene
 
     private void RefreshBars()
     {
+        bool showAll = Input.IsKeyPressed(Key.Alt);
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive)
@@ -27,7 +28,13 @@ public sealed partial class War3GameScene
                 continue;
             }
             bool damaged = unit.Hp < unit.MaxHp - 0.01f;
-            unit.View?.SetBarVisible(damaged || _selected.Contains(unit));
+            bool visible = damaged || _selected.Contains(unit);
+            if (showAll)
+            {
+                visible = unit.Player == ViewPlayer
+                    || _fog == null || !_fog.Enabled || _fog.IsVisible(unit.Position);
+            }
+            unit.View?.SetBarVisible(visible);
         }
     }
 
@@ -608,6 +615,7 @@ public sealed partial class War3GameScene
         }
 
         _placingId = buildingId;
+        CreatePlacementPreview(buildingId);
         _hud?.SetHint($"选择位置放置 {type.Name}（左键确认，右键取消）");
     }
 
@@ -615,7 +623,147 @@ public sealed partial class War3GameScene
     {
         if (_placingId == null) return;
         _placingId = null;
+        ClearPlacementPreview();
         _hud?.SetHint("已取消建造");
+    }
+
+    public bool PlacementPreviewValid => _placementPreviewValid;
+    public bool PlacementPreviewActive => _placementGhost != null;
+
+    private void CreatePlacementPreview(string buildingId)
+    {
+        ClearPlacementPreview();
+        UnitType type = UnitCatalog.Get(buildingId);
+        if (type == null) return;
+
+        PackedScene scene = Assets.LoadScene(type.ModelPath);
+        if (scene != null)
+        {
+            _placementGhost = scene.Instantiate<Node3D>();
+            _placementGhost.Name = "placement_ghost";
+            var material = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.35f, 1f, 0.45f, 0.5f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            };
+            foreach (Node node in _placementGhost.FindChildren("*", "MeshInstance3D", true, false))
+            {
+                if (node is not MeshInstance3D mesh) continue;
+                mesh.MaterialOverride = material;
+                mesh.Transparency = 0.35f;
+                mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+            }
+            AddChild(_placementGhost);
+        }
+
+        _placementFootprintMesh = new ImmediateMesh();
+        _placementFootprintNode = new MeshInstance3D
+        {
+            Name = "placement_footprint",
+            Mesh = _placementFootprintMesh,
+            MaterialOverride = new StandardMaterial3D
+            {
+                VertexColorUseAsAlbedo = true,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        AddChild(_placementFootprintNode);
+    }
+
+    private void ClearPlacementPreview()
+    {
+        _placementGhost?.QueueFree();
+        _placementGhost = null;
+        _placementFootprintNode?.QueueFree();
+        _placementFootprintNode = null;
+        _placementFootprintMesh = null;
+        _placementPreviewValid = false;
+    }
+
+    private void UpdatePlacementPreview()
+    {
+        if (_placingId == null || _placementGhost == null || _placementFootprintNode == null) return;
+        UnitType type = UnitCatalog.Get(_placingId);
+        if (type == null) return;
+
+        Vector2 mouse = GetViewport().GetMousePosition();
+        if (!TryGroundPoint(mouse, out Vector3 ground))
+        {
+            _placementGhost.Visible = false;
+            _placementFootprintNode.Visible = false;
+            return;
+        }
+
+        if (!IsMineConsumingType(type))
+        {
+            ground = new Vector3(Mathf.Round(ground.X / 32f) * 32f, ground.Y, Mathf.Round(ground.Z / 32f) * 32f);
+        }
+        ground.Y = MapWorldBuilder.HeightAt(_map.Terrain, ground.X, ground.Z);
+        _placementGhost.Visible = true;
+        _placementGhost.Position = ground;
+        _placementFootprintNode.Visible = true;
+        RebuildFootprint(ground, type);
+    }
+
+    private void RebuildFootprint(Vector3 ground, UnitType type)
+    {
+        if (_placementFootprintMesh == null) return;
+
+        int cells = Mathf.Max(1, type.FootprintCells);
+        float cell = 32f;
+        float half = cells * cell * 0.5f;
+        bool allFree = true;
+        float footprint = Mathf.Max(32f, type.FootprintRadius);
+        bool tooClose = false;
+        foreach (Unit other in _allUnits)
+        {
+            if (!other.Alive || !other.IsBuilding) continue;
+            float distance = new Vector2(other.Position.X - ground.X, other.Position.Z - ground.Z).Length();
+            if (distance < (footprint + other.Type.FootprintRadius) * 0.92f)
+            {
+                tooClose = true;
+                break;
+            }
+        }
+        if (tooClose) allFree = false;
+
+        _placementFootprintMesh.ClearSurfaces();
+        _placementFootprintMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        for (int dz = 0; dz < cells; dz++)
+        {
+            for (int dx = 0; dx < cells; dx++)
+            {
+                float x0 = ground.X - half + dx * cell;
+                float z0 = ground.Z - half + dz * cell;
+                float x1 = x0 + cell;
+                float z1 = z0 + cell;
+                var center = new Vector3((x0 + x1) * 0.5f, 0f, (z0 + z1) * 0.5f);
+                bool free = !tooClose && (_pathGrid == null || _pathGrid.IsAreaFree(center, cell * 0.5f));
+                if (!free) allFree = false;
+                Color color = free ? new Color(0.25f, 0.95f, 0.35f, 0.45f) : new Color(0.95f, 0.25f, 0.2f, 0.5f);
+                float y = MapWorldBuilder.HeightAt(_map.Terrain, center.X, center.Z) + 2f;
+
+                AddFootprintVertex(x0, y, z0, color);
+                AddFootprintVertex(x1, y, z0, color);
+                AddFootprintVertex(x1, y, z1, color);
+                AddFootprintVertex(x0, y, z0, color);
+                AddFootprintVertex(x1, y, z1, color);
+                AddFootprintVertex(x0, y, z1, color);
+            }
+        }
+        _placementFootprintMesh.SurfaceEnd();
+        _placementPreviewValid = allFree;
+    }
+
+    private void AddFootprintVertex(float x, float y, float z, Color color)
+    {
+        _placementFootprintMesh.SurfaceSetColor(color);
+        _placementFootprintMesh.SurfaceAddVertex(new Vector3(x, y, z));
     }
 
     private void TryPlace(Vector2 screenPosition)
@@ -625,7 +773,8 @@ public sealed partial class War3GameScene
             _hud?.SetHint("地面位置无效");
             return;
         }
-        PlaceBuildingAt(Slot(ViewPlayer), _placingId, ground, true);
+        Unit placed = PlaceBuildingAt(Slot(ViewPlayer), _placingId, ground, true);
+        if (placed != null || _placingId == null) ClearPlacementPreview();
     }
 
     private void UpdateQueueLabel()

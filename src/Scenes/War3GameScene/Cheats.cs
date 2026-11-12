@@ -462,6 +462,67 @@ public sealed partial class War3GameScene
         GD.Print($"[CARD] 物品 {carried}/{Unit.InventorySize} 格，命令卡格位 0..4 是移动/停止/据守/攻击/巡逻");
 
         ProbeShopEntry(hero);
+        ProbeUiEntry(hero);
+    }
+
+    private void ProbeUiEntry(Unit hero)
+    {
+        BeginPlacement("hhou");
+        UnitType house = UnitCatalog.Get("hhou");
+        bool openValid = false;
+        bool blockedValid = true;
+        bool foundOpen = false;
+        Vector3 openPoint = default;
+        Unit hallUnit = FindHall(ViewPlayer);
+        if (house != null && hallUnit != null)
+        {
+            float footprint = Mathf.Max(32f, house.FootprintRadius);
+            for (float radius = 400f; radius <= 1600f && !foundOpen; radius += 200f)
+            {
+                for (int step = 0; step < 16; step++)
+                {
+                    float angle = Mathf.Tau * step / 16f;
+                    var candidate = new Vector3(
+                        hallUnit.Position.X + Mathf.Cos(angle) * radius,
+                        0f,
+                        hallUnit.Position.Z + Mathf.Sin(angle) * radius);
+                    candidate.Y = MapWorldBuilder.HeightAt(_map.Terrain, candidate.X, candidate.Z);
+                    if (_pathGrid != null && !_pathGrid.IsAreaFree(candidate, footprint)) continue;
+                    bool nearBuilding = false;
+                    foreach (Unit other in _allUnits)
+                    {
+                        if (!other.Alive || !other.IsBuilding) continue;
+                        if (new Vector2(other.Position.X - candidate.X, other.Position.Z - candidate.Z).Length()
+                            < (footprint + other.Type.FootprintRadius) * 0.92f)
+                        {
+                            nearBuilding = true;
+                            break;
+                        }
+                    }
+                    if (nearBuilding) continue;
+                    openPoint = candidate;
+                    foundOpen = true;
+                    break;
+                }
+            }
+
+            if (foundOpen)
+            {
+                RebuildFootprint(openPoint, house);
+                openValid = PlacementPreviewValid;
+            }
+            RebuildFootprint(hallUnit.Position, house);
+            blockedValid = PlacementPreviewValid;
+        }
+        GD.Print($"[UI] 建造预览 活跃={PlacementPreviewActive} 找到空地={foundOpen} 空地合法={openValid} 建筑上合法={blockedValid}");
+        CancelPlacement();
+        GD.Print($"[UI] 取消后 活跃={PlacementPreviewActive}");
+
+        _selected.Clear();
+        _selected.Add(hero);
+        _hud?.SetSelection(_selected);
+        MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
+        GD.Print($"[UI] 小地图右键下令 MoveTarget={hero.MoveTarget.HasValue}");
     }
 
     private void ProbeShopEntry(Unit hero)

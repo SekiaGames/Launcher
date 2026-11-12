@@ -23,6 +23,11 @@ public sealed partial class War3GameScene : Node3D
     private bool _middleDown;
     private bool _leftDown;
     private Vector2 _dragStart;
+    private Node3D _placementGhost;
+    private MeshInstance3D _placementFootprintNode;
+    private ImmediateMesh _placementFootprintMesh;
+    private bool _placementPreviewValid;
+    private int _idleWorkerCursor;
     private float _hudTimer;
     private PathGrid _pathGrid;
     private List<TreeState> _trees = new();
@@ -171,6 +176,7 @@ public sealed partial class War3GameScene : Node3D
         };
         _hud.MinimapFrame.Configure(map.Terrain, () => _allUnits, () => _camera.Target, point => _camera.Focus(point),
             unit => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
+        _hud.MinimapFrame.RightNavigate = MinimapOrderAt;
         _hud.MinimapFrame.SetFogTexture(_fog.Texture);
         _hud.MinimapFrame.SetTexture(MinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader()));
         _heroBar = new HeroBarController(this);
@@ -258,6 +264,44 @@ public sealed partial class War3GameScene : Node3D
         _heroBar.Update(_heroScratch, selected);
     }
 
+    private bool TrySelectHeroByIndex(int index)
+    {
+        int current = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.IsHero || unit.Player != ViewPlayer || !unit.Alive) continue;
+            if (current++ != index) continue;
+            SelectHeroFromBar(unit);
+            return true;
+        }
+        return false;
+    }
+
+    private void SelectIdleWorker()
+    {
+        var workers = new List<Unit>();
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != ViewPlayer || !unit.IsWorker) continue;
+            if (unit.GoldMine != null || unit.Tree != null || unit.BuildSite != null || unit.RepairTarget != null) continue;
+            if (unit.MoveTarget.HasValue || unit.Target != null || unit.BuildingNow) continue;
+            workers.Add(unit);
+        }
+        if (workers.Count == 0) return;
+
+        _idleWorkerCursor %= workers.Count;
+        Unit worker = workers[_idleWorkerCursor];
+        _idleWorkerCursor = (_idleWorkerCursor + 1) % workers.Count;
+
+        ClearSelection();
+        _selected.Add(worker);
+        worker.View?.SetSelected(true);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        _camera.Focus(worker.Position);
+        PlaySelectionVoice();
+    }
+
     private void SelectHeroFromBar(Unit hero)
     {
         if (hero == null || !hero.Alive || hero.Player != ViewPlayer) return;
@@ -275,6 +319,7 @@ public sealed partial class War3GameScene : Node3D
     public override void _Process(double delta)
     {
         HandleKeyboardPan((float)delta);
+        UpdatePlacementPreview();
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);
         TickSceneEffects((float)delta);

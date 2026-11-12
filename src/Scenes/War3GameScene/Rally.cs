@@ -7,6 +7,26 @@ namespace Launcher;
 
 public sealed partial class War3GameScene
 {
+    private void MinimapOrderAt(Vector3 worldPoint, bool queue)
+    {
+        if (_selected.Count == 0) return;
+
+        Unit enemy = null;
+        float bestDistance = 90f;
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || AreAllied(unit.Player, ViewPlayer)) continue;
+            if (_fog != null && _fog.Enabled && !_fog.IsVisible(unit.Position)) continue;
+            float distance = new Vector2(unit.Position.X - worldPoint.X, unit.Position.Z - worldPoint.Z).Length();
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            enemy = unit;
+        }
+
+        if (enemy != null) IssueAttackOrders(enemy, queue);
+        else IssueMoveOrders(worldPoint, queue);
+    }
+
     private void OrderAt(Vector2 screenPosition, bool queue)
     {
         if (_selected.Count == 0) return;

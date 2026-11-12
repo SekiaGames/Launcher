@@ -30,12 +30,13 @@ public sealed partial class War3GameScene
     private Unit PlaceBuildingAt(PlayerSlot slot, string buildingId, Vector3 ground, bool report)
     {
         UnitType type = UnitCatalog.Get(buildingId);
-        if (type == null) { _placingId = null; return null; }
+        if (type == null) { _placingId = null; ClearPlacementPreview(); return null; }
 
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
             if (report) { PlayErrorSound(); _hud?.SetHint("资源不足"); }
             _placingId = null;
+            ClearPlacementPreview();
             return null;
         }
         float footprint = Mathf.Max(32f, type.FootprintRadius);
@@ -84,6 +85,7 @@ public sealed partial class War3GameScene
         {
             if (report) _hud?.SetHint("建筑模型缺失");
             _placingId = null;
+            ClearPlacementPreview();
             return null;
         }
 
@@ -122,6 +124,7 @@ public sealed partial class War3GameScene
         AssignBuilders(site, slot, wanted);
 
         _placingId = null;
+        ClearPlacementPreview();
         GD.Print($"[BUILD] P{slot.Id} 开工 {type.Name} 世界({ground.X:0},{ground.Z:0}) 工期 {site.BuildTotal:0}s 资源 {slot.Gold}/{slot.Lumber}");
         RefreshHud();
         UpdateCommandCard();

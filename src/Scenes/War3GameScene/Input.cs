@@ -76,6 +76,17 @@ public sealed partial class War3GameScene
                     return;
                 }
 
+                if (keyEvent.Keycode is Key.F1 or Key.F2 or Key.F3)
+                {
+                    if (TrySelectHeroByIndex((int)(keyEvent.Keycode - Key.F1))) return;
+                }
+
+                if (keyEvent.Keycode == Key.F8)
+                {
+                    SelectIdleWorker();
+                    return;
+                }
+
                 if (TrySelectionHotkey(keyEvent.Keycode)) return;
 
                 if (TryInventoryHotkey(keyEvent.Keycode)) return;
@@ -205,6 +216,7 @@ public sealed partial class War3GameScene
 
             _selected.Add(unit);
             unit.View?.SetSelected(true);
+            if (_selected.Count >= 12) break;
         }
 
         if (_selected.Count == 0) return;
@@ -237,6 +249,7 @@ public sealed partial class War3GameScene
             _selected.Add(unit);
             unit.View?.SetSelected(true);
             added++;
+            if (_selected.Count >= 12) break;
         }
 
         _hud?.SetSelection(_selected);

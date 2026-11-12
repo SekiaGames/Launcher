@@ -21,6 +21,9 @@ public sealed partial class MinimapFrame : Control
     private Action<Vector3> _navigate;
     private Func<Unit, bool> _filter;
     private float _refresh;
+    private bool _dragging;
+
+    public Action<Vector3, bool> RightNavigate;
 
     public void Configure(W3eTerrain terrain, Func<IReadOnlyList<Unit>> units, Func<Vector3> cameraFocus, Action<Vector3> navigate,
         Func<Unit, bool> filter = null)
@@ -105,12 +108,29 @@ public sealed partial class MinimapFrame : Control
 
     public override void _GuiInput(InputEvent @event)
     {
-        if (@event is not InputEventMouseButton button) return;
-        if (button.ButtonIndex != MouseButton.Left) return;
-
-        if (button.Pressed)
+        if (@event is InputEventMouseMotion motion && _dragging)
         {
-            Navigate(button.Position);
+            Navigate(motion.Position);
+            AcceptEvent();
+            return;
+        }
+
+        if (@event is not InputEventMouseButton button) return;
+
+        if (button.ButtonIndex == MouseButton.Left)
+        {
+            _dragging = button.Pressed;
+            if (button.Pressed)
+            {
+                Navigate(button.Position);
+                AcceptEvent();
+            }
+            return;
+        }
+
+        if (button.ButtonIndex == MouseButton.Right && button.Pressed)
+        {
+            RightNavigate?.Invoke(MapToWorld(button.Position), button.ShiftPressed);
             AcceptEvent();
         }
     }
