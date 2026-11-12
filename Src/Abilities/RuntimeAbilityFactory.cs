@@ -30,7 +30,7 @@ public static class RuntimeAbilityFactory
         ["AUdc"] = () => new RuntimeDeathCoilAbility(),     // 死亡缠绕
         ["AUdp"] = () => new RuntimeDeathPactAbility(),     // 死亡契约
         ["AUdr"] = () => new RuntimeDarkRitualAbility(),    // 黑暗仪式
-        ["AUau"] = () => new RuntimeUnholyAuraAbility(),    // 邪恶光环
+        ["AUau"] = WithObjects<RuntimeUnholyAuraAbility>,    // 邪恶光环
         ["AUan"] = () => new RuntimeAnimateDeadAbility(),   // 操纵死尸
         ["AUfn"] = () => new RuntimeFrostNovaAbility(),     // 霜冻新星
         ["AUcs"] = () => new RuntimeCarrionSwarmAbility(),  // 腐臭蜂群
@@ -52,7 +52,7 @@ public static class RuntimeAbilityFactory
         ["AOvd"] = () => new RuntimeBigBadVoodooAbility(),  // 巫毒（引导，友军无敌）
         // —— 丛林守护者 / 恶魔猎手 / 守望者 ——
         ["AEer"] = () => new RuntimeEntanglingRootsAbility(),// 纠缠根须
-        ["AEah"] = () => new RuntimeThornsAuraAbility(),     // 荆棘光环
+        ["AEah"] = WithObjects<RuntimeThornsAuraAbility>,     // 荆棘光环
         ["AEmb"] = () => new RuntimeManaBurnAbility(),       // 法力燃烧
         ["AEim"] = () => new RuntimeImmolationAbility(),     // 献祭（开关型）
         ["AEfk"] = () => new RuntimeFanOfKnivesAbility(),    // 刀阵旋风
@@ -63,7 +63,7 @@ public static class RuntimeAbilityFactory
         ["AEme"] = () => new Metamorphosis(),  // 变身（恶魔形态）
         ["AOww"] = () => new Bladestorm(),     // 剑刃风暴（引导，自身 AoE）
         // —— 大魔法师 ——
-        ["AHab"] = () => new RuntimeBrillianceAuraAbility(), // 辉煌光环
+        ["AHab"] = WithObjects<RuntimeBrillianceAuraAbility>, // 辉煌光环
         // —— 大魔法师 / 巫妖 / 守望者 / 黑暗游侠 ——
         ["AHbz"] = () => new RuntimeBlizzardAbility(),      // 暴风雪（引导 + 点目标）
         ["AUdd"] = () => new RuntimeDeathAndDecayAbility(), // 死亡腐烂（引导 + 百分比）
@@ -139,8 +139,8 @@ public static class RuntimeAbilityFactory
         ["Aven"] = () => new RuntimeVenomSpearAbility(),       // 毒矛（双足飞龙，持续毒伤）
         ["Asal"] = () => new RuntimePillageAbility(),           // 掠夺（兽族步兵，拆建筑得金）
         ["Aspi"] = () => new RuntimeSpikedBarricadesAbility(),  // 尖刺路障（兽族建筑反伤）
-        ["Aakb"] = () => new RuntimeCommandAuraAbility(),          // 战鼓光环（科多兽）
-        ["AIcd"] = () => new RuntimeCommandAuraAbility(),          // 物品版命令光环
+        ["Aakb"] = WithObjects<RuntimeCommandAuraAbility>,          // 战鼓光环（科多兽）
+        ["AIcd"] = WithObjects<RuntimeCommandAuraAbility>,          // 物品版命令光环
         ["Acn2"] = () => new RuntimeCannibalizeAbility(),       // 食尸（憎恶）
         // —— 暗夜单位 ——
         ["Ara2"] = () => new RuntimeRoarAbility(),              // 咆哮（熊德）
@@ -205,8 +205,8 @@ public static class RuntimeAbilityFactory
         ["Arsp"] = () => new RuntimeStampedeAbility(),         // 兽群狂奔（雷克萨，引导 30s）
         // —— 暗夜被动与光环 ——
         ["Ashm"] = () => new RuntimeShadowMeldAbility(),       // 影遁（夜间静止后隐身）
-        ["Aoar"] = () => new RuntimeLifeRegenerationAuraAbility(), // 再生光环（治疗守卫）
-        ["Aabr"] = () => new RuntimeLifeRegenerationAuraAbility(), // 再生光环（黑曜石雕像）
+        ["Aoar"] = WithObjects<RuntimeLifeRegenerationAuraAbility>, // 再生光环（治疗守卫）
+        ["Aabr"] = WithObjects<RuntimeLifeRegenerationAuraAbility>, // 再生光环（黑曜石雕像）
         ["Aap1"] = () => new RuntimePlagueAuraAbility(),       // 瘟疫光环（憎恶）
         // —— 夜视、抗性皮肤与物品光环 ——
         ["Ault"] = () => new RuntimeUltravisionAbility(),       // 夜视（暗夜单位）
@@ -297,8 +297,8 @@ public static class RuntimeAbilityFactory
         ["Asds"] = () => new RuntimeKaboomAbility(),      // 自爆（野怪）
         ["Ambt"] = () => new RuntimeMoonWellReplenishAbility(),       // 法力电池（回蓝光环）
         ["Auns"] = () => new RuntimeUnsummonAbility(),          // 取消召唤（召回自己的召唤物）
-        ["ACnr"] = () => new RuntimeNeutralRegenAbility(),      // 中立恢复（只回血）
-        ["ANre"] = () => new RuntimeNeutralRegenAbility(),      // 中立恢复（只回蓝）
+        ["ACnr"] = WithObjects<RuntimeNeutralRegenAbility>,      // 中立恢复（只回血）
+        ["ANre"] = WithObjects<RuntimeNeutralRegenAbility>,      // 中立恢复（只回蓝）
         ["Aamk"] = () => new RuntimeAttributeModSkillAbility(), // 属性修正（中立英雄）
         ["ACf3"] = () => new FingerOfDeath(),     // 痛苦之指（单体伤害）
         ["ACmo"] = () => new RuntimeMonsoonAbility(),           // 季风（引导范围伤害 + 减速）
@@ -315,11 +315,11 @@ public static class RuntimeAbilityFactory
         ["Aiun"] = () => new InventoryPassive(),
         ["Apak"] = () => new InventoryPassive(),
         // —— 野怪别名：直接复用同名实现（数据列各自独立） ——
-        ["ACac"] = () => new RuntimeCommandAuraAbility(),          // 命令光环
-        ["ACah"] = () => new RuntimeThornsAuraAbility(),        // 荆棘光环
+        ["ACac"] = WithObjects<RuntimeCommandAuraAbility>,          // 命令光环
+        ["ACah"] = WithObjects<RuntimeThornsAuraAbility>,        // 荆棘光环
         ["ACat"] = () => new RuntimeTrueshotAuraAbility(),      // 强击光环
         ["ACav"] = () => new DevotionAura(),      // 专注光环
-        ["ACba"] = () => new RuntimeBrillianceAuraAbility(),    // 辉煌光环
+        ["ACba"] = WithObjects<RuntimeBrillianceAuraAbility>,    // 辉煌光环
         ["ACbb"] = () => new RuntimeBloodlustAbility(),         // 嗜血
         ["ACbc"] = () => new RuntimeBreathOfFireAbility(),      // 火焰吐息
         ["ACbf"] = () => new RuntimeFrostAttackAbility(),       // 霜冻吐息
@@ -375,7 +375,7 @@ public static class RuntimeAbilityFactory
         ["ACtb"] = () => new RuntimeStormBoltAbility(),       // 风暴之锤
         ["ACtc"] = () => new RuntimeThunderClapAbility(),       // 雷霆一击
         ["ACtn"] = () => new SerpentWard(),       // 毒蛇守卫
-        ["ACua"] = () => new RuntimeUnholyAuraAbility(),        // 邪恶光环
+        ["ACua"] = WithObjects<RuntimeUnholyAuraAbility>,        // 邪恶光环
         ["ACvp"] = () => new VampiricAura(),      // 吸血光环
         ["ACvs"] = () => new RuntimeVenomSpearAbility(),       // 毒矛
         ["ACwb"] = () => new Web(),               // 蛛网
@@ -438,7 +438,7 @@ public static class RuntimeAbilityFactory
         ["AIbx"] = () => new RuntimeBashAbility(),          // 物品版重击
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击
         ["AIad"] = () => new DevotionAura(),  // 物品版专注光环
-        ["AIgx"] = () => new RuntimeLifeRegenerationAuraAbility(), // 物品版再生光环
+        ["AIgx"] = WithObjects<RuntimeLifeRegenerationAuraAbility>, // 物品版再生光环
         ["AIdv"] = () => new RuntimeDivineShieldAbility(),  // 物品版神圣护甲
         ["AIhl"] = () => new HolyLight(),     // 物品版圣光术
         // —— 物品主动：直接复用同源技能实现（目标形态跟着别家能力走） ——
@@ -459,7 +459,7 @@ public static class RuntimeAbilityFactory
         // —— 野怪 / 古树 / 召唤物自带（客户端 Runtime*Ability） ——
         ["Aeat"] = () => new RuntimeEatTreeAbility(),        // 吃树回血（古树与部分野怪）
         ["Afzy"] = () => new Frenzy(),         // 狂暴（攻速 + 移速，自动施放）
-        ["Aasl"] = () => new RuntimeSlowAuraAbility(),       // 缓慢光环（龙卷风）
+        ["Aasl"] = WithObjects<RuntimeSlowAuraAbility>,       // 缓慢光环（龙卷风）
         ["ANpi"] = () => new RuntimePermanentImmolationAbility(), // 永久献祭（地狱火）
         ["Apig"] = () => new RuntimePermanentImmolationAbility(), // 永久献祭（图形版）
         ["Atdg"] = () => new RuntimeTornadoDamageAbility(),  // 龙卷风每秒伤害（Atsp/Atwa 仍为占位）
@@ -581,6 +581,17 @@ public static class RuntimeAbilityFactory
     public static bool IsImplemented(string id) => Map.ContainsKey(id);
 
     /// <summary>按技能 ID（找不到再按基类码）建实例；都不认识就返回占位实现。</summary>
+    /// <summary>客户端技能类要构造参数里的物编对象；Launcher 侧暂用一个全局实例承接。</summary>
+    public static War3ObjectData RuntimeObjects;
+
+    static Ability WithObjects<T>() where T : Ability
+    {
+        var withData = typeof(T).GetConstructor(new[] { typeof(War3ObjectData) });
+        return withData != null
+            ? (T)withData.Invoke(new object[] { RuntimeObjects })
+            : (T)Activator.CreateInstance(typeof(T));
+    }
+
     public static float ReadFloat(IRuntimeObjectData data, string field, int level, float fallback)
         => data?.GetFloat(field, Math.Max(1, level), 0, fallback) ?? fallback;
 

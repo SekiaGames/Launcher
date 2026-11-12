@@ -211,6 +211,7 @@ public sealed partial class Unit
         ability.Level = Mathf.Clamp(level, 0, type.MaxLevel);
         Abilities.Add(ability);
         ability.OnAdd();
+        ability.OnLevelUp();
         if (ability.Learned) ability.OnLearned();
         return ability;
     }

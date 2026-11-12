@@ -87,9 +87,9 @@ public static partial class CombatProbe
 
         float baseSpeed = World.SpeedOf(auraTarget);
         auraKnight.GiveAbility("AUau", 1);
-        auraWorld.RefreshAuras();
+        auraWorld.TickAbilities();
         Verify("邪恶光环 +10% 移速", baseSpeed * 1.1f, World.SpeedOf(auraTarget), 0.5f);
-        Verify("邪恶光环每秒回 0.5 血", 0.5f, auraTarget.AuraHpRegenPerSecond, 0.001f);
+        Verify("邪恶光环每秒回 0.5 血", 0.5f, auraTarget.AlwaysLifeRegenBonus, 0.001f);
 
         float regenHp = auraTarget.Hp;
         float baseRegenPerSecond = string.Equals(auraTarget.Type.RegenType, "none", StringComparison.OrdinalIgnoreCase)
