@@ -47,6 +47,7 @@ public static partial class CombatProbe
         Unit mine = world.Units.Find(unit => string.Equals(unit.Type?.Id, "nglm", StringComparison.OrdinalIgnoreCase));
         Verify("地雷可埋", 1f, placed && mine != null ? 1f : 0f, 0f);
         if (mine == null) return;
+        Verify("地雷埋下即隐形", 1f, mine.State.Invisible ? 1f : 0f, 0f);
 
         Unit enemy = ProbeUnit(world, "hfoo", 1, new Vector3(300f, 0f, 0f));
         Verify("敌人踩雷前活着", 1f, mine.Alive ? 1f : 0f, 0f);

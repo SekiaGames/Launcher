@@ -13,7 +13,7 @@ public sealed class FrostNova : Ability
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
 
     private const float SlowMove = 0.5f;
-    private const float SlowAttack = 0.5f;
+    private const float SlowAttack = 0.25f;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {

@@ -156,7 +156,8 @@ public static partial class CombatProbe
         Verify("霜冻新星施放成功", 1f, novaCast ? 1f : 0f, 0f);
         Verify("霜冻新星主目标掉血", 1f, primary.Hp < primaryHp ? 1f : 0f, 0f);
         Verify("霜冻新星范围内也掉血", 1f, splashA.Hp < splashHp ? 1f : 0f, 0f);
-        Verify("霜冻新星全部减速 50%", 0.5f, splashA.SlowMovePct, 0.001f);
+        Verify("霜冻新星移速减速 50%", 0.5f, splashA.SlowMovePct, 0.001f);
+        Verify("霜冻新星攻速减速 25%", 0.25f, splashA.SlowAttackPct, 0.001f);
         Verify("霜冻新星减速 4 秒", 4f, primary.SlowRemaining, 0.01f);
         GD.Print($"[自检] 霜冻新星 主目标 -{primaryHp - primary.Hp:0}，旁边 -{splashHp - splashA.Hp:0}，减速 {splashA.SlowRemaining:0.0}s");
 
@@ -301,7 +302,7 @@ public static partial class CombatProbe
         float beetleHp = beetle.Hp;
         carapaceWorld.DealDamage(carapaceWorld.MakeAttackDamage(striker, beetle, 100f));
         float dealtToBeetle = beetleHp - beetle.Hp;
-        float reflected = War3GameplayConfig.Resolve(dealtToBeetle * 0.15f, AttackType.Spells,
+        float reflected = War3GameplayConfig.Resolve(100f * 0.15f, AttackType.Spells,
             striker.Type.DefenseType, DamageType.Universal, 0f, false, false);
         Verify("尖刺甲壳反弹 15%", strikerHp - reflected, striker.Hp, 0.5f);
         GD.Print($"[自检] 尖刺甲壳 挨 {dealtToBeetle:0} 伤害，反弹 {strikerHp - striker.Hp:0}");

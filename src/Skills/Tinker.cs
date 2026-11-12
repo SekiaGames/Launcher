@@ -155,20 +155,17 @@ public sealed class Demolish : Ability
     }
 }
 
-/// <summary>口袋工厂（ANsy）：落点召唤工厂，工厂定时在半径内放出地精（地精寿命 DataC）。</summary>
+/// <summary>口袋工厂（ANsy）：落点召唤工厂，工厂按 DataA 间隔放出 DataB 地精（地精寿命 DataC、出位 DataD）。</summary>
 public sealed class SummonFactory : Ability
 {
-    /// <summary>物编没写放出间隔，取原版节奏 4 秒一只（口径简化）。</summary>
-    private const float SpawnInterval = 4f;
-
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
 
     public string FactoryId => Type?.SummonAt(Level) is { Length: >= 4 } id ? id : "nfac";
     public string GoblinId => (Type?.DataTextAt(Level, 'B') ?? "").Trim();
     public float Lifetime => Duration > 0f ? Duration : 40f;
     public float GoblinLifetime => Data('C');
-    public float SpawnRadius => Data('D') > 0f ? Data('D') : 200f;
-    public int MaxFactories => Mathf.Max(1, Mathf.RoundToInt(Data('A')));
+    public float SpawnInterval => Data('A') > 0f ? Data('A') : 4f;
+    public float SpawnOffset => Data('D') > 0f ? Data('D') : 64f;
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -180,7 +177,6 @@ public sealed class SummonFactory : Ability
     public override bool OnCast(World world, Unit target, Vector3 point)
     {
         if (world == null || Owner == null) return false;
-        if (CountFactories(world) >= MaxFactories) return false;
 
         Unit factory = world.Summon(Owner, FactoryId, Flatten(point), Lifetime);
         if (factory == null) return false;
@@ -191,23 +187,10 @@ public sealed class SummonFactory : Ability
             GoblinId = GoblinId,
             Remaining = Lifetime,
             Interval = SpawnInterval,
-            Radius = SpawnRadius,
+            Offset = SpawnOffset,
             GoblinLifetime = GoblinLifetime,
         });
         return true;
-    }
-
-    private int CountFactories(World world)
-    {
-        int count = 0;
-        foreach (Unit unit in world.Units)
-        {
-            if (unit == null || !unit.Alive) continue;
-            if (unit.Summoner != Owner) continue;
-            if (unit.Type == null || !string.Equals(unit.Type.Id, FactoryId, StringComparison.OrdinalIgnoreCase)) continue;
-            count++;
-        }
-        return count;
     }
 
     public override bool TryAutoCast(World world)
@@ -224,7 +207,7 @@ public sealed class FactorySpawnSpell : IGroundSpell
     public string GoblinId = "";
     public float Remaining;
     public float Interval = 4f;
-    public float Radius = 200f;
+    public float Offset = 64f;
     public float GoblinLifetime;
 
     private float _timer = 1f;
@@ -244,9 +227,9 @@ public sealed class FactorySpawnSpell : IGroundSpell
 
         _angle += 1.1f;
         var spot = new Vector3(
-            Factory.Position.X + Mathf.Cos(_angle) * Radius * 0.5f,
+            Factory.Position.X + Mathf.Cos(_angle) * Offset,
             Factory.Position.Y,
-            Factory.Position.Z + Mathf.Sin(_angle) * Radius * 0.5f);
+            Factory.Position.Z + Mathf.Sin(_angle) * Offset);
         world.Summon(Factory, GoblinId, spot, GoblinLifetime);
         return true;
     }

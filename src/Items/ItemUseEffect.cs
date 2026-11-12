@@ -420,7 +420,10 @@ public static class ItemUseEffect
     {
         string mineId = type.SummonAt(1);
         if (mineId.Length < 4) mineId = "nglm";
-        return world.Summon(unit, mineId, point, 0f) != null;
+        Unit mine = world.Summon(unit, mineId, point, 0f);
+        if (mine == null) return false;
+        mine.State.Add(StateMod.Invisible, 864000f);
+        return true;
     }
 
     /// <summary>传送法杖：把携带者送到目标友军/建筑身边。</summary>

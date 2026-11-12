@@ -239,6 +239,7 @@ public sealed partial class World
         {
             info.Amount *= 1f - Mathf.Clamp(target.MagicDamageReductionPct, 0f, 0.9f);
         }
+        info.ThornsBase = Mathf.Max(0f, info.Amount);
         info.ArmorFactor = info.UnderConstruction || !physical ? 1f : War3GameplayConfig.ArmorFactor(info.Armor);
         info.ClassRatio = War3GameplayConfig.ClassRatio(info.AttackType, info.DefenseType);
         info.Amount = War3GameplayConfig.Resolve(info.Amount, info.AttackType, info.DefenseType, info.DamageType,
@@ -287,7 +288,8 @@ public sealed partial class World
         float ratio = ReflectRatioOf(target, ranged);
         if (ratio > 0f)
         {
-            DamageInfo counter = MakeAbilityDamage(target, attacker, info.Amount * ratio,
+            float basis = info.ThornsBase > 0f ? info.ThornsBase : info.Amount;
+            DamageInfo counter = MakeAbilityDamage(target, attacker, Mathf.Max(1f, basis * ratio),
                 AttackType.Spells, DamageType.Universal);
             counter.Reflected = true;
             DealDamage(counter);

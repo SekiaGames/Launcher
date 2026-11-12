@@ -185,7 +185,7 @@ public static partial class CombatProbe
         float victimHp = thornVictim.Hp;
         thornsWorld.DealDamage(thornsWorld.MakeAttackDamage(thornAttacker, thornVictim, 100f));
         float victimDealt = victimHp - thornVictim.Hp;
-        float expectedThorns = War3GameplayConfig.Resolve(victimDealt * 0.1f, AttackType.Spells,
+        float expectedThorns = War3GameplayConfig.Resolve(100f * 0.1f, AttackType.Spells,
             thornAttacker.Type.DefenseType, DamageType.Universal, 0f, false, false);
         Verify("荆棘光环反弹 10%", attackerHp - expectedThorns, thornAttacker.Hp, 0.5f);
 

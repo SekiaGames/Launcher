@@ -16,6 +16,7 @@ public sealed class DamageInfo
     public DamageType DamageType = DamageType.Normal;
 
     public float Armor;
+    public float ThornsBase;
     public float ArmorFactor = 1f;
     public float ClassRatio = 1f;
     public bool UnderConstruction;
