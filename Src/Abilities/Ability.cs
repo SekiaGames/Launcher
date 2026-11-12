@@ -484,6 +484,8 @@ public abstract class Ability
 
     public virtual bool AutoCastPreemptsOrders => true;
 
+    public virtual bool IsTechTreeLocked => false;
+
     protected virtual bool EffectEventBeforePayment => true;
 
     protected virtual float ObjectDataArtLifeSpan => 0f;

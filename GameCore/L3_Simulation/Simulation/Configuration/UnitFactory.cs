@@ -69,6 +69,9 @@ public sealed class UnitType
     public string[] HeroAbilList = Array.Empty<string>();
     /// <summary>UnitData.race：human / orc / undead / nightelf / creeps / critters…（圣光术判定亡灵要用）。</summary>
     public string Race = "";
+
+    /// <summary>物编 type 列（mechanical/undead/ancient/townhall...）解析出来的分类位。</summary>
+    public Classification Classifications;
     public string SoundSet = "";
 
     public string ShadowArt = "";
@@ -154,6 +157,17 @@ public sealed class UnitType
     public float FootprintRadius => FootprintCells * 32f * 0.5f;
     public bool CanGatherLumber => HasAbility("Ahar") || HasAbility("Awha") || HasAbility("Ahrl");
     /// <summary>能打到某类目标：两套武器任一能打即可。</summary>
+    public static Classification ParseClassifications(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || raw == "_") return Classification.None;
+        Classification flags = Classification.None;
+        foreach (string token in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Enum.TryParse(token, true, out Classification value)) flags |= value;
+        }
+        return flags;
+    }
+
     public bool CanTarget(TargetKind kind) => WeaponFor(kind) != null;
 
     private bool HasAbility(string code)
@@ -196,6 +210,21 @@ public static class UnitFactory
             if (string.IsNullOrWhiteSpace(id)) continue;
             target[id.Trim()] = row;
         }
+    }
+
+    public static Unit Create(UnitType type, int player)
+    {
+        if (type == null) return null;
+        return new Unit
+        {
+            Type = type,
+            Player = player,
+            Hp = type.Hp,
+            MaxHp = type.Hp,
+            Mana = type.ManaStart,
+            IsBuilding = type.IsBuilding,
+            IsHero = type.IsHero,
+        };
     }
 
     public static UnitType Get(string id)
@@ -303,6 +332,7 @@ public static class UnitFactory
             type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
             type.DeathType = data.GetInt(dataRow, "deathType", 3);
             type.Race = (data.Get(dataRow, "race") ?? "").Trim();
+            type.Classifications = UnitType.ParseClassifications(data.Get(dataRow, "type"));
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim().ToLowerInvariant();
             type.MoveType = moveType.Length == 0 || moveType == "_" ? "foot" : moveType;
             type.Flying = type.MoveType is "fly" or "hover";

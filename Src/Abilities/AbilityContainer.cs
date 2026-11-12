@@ -18,6 +18,21 @@ public sealed class AbilityContainer : IList<Ability>
 
     public bool Contains(string rawcode) => Get(rawcode) != null;
 
+    public T Get<T>() where T : Ability
+    {
+        for (int i = 0; i < _items.Count; i++)
+        {
+            if (_items[i] is T typed) return typed;
+        }
+        return null;
+    }
+
+    public T Get<T>(string rawcode) where T : Ability
+    {
+        Ability found = Get(rawcode);
+        return found as T;
+    }
+
     public List<Ability> Snapshot() => new(_items);
 
     public bool Remove(string rawcode)

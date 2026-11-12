@@ -10,7 +10,11 @@ public sealed partial class Unit
         set => Position = new Vector3(value.X, Position.Y, value.Y);
     }
 
-    public int PlayerId => Player;
+    public int PlayerId
+    {
+        get => Player;
+        set => Player = value;
+    }
 
     static int _nextSimulationId;
 
@@ -40,6 +44,21 @@ public sealed partial class Unit
     public bool Hidden { get; set; }
 
     public string TypeId => Type?.Id ?? "";
+
+    public bool Is(Classification classification)
+    {
+        if (classification == Classification.None) return false;
+        Classification flags = Type?.Classifications ?? Classification.None;
+        if (IsHero) flags |= Classification.Hero;
+        if (IsBuilding && (flags & Classification.TownHall) == 0) flags |= Classification.None;
+        if (!IsBuilding && (flags & Classification.Mechanical) == 0 && (flags & Classification.Undead) == 0)
+            flags |= Classification.Organic;
+        return (flags & classification) != 0;
+    }
+
+    public Death Death => _death ??= new Death(this);
+
+    Death _death;
 
     public float CollisionSize => Type == null ? 16f : (IsBuilding ? Type.FootprintRadius : Type.CollisionRadius);
 
@@ -316,4 +335,17 @@ public enum StateModType
     Phased,
     RepairDisabled,
     PhysicalImmune,
+}
+
+public sealed class Death
+{
+    readonly Unit _unit;
+
+    public Death(Unit unit) => _unit = unit;
+
+    public bool IsCorpse => _unit.IsCorpse;
+
+    public bool IsDead => !_unit.Alive;
+
+    public float CorpseSecondsLeft => _unit.CorpseRemaining;
 }
