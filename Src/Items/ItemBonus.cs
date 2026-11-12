@@ -146,10 +146,11 @@ public readonly struct ItemBonus
         switch (ability.Code?.ToUpperInvariant())
         {
             case "AIAB":
+                // 客户端 ItemBonusReader.cs:66：力=DataC、敏=DataA、智=DataB（原实现按 A/B/C 顺序，三围串位）。
                 return new ItemBonus(
+                    (int)MathF.Round(dataC),
                     (int)MathF.Round(dataA),
                     (int)MathF.Round(dataB),
-                    (int)MathF.Round(ability.DataAt(1, 'C')),
                     0f, 0f, 0f, 0f, 0f);
             case "AIAT":
                 return new ItemBonus(0, 0, 0, dataA, 0f, 0f, 0f, 0f);

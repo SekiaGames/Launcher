@@ -224,6 +224,13 @@ public sealed partial class World
         }
 
         bool physical = info.DamageType == DamageType.Normal;
+        // 客户端 Health.cs:196：虚无单位免疫"非魔法"的物理伤害（放逐后普攻打不动，魔法照常）。
+        if (physical && target.State.Ethereal)
+        {
+            info.Amount = 0f;
+            DamageApplied?.Invoke(info);
+            return;
+        }
         if (target.State.MagicImmune && !physical || target.State.PhysicalImmune && physical)
         {
             info.Amount = 0f;

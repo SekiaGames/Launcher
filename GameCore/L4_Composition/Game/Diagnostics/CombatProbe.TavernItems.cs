@@ -123,7 +123,8 @@ public static partial class CombatProbe
         Ability haze = caster.FindAbility("Acdh");
         world.TryCast(caster, haze, victim, victim.Position);
         Verify("醉酒云雾未命中=DataB", hazeType.DataAt(1, 'B'), victim.AttackMissChance, 0.001f);
-        Verify("醉酒云雾减速=DataC", baseSpeed * (1f - hazeType.DataAt(1, 'C')), World.SpeedOf(victim), 0.5f);
+        // 客户端移速下限 150（NativeMovementSpeed.Limit），减速再狠也被托住。
+        Verify("醉酒云雾减速=DataC", Mathf.Max(baseSpeed * (1f - hazeType.DataAt(1, 'C')), MiscRules.MinUnitSpeed), World.SpeedOf(victim), 0.5f);
 
         float before = victim.Hp;
         Ability fire = caster.FindAbility("ANcf");

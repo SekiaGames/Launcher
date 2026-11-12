@@ -366,6 +366,17 @@ public static class UnitFactory
         weapon.Cooldown = Number(weapons.Get(row, "cool" + slot), 1.5f);
         weapon.MinDamage = Number(weapons.Get(row, "mindmg" + slot), 5f);
         weapon.MaxDamage = Number(weapons.Get(row, "maxdmg" + slot), 10f);
+        // 客户端按 dice1/sides1/dmgplus1 掷骰（Weapon.cs:114-119），不读折算后的 min/max。
+        weapon.DamageBase = weapons.GetInt(row, "dmgplus" + slot, 0);
+        weapon.DamageDice = weapons.GetInt(row, "dice" + slot, 0);
+        weapon.DamageSides = weapons.GetInt(row, "sides" + slot, 0);
+        if (weapon.DamageDice <= 0 && weapon.DamageSides <= 0)
+        {
+            weapon.DamageBase = Mathf.RoundToInt(weapon.MinDamage);
+            int span = Mathf.Max(0, Mathf.RoundToInt(weapon.MaxDamage - weapon.MinDamage));
+            weapon.DamageDice = span > 0 ? 1 : 0;
+            weapon.DamageSides = span;
+        }
         weapon.AcquireRange = Number(weapons.Get(row, "acquire"), 500f);
         weapon.DamagePoint = Number(weapons.Get(row, "dmgpt" + slot), 0.5f);
         weapon.Backswing = Number(weapons.Get(row, "backSw" + slot), 0.5f);

@@ -414,7 +414,10 @@ public sealed partial class World
             else unit.GroupSpeedCap = 0f;
         }
 
-        return Mathf.Max(40f, speed);
+        // 客户端 Stats.cs:155 走 NativeMovementSpeed.Limit：单位 150~400、建筑 25~400，硬上限 522。
+        float minimum = unit.IsBuilding ? MiscRules.MinBuildingSpeed : MiscRules.MinUnitSpeed;
+        float maximum = unit.IsBuilding ? MiscRules.MaxBuildingSpeed : MiscRules.MaxUnitSpeed;
+        return Mathf.Clamp(speed, minimum, Mathf.Min(maximum, 522f));
     }
 
     /// <summary>装备加成落地：加字段并立刻重算英雄派生值。</summary>

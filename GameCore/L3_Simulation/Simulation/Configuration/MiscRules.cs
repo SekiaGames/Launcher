@@ -6,12 +6,18 @@ namespace Launcher;
 
 public static class MiscRules
 {
-    private const string Table = "res://extract/Texts/MeleeV0UnitsMiscGame.json";
+    // 客户端读 Units/MiscGame.txt（TFT）；Melee_V0 那套是 RoC 档，矩阵与 TFT 不同，不能混用。
+    private const string Table = "res://extract/Texts/UnitsMiscGame.json";
 
     public static readonly float GuardDistance = Value("Misc.GuardDistance", 600f);
     public static readonly float MaxGuardDistance = Value("Misc.MaxGuardDistance", 1000f);
     public static readonly float GuardReturnTime = Value("Misc.GuardReturnTime", 5f);
     public static readonly float CreepCallForHelp = Value("Misc.CreepCallForHelp", 600f);
+    // 移速上下限（客户端 NativeMovementSpeed.Limit：单位 150/400、建筑 25/400，硬上限 522）。
+    public static readonly float MinUnitSpeed = Value("Misc.MinUnitSpeed", 150f);
+    public static readonly float MaxUnitSpeed = Value("Misc.MaxUnitSpeed", 400f);
+    public static readonly float MinBuildingSpeed = Value("Misc.MinBldgSpeed", 25f);
+    public static readonly float MaxBuildingSpeed = Value("Misc.MaxBldgSpeed", 400f);
     /// <summary>击杀召唤物只按这个比例给经验（MiscData 的 SummonedKillFactor，对战表是 0.5）。</summary>
     public static readonly float SummonedKillFactor = Value("Misc.SummonedKillFactor", 0.5f);
 

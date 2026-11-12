@@ -87,7 +87,8 @@ public sealed partial class World
             return;
         }
 
-        float raw = Mathf.Lerp(weapon.MinDamage, weapon.MaxDamage, (float)_random.NextDouble())
+        // 客户端 Weapon.Roll：底伤 + N 个 sides 面骰，不是 min/max 连续插值。
+        float raw = weapon.Roll(_random)
             + DamageBonus(unit) + unit.OrbDamage;
         raw *= 1f + unit.BonusDamagePct + unit.AuraDamagePct;
         unit.PaidArrowShot = false;

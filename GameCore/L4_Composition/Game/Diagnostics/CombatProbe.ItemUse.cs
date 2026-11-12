@@ -235,7 +235,8 @@ public static partial class CombatProbe
         Item item = GiveItem(hero, "pspd");
         bool used = world.UseItem(hero, item);
         Verify("加速卷轴可用", 1f, used ? 1f : 0f, 0f);
-        Verify("加速提升=DataA", baseSpeed * (1f + speedType.DataAt(1, 'A')), World.SpeedOf(hero), 1f);
+        // 客户端移速上限 400（NativeMovementSpeed.Limit），加速后要按上限截。
+        Verify("加速提升=DataA", Mathf.Min(baseSpeed * (1f + speedType.DataAt(1, 'A')), MiscRules.MaxUnitSpeed), World.SpeedOf(hero), 1f);
     }
 
     private static void CheckDispelWand()

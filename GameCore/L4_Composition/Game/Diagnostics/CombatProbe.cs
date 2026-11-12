@@ -18,7 +18,7 @@ public static partial class CombatProbe
 
         CheckRatio("穿刺 vs 加固", AttackType.Pierce, DefenseType.Fort, 0.35f);
         CheckRatio("攻城 vs 加固", AttackType.Siege, DefenseType.Fort, 1.50f);
-        CheckRatio("普通 vs 加固", AttackType.Normal, DefenseType.Fort, 0.50f);
+        CheckRatio("普通 vs 加固", AttackType.Normal, DefenseType.Fort, 0.70f);
         CheckRatio("魔法 vs 加固", AttackType.Magic, DefenseType.Fort, 0.35f);
         CheckRatio("混乱 vs 神圣", AttackType.Chaos, DefenseType.Divine, 1.00f);
         CheckRatio("所有普通 vs 神圣", AttackType.Hero, DefenseType.Divine, 0.05f);

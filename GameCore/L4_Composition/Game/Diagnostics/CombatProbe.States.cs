@@ -65,6 +65,16 @@ public static partial class CombatProbe
         GD.Print($"[自检] 物理 {physical.Raw:0} 经护甲与类别换算后 {physical.Amount:0.00}");
         victim.State.Clear();
 
+        // 客户端 Health.cs:196：虚无（放逐）免疫物理，但魔法照常吃（还有 1.66 增伤）。
+        victim.State.Add(StateMod.Ethereal, 5f);
+        DamageData etherealPhysical = sim.MakeAttackDamage(attacker, victim, 100f);
+        sim.DealDamage(etherealPhysical);
+        Verify("虚无挡物理伤害", 0f, etherealPhysical.Amount, 0.001f);
+        DamageData etherealMagic = World.MakeAbilityDamage(attacker, victim, 100f, AttackType.Spells, DamageType.Magic);
+        sim.DealDamage(etherealMagic);
+        Verify("虚无不挡法术伤害", 1f, etherealMagic.Amount > 0f ? 1f : 0f, 0f);
+        victim.State.Clear();
+
         float armor = sim.ArmorOf(victim);
         GD.Print($"[自检] 步兵护甲 {armor:0.00} 折算系数 {War3GameplayConfig.ArmorFactor(armor):0.0000}");
     }

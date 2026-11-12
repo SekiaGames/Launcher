@@ -16,10 +16,27 @@ public sealed class Weapon
     public float MinDamage = 5f;
     public float MaxDamage = 10f;
 
+    // 物编 dmgplus1/dice1/sides1：客户端 Weapon.Roll 按"底伤 + N 个 1..sides 骰"取值，
+    // Min/MaxDamage 只用于 UI 展示，不参与结算。
+    public int DamageBase;
+    public int DamageDice;
+    public int DamageSides;
+
     /// <summary>起手到伤害点的秒数（dmgpt）。</summary>
     public float DamagePoint = 0.5f;
     /// <summary>伤害点之后的后摇（backSw）。</summary>
     public float Backswing = 0.5f;
+
+    /// <summary>单次攻击的原始伤害（客户端 Weapon.cs:114-119 同款：底伤 + N 个 sides 面骰）。</summary>
+    public int Roll(System.Random rng)
+    {
+        int damage = DamageBase;
+        for (int index = 0; index < DamageDice; index++)
+        {
+            if (DamageSides > 0) damage += rng.Next(DamageSides) + 1;
+        }
+        return damage;
+    }
 
     public float SplashFull;
     public float SplashHalf;
