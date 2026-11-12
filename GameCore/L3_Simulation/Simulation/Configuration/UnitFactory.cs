@@ -227,7 +227,7 @@ public static class UnitFactory
         };
     }
 
-    public static Unit Create(War3ObjectData objects, string id, int team, Vec2 position, float facing)
+    public static Unit Create(War3ObjectData objects, string id, int team, Vec2 position, float facing, int heroLevel = 0)
     {
         UnitType type = Get(id);
         if (type == null) return null;
@@ -243,6 +243,16 @@ public static class UnitFactory
             IsBuilding = type.IsBuilding,
             IsHero = type.IsHero,
         };
+    }
+
+    /// <summary>幻象继承英雄三围（客户端 UnitFactory.CopyIllusionHeroAttributes）。</summary>
+    public static void CopyIllusionHeroAttributes(Unit source, Unit illusion)
+    {
+        if (source == null || illusion == null) return;
+        illusion.Strength = source.Strength;
+        illusion.Agility = source.Agility;
+        illusion.Intelligence = source.Intelligence;
+        illusion.Level = source.Level;
     }
 
     public static UnitType Get(string id)

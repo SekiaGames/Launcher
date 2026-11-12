@@ -47,6 +47,12 @@ public sealed partial class Unit
 
     public int TypeLevel => Level > 0 ? Level : 1;
 
+    public int TeamColorIndex
+    {
+        get => Player;
+        set => Player = value;
+    }
+
     public bool Is(Classification classification)
     {
         if (classification == Classification.None) return false;
