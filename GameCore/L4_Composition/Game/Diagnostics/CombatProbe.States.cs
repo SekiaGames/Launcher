@@ -24,7 +24,7 @@ public static partial class CombatProbe
         int ticks = 0;
         for (; ticks < 6000 && a.Alive && b.Alive; ticks++) sim.Advance();
 
-        GD.Print($"[自检] 步兵 vs 兽族步兵 单挑 {ticks * World.Tick:0.0}s"
+        GD.Print($"[自检] 步兵 vs 兽族步兵 单挑 {ticks * World.FrameSeconds:0.0}s"
             + $" 步兵存活={a.Alive}({a.Hp:0}/{a.MaxHp:0}) 兽兵存活={b.Alive}({b.Hp:0}/{b.MaxHp:0})");
         Verify("单挑能打到一方阵亡", 0f, a.Alive && b.Alive ? 1f : 0f, 0f);
         Verify("步兵 HP 未越界", 1f, a.Hp <= a.MaxHp + 0.01f ? 1f : 0f, 0f);
@@ -441,7 +441,7 @@ public static partial class CombatProbe
         int ticks = 400;
         for (int tick = 0; tick < ticks; tick++) world.Advance();
 
-        float seconds = ticks * World.Tick;
+        float seconds = ticks * World.FrameSeconds;
         float healed = unit.Hp - 100f;
         Verify("步兵按 regenHP 回血", footman.RegenHp * seconds, healed, 0.5f);
         Verify("regenType=none 不回血", 0f, noRegen.Hp - 100f, 0.01f);

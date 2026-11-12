@@ -23,7 +23,7 @@ public sealed partial class World
 
     private void EnsurePath(Unit unit, Vector3 goal, float stopDistance)
     {
-        unit.RepathTimer -= Tick;
+        unit.RepathTimer -= FrameSeconds;
         bool exhausted = unit.Path == null || unit.PathIndex >= unit.Path.Count;
         if (exhausted && unit.RepathTimer > 0f) return;
 
@@ -86,7 +86,7 @@ public sealed partial class World
         if (distance < 0.001f) return;
 
         Vector2 direction = delta / distance;
-        float step = Mathf.Min(SpeedOf(unit) * Tick, distance);
+        float step = Mathf.Min(SpeedOf(unit) * FrameSeconds, distance);
         Vector2 next = from + direction * step;
 
         float groundY = _terrain != null ? SurfaceY(unit.Type, next.X, next.Y) : unit.Position.Y;
@@ -137,7 +137,7 @@ public sealed partial class World
         if (unit.IsBuilding || unit.View == null) return;
 
         float diff = Mathf.Wrap(unit.TargetFacing - unit.Facing, -Mathf.Pi, Mathf.Pi);
-        float maxStep = Mathf.Max(1.5f, unit.Type.TurnSpeed) * Tick;
+        float maxStep = Mathf.Max(1.5f, unit.Type.TurnSpeed) * FrameSeconds;
         if (Mathf.Abs(diff) <= maxStep) unit.Facing = unit.TargetFacing;
         else unit.Facing += Mathf.Sign(diff) * maxStep;
         unit.View.Root.Rotation = new Vector3(0f, unit.Facing, 0f);

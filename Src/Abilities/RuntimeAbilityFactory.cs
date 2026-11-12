@@ -394,7 +394,7 @@ public static class RuntimeAbilityFactory
         ["ANcs"] = () => new RuntimeClusterRocketsAbility(),    // 集束火箭
         ["ANia"] = () => new RuntimeIncinerateAbility(),        // 焚化
         ["ANso"] = () => new RuntimeSoulBurnAbility(),          // 灵魂燃烧
-        ["ANin"] = () => new RuntimeInfernoAbility(),           // 地狱火
+        ["ANin"] = WithObjects<RuntimeInfernoAbility>,           // 地狱火
         ["ANlm"] = () => new SummonUnit(),        // 召唤熔岩
         ["ANr2"] = () => new RuntimeReincarnationAbility(),      // 重生
         ["ANsq"] = () => new SummonUnit(),        // 召唤豪猪

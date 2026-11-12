@@ -24,7 +24,7 @@ public sealed partial class World
             Player = player,
             Center = center,
             Radius = radius,
-            Remaining = Mathf.Max(Tick, seconds),
+            Remaining = Mathf.Max(FrameSeconds, seconds),
         });
     }
 
@@ -33,7 +33,7 @@ public sealed partial class World
         for (int index = Reveals.Count - 1; index >= 0; index--)
         {
             FogReveal reveal = Reveals[index];
-            reveal.Remaining -= Tick;
+            reveal.Remaining -= FrameSeconds;
             if (reveal.Remaining <= 0f) Reveals.RemoveAt(index);
         }
     }

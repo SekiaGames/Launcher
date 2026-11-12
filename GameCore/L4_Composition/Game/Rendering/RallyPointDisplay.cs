@@ -14,7 +14,7 @@ public sealed class RallyPointDisplay
 
     private readonly Dictionary<Unit, Flag> _flags = new();
 
-    public void Tick(Node3D parent, IReadOnlyList<Unit> units, Func<Unit, bool> show, Func<int, Color> colorOf)
+    public void FrameSeconds(Node3D parent, IReadOnlyList<Unit> units, Func<Unit, bool> show, Func<int, Color> colorOf)
     {
         var alive = new HashSet<Unit>();
         foreach (Unit unit in units)

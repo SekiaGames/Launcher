@@ -82,7 +82,7 @@ public sealed class WeatherRenderer
         return new WeatherRenderer(root, rain, spawnHeight);
     }
 
-    public void Tick(Vector3 focus)
+    public void FrameSeconds(Vector3 focus)
     {
         if (_root == null || !GodotObject.IsInstanceValid(_root)) return;
         _root.Position = new Vector3(focus.X, 0f, focus.Z);

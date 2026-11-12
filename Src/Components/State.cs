@@ -22,6 +22,15 @@ public enum StateMod
     PhysicalImmune,
     /// <summary>变形（妖术变羊）：禁攻击禁施法，但仍能移动。</summary>
     Morph,
+    MorphImmune,
+    Detector,
+    DisableAutoAttack,
+    DisableAutoCast,
+    DisableUnitCollision,
+    DisableBuildingCollision,
+    InternalPause,
+    PauseTimedLife,
+    Phased,
 }
 
 public sealed class State
@@ -71,7 +80,7 @@ public sealed class State
         _remaining.Remove(mod);
     }
 
-    public void Tick(float delta)
+    public void FrameSeconds(float delta)
     {
         if (_remaining.Count == 0) return;
 

@@ -103,7 +103,7 @@ public sealed partial class World
         foreach (Unit unit in Units)
         {
             if (!unit.Morphed || unit.MorphPermanent) continue;
-            unit.MorphRemaining -= Tick;
+            unit.MorphRemaining -= FrameSeconds;
             if (unit.MorphRemaining <= 0f) EndMorph(unit, notify: true);
         }
     }

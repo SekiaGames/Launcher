@@ -83,7 +83,7 @@ public static partial class CombatProbe
         states.Remove(StateMod.Stun);
         Verify("去掉一层仍在眩晕", 1f, states.Has(StateMod.Stun) ? 1f : 0f, 0f);
 
-        for (int tick = 0; tick < 11; tick++) states.Tick(0.05f);
+        for (int tick = 0; tick < 11; tick++) states.FrameSeconds(0.05f);
         Verify("0.55s 后眩晕自动到期", 0f, states.Has(StateMod.Stun) ? 1f : 0f, 0f);
         Verify("到期后可移动", 1f, states.CanMove ? 1f : 0f, 0f);
 

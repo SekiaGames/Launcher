@@ -69,7 +69,7 @@ public sealed class LoadingScreen
         return label;
     }
 
-    public void Tick(float delta)
+    public void FrameSeconds(float delta)
     {
         if (_remaining <= 0f) return;
         _remaining -= delta;

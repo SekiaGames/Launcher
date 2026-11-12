@@ -55,7 +55,7 @@ public sealed partial class World
         {
             Unit = unit,
             Phoenix = phoenixType,
-            Remaining = Mathf.Max(World.Tick, egg.HatchSeconds),
+            Remaining = Mathf.Max(World.FrameSeconds, egg.HatchSeconds),
         });
 
         UnitMorphed?.Invoke(unit);
@@ -68,7 +68,7 @@ public sealed partial class World
         for (int index = _pendingPhoenixEggs.Count - 1; index >= 0; index--)
         {
             PendingPhoenixEgg pending = _pendingPhoenixEggs[index];
-            pending.Remaining -= Tick;
+            pending.Remaining -= FrameSeconds;
             if (pending.Remaining > 0f) continue;
 
             _pendingPhoenixEggs.RemoveAt(index);

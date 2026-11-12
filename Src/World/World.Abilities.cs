@@ -42,7 +42,7 @@ public sealed partial class World
             Caster = caster,
             Ability = ability,
             Target = target,
-            Remaining = Mathf.Max(Tick, delay),
+            Remaining = Mathf.Max(FrameSeconds, delay),
         });
         AbilityMissileFired?.Invoke(caster, ability, target);
         return true;
@@ -58,7 +58,7 @@ public sealed partial class World
             Caster = caster,
             Ability = ability,
             Target = target,
-            Remaining = Mathf.Max(Tick, delay),
+            Remaining = Mathf.Max(FrameSeconds, delay),
         });
         return true;
     }
@@ -69,7 +69,7 @@ public sealed partial class World
         for (int index = _pendingAbilityHits.Count - 1; index >= 0; index--)
         {
             PendingAbilityHit hit = _pendingAbilityHits[index];
-            hit.Remaining -= Tick;
+            hit.Remaining -= FrameSeconds;
             if (hit.Remaining > 0f) continue;
 
             _pendingAbilityHits.RemoveAt(index);
@@ -205,17 +205,17 @@ public sealed partial class World
                 Ability ability = unit.Abilities[abilityIndex];
                 if (ability.CooldownRemaining > 0f)
                 {
-                    ability.CooldownRemaining = Mathf.Max(0f, ability.CooldownRemaining - Tick);
+                    ability.CooldownRemaining = Mathf.Max(0f, ability.CooldownRemaining - FrameSeconds);
                 }
             }
 
             if (unit.SummonRemaining > 0f)
             {
-                unit.SummonRemaining -= Tick;
+                unit.SummonRemaining -= FrameSeconds;
                 if (unit.SummonRemaining <= 0f) unit.ExpireSummon();
             }
 
-            unit.TickSlows(Tick);
+            unit.TickSlows(FrameSeconds);
 
             if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
 
@@ -225,8 +225,8 @@ public sealed partial class World
                 Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
                 if (!kept.Learned) continue;
-                kept.OnWorldTick(this, Tick);
-                kept.OnTick(Tick);
+                kept.OnWorldTick(this, FrameSeconds);
+                kept.OnTick(FrameSeconds);
                 debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
             }
             unit.State.DebuffScale = debuffScale;
@@ -234,7 +234,7 @@ public sealed partial class World
             for (int buffIndex = unit.Buffs.Count - 1; buffIndex >= 0; buffIndex--)
             {
                 Buff buff = unit.Buffs[buffIndex];
-                if (buff.OnTick(this, Tick)) continue;
+                if (buff.OnTick(this, FrameSeconds)) continue;
                 unit.Buffs.RemoveAt(buffIndex);
                 buff.OnRemove(this);
             }
@@ -255,7 +255,7 @@ public sealed partial class World
 
         if (unit.AutoCastTimer > 0f)
         {
-            unit.AutoCastTimer -= Tick;
+            unit.AutoCastTimer -= FrameSeconds;
             return;
         }
         unit.AutoCastTimer = 0.5f;

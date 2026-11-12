@@ -392,6 +392,33 @@ public abstract class Ability
 
     public virtual bool HasPersistentTargetArts => false;
 
+    public virtual IReadOnlyList<string> EffectArts => Array.Empty<string>();
+
+    public virtual IReadOnlyList<string> SpecialArts => Array.Empty<string>();
+
+    public virtual IReadOnlyList<string> AreaEffectArts => Array.Empty<string>();
+
+    public virtual IReadOnlyList<string> CasterArts => Array.Empty<string>();
+
+    public virtual IReadOnlyList<string> TargetArts => Array.Empty<string>();
+
+    /// <summary>物编 BuffID1..4（客户端 BuffRawcodes）。</summary>
+    public IReadOnlyList<string> BuffRawcodes
+    {
+        get
+        {
+            string[] codes = new string[4];
+            int count = 0;
+            for (int slot = 1; slot <= 4; slot++)
+            {
+                string value = GetLevelString($"BuffID{slot}", 0, "");
+                if (string.IsNullOrEmpty(value)) continue;
+                codes[count++] = value;
+            }
+            return count == 0 ? Array.Empty<string>() : codes[..count];
+        }
+    }
+
     public bool HasConfiguredTargets => Type != null && Type.Targets != SpellTargets.None;
 
     public TargetFlags ConfiguredTargets => TargetFlagsOf(Type?.Targets ?? SpellTargets.None);

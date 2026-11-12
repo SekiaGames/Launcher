@@ -96,6 +96,15 @@ public sealed partial class Unit
         return before - Hp;
     }
 
+    public void AddState(StateModType type, float seconds = 0f) => State.Add(ToStateMod(type), seconds);
+
+    public void RemoveState(StateModType type) => State.RemoveAll(ToStateMod(type));
+
+    public bool HasState(StateModType type) => State.Has(ToStateMod(type));
+
+    static StateMod ToStateMod(StateModType type)
+        => Enum.TryParse(type.ToString(), out StateMod mod) ? mod : StateMod.Pause;
+
     public void AddAbility(Ability ability)
     {
         if (ability == null) return;
@@ -253,4 +262,17 @@ public sealed class Stats
         foreach (float value in _nonStack.Values) total += value;
         _unit.NonStackArmor = total;
     }
+}
+
+
+public enum StateModType
+{
+    Stun, Snare, Sleep, Ethereal, Disarm, Silence, Invisible, Invulnerable, MagicImmune,
+    Resistant, MorphImmune, Detect, Detector,
+    DisableAutoAttack, DisableAutoCast,
+    DisableUnitCollision, DisableBuildingCollision,
+    InternalPause, PauseTimedLife,
+    Phased,
+    RepairDisabled,
+    PhysicalImmune,
 }

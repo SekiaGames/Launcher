@@ -99,7 +99,7 @@ public static partial class CombatProbe
         Verify("重生技能进冷却", reincarnationType.CooldownAt(1), reincarnation.CooldownRemaining, 0.1f);
 
         float delay = reincarnationType.DataAt(1, 'A');
-        int ticks = Mathf.CeilToInt(delay / World.Tick) + 5;
+        int ticks = Mathf.CeilToInt(delay / World.FrameSeconds) + 5;
         for (int index = 0; index < ticks; index++) world.Advance();
 
         Verify("重生倒计时结束后复活", 1f, chief.Alive ? 1f : 0f, 0f);

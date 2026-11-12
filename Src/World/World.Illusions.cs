@@ -13,7 +13,7 @@ public sealed partial class World
     {
         if (source?.Type == null) return null;
 
-        Unit image = Summon(source, source.Type.Id, position, Mathf.Max(World.Tick, seconds));
+        Unit image = Summon(source, source.Type.Id, position, Mathf.Max(World.FrameSeconds, seconds));
         if (image == null) return null;
 
         image.IsIllusion = true;

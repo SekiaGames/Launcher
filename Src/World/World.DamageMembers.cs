@@ -146,14 +146,14 @@ public sealed partial class World
                 float hpPerSecond = unit.Type.RegenHp + unit.TechHpRegen + unit.AlwaysLifeRegenBonus + unit.AuraHpRegenPerSecond + unit.MaxHp * unit.AuraHpRegenPct;
                 if (unit.IsHero) hpPerSecond += unit.Strength * HeroRules.StrRegenBonus;
                 if (IsUndeadUnit(unit) && IsBlighted(unit.Position)) hpPerSecond += BlightHealPerSecond;
-                if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * Tick);
+                if (hpPerSecond > 0f) unit.Hp = Mathf.Min(unit.MaxHp, unit.Hp + hpPerSecond * FrameSeconds);
             }
 
             if (unit.MaxMana > 0f && unit.Mana < unit.MaxMana)
             {
                 float manaPerSecond = unit.Type.ManaRegen + unit.TechManaRegen + unit.AuraManaRegenPerSecond + unit.BonusManaRegenPerSecond;
                 if (unit.IsHero) manaPerSecond += unit.Intelligence * HeroRules.IntRegenBonus;
-                if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * Tick);
+                if (manaPerSecond > 0f) unit.Mana = Mathf.Min(unit.MaxMana, unit.Mana + manaPerSecond * FrameSeconds);
             }
         }
     }

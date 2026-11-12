@@ -33,7 +33,7 @@ public sealed class LocustSwarmRelease : IGroundSpell
                 locust.Abilities.Add(agent);
             }
             _released++;
-            _timer += Mathf.Max(World.Tick, Interval);
+            _timer += Mathf.Max(World.FrameSeconds, Interval);
         }
         return _released < Count;
     }

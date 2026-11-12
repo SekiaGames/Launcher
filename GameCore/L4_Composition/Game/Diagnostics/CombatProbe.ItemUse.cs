@@ -193,7 +193,7 @@ public static partial class CombatProbe
         Verify("冷却中不能再用", 0f, second ? 1f : 0f, 0f);
 
         world.TickItemCooldowns();
-        Verify("冷却逐 tick 递减", 20f - World.Tick, staff.CooldownRemaining, 0.01f);
+        Verify("冷却逐 tick 递减", 20f - World.FrameSeconds, staff.CooldownRemaining, 0.01f);
     }
 
     private static Item GiveItem(Unit hero, string itemId)

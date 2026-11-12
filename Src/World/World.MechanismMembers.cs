@@ -46,7 +46,7 @@ public sealed partial class World
         if (Advance(unit, tree.Position, 140f))
         {
             unit.View?.Play("Stand Work");
-            unit.WorkTimer += Tick;
+            unit.WorkTimer += FrameSeconds;
             if (unit.WorkTimer >= WorkSeconds)
             {
                 unit.WorkTimer = 0f;
@@ -72,7 +72,7 @@ public sealed partial class World
 
         if (assigned == 0)
         {
-            site.NoBuilderTimer += Tick;
+            site.NoBuilderTimer += FrameSeconds;
             if (!site.NoBuilderLogged && site.NoBuilderTimer >= 3f)
             {
                 site.NoBuilderLogged = true;
@@ -88,7 +88,7 @@ public sealed partial class World
         if (builders > 0)
         {
             float rate = Mathf.Min(builders, 3);
-            site.BuildRemaining -= Tick * rate;
+            site.BuildRemaining -= FrameSeconds * rate;
             if (_buildLogBudget > 0 && site.BuildRemaining > 0f && builders > 1)
             {
                 _buildLogBudget--;
@@ -178,7 +178,7 @@ public sealed partial class World
         if (Advance(unit, mine.Position, GatherRange))
         {
             unit.View?.Play("Stand Work");
-            unit.WorkTimer += Tick;
+            unit.WorkTimer += FrameSeconds;
             if (unit.WorkTimer >= WorkSeconds)
             {
                 unit.WorkTimer = 0f;

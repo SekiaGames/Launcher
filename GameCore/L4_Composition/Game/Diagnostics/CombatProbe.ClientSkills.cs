@@ -145,7 +145,7 @@ public static partial class CombatProbe
         Verify("灵魂保存期间魔免", 1f, victim.State.MagicImmune ? 1f : 0f, 0f);
 
         float duration = soulType.DurationAt(1);
-        int ticks = Mathf.CeilToInt(duration / World.Tick) + 5;
+        int ticks = Mathf.CeilToInt(duration / World.FrameSeconds) + 5;
         for (int index = 0; index < ticks; index++) world.TickAbilities();
 
         Verify("灵魂保存到期归施法者", malganis.Player, victim.Player, 0f);
@@ -185,7 +185,7 @@ public static partial class CombatProbe
         Verify("黑暗转换期间目标沉睡", 1f, villager.State.Stunned ? 1f : 0f, 0f);
 
         float duration = convertType.DurationAt(1);
-        int ticks = Mathf.CeilToInt(duration / World.Tick) + 5;
+        int ticks = Mathf.CeilToInt(duration / World.FrameSeconds) + 5;
         for (int index = 0; index < ticks; index++) world.TickAbilities();
 
         int zombies = 0;

@@ -42,7 +42,7 @@ public sealed class SkyDomeRenderer
         return new SkyDomeRenderer(dome);
     }
 
-    public void Tick(Vector3 focus)
+    public void FrameSeconds(Vector3 focus)
     {
         if (_dome == null || !GodotObject.IsInstanceValid(_dome)) return;
         _dome.Position = focus;

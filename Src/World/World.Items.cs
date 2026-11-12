@@ -117,7 +117,7 @@ public sealed partial class World
             foreach (Item item in unit.Inventory)
             {
                 if (item == null || item.CooldownRemaining <= 0f) continue;
-                item.CooldownRemaining = Mathf.Max(0f, item.CooldownRemaining - Tick);
+                item.CooldownRemaining = Mathf.Max(0f, item.CooldownRemaining - FrameSeconds);
             }
         }
     }
@@ -183,7 +183,7 @@ public sealed partial class World
         foreach (Unit shop in Units)
         {
             if (!shop.Alive || !shop.HasStock) continue;
-            int restocked = shop.TickShop(Tick);
+            int restocked = shop.TickShop(FrameSeconds);
             if (restocked > 0 && _shopStockLogBudget > 0)
             {
                 _shopStockLogBudget--;

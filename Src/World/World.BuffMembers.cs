@@ -15,7 +15,7 @@ public sealed partial class World
         if (unit == null || buff == null) return null;
 
         buff.Owner = unit;
-        buff.Remaining = Mathf.Max(Tick, seconds);
+        buff.Remaining = Mathf.Max(FrameSeconds, seconds);
         unit.Buffs.Add(buff);
         buff.OnApply(this);
         buff.OnAdd();

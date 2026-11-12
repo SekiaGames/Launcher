@@ -32,7 +32,7 @@ public sealed class RuntimePossessionAbility : Ability
         target.TransferTo(Owner.Player);
         target.AutoCast = Owner.AutoCast;
         _consumeSelf = true;
-        _consumeDelay = World.Tick * 2f;
+        _consumeDelay = World.FrameSeconds * 2f;
         return true;
     }
 

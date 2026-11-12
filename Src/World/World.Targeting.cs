@@ -35,7 +35,7 @@ public sealed partial class World
 
         if (unit.ReturnDelay > 0f)
         {
-            unit.ReturnDelay -= Tick;
+            unit.ReturnDelay -= FrameSeconds;
             unit.Target = null;
             unit.MoveTarget = null;
             unit.Path = null;

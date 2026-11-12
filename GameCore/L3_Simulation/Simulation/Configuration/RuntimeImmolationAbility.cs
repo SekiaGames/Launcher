@@ -47,10 +47,10 @@ public sealed class RuntimeImmolationAbility : Ability
                 SetToggled(world, false);
                 return;
             }
-            Owner.Mana = Mathf.Max(0f, Owner.Mana - drain * World.Tick);
+            Owner.Mana = Mathf.Max(0f, Owner.Mana - drain * World.FrameSeconds);
         }
 
-        _pulse += World.Tick;
+        _pulse += World.FrameSeconds;
         if (_pulse < 1f) return;
         _pulse -= 1f;
 

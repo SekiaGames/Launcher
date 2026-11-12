@@ -24,7 +24,7 @@ public sealed partial class World
     {
         for (int index = _groundSpells.Count - 1; index >= 0; index--)
         {
-            if (_groundSpells[index].Step(this, Tick)) continue;
+            if (_groundSpells[index].Step(this, FrameSeconds)) continue;
             _groundSpells.RemoveAt(index);
         }
     }

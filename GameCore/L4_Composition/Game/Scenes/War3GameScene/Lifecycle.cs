@@ -329,19 +329,19 @@ public sealed partial class War3GameScene : Node3D
         TickSceneEffects((float)delta);
         TickFloatingLabels((float)delta);
         TickLightningBeams((float)delta);
-        _weather?.Tick(_camera.Target);
-        _skyDome?.Tick(_camera.Target);
-        _loadingScreen?.Tick((float)delta);
+        _weather?.FrameSeconds(_camera.Target);
+        _skyDome?.FrameSeconds(_camera.Target);
+        _loadingScreen?.FrameSeconds((float)delta);
 
         _rallyTimer -= (float)delta;
         if (_rallyTimer <= 0f && _worldRoot != null)
         {
             _rallyTimer = 0.3f;
-            _rallyFlags.Tick(_worldRoot, _allUnits, unit => AreAllied(unit.Player, ViewPlayer), UnitSceneComponent.ColorOf);
+            _rallyFlags.FrameSeconds(_worldRoot, _allUnits, unit => AreAllied(unit.Player, ViewPlayer), UnitSceneComponent.ColorOf);
         }
 
         TickFog((float)delta);
-        _terrainBuilder?.Blight?.Tick((float)delta, _allUnits);
+        _terrainBuilder?.Blight?.FrameSeconds((float)delta, _allUnits);
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
         RefreshConstruction();

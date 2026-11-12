@@ -55,7 +55,7 @@ public static partial class CombatProbe
         float before = victim.Hp;
 
         // 引导时长跟着物编 Cast 走（AHbz 是 1s/波），不能写死 tick 数。
-        int stormTicks = (int)(storm.ChannelLength / World.Tick) + 5;
+        int stormTicks = (int)(storm.ChannelLength / World.FrameSeconds) + 5;
         for (int tick = 0; tick < stormTicks; tick++) world.TickChannels();
         float total = before - victim.Hp;
 
@@ -253,7 +253,7 @@ public static partial class CombatProbe
         Verify("打霜冻护甲会被减速", 1f, attacker.Slowed ? 1f : 0f, 0f);
         Verify("减速时长 5s", 5f, attacker.SlowRemaining, 0.2f);
 
-        for (int tick = 0; tick < (int)(frost.BuffDuration / World.Tick) + 4; tick++) world.TickAbilities();
+        for (int tick = 0; tick < (int)(frost.BuffDuration / World.FrameSeconds) + 4; tick++) world.TickAbilities();
         Verify("到期护甲撤销", baseArmor, world.ArmorOf(soldier), 0.01f);
         GD.Print($"[自检] 霜冻护甲 +{frost.ArmorBonus:0} 甲 持续 {frost.BuffDuration:0}s，到期回到 {world.ArmorOf(soldier):0.0}");
     }

@@ -1071,7 +1071,7 @@ public sealed partial class War3GameScene
 
     private void AdvanceShopSeconds(float seconds)
     {
-        int steps = Mathf.CeilToInt(seconds / World.Tick);
+        int steps = Mathf.CeilToInt(seconds / World.FrameSeconds);
         for (int step = 0; step < steps; step++) _world.TickShops();
     }
 

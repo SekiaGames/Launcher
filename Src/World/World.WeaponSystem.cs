@@ -34,19 +34,19 @@ public sealed partial class World
 
             if (unit.AttackWindupActive)
             {
-                unit.AttackWindup -= Tick;
+                unit.AttackWindup -= FrameSeconds;
                 if (unit.AttackWindup <= 0f) FireWeapon(unit);
             }
 
-            if (unit.Backswing > 0f) unit.Backswing -= Tick;
-            if (unit.AttackCooldown > 0f) unit.AttackCooldown -= Tick;
-            if (unit.InMineRemaining > 0f) unit.InMineRemaining -= Tick;
+            if (unit.Backswing > 0f) unit.Backswing -= FrameSeconds;
+            if (unit.AttackCooldown > 0f) unit.AttackCooldown -= FrameSeconds;
+            if (unit.InMineRemaining > 0f) unit.InMineRemaining -= FrameSeconds;
         }
 
         for (int index = _pendingHits.Count - 1; index >= 0; index--)
         {
             PendingHit hit = _pendingHits[index];
-            hit.Remaining -= Tick;
+            hit.Remaining -= FrameSeconds;
             if (hit.Remaining > 0f) continue;
 
             _pendingHits.RemoveAt(index);
@@ -112,7 +112,7 @@ public sealed partial class World
         {
             unit.NextMissileScene = arrowScene;
             MissileFired?.Invoke(unit, target);
-            float travel = Mathf.Max(Tick, unit.DistanceTo(target) / weapon.MissileSpeed);
+            float travel = Mathf.Max(FrameSeconds, unit.DistanceTo(target) / weapon.MissileSpeed);
             _pendingHits.Add(new PendingHit { Info = info, Remaining = travel });
             return;
         }

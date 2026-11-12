@@ -7,7 +7,10 @@ namespace OpenWC3;
 
 public sealed partial class World
 {
-    public const float Tick = 0.05f;
+    public const float FrameSeconds = 0.05f;
+
+    /// <summary>客户端 World.Tick：单帧秒数（A 侧是编译期常量，这里给实例口径）。</summary>
+    public float Tick => FrameSeconds;
 
     /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
     public bool IsNight;
@@ -83,10 +86,10 @@ public sealed partial class World
             Unit unit = Units[index];
             if (!unit.Alive)
             {
-                unit.TickCorpse(Tick);
+                unit.TickCorpse(FrameSeconds);
                 continue;
             }
-            unit.State.Tick(Tick);
+            unit.State.FrameSeconds(FrameSeconds);
             Step(unit);
         }
 
@@ -104,7 +107,7 @@ public sealed partial class World
         TickShops();
         TickSeparation();
         ResolveRepulse();
-        TickHeroRevive(Tick);
+        TickHeroRevive(FrameSeconds);
         TickReincarnation();
         TickPhoenixEgg();
     }

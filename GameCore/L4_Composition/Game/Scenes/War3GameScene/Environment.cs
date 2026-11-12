@@ -13,7 +13,7 @@ public sealed partial class War3GameScene
     private void TickClock()
     {
         float scale = 1f / Mathf.Max(0.02f, TimeScaleHint);
-        _todHours += World.Tick * scale * 24f / Mathf.Max(60f, DaySeconds);
+        _todHours += World.FrameSeconds * scale * 24f / Mathf.Max(60f, DaySeconds);
         if (_todHours >= 24f) _todHours -= 24f;
         if (_world != null) _world.IsNight = IsNight;
     }

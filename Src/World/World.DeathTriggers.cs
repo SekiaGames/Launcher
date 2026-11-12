@@ -78,7 +78,7 @@ public sealed partial class World
         for (int index = _pendingReincarnations.Count - 1; index >= 0; index--)
         {
             PendingReincarnation pending = _pendingReincarnations[index];
-            pending.Remaining -= Tick;
+            pending.Remaining -= FrameSeconds;
             if (pending.Remaining > 0f) continue;
 
             _pendingReincarnations.RemoveAt(index);

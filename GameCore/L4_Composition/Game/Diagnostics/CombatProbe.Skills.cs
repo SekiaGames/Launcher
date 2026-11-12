@@ -539,7 +539,7 @@ public static partial class CombatProbe
         // 补货要等 stockStart（开店初始延迟）过了才开始按 stockRegen 计时
         ItemType potionType = goodsType;
         float need = (potionType != null ? potionType.StockStart + potionType.StockRegen : shop.RestockInterval) + 5f;
-        int steps = (int)(need / World.Tick) + 4;
+        int steps = (int)(need / World.FrameSeconds) + 4;
         for (int index = 0; index < steps; index++) world.TickShops();
         Verify("过了 stockStart + 补货周期后补回 1", 1f, shop.StockOf(goodsId), 0f);
         Verify("补货时刻已越过 stockStart", 1f,

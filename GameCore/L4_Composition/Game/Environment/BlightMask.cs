@@ -54,7 +54,7 @@ public sealed class BlightMask
     }
 
     /// <summary>每 0.5s 扫一遍亡灵建筑，把它们的腐地半径盖进掩码；有变化才上传纹理。</summary>
-    public void Tick(float delta, IReadOnlyList<Unit> units)
+    public void FrameSeconds(float delta, IReadOnlyList<Unit> units)
     {
         _timer -= delta;
         if (_timer > 0f) return;

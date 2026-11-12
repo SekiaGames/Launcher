@@ -47,7 +47,7 @@ public sealed partial class World
                 continue;
             }
 
-            float amount = ability.RepairPerSecond(target) * Tick;
+            float amount = ability.RepairPerSecond(target) * FrameSeconds;
             if (amount <= 0f) continue;
 
             worker.RepairGoldDebt += amount * ability.GoldPerHitPoint;

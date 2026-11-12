@@ -100,10 +100,10 @@ public sealed partial class World
                 continue;
             }
 
-            state.Remaining -= Tick;
+            state.Remaining -= FrameSeconds;
             if (state.Interval > 0f)
             {
-                state.Accumulator += Tick;
+                state.Accumulator += FrameSeconds;
                 while (state.Accumulator >= state.Interval && state.Remaining > -state.Interval)
                 {
                     state.Accumulator -= state.Interval;

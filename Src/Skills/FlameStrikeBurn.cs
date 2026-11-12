@@ -22,11 +22,11 @@ public sealed class FlameStrikeBurn : IGroundSpell
     public bool Step(World world, float delta)
     {
         _elapsed += Mathf.Max(0f, delta);
-        if (_elapsed > TotalDuration + World.Tick * 0.5f) return false;
+        if (_elapsed > TotalDuration + World.FrameSeconds * 0.5f) return false;
 
-        bool full = _elapsed <= FullDuration + World.Tick * 0.5f;
+        bool full = _elapsed <= FullDuration + World.FrameSeconds * 0.5f;
         float damage = full ? FullDamage : HalfDamage;
-        float interval = Mathf.Max(World.Tick, full ? FullInterval : HalfInterval);
+        float interval = Mathf.Max(World.FrameSeconds, full ? FullInterval : HalfInterval);
 
         Timer -= Mathf.Max(0f, delta);
         int guard = 0;
