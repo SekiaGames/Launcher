@@ -15,6 +15,8 @@ public sealed class ItemType
     public string Id;
     public string Name;
     public string Tip;
+    /// <summary>物编 Ubertip：真正的说明文字（Tip 只是商店按钮那句「购买XXX(A)」）。</summary>
+    public string Ubertip;
     public string ModelPath;
     public float Scale = 1f;
     public int Level = 1;
@@ -106,6 +108,7 @@ public static class ItemCatalog
         string localized = String(id, "Name");
         if (!string.IsNullOrWhiteSpace(localized)) type.Name = localized;
         type.Tip = String(id, "Tip") ?? "";
+        type.Ubertip = String(id, "Ubertip") ?? "";
         type.IconArt = IconFor(type);
 
         Cache[id] = type;

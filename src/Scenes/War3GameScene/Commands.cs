@@ -237,12 +237,55 @@ public sealed partial class War3GameScene
 
     private string _subgroupType = "";
 
+    /// <summary>
+    /// 子组池：一次点选/框选选中的所有单位。Tab 与「点头像」只切换当前子组（`_selected`），
+    /// 池子保持不动，所以切走还能切回来（原版就是这样，不会把别的兵丢掉）。
+    /// </summary>
+    private readonly List<Unit> _subgroupPool = new();
+
+    private void RememberSubgroupPool()
+    {
+        _subgroupPool.Clear();
+        foreach (Unit unit in _selected)
+        {
+            if (unit != null && unit.Alive) _subgroupPool.Add(unit);
+        }
+    }
+
+    /// <summary>把当前子组切到指定类型（单位类型 id），其余池内单位只取消高亮、留在池子里。</summary>
+    private void ShowSubgroup(string typeId)
+    {
+        if (_subgroupPool.Count == 0) return;
+
+        var keep = new List<Unit>();
+        foreach (Unit unit in _subgroupPool)
+        {
+            if (unit == null || !unit.Alive) continue;
+            if (!string.Equals(unit.Type?.Id, typeId, StringComparison.OrdinalIgnoreCase)) continue;
+            keep.Add(unit);
+        }
+        if (keep.Count == 0) keep.AddRange(_subgroupPool);
+
+        foreach (Unit unit in _selected) unit.View?.SetSelected(false);
+        _selected.Clear();
+        foreach (Unit unit in keep)
+        {
+            _selected.Add(unit);
+            unit.View?.SetSelected(true);
+        }
+
+        _subgroupType = typeId;
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+    }
+
     private void CycleSubgroup()
     {
-        if (_selected.Count <= 1) return;
+        if (_subgroupPool.Count == 0) RememberSubgroupPool();
+        if (_subgroupPool.Count <= 1) return;
 
         var ids = new List<string>();
-        foreach (Unit unit in _selected)
+        foreach (Unit unit in _subgroupPool)
         {
             if (unit?.Type == null) continue;
             if (!ids.Contains(unit.Type.Id)) ids.Add(unit.Type.Id);
@@ -255,23 +298,24 @@ public sealed partial class War3GameScene
 
         int index = string.IsNullOrEmpty(_subgroupType) ? 0 : ids.IndexOf(_subgroupType);
         index = (index + 1) % ids.Count;
-        _subgroupType = ids[index];
+        ShowSubgroup(ids[index]);
+        _hud?.SetHint($"子组 {index + 1}/{ids.Count}：{UnitCatalog.Get(ids[index])?.Name}（{_selected.Count} 个）");
+    }
 
-        var keep = new List<Unit>();
-        foreach (Unit unit in _selected)
+    /// <summary>点头像：切到该英雄所在的子组（同类型单位一起），池子里其它兵不丢。</summary>
+    private void ShowHeroSubgroup(Unit hero)
+    {
+        if (hero?.Type == null) return;
+        if (!_subgroupPool.Contains(hero))
         {
-            if (string.Equals(unit.Type?.Id, _subgroupType, StringComparison.OrdinalIgnoreCase)) keep.Add(unit);
+            RememberSubgroupPool();
+            if (!_subgroupPool.Contains(hero))
+            {
+                _subgroupPool.Clear();
+                if (hero.Alive) _subgroupPool.Add(hero);
+            }
         }
-
-        ClearSelection();
-        foreach (Unit unit in keep)
-        {
-            _selected.Add(unit);
-            unit.View?.SetSelected(true);
-        }
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
-        _hud?.SetHint($"子组 {index + 1}/{ids.Count}：{UnitCatalog.Get(_subgroupType)?.Name}（{keep.Count} 个）");
+        ShowSubgroup(hero.Type.Id);
     }
 
     private void ToggleAutoCast(Unit owner, Ability ability)

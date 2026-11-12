@@ -52,6 +52,7 @@ public sealed class MeleeHudController
     private readonly List<CommandEntry> _items = new();
     private readonly Panel _detailPanel;
     private readonly Label _detailText;
+    private readonly TextureRect _detailIcon;
 
     public Func<Unit, string> DetailProvider;
     public MinimapFrame MinimapFrame { get; }
@@ -214,8 +215,20 @@ public sealed class MeleeHudController
         });
         layer.AddChild(_detailPanel);
 
-        _detailText = Label("", 14, new Vector2(1068f, 560f), new Color(0.86f, 0.89f, 0.94f));
-        _detailText.Size = new Vector2(504f, 108f);
+        _detailIcon = new TextureRect
+        {
+            Name = "DetailIcon",
+            Position = new Vector2(1068f, 560f),
+            Size = new Vector2(48f, 48f),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        layer.AddChild(_detailIcon);
+
+        _detailText = Label("", 14, new Vector2(1124f, 560f), new Color(0.86f, 0.89f, 0.94f));
+        _detailText.Size = new Vector2(448f, 108f);
         _detailText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _detailText.VerticalAlignment = VerticalAlignment.Top;
         layer.AddChild(_detailText);
@@ -372,10 +385,10 @@ public sealed class MeleeHudController
 
     private void ShowItemDetail(int index)
     {
-        ShowDetailEntry(index >= 0 && index < _items.Count ? _items[index] : null);
+        ShowDetailEntry(index >= 0 && index < _items.Count ? _items[index] : null, isItem: true);
     }
 
-    private void ShowDetailEntry(CommandEntry entry)
+    private void ShowDetailEntry(CommandEntry entry, bool isItem = false)
     {
         if (entry == null)
         {
@@ -383,13 +396,54 @@ public sealed class MeleeHudController
             return;
         }
 
-        _detailText.Text = BuildTooltip(entry);
+        ItemType item = isItem ? ItemCatalog.Get(entry.Id) : null;
+        if (item != null)
+        {
+            _detailIcon.Texture = entry.Icon;
+            _detailIcon.Visible = true;
+            _detailText.Position = new Vector2(1124f, 558f);
+            _detailText.Size = new Vector2(448f, 112f);
+            _detailText.Text = ItemDetailText(item);
+        }
+        else
+        {
+            _detailIcon.Visible = false;
+            _detailText.Position = new Vector2(1068f, 560f);
+            _detailText.Size = new Vector2(504f, 108f);
+            _detailText.Text = BuildTooltip(entry);
+        }
+
         _detailPanel.Visible = true;
     }
+
+    /// <summary>物品详情：图标 + 名字 + 加成/消耗说明 + 等级与售价 + 物编 Ubertip（色码与占位符都解掉）。</summary>
+    public static string ItemDetailText(ItemType item)
+    {
+        var lines = new List<string> { item.Name };
+
+        string bonus = War3Text.Describe(item.BonusText);
+        if (!string.IsNullOrWhiteSpace(bonus) && bonus != "-") lines.Add(bonus);
+
+        var meta = new List<string> { $"等级 {item.Level}" };
+        if (item.GoldCost > 0) meta.Add($"{item.GoldCost} 金");
+        if (item.Uses > 0) meta.Add($"{item.Uses} 次");
+        if (item.PowerUp) meta.Add("一次性");
+        lines.Add(string.Join("    ", meta));
+
+        string description = War3Text.Describe(item.Ubertip);
+        if (string.IsNullOrWhiteSpace(description)) description = War3Text.Describe(item.Tip);
+        if (!string.IsNullOrWhiteSpace(description)) lines.Add(description);
+
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>探针用：强制展开某个物品格详情，便于截图核对面板。</summary>
+    public void ShowItemDetailForTest(int index) => ShowItemDetail(index);
 
     private void HideDetail()
     {
         _detailPanel.Visible = false;
+        _detailIcon.Visible = false;
     }
 
     private void Press(int index)

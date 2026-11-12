@@ -451,6 +451,13 @@ public sealed partial class War3GameScene
 
         int carried = 0;
         foreach (Item item in hero.Inventory) if (item != null) carried++;
+        foreach (Item detailItem in hero.Inventory)
+        {
+            if (detailItem?.Type == null) continue;
+            string detail = MeleeHudController.ItemDetailText(detailItem.Type).Replace("\n", " / ");
+            GD.Print($"[ITEM] {detailItem.Type.Id} 详情：{detail}");
+        }
+        _hud?.ShowItemDetailForTest(0);
         GD.Print($"[CARD] 命令卡 {DescribeCommandCard(hero)}");
         GD.Print($"[CARD] 物品 {carried}/{Unit.InventorySize} 格，命令卡格位 0..4 是移动/停止/据守/攻击/巡逻");
     }
@@ -554,6 +561,61 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>--rally-probe：给己方前几座建筑设集结点，用来看旗帜模型与队伍色。</summary>
+    /// <summary>--subgroup-probe：验证 Tab 切子组与「点头像切子组」不会把池子里的别的兵丢掉。</summary>
+    public void RunSubgroupProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        if (hall == null)
+        {
+            GD.Print("[SUB] 找不到主基地，跳过");
+            return;
+        }
+
+        ClearSelection();
+        var spawned = new List<Unit>();
+        for (int index = 0; index < 2; index++)
+        {
+            Unit footman = Spawn("hfoo", ViewPlayer, hall.Position.X + 220f + index * 70f, hall.Position.Z + 220f, 0f, 0f, 1f);
+            if (footman != null) { _world.Units.Add(footman); spawned.Add(footman); }
+            Unit rifleman = Spawn("hrif", ViewPlayer, hall.Position.X + 220f + index * 70f, hall.Position.Z + 300f, 0f, 0f, 1f);
+            if (rifleman != null) { _world.Units.Add(rifleman); spawned.Add(rifleman); }
+        }
+        if (spawned.Count == 0)
+        {
+            GD.Print("[SUB] 模型缺失，跳过");
+            return;
+        }
+
+        foreach (Unit unit in spawned) { _selected.Add(unit); unit.View?.SetSelected(true); }
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        RememberSubgroupPool();
+        GD.Print($"[SUB] 初始 {DescribeSubgroup()}");
+
+        CycleSubgroup();
+        GD.Print($"[SUB] Tab 一次 {DescribeSubgroup()}");
+        CycleSubgroup();
+        GD.Print($"[SUB] Tab 两次 {DescribeSubgroup()}");
+
+        ShowHeroSubgroup(spawned[0]);
+        GD.Print($"[SUB] 点第一个头像 {DescribeSubgroup()}");
+        ShowHeroSubgroup(spawned[spawned.Count - 1]);
+        GD.Print($"[SUB] 点最后一个头像 {DescribeSubgroup()}");
+    }
+
+    private string DescribeSubgroup()
+    {
+        var counts = new Dictionary<string, int>();
+        foreach (Unit unit in _selected)
+        {
+            string id = unit?.Type?.Id ?? "?";
+            counts[id] = counts.TryGetValue(id, out int count) ? count + 1 : 1;
+        }
+        var parts = new List<string>();
+        foreach (KeyValuePair<string, int> pair in counts) parts.Add($"{pair.Key}x{pair.Value}");
+        return $"当前 {string.Join("+", parts)}，池子 {_subgroupPool.Count}";
+    }
+
     public void RunRallyProbe()
     {
         int count = 0;

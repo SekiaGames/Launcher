@@ -312,6 +312,8 @@ public sealed partial class War3GameScene
     {
         foreach (Unit unit in _selected) unit.View?.SetSelected(false);
         _selected.Clear();
+        _subgroupPool.Clear();
+        _subgroupType = "";
         _hud?.SetSelection(_selected);
         UpdateCommandCard();
     }

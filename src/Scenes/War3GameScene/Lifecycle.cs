@@ -267,11 +267,7 @@ public sealed partial class War3GameScene : Node3D
             return;
         }
 
-        ClearSelection();
-        _selected.Add(hero);
-        hero.View?.SetSelected(true);
-        _hud.SetSelection(_selected);
-        UpdateCommandCard();
+        ShowHeroSubgroup(hero);
         PlaySelectionVoice();
     }
 
