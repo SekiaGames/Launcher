@@ -18,6 +18,8 @@ public sealed partial class World
 
     public System.Random ScriptRandom => _random;
 
+    public System.Random Rng => _random;
+
     /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
     public bool IsNight;
     /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>

@@ -1,5 +1,8 @@
 namespace OpenWC3;
 
+/// <summary>弹道外观与速度（客户端 AttackMissileProfile）。</summary>
+public readonly record struct AttackMissileProfile(string Art, float Speed, float Arc);
+
 /// <summary>
 /// 一套武器的完整参数。对标客户端 Src/Core/Weapon.cs + Weapon.TypeFields.cs。
 /// UnitWeapons 里每个单位最多两套（*1 / *2），打不同目标类别时切换。
@@ -55,6 +58,10 @@ public sealed class Weapon
     public float MissileArc;
 
     public float AcquireRange = 500f;
+
+    public Weapon CaptureMissileWeapon() => this;
+
+    public float AbilityDamageBonus;
 
     public WeaponType WeaponType => string.IsNullOrEmpty(MissileScene) ? WeaponType.Melee : WeaponType.Missile;
 

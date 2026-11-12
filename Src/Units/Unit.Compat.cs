@@ -64,6 +64,10 @@ public sealed partial class Unit
 
     public int TeleportVersion;
 
+    public float FlyHeight => Type != null && Type.Flying ? 100f : 0f;
+
+    public float ProjectileLaunchZ => Type?.ShadowHeight ?? 0f;
+
     public float CollisionSize => Type == null ? 16f : (IsBuilding ? Type.FootprintRadius : Type.CollisionRadius);
 
     public Ability GetAbility(string id) => FindAbility(id);
@@ -309,6 +313,8 @@ public sealed class Stats
         get => _unit.BonusAttackSpeedPct;
         set => _unit.BonusAttackSpeedPct = value;
     }
+
+    public float TechDamageBonus => _unit.TechDamageFlat;
 
     public float DamageBonus
     {
