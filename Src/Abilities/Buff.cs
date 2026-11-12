@@ -103,6 +103,10 @@ public class Buff : Ability
 
     public virtual bool ShowsDurationBar => TimedLife;
 
+    public override string VisualModelPath => "";
+
+    public override string VisualAttachmentPoint => "origin";
+
     public virtual bool VisualAllowedWhileAirborne => !Aura;
 
     public override bool TickRunsWhilePaused => false;
@@ -115,7 +119,7 @@ public class Buff : Ability
 
     public override bool ExpirationRunsWhilePaused => false;
 
-    public virtual bool BlocksWebAutoCast => false;
+    public override bool BlocksWebAutoCast => false;
 
     public override void OnDeath() { }
 

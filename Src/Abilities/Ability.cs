@@ -526,8 +526,6 @@ public abstract class Ability
 
     public virtual void OnSetUnitType() { }
 
-    public virtual void ApplyIncomingDamage(ref DamageData data) { }
-
     public virtual void OnOwnerActionStarted() { }
 
 
@@ -551,4 +549,97 @@ public abstract class Ability
     public virtual void ModifyOutgoingDamage(Unit target, ref DamageData data) => ModifyOutgoingDamage(ref data);
 
     public virtual void ModifyIncomingDamage(ref DamageData data) { }
+
+    // —— 客户端 Ability 表面成员（对齐客户端形状，行为在各自管线里）——
+
+    public System.Type MembershipFamily => GetType();
+    public  int PermanentReferenceCount { get; set; }
+    public  void AdjustPermanentReference(bool add) { }
+    public virtual  bool IntrinsicMorphPersistence => default;
+    public  int CommandInstanceId { get; set; }
+    public  bool HiddenFromCommandCard => default;
+    public virtual  bool NativeCommandProviderEmpty => default;
+    public  void AdjustScriptAvailability(bool disable, bool hide) { }
+    public  void AdjustScriptVisibility(bool hide) { }
+    public  string ContainerRawcode { get; set; }
+    public  Ability ContainerAbility { get; set; }
+    public  object SourceItem { get; set; }
+    public  bool GrantedByItem => default;
+    public  string DisplayName => default;
+    public virtual  bool IsPersistentTargetArtVisible(int artIndex,int attachmentIndex) => default;
+    public  IReadOnlyList<string> LightningEffects { get; set; }
+    public virtual  bool HasPersistentCasterArts => default;
+    public  IReadOnlyList<string> CasterAttachments { get; set; }
+    public  IReadOnlyList<string> TargetAttachments { get; set; }
+    public  IReadOnlyList<string> EffectAttachments { get; set; }
+    public  IReadOnlyList<string> SpecialAttachments { get; set; }
+    public  bool HasPersistentSpecialArts { get; set; }
+    public  float MissileArc { get; set; }
+    public  bool MissileHoming { get; set; }
+    public virtual  string CastAnimationPrimaryTag => default;
+    public virtual  IReadOnlyList<string> CastAnimationSecondaryTags => default;
+    public  string CasterAttachment { get; set; }
+    public  string TargetAttachment { get; set; }
+    public  string EffectAttachment { get; set; }
+    public  string SpecialAttachment { get; set; }
+    public virtual  bool PausesConstruction => default;
+    public  Type Prereq => default;
+    public  bool HasDispelSourceLevel => default;
+    public  int RequiredHeroLevel(int forLevel) => default;
+    protected virtual  void OnObjectDataBound() { }
+    public  void RefreshRuntimeObjectData(IRuntimeObjectData data) { }
+    protected  float GetLevelFloatAt(string field,int level,int dataPointer=0,float fallback=0f) => default;
+    public  bool IsDisabledExcept(AbilityDisableType ignored) => default;
+    public  bool IsPlayerUnavailable => default;
+    public  void Disable(AbilityDisableType t) { }
+    public  void Enable(AbilityDisableType t) { }
+    public  void SetTechTreeLocked(bool locked) { }
+    public  void SetLevel(int target, int maxLevel) { }
+    public virtual  int NativeDeathInterceptionPriority => default;
+    public virtual  bool TryInterceptNativeDeath() => default;
+    public virtual  void OnOwnerAbilityCast(Ability ability) { }
+    public virtual  void OnOwnerAbilityPreparing(Ability ability) { }
+    public virtual  bool TryBlockIncomingAbility(Ability ability) => default;
+    public virtual  int IncomingSpellBlockPriority => default;
+    public virtual  bool ChecksSpellBlockOnImpact => default;
+    public virtual  bool EnablesWeaponTarget(Weapon weapon,Unit target) => default;
+    public  bool CheckCastAvailability() => default;
+    public virtual  bool IgnoresNativeMagicTargetRules => default;
+    public virtual  int NativeChannelTargetOptions => default;
+    public virtual  bool CheckImmediateOrder(int orderId) => default;
+    public virtual  bool CheckCanTargetDestructable(object target, Vec2 point) => default;
+    public virtual  Vec2 ResolveCastApproachPoint(object destructable, Vec2 point, Vec2 source) => default;
+    public  EventTargetKind ResolveTargetKind(Unit target, Vec2 point) => default;
+    public  Unit CastTarget => default;
+    public  object CastTargetDestructable => default;
+    public  Vec2 CastPoint { get; set; }
+    public  void Begin(Unit target, Vec2 point) { }
+    public  bool IsAutomaticCastRequest { get; set; }
+    public  void StartCast(Unit target, Vec2 point, int orderId = 0, bool automatic = false) { }
+    public  void StartCastDestructable(object target, Vec2 point) { }
+    public  void BeginItem(object target, Vec2 point) { }
+    public  bool BeginCastPhase() => default;
+    public  bool CompleteCast(bool deferFinish = false) => default;
+    public  void PlayInstantItemEffect(Unit target, Vec2 point) { }
+    public virtual  void OnChannel(Unit target, Vec2 point) { }
+    public virtual  void OnEffectDestructable(object target, Vec2 point) { }
+    protected  void SpawnAttachedArt(string art,Unit target,
+        IReadOnlyList<string> attachments,float lifeSpan) { }
+    protected virtual  Unit ResolveSpecialArtTarget(string art, Unit target) => default;
+    public  void CompleteCastRecovery() { }
+    public virtual  void OnCancelFromQueue() { }
+    public virtual  bool ChargeMana() => default;
+    public virtual  bool ReceivesPlayerCombatAlarm => default;
+    public virtual  bool BlocksWebAutoCast => default;
+
+    public virtual void OnAttackHit(Unit target, float dealt, in DamageData damage) => OnAttackHit(target, dealt);
+
+    public virtual float ModifyFinalDamage(float trueDamage, ref DamageData data) => trueDamage;
+
+    public virtual void OnDamaged(ref DamageData data, float dealt) { }
+
+    public virtual string VisualModelPath => "";
+
+    public virtual string VisualAttachmentPoint => "origin";
 }
+
