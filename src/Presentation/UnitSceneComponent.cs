@@ -29,12 +29,14 @@ public sealed class UnitSceneComponent
     private float _progressRadius;
     private float _progressDrawn = -1f;
 
-    public static UnitSceneComponent Create(PackedScene scene, Color teamColor, float scale, bool isBuilding, float footprintRadius = 0f)
+    public static UnitSceneComponent Create(PackedScene scene, Color teamColor, float scale, bool isBuilding, float footprintRadius = 0f, string scenePath = null)
     {
         var view = new UnitSceneComponent();
         var root = scene.Instantiate<Node3D>();
         root.Scale = Vector3.One * scale;
         view.Root = root;
+        ModelLibrary.ApplyMissingMaterials(root, scenePath);
+        EnsureFallbackMaterials(root);
 
         var tree = root.FindChild("AnimationTree", true, false) as AnimationTree;
         if (tree != null) tree.Active = false;
@@ -49,6 +51,20 @@ public sealed class UnitSceneComponent
         view.BuildRing(isBuilding);
         if (isBuilding) view.BuildProgressRing();
         return view;
+    }
+
+    private static void EnsureFallbackMaterials(Node3D root)
+    {
+        foreach (Node node in root.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (node is not MeshInstance3D mesh || mesh.Mesh == null || mesh.MaterialOverride != null) continue;
+            for (int surface = 0; surface < mesh.Mesh.GetSurfaceCount(); surface++)
+            {
+                if (mesh.GetSurfaceOverrideMaterial(surface) != null) continue;
+                if (mesh.Mesh.SurfaceGetMaterial(surface) != null) continue;
+                mesh.SetSurfaceOverrideMaterial(surface, new StandardMaterial3D { AlbedoColor = Colors.White });
+            }
+        }
     }
 
     public static Color ColorOf(int player)
@@ -102,7 +118,7 @@ public sealed class UnitSceneComponent
     {
         if (_ghost == ghost) return;
         _ghost = ghost;
-        float transparency = ghost ? 0.55f : 0f;
+        float transparency = ghost ? 1f - 127f / 255f : 0f;
 
         foreach (Node node in Root.FindChildren("*", "GeometryInstance3D", true, false))
         {

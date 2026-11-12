@@ -80,7 +80,7 @@ public sealed partial class War3GameScene
             }
         }
 
-        Unit site = Spawn(buildingId, slot.Id, ground.X, ground.Z, 0f, 0f, 1f);
+        Unit site = Spawn(buildingId, slot.Id, ground.X, ground.Z, -Mathf.Pi * 0.5f, 0f, 1f);
         if (site == null)
         {
             if (report) _hud?.SetHint("建筑模型缺失");

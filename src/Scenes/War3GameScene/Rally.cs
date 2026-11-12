@@ -222,14 +222,15 @@ public sealed partial class War3GameScene
         Vector3 direction = camera.ProjectRayNormal(screenPosition);
 
         Vector3 previous = origin;
-        for (float travel = 50f; travel < 20000f; travel += 50f)
+        for (float travel = 16f; travel < 20000f; travel += 16f)
         {
             Vector3 sample = origin + direction * travel;
-            if (sample.Y <= MapWorldBuilder.HeightAt(_map.Terrain, sample.X, sample.Z))
+            float height = MapWorldBuilder.HeightAt(_map.Terrain, sample.X, sample.Z);
+            if (sample.Y <= height)
             {
                 Vector3 low = previous;
                 Vector3 high = sample;
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < 14; i++)
                 {
                     Vector3 mid = (low + high) * 0.5f;
                     if (mid.Y <= MapWorldBuilder.HeightAt(_map.Terrain, mid.X, mid.Z)) high = mid;
