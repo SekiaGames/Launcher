@@ -236,9 +236,11 @@ public sealed partial class Unit
         return type != null ? Mathf.Max(0, type.StockMax) : 0;
     }
 
-    /// <summary>买走一件；没货返回 false。</summary>
+    /// <summary>买走一件；没货返回 false。stockRegen<=0 表示不消耗库存（客户端 StockAndShops.cs:268-284）。</summary>
     public bool TakeStock(string id)
     {
+        ItemType type = ItemCatalog.Get(id);
+        if (type != null && type.StockRegen <= 0f && type.StockMax > 0) return true;
         int count = StockOf(id);
         if (count <= 0) return false;
         ShopStock[id] = count - 1;
@@ -270,8 +272,10 @@ public sealed partial class Unit
             if (type == null || type.StockMax <= 0) continue;
             if (StockOf(id) >= type.StockMax) continue;
             if (ShopAge < type.StockStart) continue;
+            // 客户端口径：stockRegen<=0 表示不消耗库存（无限量），不需要补货。
+            if (type.StockRegen <= 0f) continue;
 
-            float interval = Mathf.Max(5f, type.StockRegen);
+            float interval = type.StockRegen;
             float elapsed = (ShopRestockTimers.TryGetValue(id, out float value) ? value : 0f) + delta;
             if (elapsed < interval)
             {

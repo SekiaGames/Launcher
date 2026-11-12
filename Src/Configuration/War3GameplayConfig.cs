@@ -37,13 +37,13 @@ public static class War3GameplayConfig
         return Math.Max(0, Math.Min(HeroMaxReviveCostGold, (int)(heroGoldCost * factor)));
     }
 
-    /// <summary>对标 NativeHeroBuildTime：时间 = 英雄训练时长 × min(等级×0.65, 2)，量化到 5 秒，上限 150。</summary>
-    public static float HeroReviveSeconds(float heroTrainSeconds, int level)
+    /// <summary>对标 NativeHeroBuildTime：时间 = 英雄建造时长(bldtm) × min(等级×0.65, 2)，量化到 5 秒，下限 1 秒、上限 150。</summary>
+    public static float HeroReviveSeconds(float heroBuildSeconds, int level)
     {
         float factor = MathF.Min(level * ReviveTimeFactor, ReviveMaxTimeFactor);
-        float seconds = heroTrainSeconds * factor;
+        float seconds = heroBuildSeconds * factor;
         seconds = MathF.Floor(seconds / 5f) * 5f;
-        return MathF.Min(HeroMaxReviveTime, MathF.Max(5f, seconds));
+        return MathF.Min(HeroMaxReviveTime, MathF.Max(1f, seconds));
     }
 
     private static float[] LoadEthereal()

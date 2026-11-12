@@ -50,7 +50,8 @@ public sealed partial class World
 
     public float HeroReviveSecondsOf(Unit hero)
     {
-        return hero?.Type == null ? 0f : War3GameplayConfig.HeroReviveSeconds(hero.Type.TrainSeconds, hero.Level);
+        // 客户端 HeroesAndSpells.cs:11-20 用 bldtm（建造时间）而不是 reptm（训练时间）做复活基数。
+        return hero?.Type == null ? 0f : War3GameplayConfig.HeroReviveSeconds(hero.Type.BuildSeconds, hero.Level);
     }
 
     public Unit FindAltar(int player)

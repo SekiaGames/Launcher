@@ -249,7 +249,11 @@ public sealed partial class War3GameScene : Node3D
             + $" 中立被动={neutralPassive} 中立敌对={neutralHostile} 金矿/矿点={mines} 总计={_allUnits.Count}");
     }
 
-    private bool IsReignOfChaos => _map.Info == null || _map.Info.FormatVersion < 25;
+    // 客户端 Blizzard.j:7903 用 VersionGet()（运行版本）决定 750/200 还是 500/150。
+    // Launcher 是 TFT 客户端（读 TFT 表、TFT 平衡），没有 RoC 运行模式，故恒为 false。
+    // 不能按地图文件头 FormatVersion 判定——RoC 格式地图在 TFT 里跑，资源仍是 500/150。
+    private bool IsReignOfChaos => false;
+
 
     private void RefreshHeroBar()
     {

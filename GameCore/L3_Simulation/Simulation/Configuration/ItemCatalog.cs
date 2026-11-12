@@ -95,8 +95,9 @@ public static class ItemCatalog
             LumberCost = table.GetInt(row, "lumbercost"),
             Droppable = table.Get(row, "droppable") == "1",
             Uses = Mathf.Max(0, table.GetInt(row, "uses", 0)),
-            StockMax = Mathf.Max(0, table.GetInt(row, "stockMax", 0)),
-            StockRegen = Number(table.Get(row, "stockRegen"), 120f),
+            // 客户端 StockAndShops.cs:244 缺省 1；stockRegen 缺省 0 = 不消耗、不限量（:268-284）。
+            StockMax = Mathf.Max(0, table.GetInt(row, "stockMax", 1)),
+            StockRegen = Number(table.Get(row, "stockRegen"), 0f),
             StockStart = Number(table.Get(row, "stockStart"), 0f),
             Perishable = table.Get(row, "perishable") == "1",
             Usable = table.Get(row, "usable") == "1",
