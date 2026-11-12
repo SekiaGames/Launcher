@@ -37,6 +37,7 @@ public sealed partial class LauncherApp : Node
     private bool _morphProbe;
     private bool _cardProbe;
     private bool _hireProbe;
+    private bool _boltProbe;
     private readonly List<string> _spawnItems = new();
     private bool _aggro;
     private bool _noAi;
@@ -207,6 +208,10 @@ public sealed partial class LauncherApp : Node
             else if (argument == "--hire-probe")
             {
                 _hireProbe = true;
+            }
+            else if (argument == "--bolt-probe")
+            {
+                _boltProbe = true;
             }
             else if (argument.StartsWith("--spawn-item="))
             {
@@ -379,6 +384,7 @@ public sealed partial class LauncherApp : Node
         if (_morphProbe) game.RunMorphProbe();
         if (_cardProbe) game.RunCardProbe();
         if (_hireProbe) game.RunHireProbe();
+        if (_boltProbe) game.RunBoltProbe();
         if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);
         if (_pathProbe)
         {

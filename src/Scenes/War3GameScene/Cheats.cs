@@ -459,6 +459,100 @@ public sealed partial class War3GameScene
     /// --hire-probe：中立建筑买兵。在自家基地旁摆一座酒馆与一个买家，
     /// 打印卖兵清单与命令卡，等过 stockStart 后买一个中立英雄，再摆雇佣兵营地买一个巨魔。
     /// </summary>
+    /// <summary>
+    /// --bolt-probe：引擎闪电束。摆一个先知放闪电链、一个恶魔猎手放法力燃烧，
+    /// 打印生成了几条光束，方便配合 --shot 截图看宽度/贴图/抖动的实际观感。
+    /// </summary>
+    public void RunBoltProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        if (hall == null)
+        {
+            GD.Print("[BOLT] 找不到主基地，跳过");
+            return;
+        }
+
+        Vector3 origin = hall.Position;
+        Unit seer = Spawn("Ofar", ViewPlayer, origin.X + 260f, origin.Z + 120f, 0f, 0f, 1f);
+        if (seer == null)
+        {
+            GD.Print("[BOLT] 先知模型缺失");
+            return;
+        }
+        _world.Units.Add(seer);
+        seer.Level = 6;
+        seer.SkillPoints = 3;
+        _world.RefreshHeroAttributes(seer);
+        seer.Hp = seer.MaxHp;
+        seer.Mana = seer.MaxMana;
+        _world.LearnAbility(seer, "AOcl");
+
+        var victims = new List<Unit>();
+        for (int index = 0; index < 3; index++)
+        {
+            Unit creep = Spawn("nftr", 12, origin.X + 420f + index * 130f, origin.Z + 60f, 0f, 0f, 1f);
+            if (creep == null) continue;
+            _world.Units.Add(creep);
+            victims.Add(creep);
+        }
+        if (victims.Count == 0)
+        {
+            GD.Print("[BOLT] 没有可打的目标");
+            return;
+        }
+
+        Ability chain = seer.FindAbility("AOcl");
+        bool ok = _world.TryCast(seer, chain, victims[0], victims[0].Position);
+        GD.Print($"[BOLT] 闪电链 {ok}，落点 {(chain is ChainLightning lightning ? lightning.LastChain.Count : 0)} 个，光束 {_lightningBeams.Count} 条");
+
+        Unit demon = Spawn("Edem", ViewPlayer, origin.X + 120f, origin.Z + 120f, 0f, 0f, 1f);
+        if (demon == null) return;
+        _world.Units.Add(demon);
+        demon.Level = 4;
+        demon.SkillPoints = 2;
+        _world.RefreshHeroAttributes(demon);
+        demon.Hp = demon.MaxHp;
+        demon.Mana = demon.MaxMana;
+        _world.LearnAbility(demon, "AEmb");
+        Unit burnTarget = Spawn("nftr", 12, demon.Position.X + 150f, demon.Position.Z, 0f, 0f, 1f);
+        if (burnTarget == null)
+        {
+            GD.Print("[BOLT] 法力燃烧目标缺失");
+            return;
+        }
+        _world.Units.Add(burnTarget);
+        Ability burn = demon.FindAbility("AEmb");
+        bool burned = _world.TryCast(demon, burn, burnTarget, burnTarget.Position);
+        GD.Print($"[BOLT] 法力燃烧 {burned}，光束 {_lightningBeams.Count} 条");
+
+        Unit primary = seer;
+        Ability chainAbility = chain;
+        Unit burnCaster = demon;
+        Ability burnAbility = burn;
+        Unit chainFirst = victims[0];
+        Unit burnVictim = burnTarget;
+        foreach (Unit dummy in victims) { dummy.MaxHp = 6000f; dummy.Hp = 6000f; }
+        burnTarget.MaxHp = 6000f;
+        burnTarget.Hp = 6000f;
+
+        int remaining = 10;
+        void Repeat()
+        {
+            if (remaining-- <= 0) return;
+            if (primary == null || !primary.Alive) return;
+            primary.Mana = primary.MaxMana;
+            burnCaster.Mana = burnCaster.MaxMana;
+            chainAbility.CooldownRemaining = 0f;
+            burnAbility.CooldownRemaining = 0f;
+            if (chainFirst != null && chainFirst.Alive) _world.TryCast(primary, chainAbility, chainFirst, chainFirst.Position);
+            if (burnVictim != null && burnVictim.Alive) _world.TryCast(burnCaster, burnAbility, burnVictim, burnVictim.Position);
+            SceneTreeTimer next = GetTree().CreateTimer(0.45);
+            next.Timeout += Repeat;
+        }
+        SceneTreeTimer start = GetTree().CreateTimer(2.2);
+        start.Timeout += Repeat;
+    }
+
     public void RunHireProbe()
     {
         Unit hall = FindHall(ViewPlayer);

@@ -67,6 +67,8 @@ public sealed class ChainLightning : Ability
         {
             if (other == null || !other.Alive) continue;
             if (ReferenceEquals(other, Owner) || hit.Contains(other)) continue;
+            // AOcl 的 targs 是 air,ground（不含 structure）：建筑与金矿不吃跳
+            if (other.IsBuilding) continue;
             if (world.AreAllied(Owner.Player, other.Player)) continue;
             if (other.State.MagicImmune || other.State.Invulnerable) continue;
 

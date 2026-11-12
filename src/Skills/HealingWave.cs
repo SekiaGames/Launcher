@@ -40,8 +40,14 @@ public sealed class HealingWave : Ability
             visited.Add(next);
             current = next;
         }
+
+        LastChain.Clear();
+        LastChain.AddRange(visited);
         return true;
     }
+
+    /// <summary>最近一次的治疗链，场景层按它画逐段闪电。</summary>
+    public readonly System.Collections.Generic.List<Unit> LastChain = new();
 
     private Unit NearestAlly(World world, Vector3 point, System.Collections.Generic.List<Unit> visited)
     {
