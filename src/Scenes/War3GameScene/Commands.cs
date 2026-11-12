@@ -172,13 +172,13 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
-    private void AddStandardCommands(List<CommandEntry> commands, bool canMove, bool compact = false)
+    private void AddStandardCommands(List<CommandEntry> commands, bool canMove)
     {
         commands.Add(new CommandEntry
         {
             Id = "cmd-move",
             Name = "移动",
-            SlotIndex = compact ? 8 : 0,
+            SlotIndex = 0,
             Hotkey = "M",
             Tooltip = "点地面移动。Shift 追加到队列末尾",
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNMove.blp"),
@@ -190,7 +190,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-stop",
             Name = "停止",
-            SlotIndex = compact ? 9 : 1,
+            SlotIndex = 1,
             Hotkey = "S",
             Tooltip = "停下手上的指令并清空队列",
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNStop.blp"),
@@ -198,13 +198,11 @@ public sealed partial class War3GameScene
             Action = IssueStopOrders,
         });
 
-        if (compact) return;
-
         commands.Add(new CommandEntry
         {
             Id = "cmd-hold",
             Name = "保持位置",
-            SlotIndex = 4,
+            SlotIndex = 2,
             Hotkey = "H",
             Tooltip = "原地不动，只攻击进入射程的敌人",
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNHoldPosition.blp"),
@@ -216,7 +214,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-attack",
             Name = "攻击",
-            SlotIndex = 5,
+            SlotIndex = 3,
             Hotkey = "A",
             Tooltip = "点目标攻击。Shift 追加到队列末尾",
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNAttack.blp"),
@@ -228,7 +226,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-patrol",
             Name = "巡逻",
-            SlotIndex = 8,
+            SlotIndex = 4,
             Hotkey = "P",
             Tooltip = "在当前位置与落点之间往返，遇敌自动开火",
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNPatrol.blp"),

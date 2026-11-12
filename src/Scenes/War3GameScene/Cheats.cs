@@ -415,6 +415,46 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>--spawn-item=xxx,yyy：在开局焦点附近摆几件物品，方便手测拾取与物品栏。</summary>
+    public void RunCardProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+        Unit hero = Spawn("Hpal", ViewPlayer, origin.X + 240f, origin.Z + 240f, 0f, 0f, 1f);
+        if (hero == null)
+        {
+            GD.Print("[CARD] 英雄模型缺失");
+            return;
+        }
+
+        _world.Units.Add(hero);
+        hero.Level = 6;
+        hero.SkillPoints = 3;
+        _world.RefreshHeroAttributes(hero);
+        hero.Hp = hero.MaxHp;
+        hero.Mana = hero.MaxMana;
+        _world.LearnAbility(hero, "AHhb");
+        _world.LearnAbility(hero, "AHds");
+
+        foreach (string itemId in new[] { "ratc", "rat9", "phea", "pman", "pomn", "ankh" })
+        {
+            if (!ItemCatalog.Exists(itemId)) continue;
+            var spot = new Vector3(hero.Position.X + 40f, hero.Position.Y, hero.Position.Z + 40f);
+            SpawnItem(itemId, spot);
+        }
+        _world.TickItemPickup();
+
+        _selected.Clear();
+        _selected.Add(hero);
+        hero.View?.SetSelected(true);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+
+        int carried = 0;
+        foreach (Item item in hero.Inventory) if (item != null) carried++;
+        GD.Print($"[CARD] 命令卡 {DescribeCommandCard(hero)}");
+        GD.Print($"[CARD] 物品 {carried}/{Unit.InventorySize} 格，命令卡格位 0..4 是移动/停止/据守/攻击/巡逻");
+    }
+
     public void SpawnDebugItems(IReadOnlyList<string> ids)
     {
         Unit hall = FindHall(ViewPlayer);

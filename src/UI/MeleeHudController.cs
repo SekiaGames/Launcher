@@ -13,12 +13,10 @@ public sealed class CommandEntry
     public Texture2D Icon;
     public bool Enabled = true;
     public bool Active;
-    /// <summary>固定格位（0..11）；&lt;0 表示按顺序排。物品用原版右两列（2,3,6,7,10,11）。</summary>
+    /// <summary>固定格位（0..11）；&lt;0 表示按顺序排。</summary>
     public int SlotIndex = -1;
-    /// <summary>热键，显示在格子右上角。</summary>
     public string Hotkey = "";
     public Action Action;
-    /// <summary>右键动作（原版：右键丢物品）。</summary>
     public Action RightAction;
 }
 
@@ -28,6 +26,8 @@ public sealed class MeleeHudController
     private const int SlotRows = 3;
     private const float SlotSize = 60f;
     private const float SlotGap = 4f;
+    private const int ItemColumns = 2;
+    private const int ItemRows = 3;
 
     private readonly Label _title;
     private readonly Label _resources;
@@ -46,6 +46,10 @@ public sealed class MeleeHudController
     private readonly List<Label> _slotCosts = new();
     private readonly List<Label> _slotHotkeys = new();
     private readonly List<CommandEntry> _commands = new();
+    private readonly List<Button> _itemSlots = new();
+    private readonly List<Label> _itemCosts = new();
+    private readonly List<Label> _itemHotkeys = new();
+    private readonly List<CommandEntry> _items = new();
     private readonly Panel _detailPanel;
     private readonly Label _detailText;
 
@@ -229,6 +233,64 @@ public sealed class MeleeHudController
         layer.AddChild(_box);
 
         BuildCommandSlots(layer);
+        BuildItemSlots(layer);
+    }
+
+    private void BuildItemSlots(Node layer)
+    {
+        float gridWidth = SlotColumns * (SlotSize + SlotGap);
+        float cardX = 1600f - 16f - gridWidth;
+        float itemWidth = ItemColumns * (SlotSize + SlotGap);
+        float originX = cardX - 14f - itemWidth;
+        float originY = 690f;
+
+        for (int row = 0; row < ItemRows; row++)
+        {
+            for (int column = 0; column < ItemColumns; column++)
+            {
+                int index = row * ItemColumns + column;
+                var button = new Button
+                {
+                    Position = new Vector2(originX + column * (SlotSize + SlotGap), originY + row * (SlotSize + SlotGap)),
+                    Size = new Vector2(SlotSize, SlotSize),
+                    Visible = false,
+                    ExpandIcon = true,
+                    IconAlignment = HorizontalAlignment.Center,
+                    Flat = false,
+                };
+                button.AddThemeStyleboxOverride("normal", SlotStyle(new Color(0.16f, 0.14f, 0.1f)));
+                button.AddThemeStyleboxOverride("hover", SlotStyle(new Color(0.24f, 0.21f, 0.15f)));
+                button.AddThemeStyleboxOverride("pressed", SlotStyle(new Color(0.3f, 0.26f, 0.18f)));
+                button.AddThemeStyleboxOverride("disabled", SlotStyle(new Color(0.08f, 0.08f, 0.09f)));
+                button.Pressed += () => PressItem(index);
+                button.MouseEntered += () => ShowItemDetail(index);
+                button.MouseExited += HideDetail;
+                button.GuiInput += @event =>
+                {
+                    if (@event is not InputEventMouseButton mouse) return;
+                    if (!mouse.Pressed || mouse.ButtonIndex != MouseButton.Right) return;
+                    RightPressItem(index);
+                };
+                layer.AddChild(button);
+                _itemSlots.Add(button);
+
+                var cost = Label("", 11, Vector2.Zero, Color.FromHtml("ffe27a"));
+                cost.Position = new Vector2(button.Position.X + 3f, button.Position.Y + SlotSize - 17f);
+                cost.Size = new Vector2(SlotSize - 6f, 15f);
+                cost.HorizontalAlignment = HorizontalAlignment.Center;
+                cost.Visible = false;
+                layer.AddChild(cost);
+                _itemCosts.Add(cost);
+
+                var hotkey = Label("", 11, Vector2.Zero, new Color(0.85f, 0.9f, 1f));
+                hotkey.Position = new Vector2(button.Position.X + SlotSize - 14f, button.Position.Y + 1f);
+                hotkey.Size = new Vector2(13f, 14f);
+                hotkey.HorizontalAlignment = HorizontalAlignment.Right;
+                hotkey.Visible = false;
+                layer.AddChild(hotkey);
+                _itemHotkeys.Add(hotkey);
+            }
+        }
     }
 
     private void BuildCommandSlots(Node layer)
@@ -305,13 +367,16 @@ public sealed class MeleeHudController
 
     private void ShowDetail(int index)
     {
-        if (index < 0 || index >= _commands.Count)
-        {
-            HideDetail();
-            return;
-        }
+        ShowDetailEntry(index >= 0 && index < _commands.Count ? _commands[index] : null);
+    }
 
-        CommandEntry entry = _commands[index];
+    private void ShowItemDetail(int index)
+    {
+        ShowDetailEntry(index >= 0 && index < _items.Count ? _items[index] : null);
+    }
+
+    private void ShowDetailEntry(CommandEntry entry)
+    {
         if (entry == null)
         {
             HideDetail();
@@ -341,6 +406,59 @@ public sealed class MeleeHudController
         CommandEntry entry = _commands[index];
         if (entry == null || entry.RightAction == null) return;
         entry.RightAction();
+    }
+
+    private void PressItem(int index)
+    {
+        if (index < 0 || index >= _items.Count) return;
+        CommandEntry entry = _items[index];
+        if (entry == null || !entry.Enabled || entry.Action == null) return;
+        entry.Action();
+    }
+
+    private void RightPressItem(int index)
+    {
+        if (index < 0 || index >= _items.Count) return;
+        CommandEntry entry = _items[index];
+        if (entry == null || entry.RightAction == null) return;
+        entry.RightAction();
+    }
+
+    /// <summary>小键盘 1~6 用物品；返回 true 表示这一格有东西且按得动。</summary>
+    public bool ActivateItemSlot(int index)
+    {
+        if (index < 0 || index >= _items.Count) return false;
+        CommandEntry entry = _items[index];
+        if (entry == null) return false;
+        PressItem(index);
+        return true;
+    }
+
+    /// <summary>英雄物品：原版独立 2×3 六格（不在命令卡里），序号 1~6 是左上→右下的列优先。</summary>
+    public void SetInventory(IReadOnlyList<CommandEntry> items)
+    {
+        _items.Clear();
+        for (int index = 0; index < ItemColumns * ItemRows; index++)
+        {
+            _items.Add(items != null && index < items.Count ? items[index] : null);
+        }
+
+        for (int index = 0; index < _itemSlots.Count; index++)
+        {
+            CommandEntry entry = _items[index];
+            bool used = entry != null;
+            _itemSlots[index].Visible = used;
+            _itemCosts[index].Visible = used && !string.IsNullOrEmpty(entry.Cost);
+            _itemHotkeys[index].Visible = used && !string.IsNullOrEmpty(entry.Hotkey);
+            if (!used) continue;
+
+            _itemSlots[index].Icon = entry.Icon;
+            _itemSlots[index].Disabled = !entry.Enabled;
+            _itemSlots[index].Modulate = entry.Enabled ? Colors.White : new Color(0.45f, 0.45f, 0.45f);
+            _itemSlots[index].TooltipText = BuildTooltip(entry);
+            _itemCosts[index].Text = entry.Cost ?? "";
+            _itemHotkeys[index].Text = entry.Hotkey ?? "";
+        }
     }
 
     /// <summary>

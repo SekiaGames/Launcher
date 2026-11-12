@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 namespace Launcher;
 
@@ -271,7 +272,7 @@ public sealed partial class War3GameScene
             });
         }
 
-        AddInventoryCommands(commands, hero);
+        AddInventoryCommands(hero);
     }
 
     /// <summary>
@@ -326,8 +327,6 @@ public sealed partial class War3GameScene
     /// 原版命令卡是 4×3，物品栏固定占**右两列**（第 3、4 列 × 3 行），技能占左两列。
     /// 槽位顺序按行铺：2,3 / 6,7 / 10,11。
     /// </summary>
-    private static readonly int[] InventorySlotIndices = { 2, 3, 6, 7, 10, 11 };
-
     /// <summary>
     /// 右键物品：附近有友方英雄就转交给他（原版把物品给单位），否则丢到地上。
     /// </summary>
@@ -372,6 +371,24 @@ public sealed partial class War3GameScene
         return TryStandardCommandHotkey(_selected[0], keycode);
     }
 
+    /// <summary>小键盘 1~6 对应英雄物品六格（原版物品热键就在小键盘上）。</summary>
+    public bool TryInventoryHotkey(Key keycode)
+    {
+        if (_hud == null) return false;
+        if (_selected.Count != 1 || !_selected[0].IsHero) return false;
+        int slot = keycode switch
+        {
+            Key.Kp1 => 0,
+            Key.Kp2 => 1,
+            Key.Kp3 => 2,
+            Key.Kp4 => 3,
+            Key.Kp5 => 4,
+            Key.Kp6 => 5,
+            _ => -1,
+        };
+        return slot >= 0 && _hud.ActivateItemSlot(slot);
+    }
+
     private bool TrySelectionItemOrAbilityHotkey(Unit picked, Key keycode)
     {
         int slot = (int)(keycode - Key.Kp1);
@@ -407,12 +424,17 @@ public sealed partial class War3GameScene
     /// 物品格：原版是英雄面板右下 2×3 的格子，这里先并到命令卡上（一物一格）。
     /// 能主动用的点一下就用（或进选目标），用不了的/右键都是丢到地上。
     /// </summary>
-    private void AddInventoryCommands(System.Collections.Generic.List<CommandEntry> commands, Unit hero)
+    private void AddInventoryCommands(Unit hero)
     {
+        var entries = new List<CommandEntry>(Unit.InventorySize);
         for (int slot = 0; slot < Unit.InventorySize; slot++)
         {
             Item item = hero.Inventory[slot];
-            if (item?.Type == null) continue;
+            if (item?.Type == null)
+            {
+                entries.Add(null);
+                continue;
+            }
 
             int captured = slot;
             ItemUsePlan plan = ItemUseRules.PlanFor(item.Type);
@@ -421,12 +443,11 @@ public sealed partial class War3GameScene
             string cost = item.CooldownRemaining > 0f
                 ? $"{Mathf.CeilToInt(item.CooldownRemaining)}s"
                 : charges > 0 ? charges.ToString() : "";
-            commands.Add(new CommandEntry
+            entries.Add(new CommandEntry
             {
                 Id = item.Type.Id,
                 Name = item.Type.Name,
                 Cost = cost,
-                SlotIndex = InventorySlotIndices[slot],
                 Hotkey = (slot + 1).ToString(),
                 Tooltip = ItemTooltip(item, plan),
                 Icon = TechTree.Icon(item.Type.IconArt),
@@ -435,6 +456,7 @@ public sealed partial class War3GameScene
                 RightAction = () => GiveOrDropItem(hero, captured),
             });
         }
+        _hud?.SetInventory(entries);
     }
 
     private static string ItemTooltip(Item item, ItemUsePlan plan)

@@ -234,6 +234,7 @@ public sealed partial class War3GameScene
     {
         if (_hud == null) return;
 
+        _hud.SetInventory(null);
         PlayerSlot slot = Slot(ViewPlayer);
         var commands = new List<CommandEntry>();
         if (_selected.Count > 0 && _selected[0].Player == slot.Id)
@@ -255,7 +256,7 @@ public sealed partial class War3GameScene
             }
             else if (single != null && single.IsHero)
             {
-                AddStandardCommands(commands, true, compact: true);
+                AddStandardCommands(commands, true);
                 AddAbilityCommands(commands, single);
             }
             else if (_selected[0].IsWorker)

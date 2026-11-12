@@ -78,6 +78,8 @@ public sealed partial class War3GameScene
 
                 if (TrySelectionHotkey(keyEvent.Keycode)) return;
 
+                if (TryInventoryHotkey(keyEvent.Keycode)) return;
+
                 if (keyEvent.Keycode == Key.Tab)
                 {
                     CycleSubgroup();
