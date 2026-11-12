@@ -104,7 +104,13 @@ public static partial class CombatProbe
         priest.MaxMana = 200f;
 
         Ability feedback = breaker.FindAbility("Afbk");
-        float raw = feedback.ModifyOutgoingAttack(world, priest, 10f);
+        var packet = new DamageData
+        {
+            Source = breaker, Target = priest, Amount = 10f, Raw = 10f,
+            IsAttack = true, AttackType = AttackType.Normal, DamageType = DamageType.Normal,
+        };
+        world.ApplyDamagePacketModifiers(packet);
+        float raw = (packet.Amount + packet.BonusAmount) * packet.DamageMultiplier;
         float drained = Mathf.Min(200f, feedback.Type.DataAt(1, 'A'));
 
         Verify("反馈烧蓝=DataA", 200f - drained, priest.Mana, 0.01f);

@@ -491,7 +491,7 @@ public sealed partial class World
             Ability ability = attacker.Abilities[index];
             if (!ability.Learned) continue;
             if (ability is IAttackDamageStatModifier modifier) modifier.ModifyOutgoingDamage(ref info);
-            ability.ModifyOutgoingDamage(ref info);
+            ability.ModifyOutgoingDamage(info.Target, ref info);
         }
     }
 
