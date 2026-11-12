@@ -398,6 +398,10 @@ public abstract class Ability
 
     public virtual void OnAttackLaunched(Unit target, Weapon weapon, int effectId) { }
 
+    public virtual void SpawnSpecialArtsOnCast() { }
+
+    public virtual void SpawnTargetArtsOnCast() { }
+
     public virtual bool TryAcquireAutoCastTarget(out Unit target, out Vec2 point)
     {
         target = null;

@@ -91,6 +91,16 @@ public class Buff
 
     public virtual void OnRemove() => OnBuffRemove();
 
+    public virtual bool ExpirationRunsWhilePaused => false;
+
+    public virtual bool BlocksWebAutoCast => false;
+
+    public virtual void OnDeath() { }
+
+    public virtual void ModifyOutgoingDamage(ref DamageData damage) { }
+
+    public virtual void ModifyOutgoingDamage(Unit target, ref DamageData damage) => ModifyOutgoingDamage(ref damage);
+
     protected virtual void OnBuffAdd() { }
 
     protected virtual void OnBuffRemove() { }
