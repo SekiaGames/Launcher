@@ -9,6 +9,7 @@ public sealed class DoodadDefinition
 {
     public string File = "";
     public string TextureFile = "";
+    public string Shadow = "";
     public int Variations = 1;
     public float BaseScale = 1f;
     public bool IsDestructable;
@@ -22,6 +23,7 @@ public sealed class DoodadModel
     public string ScenePath = "";
     public float BaseScale = 1f;
     public string TextureFile = "";
+    public string Shadow = "";
 }
 
 public static class DoodadMeshLibrary
@@ -116,6 +118,7 @@ public static class DoodadMeshLibrary
             {
                 File = destructables.Get(row, "file"),
                 TextureFile = destructables.Get(row, "texFile"),
+                Shadow = ShadowName(destructables.Get(row, "shadow")),
                 IsDestructable = true,
                 IsTree = string.Equals(destructables.Get(row, "targType"), "tree", StringComparison.OrdinalIgnoreCase),
                 Hp = destructables.GetFloat(row, "HP", 50f),
@@ -139,9 +142,19 @@ public static class DoodadMeshLibrary
         {
             File = doodads.Get(row, "file"),
             BaseScale = ParseFloat(doodads.Get(row, "defScale"), 1f),
+            Shadow = ShadowName(doodads.Get(row, "shadow")),
         };
         doodad.Variations = ParseInt(doodads.Get(row, "numVar"), 1);
         return doodad;
+    }
+
+    private static string ShadowName(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        string value = raw.Trim();
+        if (value is "0" or "1" or "_" or "-") return "";
+        if (string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) return "";
+        return value;
     }
 
     private static DoodadModel Load(string id, uint variation)
@@ -184,6 +197,7 @@ public static class DoodadMeshLibrary
             ScenePath = path,
             BaseScale = definition.BaseScale > 0f ? definition.BaseScale : 1f,
             TextureFile = definition.TextureFile,
+            Shadow = definition.Shadow,
         };
     }
 

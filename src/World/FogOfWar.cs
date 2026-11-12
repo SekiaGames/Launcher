@@ -28,7 +28,22 @@ public sealed partial class FogOfWar : Node3D
     private bool _dirty = true;
     private int _logBudget = 3;
 
-    public bool Enabled { get; set; } = true;
+    private bool _enabled = true;
+
+    /// <summary>关掉迷雾时要连同覆盖网格一起隐藏，否则停在全黑未刷新状态会盖住整张地图。</summary>
+    public bool Enabled
+    {
+        get => _enabled;
+        set
+        {
+            _enabled = value;
+            if (_mesh != null)
+            {
+                _mesh.Visible = value;
+            }
+        }
+    }
+
     public float LastVisibleRatio { get; private set; }
 
     public void Build(W3eTerrain terrain)
@@ -49,6 +64,7 @@ public sealed partial class FogOfWar : Node3D
 
         _texture = ImageTexture.CreateFromImage(_image);
         BuildMesh();
+        _mesh.Visible = _enabled;
         Name = "FogOfWar";
     }
 

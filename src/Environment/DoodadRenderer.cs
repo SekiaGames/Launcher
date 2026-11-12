@@ -20,6 +20,8 @@ public sealed partial class MapWorldBuilder
         int num2 = 0;
         int num3 = 0;
         int num4 = 0;
+        int num5 = 0;
+        int num6 = 0;
         foreach (DoodadPlacement entry in doodads.Entries)
         {
             if (entry.Hidden)
@@ -47,12 +49,22 @@ public sealed partial class MapWorldBuilder
             DoodadMeshLibrary.ApplyReplaceableTexture(node3D2, doodadModel);
             ApplyUnitTextureFilter(node3D2);
             node3D.AddChild(node3D2, forceReadableName: false, Node.InternalMode.Disabled);
+            MeshInstance3D shadow = AddDoodadShadow(node3D, doodadModel, node3D2.Position, entry.Id, num);
+            if (shadow != null)
+            {
+                num5++;
+            }
+            else if (!string.IsNullOrEmpty(doodadModel.Shadow))
+            {
+                num6++;
+            }
             DoodadDefinition doodadDefinition = DoodadMeshLibrary.Describe(entry.Id);
             if (doodadDefinition != null && doodadDefinition.IsTree)
             {
                 Trees.Add(new TreeState
                 {
                     Node = node3D2,
+                    Shadow = shadow,
                     Position = node3D2.Position,
                     Id = entry.Id,
                     Hp = doodadDefinition.Hp
@@ -60,7 +72,48 @@ public sealed partial class MapWorldBuilder
             }
             num++;
         }
-        GD.Print($"[DOODAD] 装饰物 {num}（模型 {DoodadMeshLibrary.Count} 种），隐藏 {num2} 死亡 {num3} 缺模型 {num4}，树 {Trees.Count}");
+        GD.Print($"[DOODAD] 装饰物 {num}（模型 {DoodadMeshLibrary.Count} 种），隐藏 {num2} 死亡 {num3} 缺模型 {num4}，树 {Trees.Count}，"
+            + $"阴影 {num5} 缺贴图 {num6}");
+    }
+
+    /// <summary>装饰物/树的落地阴影：贴图在 ReplaceableTextures/Shadows，一格 32 单位，底边锚在贴图 30%/70% 处。</summary>
+    private static MeshInstance3D AddDoodadShadow(Node3D parent, DoodadModel model, Vector3 position, string id, int index)
+    {
+        if (string.IsNullOrEmpty(model.Shadow))
+        {
+            return null;
+        }
+
+        Texture2D texture = Assets.LoadTexture(Assets.Res("ReplaceableTextures/Shadows/" + model.Shadow + ".png"));
+        if (texture == null)
+        {
+            return null;
+        }
+
+        Vector2 textureSize = texture.GetSize();
+        float width = textureSize.X * 32f;
+        float height = textureSize.Y * 32f;
+
+        var shadow = new MeshInstance3D
+        {
+            Name = $"Shadow_{id}_{index}",
+            Mesh = new QuadMesh { Size = new Vector2(width, height) },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoTexture = texture,
+                AlbedoColor = new Color(0f, 0f, 0f, 0.65f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
+            },
+            Position = position + new Vector3(-0.2f * width, 2f, 0.2f * height),
+            Rotation = new Vector3(Mathf.Pi / 2f, 0f, 0f),
+            Scale = new Vector3(-1f, 1f, 1f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        parent.AddChild(shadow, forceReadableName: false, Node.InternalMode.Disabled);
+        return shadow;
     }
 
     private static Vector3 DoodadScale(float baseScale, DoodadPlacement entry)
