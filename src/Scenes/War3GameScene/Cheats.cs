@@ -553,6 +553,24 @@ public sealed partial class War3GameScene
         start.Timeout += Repeat;
     }
 
+    /// <summary>--rally-probe：给己方前几座建筑设集结点，用来看旗帜模型与队伍色。</summary>
+    public void RunRallyProbe()
+    {
+        int count = 0;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player != ViewPlayer || !unit.IsBuilding) continue;
+            if (unit.RallyPoint != null) continue;
+
+            Vector3 point = unit.Position + new Vector3(240f, 0f, 240f);
+            point.Y = MapWorldBuilder.HeightAt(_map.Terrain, point.X, point.Z);
+            _world.SetRally(unit, point);
+            GD.Print($"[RALLY] {unit.Type?.Name}({unit.Type?.Id}) 集结点 {point}");
+            if (++count >= 4) break;
+        }
+        GD.Print($"[RALLY] 共设 {count} 个集结点");
+    }
+
     public void RunHireProbe()
     {
         Unit hall = FindHall(ViewPlayer);

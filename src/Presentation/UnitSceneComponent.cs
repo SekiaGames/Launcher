@@ -110,9 +110,14 @@ public sealed class UnitSceneComponent
         }
     }
 
-    private void ApplyTeamColor(Color color)
+    private void ApplyTeamColor(Color color) => ApplyTeamColorTo(Root, color);
+
+    /// <summary>把模型里 use_team_color 的材质换成带队伍色的副本（集结点旗帜这类非单位模型也用它）。</summary>
+    public static void ApplyTeamColorTo(Node3D root, Color color)
     {
-        foreach (Node node in Root.FindChildren("*", "MeshInstance3D", true, false))
+        if (root == null) return;
+
+        foreach (Node node in root.FindChildren("*", "MeshInstance3D", true, false))
         {
             if (node is not MeshInstance3D mesh || mesh.Mesh == null) continue;
 
