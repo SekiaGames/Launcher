@@ -56,6 +56,22 @@ public sealed partial class Unit
         return (flags & classification) != 0;
     }
 
+    public bool Untargetable => State.Invulnerable || State.Phased || Hidden;
+
+    public bool Invulnerable => State.Invulnerable;
+
+    public Unit CurrentTarget() => Target;
+
+    public Classification Classifications => Type?.Classifications ?? Classification.None;
+
+    public bool IsDetectedByPlayer(int player) => !Hidden || true;
+
+    public bool UsesHeroSpellRules => IsHero;
+
+    public Identity Identity => _identity ??= new Identity(this);
+
+    Identity _identity;
+
     public Death Death => _death ??= new Death(this);
 
     Death _death;
@@ -381,4 +397,21 @@ public sealed class Death
         _unit.Hp = 0f;
         _unit.CorpseRemaining = Unit.CorpseSeconds;
     }
+}
+
+public sealed class Identity
+{
+    readonly Unit _unit;
+
+    public Identity(Unit unit) => _unit = unit;
+
+    public string Name => _unit.Type?.Name ?? "";
+
+    public int Team => _unit.Team;
+
+    public TargetFlags TargetType => _unit.TargetType;
+
+    public Classification Classifications => _unit.Type?.Classifications ?? Classification.None;
+
+    public bool Is(Classification classification) => _unit.Is(classification);
 }

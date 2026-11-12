@@ -20,6 +20,25 @@ public sealed partial class World
 
     public System.Random Rng => _random;
 
+    /// <summary>客户端 World.SharedSpellsQuery：同队共享视野/共享单位控制下的友军判定。</summary>
+    public Func<Unit, Unit, bool> SharedSpellsQuery { get; set; } = (a, b) => a != null && b != null && a.Team == b.Team;
+
+    public MovementBatchStub MovementBatch => _movementBatch;
+
+    readonly MovementBatchStub _movementBatch = new();
+
+    public sealed class MovementBatchStub
+    {
+        public void Cancel(Unit unit, object request)
+        {
+            unit?.CancelOrders();
+        }
+
+        public void BeginMovementEvent() { }
+
+        public void DriveRequestHost(Unit host, object tick) { }
+    }
+
     /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
     public bool IsNight;
     /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>

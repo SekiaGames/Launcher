@@ -18,7 +18,7 @@ public sealed class RuntimeExhumeAbility : Ability
     {
         if (world == null || Owner == null || !Owner.Alive) return;
 
-        RuntimeMeatLoadAbility cargo = Owner.FindPassive<RuntimeMeatLoadAbility>() as RuntimeMeatLoadAbility;
+        OpenWC3.RuntimeMeatLoadAbility cargo = Owner.FindPassive<OpenWC3.RuntimeMeatLoadAbility>() as OpenWC3.RuntimeMeatLoadAbility;
         if (cargo == null) return;
         if (cargo.CorpseCount >= Mathf.Min(cargo.Capacity, Mathf.Max(1, MaxCorpses))) return;
 

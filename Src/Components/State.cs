@@ -103,6 +103,8 @@ public sealed class State
 
     public bool Stunned => Has(StateMod.Stun) || Has(StateMod.Sleep) || Has(StateMod.Pause);
     public bool Snared => Has(StateMod.Snare);
+
+    public bool Phased => Has(StateMod.Phased);
     public bool Disarmed => Has(StateMod.Disarm) || Has(StateMod.Morph);
     public bool Silenced => Has(StateMod.Silence) || Has(StateMod.Stun) || Has(StateMod.Morph);
     public bool Ethereal => Has(StateMod.Ethereal);
