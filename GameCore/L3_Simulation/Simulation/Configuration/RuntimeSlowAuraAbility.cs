@@ -1,32 +1,85 @@
-using Godot;
-using System.Collections.Generic;
-
 namespace OpenWC3.Game;
 
-/// <summary>缓慢光环（龙卷风 Aasl）：DataA/DataB 是带符号的移动/攻击速度增量，对范围内敌人持续刷新减速。</summary>
-public sealed class RuntimeSlowAuraAbility : Ability
+/// <summary>
+/// Slow Aura（Aasl）：DataA/DataB 是带符号的移动/攻击速度倍率增量。
+/// DotA 也大量用零数值、自身目标版本仅承载 Buff 图标。
+/// </summary>
+public sealed class RuntimeSlowAuraAbility(War3ObjectData objects) : AuraAbility
 {
-    public override bool IsPassive => true;
+    TargetFlags _allowedTargets;
 
-    private float _pulseTimer;
+    public override string Name=>ObjectData?.GetString("Name",Rawcode)??Rawcode;
+    public float MoveSpeedFactor { get; private set; }
+    public float AttackSpeedFactor { get; private set; }
+    public string AuraBuffRawcode { get; private set; }="";
+    public TargetFlags AllowedTargets=>_allowedTargets;
 
-    public override void OnWorldTick(World world, float delta)
+    public void RefreshSlowAuraData()
     {
-        if (Owner == null || !Owner.Alive || world == null) return;
+        int level=Math.Max(1,Level);
+        MoveSpeedFactor=RuntimeAbilityFactory.ReadFloat(
+            ObjectData,"DataA",level,0);
+        AttackSpeedFactor=RuntimeAbilityFactory.ReadFloat(
+            ObjectData,"DataB",level,0);
+        Radius=Math.Max(0,RuntimeAbilityFactory.ReadFloat(
+            ObjectData,"Area",level,ConfiguredAreaOfEffect));
+        _allowedTargets=RuntimeAbilityFactory.ParseTargets(
+            RuntimeAbilityFactory.ReadTargetRules(ObjectData,level));
+        if(_allowedTargets==TargetFlags.None)
+            _allowedTargets=TargetFlags.Self;
+        AuraBuffRawcode=RuntimeAbilityFactory.ReadString(
+            ObjectData,"BuffID",level);
+        if(AuraBuffRawcode.Length>4)AuraBuffRawcode=AuraBuffRawcode[..4];
+    }
 
-        _pulseTimer -= delta;
-        if (_pulseTimer > 0f) return;
-        _pulseTimer = 0.5f;
+    public override void OnLevelUp()=>RefreshSlowAuraData();
+    public override void OnLevelDown()=>RefreshSlowAuraData();
 
-        float move = Mathf.Clamp(-Data('A'), 0f, 0.95f);
-        float attack = Mathf.Clamp(-Data('B'), 0f, 0.95f);
-        if (move <= 0f && attack <= 0f) return;
+    protected override bool CanAffect(Unit target)
+    {
+        return target.CanBeTargetedBy(Owner,_allowedTargets,useHeroSpellRules:true);
+    }
 
-        float radius = Area > 0f ? Area : 600f;
-        foreach (Unit victim in world.EnemiesInRange(Owner, Owner.Position, radius))
+    protected override AuraBuff CreateBuff(Unit source,Unit target,int level)
+    {
+        var buff=new RuntimeSlowAuraBuff(MoveSpeedFactor,AttackSpeedFactor)
         {
-            if (victim.IsBuilding) continue;
-            victim.ApplySlow(move, attack, 0.6f);
-        }
+            Source=source,
+            Duration=CheckInterval+0.1f,
+        };
+        BuffTypeData data=objects?.GetBuff(AuraBuffRawcode);
+        if(data!=null)buff.BindBuffObjectData(AuraBuffRawcode,data,
+            level,source,this);
+        else buff.BindObjectData(AuraBuffRawcode,ObjectData,level);
+        return buff;
+    }
+}
+
+public sealed class RuntimeSlowAuraBuff(
+    float moveSpeedFactor,float attackSpeedFactor) : AuraBuff
+{
+    float _appliedMove;
+    float _appliedAttack;
+
+    public override bool Positive=>moveSpeedFactor>=0&&attackSpeedFactor>=0;
+    public override string Name=>ObjectData?.GetString("Bufftip","Slow Aura")
+        ??"Slow Aura";
+    public float MoveSpeedFactor=>moveSpeedFactor;
+    public float AttackSpeedFactor=>attackSpeedFactor;
+
+    protected override void OnBuffAdd()
+    {
+        _appliedMove=Owner.MoveSpeedBase*moveSpeedFactor;
+        _appliedAttack=attackSpeedFactor;
+        Owner.SpeedBonus+=_appliedMove;
+        Owner.AttackSpeedBonusPct+=_appliedAttack;
+    }
+
+    protected override void OnBuffRemove()
+    {
+        Owner.SpeedBonus-=_appliedMove;
+        Owner.AttackSpeedBonusPct-=_appliedAttack;
+        _appliedMove=0;
+        _appliedAttack=0;
     }
 }

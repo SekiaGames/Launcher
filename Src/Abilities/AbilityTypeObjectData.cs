@@ -32,6 +32,11 @@ public sealed class AbilityTypeObjectData : IRuntimeObjectData
             case "buffid3": return Or(BuffAt(level, 2), fallback);
             case "buffid4": return Or(BuffAt(level, 3), fallback);
             case "summon": return Or(_type.SummonAt(level), fallback);
+            case "targs":
+            case "targs1": return Or(_type.TargetRules, fallback);
+            case "targs2":
+            case "targs3":
+            case "targs4": return fallback;
             case "code": return Or(_type.Code, fallback);
             default: return fallback;
         }

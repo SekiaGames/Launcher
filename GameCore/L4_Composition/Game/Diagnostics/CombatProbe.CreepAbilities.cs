@@ -111,8 +111,9 @@ public static partial class CombatProbe
         if (ProbeUnit(world, "ntor", 12, Vector3.Zero, "Aasl") == null) return;
         Unit victim = ProbeUnit(world, "hfoo", 0, new Vector3(200f, 0f, 0f));
 
+        float baseSpeed = World.SpeedOf(victim);
         for (int index = 0; index < 12; index++) world.TickAbilities();
-        Verify("缓慢光环把敌人减速", 1f, victim.Slowed ? 1f : 0f, 0f);
+        Verify("缓慢光环把敌人减速", 1f, World.SpeedOf(victim) < baseSpeed ? 1f : 0f, 0f);
     }
 
     private static void CheckPermanentImmolationAbility()

@@ -32,6 +32,9 @@ public sealed class AbilityType
 
     public SpellTargets Targets = SpellTargets.None;
 
+    /// <summary>物编 targs1 原始串（客户端 ParseTargets 读的就是它）。</summary>
+    public string TargetRules = "";
+
     public readonly float[] Cooldown = new float[MaxLevels];
     public readonly float[] ManaCost = new float[MaxLevels];
     public readonly float[] CastRange = new float[MaxLevels];
@@ -228,6 +231,7 @@ public static class AbilityCatalog
             LevelSkip = Mathf.Max(1, table.GetInt(row, "levelSkip", 1)),
             HeroAbility = table.Get(row, "hero") == "1",
             ItemAbility = table.Get(row, "item") == "1",
+            TargetRules = table.Get(row, "targs1"),
             Targets = SpellTargetCode.Parse(table.Get(row, "targs1")),
         };
 
