@@ -480,6 +480,10 @@ public abstract class Ability
 
     public virtual bool RepeatsChannelAnimation => false;
 
+    public virtual bool Corpses => false;
+
+    public virtual bool AutoCastPreemptsOrders => true;
+
     public virtual bool EffectEventBeforePayment => true;
 
     protected virtual float ObjectDataArtLifeSpan => 0f;

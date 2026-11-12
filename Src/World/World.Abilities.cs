@@ -334,9 +334,80 @@ public sealed partial class World
         }
     }
 
-    public List<Unit> RentUnitListForAura() => new();
+    readonly Stack<List<Unit>> _spatialPool = new();
 
-    public void ReturnUnitListForAura(List<Unit> list) => list?.Clear();
+    readonly List<Effect> _effects = new();
+
+    public IReadOnlyList<Effect> Effects => _effects;
+
+    public void AddSpecialEffect(SpecialEffect effect)
+    {
+        if (effect != null) _effects.Add(effect);
+    }
+
+    public void AddEffect(Effect effect)
+    {
+        if (effect != null) _effects.Add(effect);
+    }
+
+    /// <summary>推进特效：返回 false 的从表里摘掉（客户端 Effect.Step 约定）。</summary>
+    public void TickEffects()
+    {
+        for (int index = _effects.Count - 1; index >= 0; index--)
+        {
+            if (_effects[index].Step(this, FrameSeconds)) continue;
+            _effects.RemoveAt(index);
+        }
+    }
+
+    public List<Unit> RentUnitList()
+    {
+        List<Unit> list = _spatialPool.Count > 0 ? _spatialPool.Pop() : new List<Unit>(64);
+        list.Clear();
+        return list;
+    }
+
+    public void ReturnUnitList(List<Unit> list)
+    {
+        if (list == null) return;
+        list.Clear();
+        if (_spatialPool.Count < 16) _spatialPool.Push(list);
+    }
+
+    public float MaximumCollisionRadiusForQuery
+    {
+        get
+        {
+            float max = 16f;
+            for (int i = 0; i < Units.Count; i++)
+            {
+                Unit unit = Units[i];
+                if (unit != null && unit.CollisionSize > max) max = unit.CollisionSize;
+            }
+            return max;
+        }
+    }
+
+    /// <summary>按世界顺序（这里是 SimulationId）排序的半径内单位。A 侧没有空间哈希，走全表加距离过滤。</summary>
+    public void CollectNearbyUnitsInWorldOrder(Vec2 center, float radius, List<Unit> results)
+    {
+        if (results == null) return;
+        int start = results.Count;
+        CollectNearbyUnits(center, radius, results);
+        if (results.Count - start <= 1) return;
+        results.Sort(start, results.Count - start, Comparer<Unit>.Create(
+            (a, b) => a.SimulationId.CompareTo(b.SimulationId)));
+    }
+
+    public void SortUnitsBySimulationId(List<Unit> units)
+    {
+        if (units == null || units.Count <= 1) return;
+        units.Sort((a, b) => a.SimulationId.CompareTo(b.SimulationId));
+    }
+
+    public List<Unit> RentUnitListForAura() => RentUnitList();
+
+    public void ReturnUnitListForAura(List<Unit> list) => ReturnUnitList(list);
 
     /// <summary>光环扫描候选：客户端走空间哈希，这里先全表返回，调用方自己判距离。</summary>
     public void CollectNearbyUnits(Vec2 center, float radius, List<Unit> into)

@@ -100,6 +100,7 @@ public sealed partial class World
         }
 
         TickWeapons();
+        TickEffects();
         TickAbilityMissiles();
         TickChannels();
         TickGroundSpells();

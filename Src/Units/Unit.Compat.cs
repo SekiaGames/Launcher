@@ -41,6 +41,20 @@ public sealed partial class Unit
 
     public string TypeId => Type?.Id ?? "";
 
+    public float CollisionSize => Type == null ? 16f : (IsBuilding ? Type.FootprintRadius : Type.CollisionRadius);
+
+    public Ability GetAbility(string id) => FindAbility(id);
+
+    public T GetAbility<T>(string id = null) where T : Ability
+    {
+        for (int i = 0; i < Abilities.Count; i++)
+        {
+            if (Abilities[i] is not T typed) continue;
+            if (id == null || typed.Id == id) return typed;
+        }
+        return null;
+    }
+
     public bool MagicImmune => State.MagicImmune;
 
     public bool Snared => State.Snared;
