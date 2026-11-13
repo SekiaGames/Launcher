@@ -54,6 +54,11 @@ public static partial class CombatProbe
         {
             if (buff is PeriodicDamageBuff burn && ReferenceEquals(burn.SourceAbility, rain)) burning = true;
         }
+        foreach (Ability ability in footman.Abilities)
+        {
+            if (ability is RuntimeRainOfFireBuff) burning = true;
+        }
+        if (footman.FindBuff<RuntimeRainOfFireBuff>() != null) burning = true;
         Verify("火焰雨挂上灼烧", 1f, burning ? 1f : 0f, 0f);
 
         for (int tick = 0; tick < 130; tick++) world.Advance();

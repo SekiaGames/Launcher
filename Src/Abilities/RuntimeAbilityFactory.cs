@@ -98,7 +98,7 @@ public static class RuntimeAbilityFactory
         ["ANba"] = () => new RuntimeBlackArrowAbility(),    // 黑蚀箭（黑暗游侠，标记击杀召骷髅）
         ["ANdr"] = () => new LifeDrain(),     // 生命汲取（黑暗游侠，引导抽血回自己）
         // —— 酒馆英雄 ——
-        ["ANrf"] = () => new RuntimeRainOfFireAbility(),    // 火焰雨（深渊魔王，引导多波 + 灼烧）
+        ["ANrf"] = () => WithObjects<RuntimeRainOfFireAbility>(),    // 火焰雨（深渊魔王，引导多波 + 灼烧）
         ["ANto"] = () => new RuntimeTornadoAbility(),       // 龙卷风（海巫，落点召 ntor，断引导就散）
         ["ANfl"] = () => new RuntimeForkedLightningAbility(), // 碎裂闪电（海巫，扇形 3 个目标）
         ["ANfa"] = () => new RuntimeColdArrowsAbility(),    // 冰霜箭（海巫，普攻附加 + 减速）
@@ -360,7 +360,7 @@ public static class RuntimeAbilityFactory
         ["ACpv"] = () => new RuntimePulverizeAbility(),         // 粉碎
         ["ACr2"] = () => new RuntimeRejuvenationAbility(),      // 回春
         ["ACrd"] = () => new RaiseDead(),         // 复活死尸
-        ["ACrf"] = () => new RuntimeRainOfFireAbility(),        // 火焰雨
+        ["ACrf"] = () => WithObjects<RuntimeRainOfFireAbility>(),        // 火焰雨
         ["ACrj"] = () => new RuntimeRejuvenationAbility(),      // 回春
         ["ACrn"] = () => new RuntimeReincarnationAbility(),     // 重生
         ["ACro"] = () => new RuntimeRoarAbility(),              // 咆哮

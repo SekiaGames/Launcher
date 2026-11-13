@@ -9,8 +9,8 @@ public sealed partial class World
 {
     public const float FrameSeconds = 0.05f;
 
-    /// <summary>客户端 World.Tick：单帧秒数（A 侧是编译期常量，这里给实例口径）。</summary>
-    public float Tick => FrameSeconds;
+    /// <summary>客户端 World.Tick：单调递增的帧计数，配合 TickSeconds 换算经过时间。</summary>
+    public long Tick { get; private set; }
 
     public const float TickSeconds = FrameSeconds;
 
@@ -118,6 +118,7 @@ public sealed partial class World
 
     public void Advance()
     {
+        Tick++;
         TickCreepSleep();
 
         // 用下标遍历：技能/召唤会在推进过程中往 Units 里加新单位（狼、骷髅、黑暗转换），
