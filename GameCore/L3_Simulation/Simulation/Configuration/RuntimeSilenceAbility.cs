@@ -1,52 +1,120 @@
-using Godot;
-
 namespace OpenWC3.Game;
 
-/// <summary>
-/// 沉默 ANsi（黑暗游侠）。点地面：范围内敌方单位在 Dur 秒内不能施法。
-/// 物编：Cool=15 Cost=75 Rng=900 Area=200/275/350 Dur=16/20/24。
-/// 沉默状态本身是 <see cref="StateMod.Silence"/>，<c>World.TryCast</c> 与引导都会尊重它。
-/// </summary>
-public sealed class Silence : Ability
+/// <summary>ANsi: area control mask, miss chance and signed speed modifiers.</summary>
+public sealed class RuntimeSilenceAbility(War3ObjectData objects) : Ability
 {
-    public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
-    public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Control;
+    TargetFlags _allowedTargets;
+    public override string Name=>ObjectData?.GetString("Name",Rawcode)??Rawcode;
+    public override AbilityTargetMode TargetMode=>AbilityTargetMode.UnitOrPoint;
+    public int AttacksPrevented { get; private set; }
+    public float MissChance { get; private set; }
+    public float MoveSpeedFactor { get; private set; }
+    public float AttackSpeedFactor { get; private set; }
+    public float NormalDuration { get; private set; }
+    public float HeroDuration { get; private set; }
+    public string SilenceBuffRawcode { get; private set; }="";
 
-    public float Radius => Area > 0f ? Area : 200f;
-
-    /// <summary>AI：控制优先。把沉默落到敌方英雄脚下，身边安静下来再打爆发。</summary>
-    public override bool TryAutoCast(World world)
+    public void RefreshSilenceData()
     {
-        Unit target = FindEnemyInRange(world, preferHero: true, accept: other => !other.IsBuilding);
-        if (target == null) return false;
-        return world.TryCast(Owner, this, null, target.Position);
+        int level=Math.Max(1,Level);
+        AttacksPrevented=RuntimeAbilityFactory.ReadInt(ObjectData,"DataA",level,0);
+        MissChance=RuntimeAbilityFactory.ReadFloat(ObjectData,"DataB",level,0);
+        // 4e36d0 -> 4fab00/512d90 forwards DataC/DataD unchanged.
+        // These are signed modifiers, not positive reduction magnitudes.
+        MoveSpeedFactor=RuntimeAbilityFactory.ReadFloat(ObjectData,"DataC",level,0);
+        AttackSpeedFactor=RuntimeAbilityFactory.ReadFloat(ObjectData,"DataD",level,0);
+        NormalDuration=Math.Max(0,RuntimeAbilityFactory.ReadFloat(
+            ObjectData,"Dur",level,0));
+        HeroDuration=Math.Max(0,RuntimeAbilityFactory.ReadFloat(
+            ObjectData,"HeroDur",level,NormalDuration));
+        SilenceBuffRawcode=RuntimeAbilityFactory.ReadString(
+            ObjectData,"BuffID",level);
+        if(SilenceBuffRawcode.Length>4)
+            SilenceBuffRawcode=SilenceBuffRawcode[..4];
+        _allowedTargets=RuntimeAbilityFactory.ParseTargets(
+            RuntimeAbilityFactory.ReadTargetRules(ObjectData,level));
+        if((_allowedTargets&TargetRules.Relations)==0)
+            _allowedTargets|=TargetFlags.Enemy;
+        _allowedTargets|=TargetFlags.Alive|TargetFlags.Vulnerable;
     }
 
-    public override bool CheckTarget(World world, Unit target, Vector3 point)
+    public override void OnLevelUp()=>RefreshSilenceData();
+    public override void OnLevelDown()=>RefreshSilenceData();
+    public override bool CheckCanTarget(Unit target,Vec2 point)=>target==null
+        ||target.CanBeTargetedBy(Owner,_allowedTargets,useHeroSpellRules:true);
+    public override void OnEffect(Unit target,Vec2 point)
     {
-        if (Owner == null) return false;
-        float range = CastRange > 0f ? CastRange : 900f;
-        return FlatDistance(Owner.Position, point) <= range;
-    }
-
-    public override bool OnCast(World world, Unit target, Vector3 point)
-    {
-        if (world == null || Owner == null) return false;
-
-        Vector3 center = Flatten(point);
-        float duration = Duration > 0f ? Duration : 16f;
-        int silenced = 0;
-        foreach (Unit victim in world.EnemiesInRange(Owner, center, Radius))
+        World world=Owner?.World;
+        if(world==null)return;
+        Vec2 center=target?.Pos??point;
+        float radius=Math.Max(0,ConfiguredAreaOfEffect);
+        foreach(Unit candidate in RuntimeSpatialUnitQuery.Around(world,center,radius).Where(unit=>unit.Alive
+                    &&!unit.Removed
+                    &&unit.CanBeTargetedBy(Owner,_allowedTargets,useHeroSpellRules:true)
+                    &&Vec2.Dist(center,unit.Pos)<=radius)
+                .OrderBy(unit=>unit.SimulationId).ToArray())
         {
-            if (victim.IsBuilding) continue;
-            victim.State.Add(StateMod.Silence, duration);
-            silenced++;
+            foreach(RuntimeSilenceBuff existing in candidate.Abilities
+                        .OfType<RuntimeSilenceBuff>()
+                        .Where(buff=>buff.Rawcode.Equals(SilenceBuffRawcode,
+                            StringComparison.OrdinalIgnoreCase)).ToArray())
+                candidate.RemoveAbility(existing);
+            var buff=new RuntimeSilenceBuff(AttacksPrevented,MissChance,MoveSpeedFactor,AttackSpeedFactor)
+            {Caster=Owner,SourceAbility=this};
+            BuffTypeData data=objects?.GetBuff(SilenceBuffRawcode);
+            if(data!=null)buff.BindBuffObjectData(SilenceBuffRawcode,data,
+                Math.Max(1,Level),Owner,this);
+            else buff.BindObjectData(SilenceBuffRawcode,ObjectData,
+                Math.Max(1,Level));
+            buff.Duration=candidate.UsesHeroSpellRules?HeroDuration:NormalDuration;
+            candidate.AddAbility(buff);
         }
+    }
+}
 
-        LastSilenced = silenced;
-        return true;
+public sealed class RuntimeSilenceBuff(int attacksPrevented,float missChance=0,
+    float moveSpeedFactor=0,float attackSpeedFactor=0) : Buff
+{
+    bool _silenced;
+    bool _disarmed;
+    float _appliedMove,_appliedAttack;
+    public float MissChance=>missChance;
+    public float MoveSpeedFactor=>moveSpeedFactor;
+    public float AttackSpeedFactor=>attackSpeedFactor;
+    public override bool Positive=>false;
+    public override string Name=>ObjectData?.GetString(
+        "Bufftip","Silence")??"Silence";
+    protected override void OnBuffAdd()
+    {
+        _appliedMove=Owner.MoveSpeedBase*moveSpeedFactor;
+        _appliedAttack=attackSpeedFactor;
+        Owner.SpeedBonus+=_appliedMove;
+        Owner.AttackSpeedBonusPct+=_appliedAttack;
+        if((attacksPrevented&8)!=0)
+        {
+            Owner.AddState(StateModType.Silence);
+            _silenced=true;
+        }
+        if((attacksPrevented&3)!=0)
+        {
+            Owner.AddState(StateModType.Disarm);
+            _disarmed=true;
+        }
+    }
+    protected override void OnBuffRemove()
+    {
+        Owner.SpeedBonus-=_appliedMove;Owner.AttackSpeedBonusPct-=_appliedAttack;
+        _appliedMove=_appliedAttack=0;
+        if(_silenced)Owner.RemoveState(StateModType.Silence);
+        if(_disarmed)Owner.RemoveState(StateModType.Disarm);
+        _silenced=false;
+        _disarmed=false;
+    }
+    public override void ModifyOutgoingDamage(ref DamageData damage)
+    {
+        // Same attack-miss bridge used by Curse/Drunken Haze/Cloud of Fog.
+        if(damage.IsAttack&&!damage.CannotMiss&&missChance>0&&Owner.World.Rng.NextSingle()<missChance)
+            damage.DamageMultiplier=0;
     }
 
-    /// <summary>最近一次沉默到的人数，探针用。</summary>
-    public int LastSilenced;
 }
