@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 
 using OpenWC3.Game.UI;
+using OpenWC3.UI;
 namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
@@ -137,6 +138,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-move",
             Name = "移动",
+            Kind = UiCommandKind.Move,
             SlotIndex = 0,
             Hotkey = "M",
             Tooltip = "点地面移动。Shift 追加到队列末尾",
@@ -149,6 +151,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-stop",
             Name = "停止",
+            Kind = UiCommandKind.Stop,
             SlotIndex = 1,
             Hotkey = "S",
             Tooltip = "停下手上的指令并清空队列",
@@ -161,6 +164,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-hold",
             Name = "保持位置",
+            Kind = UiCommandKind.Hold,
             SlotIndex = 2,
             Hotkey = "H",
             Tooltip = "原地不动，只攻击进入射程的敌人",
@@ -173,6 +177,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-attack",
             Name = "攻击",
+            Kind = UiCommandKind.AttackMove,
             SlotIndex = 3,
             Hotkey = "A",
             Tooltip = "点目标攻击。Shift 追加到队列末尾",
@@ -185,6 +190,7 @@ public sealed partial class War3GameScene
         {
             Id = "cmd-patrol",
             Name = "巡逻",
+            Kind = UiCommandKind.Patrol,
             SlotIndex = 4,
             Hotkey = "P",
             Tooltip = "在当前位置与落点之间往返，遇敌自动开火",

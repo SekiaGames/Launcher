@@ -30,6 +30,9 @@ public sealed partial class GameHudScreen : Control
     private CommandCardView _commands = CommandCardView.Empty;
     private readonly CommandEntry[] _slotEntries = new CommandEntry[CommandCardBuilder.SlotCount];
     private bool _uiPointerDown;
+    private UiRect? _selectionBox;
+
+    public IUiCommandListener Listener { get; set; }
 
     public int FrameCount => _root?.Children.Count ?? 0;
     internal MinimapFrame Minimap => _minimap;
@@ -52,6 +55,8 @@ public sealed partial class GameHudScreen : Control
         _router = new UiEventRouter(_root);
         _router.CommandClicked += OnCommandClicked;
         _router.CommandRightClicked += OnCommandRightClicked;
+        _router.CommandLongPressed += (frame, command, button) =>
+            DispatchCommand(command, 3);
         _console = new ConsoleSkinFrame(resolver, skin);
         _topBar = new TopBarFrame(resolver, skin);
         _card = new CommandCardBuilder(resolver);
@@ -146,10 +151,41 @@ public sealed partial class GameHudScreen : Control
     }
 
     private void OnCommandClicked(UiFrame frame, UiCommand command, int button)
-        => SlotEntry(command.Slot)?.Action?.Invoke();
+        => DispatchCommand(command, button == 1 ? 2 : 1);
 
     private void OnCommandRightClicked(UiFrame frame, UiCommand command)
-        => SlotEntry(command.Slot)?.RightAction?.Invoke();
+        => DispatchCommand(command, 2);
+
+    private void DispatchCommand(UiCommand command, int eventKind)
+    {
+        CommandEntry entry = SlotEntry(command.Slot);
+        if (entry == null) return;
+        if (Listener != null)
+        {
+            Listener.OnUiCommand(new UiCommand(entry.Kind, entry.Payload, command.Slot,
+                entry, NativeEventKind: eventKind));
+            return;
+        }
+        if (eventKind >= 2) entry.RightAction?.Invoke();
+        else entry.Action?.Invoke();
+    }
+
+    public void SetSelectionBox(Rect2 rect, bool visible)
+    {
+        if (!visible || rect.Size.X <= 1f || rect.Size.Y <= 1f)
+        {
+            _selectionBox = null;
+            QueueRedraw();
+            return;
+        }
+        Vector2 size = GetViewportRect().Size;
+        var lo = new Vector2(rect.Position.X * DesignWidth / Mathf.Max(1f, size.X),
+            rect.Position.Y * DesignHeight / Mathf.Max(1f, size.Y));
+        var hi = new Vector2(rect.End.X * DesignWidth / Mathf.Max(1f, size.X),
+            rect.End.Y * DesignHeight / Mathf.Max(1f, size.Y));
+        _selectionBox = new UiRect(lo.X, lo.Y, hi.X - lo.X, hi.Y - lo.Y);
+        QueueRedraw();
+    }
 
     private CommandEntry SlotEntry(int slot)
         => slot >= 0 && slot < _slotEntries.Length ? _slotEntries[slot] : null;
@@ -271,6 +307,9 @@ public sealed partial class GameHudScreen : Control
         _heroBar.Layout(DesignWidth, DesignHeight);
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
+        if (_selectionBox is { } box)
+            _device.DrawTexturedQuad(box, _device.WhiteTexture,
+                new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 0.16f));
         _root.Render(_device);
         _device.End();
     }

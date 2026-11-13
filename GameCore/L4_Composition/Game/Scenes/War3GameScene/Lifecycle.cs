@@ -26,8 +26,7 @@ public sealed partial class War3GameScene : Node3D
     private NVector4 _mapUiBounds;
     private GodotUiTexture _minimapFogTexture;
     private Texture2D _minimapBaseTexture;
-    public bool UseNewHud;
-    public int SelectedRace;
+        public int SelectedRace;
     private War3AudioSystem _audio;
     private War3MusicPlayer _music;
     private FogOfWar _fog;
@@ -245,43 +244,18 @@ public sealed partial class War3GameScene : Node3D
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
         _minimapBaseTexture = LoadMinimapBaseTexture(map);
-        _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
-        if (UseNewHud)
-        {
-            GetNodeOrNull<CanvasLayer>("MeleeHudController")?.SetVisible(false);
-            var hudLayer = new CanvasLayer { Name = "NewHud", Layer = 45 };
-            AddChild(hudLayer);
-            _newHud = new GameHudScreen { Name = "NewHudScreen" };
-            hudLayer.AddChild(_newHud);
-            _newHud.Load(HudRaceName(), sample: false);
-            _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
-            ConfigureNewMinimap(map);
-            GD.Print($"[HUD] 新界面已接管，种族 {HudRaceName()}");
-        }
+        var hudLayer = new CanvasLayer { Name = "Hud", Layer = 45 };
+        AddChild(hudLayer);
+        _newHud = new GameHudScreen { Name = "HudScreen" };
+        hudLayer.AddChild(_newHud);
+        _newHud.Load(HudRaceName(), sample: false);
+        _hud = new MeleeHudController(_newHud, War3Strings.Resolve(map.Name));
+        _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
+        ConfigureNewMinimap(map);
+        GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
         _gameOverPanel = new GameOverPanel(this, Back);
-        _hud.DetailProvider = DescribeUnit;
-        _hud.SelectionSlotClicked = unit =>
-        {
-            if (unit == null || !unit.Alive) return;
-            ClearSelection();
-            _selected.Add(unit);
-            unit.View?.SetSelected(true);
-            _hud.SetSelection(_selected);
-            UpdateCommandCard();
-            PlaySelectionVoice();
-        };
-        _hud.MinimapFrame.Configure(map.Terrain, () => _allUnits, () => _camera.Target, point => _camera.Focus(point),
-            unit => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
-        _hud.MinimapFrame.RightNavigate = _worldInteraction.MinimapOrderAt;
-        _hud.MinimapFrame.SetFogTexture(_fog.Texture);
-        _hud.MinimapFrame.SetTexture(_minimapBaseTexture);
-        if (!UseNewHud)
-        {
-            _heroBar = new LegacyHeroBarFrame(this);
-            _heroBar.HeroClicked = SelectHeroFromBar;
-        }
         _log = new ChatFrame(this);
         _log.Add("Enter 输入消息");
         _hud.SetSelection(_selected);
@@ -311,8 +285,7 @@ public sealed partial class War3GameScene : Node3D
 
     private bool _musicPending;
     private WeatherRenderer _weather;
-    private LegacyHeroBarFrame _heroBar;
-    private readonly List<Unit> _heroScratch = new();
+        private readonly List<Unit> _heroScratch = new();
     private ChatFrame _log;
     private EscMenuFrame _escMenu;
     private War3LoadingScreenRenderer _loadingScreen;
@@ -419,7 +392,6 @@ public sealed partial class War3GameScene : Node3D
             }
         }
         Unit selected = _selected.Count == 1 ? _selected[0] : null;
-        _heroBar?.Update(_heroScratch, selected);
         _newHud?.SetHeroes(_heroScratch, selected);
     }
 

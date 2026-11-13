@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using OpenWC3.UI;
 
 namespace OpenWC3.Game.UI;
 
@@ -13,9 +14,10 @@ public sealed class CommandEntry
     public Texture2D Icon;
     public bool Enabled = true;
     public bool Active;
-    /// <summary>固定格位（0..11）；&lt;0 表示按顺序排。</summary>
     public int SlotIndex = -1;
     public string Hotkey = "";
+    public UiCommandKind Kind = UiCommandKind.Ability;
+    public string Payload = "";
     public Action Action;
     public Action RightAction;
     public float CooldownRemaining;
@@ -23,22 +25,6 @@ public sealed class CommandEntry
     public double CooldownEnd;
     public int Charges;
     public int MaxCharges;
-}
-
-public sealed partial class ChargeRing : Control
-{
-    public int Charges;
-    public int MaxCharges;
-
-    public override void _Draw()
-    {
-        if (MaxCharges <= 0) return;
-        float radius = Mathf.Min(Size.X, Size.Y) * 0.42f;
-        var center = Size * 0.5f;
-        DrawArc(center, radius, -Mathf.Pi * 0.5f, Mathf.Pi * 1.5f, 28, new Color(0f, 0f, 0f, 0.55f), 3f);
-        float span = Mathf.Tau * Mathf.Clamp((float)Charges / MaxCharges, 0f, 1f);
-        DrawArc(center, radius, -Mathf.Pi * 0.5f, -Mathf.Pi * 0.5f + span, 28, new Color(0.95f, 0.86f, 0.35f, 0.9f), 3f);
-    }
 }
 
 public sealed class QueueEntry
@@ -57,889 +43,126 @@ public sealed class BuffEntry
     public bool Aura;
 }
 
-public sealed class MeleeHudController
+public sealed class MeleeHudController : IUiCommandListener
 {
-    private const int SlotColumns = 4;
-    private const int SlotRows = 3;
-    private const float SlotSize = 60f;
-    private const float SlotGap = 4f;
-    private const int ItemColumns = 2;
-    private const int ItemRows = 3;
-
-    private readonly Label _title;
-    private readonly Label _resources;
-    private readonly Label _selection;
-    private readonly Label _selectionDetail;
-    private readonly Label _hint;
-    private readonly Label _queueLabel;
-    private readonly Label _playerInfo;
-    private readonly Label _clock;
-    private readonly Panel _box;
-    private readonly List<Button> _selSlots = new();
-    private readonly List<ColorRect> _selHp = new();
-    private readonly List<Unit> _selectedUnits = new();
-    public Action<Unit> SelectionSlotClicked;
-    private readonly List<Button> _slots = new();
-    private readonly List<Label> _slotCosts = new();
-    private readonly List<Label> _slotHotkeys = new();
-    private readonly List<CommandEntry> _commands = new();
-    private readonly List<Button> _itemSlots = new();
-    private readonly List<Label> _itemCosts = new();
-    private readonly List<Label> _itemHotkeys = new();
-    private readonly List<CommandEntry> _items = new();
-    private readonly Panel _detailPanel;
-    private readonly Label _detailText;
-    private readonly TextureRect _detailIcon;
-    private readonly List<ColorRect> _slotCooldown = new();
-    private readonly List<ColorRect> _itemCooldown = new();
-    private readonly List<ChargeRing> _itemCharges = new();
-    private readonly List<TextureRect> _queueIcons = new();
-    private readonly List<ColorRect> _queueBars = new();
-    private readonly List<TextureRect> _buffIcons = new();
-    private readonly List<Label> _buffTimers = new();
-    private TextureRect _portrait;
-    private Label _attackLabel;
-    private Label _armorLabel;
+    readonly GameHudScreen _host;
+    readonly List<CommandEntry> _commands = new();
+    readonly List<CommandEntry> _inventory = new();
+    readonly List<QueueEntry> _queue = new();
+    readonly List<BuffEntry> _buffs = new();
+    string _hint;
+    string _playerInfo;
+    string _unitSummary;
 
     public Func<Unit, string> DetailProvider;
-    public LegacyMinimapFrame MinimapFrame { get; }
+    public Action<Unit> SelectionSlotClicked;
 
-    /// <summary>底部多选单位格（客户端那排头像格）：点一下只选中该单位。</summary>
-    private void BuildSelectionSlots(Node layer)
+    public MeleeHudController(GameHudScreen host, string mapName)
     {
-        const float size = 34f;
-        const float gap = 4f;
-        for (int i = 0; i < 12; i++)
-        {
-            int index = i;
-            var button = new Button
-            {
-                Position = new Vector2(222f + i * (size + gap), 784f),
-                Size = new Vector2(size, size),
-                Visible = false,
-                ExpandIcon = true,
-                IconAlignment = HorizontalAlignment.Center,
-                Flat = false,
-                MouseFilter = Control.MouseFilterEnum.Stop,
-            };
-            button.AddThemeStyleboxOverride("normal", SlotStyle(new Color(0.12f, 0.13f, 0.15f)));
-            button.AddThemeStyleboxOverride("hover", SlotStyle(new Color(0.26f, 0.3f, 0.24f)));
-            button.AddThemeStyleboxOverride("pressed", SlotStyle(new Color(0.32f, 0.36f, 0.28f)));
-            button.Pressed += () =>
-            {
-                if (index < _selectedUnits.Count) SelectionSlotClicked?.Invoke(_selectedUnits[index]);
-            };
-            layer.AddChild(button);
-            _selSlots.Add(button);
-
-            var hp = new ColorRect
-            {
-                Color = new Color(0.25f, 0.85f, 0.3f),
-                Position = new Vector2(button.Position.X + 1f, button.Position.Y + size - 4f),
-                Size = new Vector2(size - 2f, 3f),
-                Visible = false,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            };
-            layer.AddChild(hp);
-            _selHp.Add(hp);
-        }
+        _host = host;
+        _host.Listener = this;
     }
 
-    private void RefreshSelectionSlots(IReadOnlyList<Unit> selected)
+    public void SetResources(int gold, int lumber, int food, int foodCap)
+        => _host.SetResources(gold, lumber, food, foodCap);
+
+    public void SetClock(string text) { }
+
+    public void SetPlayerInfo(string text) => _playerInfo = text;
+
+    public void SetSelection(IReadOnlyList<Unit> selected) { }
+
+    public void SetSelectionBox(Rect2 rect, bool visible) => _host.SetSelectionBox(rect, visible);
+
+    public void SetCommands(IReadOnlyList<CommandEntry> commands)
     {
-        _selectedUnits.Clear();
-        if (selected != null) _selectedUnits.AddRange(selected);
-
-        for (int i = 0; i < _selSlots.Count; i++)
-        {
-            bool show = i < _selectedUnits.Count;
-            _selSlots[i].Visible = show;
-            _selHp[i].Visible = show;
-            if (!show) continue;
-
-            Unit unit = _selectedUnits[i];
-            UnitType type = UnitFactory.Get(unit.Type.Id);
-            _selSlots[i].Icon = type != null && !string.IsNullOrEmpty(type.IconPath)
-                ? Assets.LoadTexture(type.IconPath)
-                : null;
-
-            float ratio = unit.MaxHp > 0f ? Mathf.Clamp(unit.Hp / unit.MaxHp, 0f, 1f) : 0f;
-            Color color = ratio > 0.6f ? new Color(0.25f, 0.85f, 0.3f)
-                : ratio > 0.3f ? new Color(0.9f, 0.8f, 0.25f)
-                : new Color(0.9f, 0.25f, 0.2f);
-            _selHp[i].Color = color;
-            _selHp[i].Size = new Vector2((_selSlots[i].Size.X - 2f) * ratio, 3f);
-        }
+        _commands.Clear();
+        if (commands != null) _commands.AddRange(commands);
+        _host.SetCommands(commands);
     }
 
-    public void SetSelectionBox(Rect2 rect, bool visible)
+    public void SetInventory(IReadOnlyList<CommandEntry> items)
     {
-        _box.Visible = visible && rect.Size.X > 1f && rect.Size.Y > 1f;
-        if (!_box.Visible) return;
-        _box.Position = rect.Position;
-        _box.Size = rect.Size;
+        _inventory.Clear();
+        for (int i = 0; i < Unit.InventorySize; i++)
+            _inventory.Add(items != null && i < items.Count ? items[i] : null);
     }
 
-    public void SetClock(string text)
+    public void SetQueue(IReadOnlyList<CommandEntry> entries)
     {
-        _clock.Text = text;
+        _queue.Clear();
+        if (entries == null) return;
+        foreach (CommandEntry entry in entries)
+            if (entry != null) _queue.Add(new QueueEntry { Name = entry.Name });
     }
 
-    public void SetPlayerInfo(string text)
+    public void SetQueueSlots(IReadOnlyList<QueueEntry> entries)
     {
-        _playerInfo.Text = text;
+        _queue.Clear();
+        if (entries != null) _queue.AddRange(entries);
     }
 
-    public MeleeHudController(Node parent, string mapName)
+    public void SetQueue(string text) { }
+
+    public void SetBuffs(IReadOnlyList<BuffEntry> buffs)
     {
-        var layer = new CanvasLayer { Name = "MeleeHudController" };
-        parent.AddChild(layer);
-
-        var topBar = new ColorRect
-        {
-            Color = new Color(0.05f, 0.05f, 0.06f, 0.85f),
-            Position = new Vector2(0f, 0f),
-            Size = new Vector2(1600f, 44f),
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        layer.AddChild(topBar);
-
-        _title = Label(mapName, 18, new Vector2(16f, 10f), Colors.White);
-        layer.AddChild(_title);
-
-        _resources = Label("金币 0    木材 0    人口 0/0", 17, new Vector2(1280f, 10f), Color.FromHtml("ffd75e"));
-        layer.AddChild(_resources);
-
-        _clock = Label("08:00", 15, new Vector2(180f, 12f), new Color(0.72f, 0.78f, 0.86f));
-        layer.AddChild(_clock);
-
-        _playerInfo = Label("", 16, new Vector2(320f, 11f), new Color(0.82f, 0.86f, 0.92f));
-        layer.AddChild(_playerInfo);
-
-        var bottomBar = new ColorRect
-        {
-            Color = new Color(0.05f, 0.05f, 0.06f, 0.88f),
-            Position = new Vector2(0f, 676f),
-            Size = new Vector2(1600f, 224f),
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        layer.AddChild(bottomBar);
-
-        _selection = Label("未选中单位", 18, new Vector2(292f, 690f), Colors.White);
-        layer.AddChild(_selection);
-
-        _selectionDetail = Label("", 15, new Vector2(292f, 724f), new Color(0.78f, 0.8f, 0.84f));
-        layer.AddChild(_selectionDetail);
-
-        _queueLabel = Label("", 13, new Vector2(500f, 756f), new Color(0.85f, 0.85f, 0.85f));
-        layer.AddChild(_queueLabel);
-
-        _hint = Label("左键选中/框选  双击选同类  Ctrl+数字编队  右键移动/攻击/采集  Shift+右键排队  M移动 S停 H据守 A攻击 P巡逻  中键拖拽  滚轮缩放  WASD 平移  ESC 返回",
-            14, new Vector2(222f, 862f), new Color(0.7f, 0.72f, 0.75f));
-        layer.AddChild(_hint);
-
-        MinimapFrame = new LegacyMinimapFrame { Name = "MinimapFrame", Position = new Vector2(14f, 682f) };
-        layer.AddChild(MinimapFrame);
-
-        BuildSelectionSlots(layer);
-
-        _detailPanel = new Panel
-        {
-            Name = "CommandDetail",
-            Position = new Vector2(1058f, 552f),
-            Size = new Vector2(524f, 124f),
-            Visible = false,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        _detailPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.05f, 0.06f, 0.08f, 0.92f),
-            BorderColor = new Color(0.42f, 0.38f, 0.26f),
-            BorderWidthTop = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderWidthRight = 1,
-        });
-        layer.AddChild(_detailPanel);
-
-        _detailIcon = new TextureRect
-        {
-            Name = "DetailIcon",
-            Position = new Vector2(1068f, 560f),
-            Size = new Vector2(48f, 48f),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            Visible = false,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        layer.AddChild(_detailIcon);
-
-        _detailText = Label("", 14, new Vector2(1124f, 560f), new Color(0.86f, 0.89f, 0.94f));
-        _detailText.Size = new Vector2(448f, 108f);
-        _detailText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _detailText.VerticalAlignment = VerticalAlignment.Top;
-        layer.AddChild(_detailText);
-
-        _box = new Panel { Name = "SelectionBox", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
-        _box.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.3f, 1f, 0.4f, 0.10f),
-            BorderColor = new Color(0.35f, 0.95f, 0.45f, 0.9f),
-            BorderWidthTop = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderWidthRight = 1,
-        });
-        layer.AddChild(_box);
-
-        BuildCommandSlots(layer);
-        BuildItemSlots(layer);
-        BuildUnitPanelExtras(layer);
-        BuildCooldownTimer(layer);
+        _buffs.Clear();
+        if (buffs != null) _buffs.AddRange(buffs);
     }
 
-    private void BuildUnitPanelExtras(Node layer)
+    public void SetUnitSummary(Texture2D portrait, string attack, string armor) =>
+        _unitSummary = $"{portrait?.GetSize().ToString() ?? "-"} {attack} {armor}";
+
+    public void SetHint(string text) => _hint = text;
+
+    public bool ActivateItemSlot(int index)
     {
-        _portrait = new TextureRect
-        {
-            Name = "UnitPortrait",
-            Position = new Vector2(222f, 688f),
-            Size = new Vector2(62f, 62f),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            Visible = false,
-        };
-        layer.AddChild(_portrait);
-
-        var attackIcon = new TextureRect
-        {
-            Position = new Vector2(760f, 690f),
-            Size = new Vector2(24f, 24f),
-            Texture = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNAttack.blp"),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        layer.AddChild(attackIcon);
-        _attackLabel = Label("", 15, new Vector2(788f, 694f), new Color(1f, 0.86f, 0.55f));
-        layer.AddChild(_attackLabel);
-
-        var armorIcon = new TextureRect
-        {
-            Position = new Vector2(880f, 690f),
-            Size = new Vector2(24f, 24f),
-            Texture = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNHumanArmorUpOne.blp"),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        layer.AddChild(armorIcon);
-        _armorLabel = Label("", 15, new Vector2(908f, 694f), new Color(0.75f, 0.88f, 1f));
-        layer.AddChild(_armorLabel);
-
-        for (int index = 0; index < 5; index++)
-        {
-            var icon = new TextureRect
-            {
-                Position = new Vector2(292f + index * 38f, 752f),
-                Size = new Vector2(34f, 34f),
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-                Visible = false,
-            };
-            layer.AddChild(icon);
-            _queueIcons.Add(icon);
-
-            var bar = new ColorRect
-            {
-                Position = new Vector2(icon.Position.X, icon.Position.Y + 31f),
-                Size = new Vector2(34f, 3f),
-                Color = new Color(0.3f, 0.9f, 0.35f, 0.9f),
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-                Visible = false,
-            };
-            layer.AddChild(bar);
-            _queueBars.Add(bar);
-        }
-
-        for (int index = 0; index < 8; index++)
-        {
-            var icon = new TextureRect
-            {
-                Position = new Vector2(222f + index * 34f, 798f),
-                Size = new Vector2(30f, 30f),
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-                Visible = false,
-            };
-            layer.AddChild(icon);
-            _buffIcons.Add(icon);
-
-            var timer = Label("", 10, new Vector2(icon.Position.X + 1f, icon.Position.Y + 16f), Colors.White);
-            timer.Size = new Vector2(28f, 13f);
-            timer.HorizontalAlignment = HorizontalAlignment.Center;
-            timer.Visible = false;
-            layer.AddChild(timer);
-            _buffTimers.Add(timer);
-        }
+        if (index < 0 || index >= _inventory.Count) return false;
+        CommandEntry entry = _inventory[index];
+        if (entry is not { Enabled: true, Action: not null }) return false;
+        entry.Action();
+        return true;
     }
 
-    private void BuildCooldownTimer(Node layer)
-    {
-        var timer = new Timer { Name = "CooldownOverlayTimer", WaitTime = 0.05f, Autostart = true };
-        timer.Timeout += RefreshCooldownOverlays;
-        layer.AddChild(timer);
-    }
+    public void ShowItemDetailForTest(int index) { }
 
-    private void BuildItemSlots(Node layer)
-    {
-        float gridWidth = SlotColumns * (SlotSize + SlotGap);
-        float cardX = 1600f - 16f - gridWidth;
-        float itemWidth = ItemColumns * (SlotSize + SlotGap);
-        float originX = cardX - 14f - itemWidth;
-        float originY = 690f;
-
-        for (int row = 0; row < ItemRows; row++)
-        {
-            for (int column = 0; column < ItemColumns; column++)
-            {
-                int index = row * ItemColumns + column;
-                var button = new Button
-                {
-                    Position = new Vector2(originX + column * (SlotSize + SlotGap), originY + row * (SlotSize + SlotGap)),
-                    Size = new Vector2(SlotSize, SlotSize),
-                    Visible = false,
-                    ExpandIcon = true,
-                    IconAlignment = HorizontalAlignment.Center,
-                    Flat = false,
-                };
-                button.AddThemeStyleboxOverride("normal", SlotStyle(new Color(0.16f, 0.14f, 0.1f)));
-                button.AddThemeStyleboxOverride("hover", SlotStyle(new Color(0.24f, 0.21f, 0.15f)));
-                button.AddThemeStyleboxOverride("pressed", SlotStyle(new Color(0.3f, 0.26f, 0.18f)));
-                button.AddThemeStyleboxOverride("disabled", SlotStyle(new Color(0.08f, 0.08f, 0.09f)));
-                button.Pressed += () => PressItem(index);
-                button.MouseEntered += () => ShowItemDetail(index);
-                button.MouseExited += HideDetail;
-                button.GuiInput += @event =>
-                {
-                    if (@event is not InputEventMouseButton mouse) return;
-                    if (!mouse.Pressed || mouse.ButtonIndex != MouseButton.Right) return;
-                    RightPressItem(index);
-                };
-                layer.AddChild(button);
-                _itemSlots.Add(button);
-
-                var cost = Label("", 11, Vector2.Zero, Color.FromHtml("ffe27a"));
-                cost.Position = new Vector2(button.Position.X + 3f, button.Position.Y + SlotSize - 17f);
-                cost.Size = new Vector2(SlotSize - 6f, 15f);
-                cost.HorizontalAlignment = HorizontalAlignment.Center;
-                cost.ZIndex = 2;
-                cost.Visible = false;
-                layer.AddChild(cost);
-                _itemCosts.Add(cost);
-
-                var cooldown = new ColorRect
-                {
-                    Position = button.Position,
-                    Size = new Vector2(SlotSize, 0f),
-                    Color = new Color(0f, 0f, 0f, 0.62f),
-                    MouseFilter = Control.MouseFilterEnum.Ignore,
-                    Visible = false,
-                };
-                layer.AddChild(cooldown);
-                _itemCooldown.Add(cooldown);
-
-                var ring = new ChargeRing
-                {
-                    Position = button.Position,
-                    Size = new Vector2(SlotSize, SlotSize),
-                    MouseFilter = Control.MouseFilterEnum.Ignore,
-                    Visible = false,
-                };
-                layer.AddChild(ring);
-                _itemCharges.Add(ring);
-
-                var hotkey = Label("", 11, Vector2.Zero, new Color(0.85f, 0.9f, 1f));
-                hotkey.Position = new Vector2(button.Position.X + SlotSize - 14f, button.Position.Y + 1f);
-                hotkey.Size = new Vector2(13f, 14f);
-                hotkey.HorizontalAlignment = HorizontalAlignment.Right;
-                hotkey.ZIndex = 2;
-                hotkey.Visible = false;
-                layer.AddChild(hotkey);
-                _itemHotkeys.Add(hotkey);
-            }
-        }
-    }
-
-    private void BuildCommandSlots(Node layer)
-    {
-        float gridWidth = SlotColumns * (SlotSize + SlotGap);
-        float gridX = 1600f - 16f - gridWidth;
-        float gridY = 690f;
-
-        for (int row = 0; row < SlotRows; row++)
-        {
-            for (int column = 0; column < SlotColumns; column++)
-            {
-                int index = row * SlotColumns + column;
-                var button = new Button
-                {
-                    Position = new Vector2(gridX + column * (SlotSize + SlotGap), gridY + row * (SlotSize + SlotGap)),
-                    Size = new Vector2(SlotSize, SlotSize),
-                    Visible = false,
-                    ExpandIcon = true,
-                    IconAlignment = HorizontalAlignment.Center,
-                    Flat = false,
-                };
-                button.AddThemeStyleboxOverride("normal", SlotStyle(new Color(0.12f, 0.13f, 0.15f)));
-                button.AddThemeStyleboxOverride("hover", SlotStyle(new Color(0.2f, 0.24f, 0.2f)));
-                button.AddThemeStyleboxOverride("pressed", SlotStyle(new Color(0.28f, 0.32f, 0.26f)));
-                button.AddThemeStyleboxOverride("disabled", SlotStyle(new Color(0.08f, 0.08f, 0.09f)));
-                button.Pressed += () => Press(index);
-                button.MouseEntered += () => ShowDetail(index);
-                button.MouseExited += HideDetail;
-                button.GuiInput += @event =>
-                {
-                    if (@event is not InputEventMouseButton mouse) return;
-                    if (!mouse.Pressed || mouse.ButtonIndex != MouseButton.Right) return;
-                    RightPress(index);
-                };
-                layer.AddChild(button);
-                _slots.Add(button);
-
-                var cost = Label("", 11, Vector2.Zero, Color.FromHtml("ffe27a"));
-                cost.Position = new Vector2(button.Position.X + 3f, button.Position.Y + SlotSize - 17f);
-                cost.Size = new Vector2(SlotSize - 6f, 15f);
-                cost.HorizontalAlignment = HorizontalAlignment.Center;
-                cost.ZIndex = 2;
-                cost.Visible = false;
-                layer.AddChild(cost);
-                _slotCosts.Add(cost);
-
-                var cooldown = new ColorRect
-                {
-                    Position = button.Position,
-                    Size = new Vector2(SlotSize, 0f),
-                    Color = new Color(0f, 0f, 0f, 0.62f),
-                    MouseFilter = Control.MouseFilterEnum.Ignore,
-                    Visible = false,
-                };
-                layer.AddChild(cooldown);
-                _slotCooldown.Add(cooldown);
-
-                var hotkey = Label("", 11, Vector2.Zero, new Color(0.85f, 0.9f, 1f));
-                hotkey.Position = new Vector2(button.Position.X + SlotSize - 14f, button.Position.Y + 1f);
-                hotkey.Size = new Vector2(13f, 14f);
-                hotkey.HorizontalAlignment = HorizontalAlignment.Right;
-                hotkey.ZIndex = 2;
-                hotkey.Visible = false;
-                layer.AddChild(hotkey);
-                _slotHotkeys.Add(hotkey);
-            }
-        }
-    }
-
-    private static StyleBoxFlat SlotStyle(Color color)
-    {
-        return new StyleBoxFlat
-        {
-            BgColor = color,
-            BorderColor = new Color(0.45f, 0.42f, 0.3f),
-            BorderWidthTop = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderWidthRight = 1,
-            CornerRadiusTopLeft = 2,
-            CornerRadiusTopRight = 2,
-            CornerRadiusBottomLeft = 2,
-            CornerRadiusBottomRight = 2,
-        };
-    }
-
-    private void ShowDetail(int index)
-    {
-        ShowDetailEntry(index >= 0 && index < _commands.Count ? _commands[index] : null);
-    }
-
-    private void ShowItemDetail(int index)
-    {
-        ShowDetailEntry(index >= 0 && index < _items.Count ? _items[index] : null, isItem: true);
-    }
-
-    private void ShowDetailEntry(CommandEntry entry, bool isItem = false)
-    {
-        if (entry == null)
-        {
-            HideDetail();
-            return;
-        }
-
-        ItemType item = isItem ? ItemCatalog.Get(entry.Id) : null;
-        if (item != null)
-        {
-            _detailIcon.Texture = entry.Icon;
-            _detailIcon.Visible = true;
-            _detailText.Position = new Vector2(1124f, 558f);
-            _detailText.Size = new Vector2(448f, 112f);
-            _detailText.Text = ItemDetailText(item);
-        }
-        else
-        {
-            _detailIcon.Visible = false;
-            _detailText.Position = new Vector2(1068f, 560f);
-            _detailText.Size = new Vector2(504f, 108f);
-            _detailText.Text = BuildTooltip(entry);
-        }
-
-        _detailPanel.Visible = true;
-    }
-
-    /// <summary>物品详情：图标 + 名字 + 加成/消耗说明 + 等级与售价 + 物编 Ubertip（色码与占位符都解掉）。</summary>
     public static string ItemDetailText(ItemType item)
     {
         var lines = new List<string> { item.Name };
-
         string bonus = War3Text.Describe(item.BonusText);
         if (!string.IsNullOrWhiteSpace(bonus) && bonus != "-") lines.Add(bonus);
-
         var meta = new List<string> { $"等级 {item.Level}" };
         if (item.GoldCost > 0) meta.Add($"{item.GoldCost} 金");
         if (item.Uses > 0) meta.Add($"{item.Uses} 次");
         if (item.PowerUp) meta.Add("一次性");
         lines.Add(string.Join("    ", meta));
-
         string description = War3Text.Describe(item.Ubertip);
         if (string.IsNullOrWhiteSpace(description)) description = War3Text.Describe(item.Tip);
         if (!string.IsNullOrWhiteSpace(description)) lines.Add(description);
-
         return string.Join("\n", lines);
     }
 
-    /// <summary>探针用：强制展开某个物品格详情，便于截图核对面板。</summary>
-    public void ShowItemDetailForTest(int index) => ShowItemDetail(index);
+    public void RefreshCooldownNow() { }
 
-    private void HideDetail()
-    {
-        _detailPanel.Visible = false;
-        _detailIcon.Visible = false;
-    }
-
-    private void Press(int index)
-    {
-        if (index < 0 || index >= _commands.Count) return;
-        CommandEntry entry = _commands[index];
-        if (entry == null || !entry.Enabled || entry.Action == null) return;
-        entry.Action();
-    }
-
-    private void RightPress(int index)
-    {
-        if (index < 0 || index >= _commands.Count) return;
-        CommandEntry entry = _commands[index];
-        if (entry == null || entry.RightAction == null) return;
-        entry.RightAction();
-    }
-
-    private void PressItem(int index)
-    {
-        if (index < 0 || index >= _items.Count) return;
-        CommandEntry entry = _items[index];
-        if (entry == null || !entry.Enabled || entry.Action == null) return;
-        entry.Action();
-    }
-
-    private void RightPressItem(int index)
-    {
-        if (index < 0 || index >= _items.Count) return;
-        CommandEntry entry = _items[index];
-        if (entry == null || entry.RightAction == null) return;
-        entry.RightAction();
-    }
-
-    /// <summary>小键盘 1~6 用物品；返回 true 表示这一格有东西且按得动。</summary>
-    public bool ActivateItemSlot(int index)
-    {
-        if (index < 0 || index >= _items.Count) return false;
-        CommandEntry entry = _items[index];
-        if (entry == null) return false;
-        PressItem(index);
-        return true;
-    }
-
-    /// <summary>英雄物品：原版独立 2×3 六格（不在命令卡里），序号 1~6 是左上→右下的列优先。</summary>
-    public void SetInventory(IReadOnlyList<CommandEntry> items)
-    {
-        _items.Clear();
-        for (int index = 0; index < ItemColumns * ItemRows; index++)
-        {
-            _items.Add(items != null && index < items.Count ? items[index] : null);
-        }
-
-        for (int index = 0; index < _itemSlots.Count; index++)
-        {
-            CommandEntry entry = _items[index];
-            bool used = entry != null;
-            _itemSlots[index].Visible = used;
-            _itemCosts[index].Visible = used && !string.IsNullOrEmpty(entry.Cost);
-            _itemHotkeys[index].Visible = used && !string.IsNullOrEmpty(entry.Hotkey);
-            if (!used)
-            {
-                _itemCharges[index].Visible = false;
-                continue;
-            }
-
-            _itemSlots[index].Icon = entry.Icon;
-            _itemSlots[index].Disabled = !entry.Enabled;
-            _itemSlots[index].Modulate = entry.Enabled ? Colors.White : new Color(0.45f, 0.45f, 0.45f);
-            _itemSlots[index].TooltipText = BuildTooltip(entry);
-            _itemCosts[index].Text = entry.Cost ?? "";
-            _itemHotkeys[index].Text = entry.Hotkey ?? "";
-            _itemCharges[index].Charges = entry.Charges;
-            _itemCharges[index].MaxCharges = entry.MaxCharges;
-            _itemCharges[index].Visible = entry.MaxCharges > 0;
-            _itemCharges[index].QueueRedraw();
-            entry.CooldownEnd = Time.GetTicksMsec() / 1000.0 + Mathf.Max(0f, entry.CooldownRemaining);
-        }
-        RefreshCooldownOverlays();
-    }
-
-    /// <summary>
-    /// 排格子：原版命令卡是 4×3 = 12 格，**左两列放技能/命令，右两列固定放物品**
-    /// （index 2,3,6,7,10,11）。有固定格位的先占位，其余按顺序填剩下的格子。
-    /// </summary>
-    public void SetCommands(IReadOnlyList<CommandEntry> commands)
-    {
-        var placed = new CommandEntry[_slots.Count];
-        var leftovers = new List<CommandEntry>();
-
-        if (commands != null)
-        {
-            foreach (CommandEntry entry in commands)
-            {
-                if (entry.SlotIndex >= 0 && entry.SlotIndex < placed.Length && placed[entry.SlotIndex] == null)
-                {
-                    placed[entry.SlotIndex] = entry;
-                }
-                else
-                {
-                    leftovers.Add(entry);
-                }
-            }
-        }
-
-        int cursor = 0;
-        foreach (CommandEntry entry in leftovers)
-        {
-            while (cursor < placed.Length && placed[cursor] != null) cursor++;
-            if (cursor >= placed.Length) break;
-            placed[cursor] = entry;
-            cursor++;
-        }
-
-        _commands.Clear();
-        for (int index = 0; index < _slots.Count; index++)
-        {
-            CommandEntry entry = placed[index];
-            bool used = entry != null;
-            _slots[index].Visible = used;
-            _slotCosts[index].Visible = used && !string.IsNullOrEmpty(entry.Cost);
-            _slotHotkeys[index].Visible = used && !string.IsNullOrEmpty(entry.Hotkey);
-            if (!used)
-            {
-                _commands.Add(null);
-                continue;
-            }
-
-            _commands.Add(entry);
-            _slots[index].Icon = entry.Icon;
-            _slots[index].Disabled = !entry.Enabled;
-            _slots[index].Modulate = entry.Enabled ? Colors.White : new Color(0.45f, 0.45f, 0.45f);
-            _slots[index].TooltipText = BuildTooltip(entry);
-            _slotCosts[index].Text = entry.Cost ?? "";
-            _slotHotkeys[index].Text = entry.Hotkey ?? "";
-            entry.CooldownEnd = Time.GetTicksMsec() / 1000.0 + Mathf.Max(0f, entry.CooldownRemaining);
-        }
-        RefreshCooldownOverlays();
-    }
-
-    private void RefreshCooldownOverlays()
-    {
-        double now = Time.GetTicksMsec() / 1000.0;
-        for (int index = 0; index < _slotCooldown.Count; index++)
-        {
-            CommandEntry entry = index < _commands.Count ? _commands[index] : null;
-            UpdateCooldownOverlay(_slotCooldown[index], _slots[index], entry, now);
-        }
-        for (int index = 0; index < _itemCooldown.Count; index++)
-        {
-            CommandEntry entry = index < _items.Count ? _items[index] : null;
-            UpdateCooldownOverlay(_itemCooldown[index], _itemSlots[index], entry, now);
-        }
-    }
-
-    private static void UpdateCooldownOverlay(ColorRect overlay, Button button, CommandEntry entry, double now)
-    {
-        if (entry == null || !button.Visible || entry.CooldownTotal <= 0f)
-        {
-            overlay.Visible = false;
-            return;
-        }
-
-        float remaining = (float)(entry.CooldownEnd - now);
-        if (remaining <= 0f)
-        {
-            overlay.Visible = false;
-            return;
-        }
-
-        float ratio = Mathf.Clamp(remaining / entry.CooldownTotal, 0f, 1f);
-        overlay.Visible = true;
-        overlay.Position = new Vector2(button.Position.X, button.Position.Y + SlotSize * (1f - ratio));
-        overlay.Size = new Vector2(SlotSize, SlotSize * ratio);
-    }
-
-    private static string BuildTooltip(CommandEntry entry)
-    {
-        string text = entry.Name ?? "";
-        if (!string.IsNullOrEmpty(entry.Tooltip)) text += "\n" + entry.Tooltip;
-        if (!entry.Enabled) text += "\n（条件不足）";
-        return text;
-    }
-
-    public void ClearCommands()
-    {
-        HideDetail();
-        SetCommands(null);
-    }
-
-    public void SetResources(int gold, int lumber, int pop, int cap)
-    {
-        _resources.Text = $"金币 {gold}    木材 {lumber}    人口 {pop}/{cap}";
-    }
-
-    public void SetQueue(string text)
-    {
-        _queueLabel.Text = text;
-    }
-
-    public void SetQueueSlots(IReadOnlyList<QueueEntry> entries)
-    {
-        for (int index = 0; index < _queueIcons.Count; index++)
-        {
-            bool show = entries != null && index < entries.Count && entries[index] != null;
-            _queueIcons[index].Visible = show;
-            _queueBars[index].Visible = show;
-            if (!show) continue;
-
-            QueueEntry entry = entries[index];
-            _queueIcons[index].Texture = entry.Icon;
-            _queueIcons[index].TooltipText = entry.Name ?? "";
-            float ratio = entry.Total > 0f ? Mathf.Clamp(1f - entry.Remaining / entry.Total, 0f, 1f) : 0f;
-            _queueBars[index].Size = new Vector2(34f * ratio, 3f);
-        }
-    }
-
-    public void SetBuffs(IReadOnlyList<BuffEntry> entries)
-    {
-        for (int index = 0; index < _buffIcons.Count; index++)
-        {
-            bool show = entries != null && index < entries.Count && entries[index] != null;
-            _buffIcons[index].Visible = show;
-            _buffTimers[index].Visible = show;
-            if (!show) continue;
-
-            BuffEntry entry = entries[index];
-            _buffIcons[index].Texture = entry.Icon;
-            _buffIcons[index].TooltipText = entry.Name ?? "";
-            _buffTimers[index].Text = entry.Aura || entry.Remaining <= 0f ? "" : $"{Mathf.CeilToInt(entry.Remaining)}";
-        }
-    }
-
-    public void SetUnitSummary(Texture2D portrait, string attack, string armor)
-    {
-        _portrait.Texture = portrait;
-        _portrait.Visible = portrait != null;
-        _attackLabel.Text = attack ?? "";
-        _armorLabel.Text = armor ?? "";
-    }
-
-    public void RefreshCooldownNow() => RefreshCooldownOverlays();
-
-    public string DescribeExtras()
-    {
-        int queue = 0;
-        foreach (TextureRect icon in _queueIcons) if (icon.Visible) queue++;
-        int buffs = 0;
-        foreach (TextureRect icon in _buffIcons) if (icon.Visible) buffs++;
-        int cooldowns = 0;
-        foreach (ColorRect overlay in _slotCooldown) if (overlay.Visible) cooldowns++;
-        foreach (ColorRect overlay in _itemCooldown) if (overlay.Visible) cooldowns++;
-        int rings = 0;
-        foreach (ChargeRing ring in _itemCharges) if (ring.Visible) rings++;
-        return $"头像={_portrait.Visible} 攻={_attackLabel.Text} 甲={_armorLabel.Text} 队列格={queue} 增益={buffs} 冷却遮罩={cooldowns} 充能环={rings}";
-    }
+    public string DescribeExtras() =>
+        $"commands={_commands.Count} inventory={_inventory.Count} queue={_queue.Count} summary={_unitSummary}";
 
     public string DescribeVisibleCommands()
     {
-        var parts = new List<string>();
+        var names = new List<string>();
         foreach (CommandEntry entry in _commands)
-        {
-            if (entry == null) continue;
-            parts.Add($"{entry.Name}{(entry.Enabled ? "" : "(禁用)")}");
-        }
-        return parts.Count == 0 ? "(空)" : string.Join(" | ", parts);
+            if (entry != null) names.Add(entry.Name);
+        return string.Join(" | ", names);
     }
 
-    private static Label Label(string text, int size, Vector2 position, Color color)
+    public void OnUiCommand(UiCommand command)
     {
-        var label = new Label
+        if (command.Context is not CommandEntry entry) return;
+        if (command.NativeEventKind >= 2)
         {
-            Text = text,
-            Position = position,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        label.AddThemeFontSizeOverride("font_size", size);
-        label.AddThemeColorOverride("font_color", color);
-        label.AddThemeColorOverride("font_outline_color", Colors.Black);
-        label.AddThemeConstantOverride("outline_size", 4);
-        return label;
-    }
-
-    public void SetSelection(IReadOnlyList<Unit> selected)
-    {
-        RefreshSelectionSlots(selected);
-        if (selected == null || selected.Count == 0)
-        {
-            _selection.Text = "未选中单位";
-            _selectionDetail.Text = "";
+            entry.RightAction?.Invoke();
             return;
         }
-        if (selected.Count == 1)
-        {
-            Unit unit = selected[0];
-            string stage = unit.IsUnderConstruction ? "  建造中" : "";
-            _selection.Text = $"{unit.Type.Name}{stage}    HP {Mathf.CeilToInt(Mathf.Max(0f, unit.Hp))}/{Mathf.CeilToInt(unit.MaxHp)}";
-            _selectionDetail.Text = DetailProvider != null ? DetailProvider(unit) : "";
-            return;
-        }
-
-        int count = selected.Count;
-        float hp = 0f;
-        float max = 0f;
-        foreach (Unit unit in selected)
-        {
-            hp += Mathf.Max(0f, unit.Hp);
-            max += unit.MaxHp;
-        }
-        _selection.Text = $"已选中 {count} 个单位    HP {hp:0}/{max:0}";
-        _selectionDetail.Text = "";
-    }
-
-    public void SetHint(string text)
-    {
-        _hint.Text = text;
+        entry.Action?.Invoke();
     }
 }

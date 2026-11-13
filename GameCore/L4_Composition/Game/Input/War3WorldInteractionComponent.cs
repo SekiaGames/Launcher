@@ -26,7 +26,6 @@ public sealed partial class War3GameScene
                 {
                     if (_scene.TryGroundPoint(position, out Vector3 pingPoint))
                     {
-                        _scene._hud?.MinimapFrame.Ping(pingPoint);
                         _scene.PingMinimap(new System.Numerics.Vector2(-pingPoint.X, pingPoint.Z));
                     }
                     return;
