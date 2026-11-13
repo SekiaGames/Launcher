@@ -182,6 +182,9 @@ public static partial class CombatProbe
         float offBefore = offLine.Hp;
         bool swarmCast = swarmWorld.TryCast(dread, swarm, null, new Vector3(600f, 0f, 0f));
 
+        // 客户端腐尸群是线型导弹，命中在推进后结算
+        for (int tick = 0; tick < 30; tick++) swarmWorld.Advance();
+
         int hit = 0;
         for (int index = 0; index < onLine.Count; index++)
         {
