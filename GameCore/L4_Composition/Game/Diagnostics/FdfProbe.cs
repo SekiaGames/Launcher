@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Godot;
+using OpenWC3.Game.UI;
 using OpenWC3.UI;
 
 namespace OpenWC3.Game.Diagnostics;
@@ -20,6 +21,11 @@ public static class FdfProbe
         var env = new FrameTemplateEnvironment();
         List<FrameDefinition> frames = FdfParser.Parse(File.ReadAllText(fdfPath), env,
             include => LoadInclude(assetsRoot, include));
+
+        var factory = new FdfUiFactory(new OpenWC3.Game.UI.GodotUiTextureResolver(), FdfSource.Read);
+        factory.LoadTemplate(fdfPath);
+        RuntimeDiagnostics.WriteLine($"[FDF] 模板表 COLON_GAME_TYPE = {factory.Localized("COLON_GAME_TYPE", "(缺)")}");
+        RuntimeDiagnostics.WriteLine($"[FDF] 模板表 COLON_LUMBER = {factory.Localized("COLON_LUMBER", "(缺)")}");
 
         RuntimeDiagnostics.WriteLine($"[FDF] {Path.GetFileName(fdfPath)} 顶层帧 {frames.Count}");
         foreach (FrameDefinition frame in frames)
