@@ -246,6 +246,14 @@ public static class UnitFactory
     }
 
     /// <summary>幻象继承英雄三围（客户端 UnitFactory.CopyIllusionHeroAttributes）。</summary>
+    /// <summary>幻象复制收尾：攻击/护甲/移速按本体取值（Launcher 侧直接抄现有数值）。</summary>
+    public static void CompleteIllusionCopy(Unit source, Unit illusion)
+    {
+        if (source == null || illusion == null) return;
+        illusion.SpeedBonus = source.SpeedBonus;
+        illusion.BonusArmor = source.BonusArmor;
+    }
+
     public static void CopyIllusionHeroAttributes(Unit source, Unit illusion)
     {
         if (source == null || illusion == null) return;

@@ -79,17 +79,29 @@ public sealed partial class Unit
     /// <summary>客户端 Unit.Attack 组件：Launcher 侧用当前武器代表「能打」。</summary>
     public Weapon Attack => ActiveWeapon;
 
-    /// <summary>静态分类 + 运行时分类（召唤物在存活期间才算召唤物）。</summary>
+    /// <summary>顶点色（幻象半透明染色的来源，表现层读取）。</summary>
+    public Vector4 VertexColorRgba = Vector4.One;
+
+    /// <summary>模型缩放（幻象沿用本体比例）。</summary>
+    public float VisualScale = 1f;
+    public float VisualScaleX = 1f;
+    public float VisualScaleY = 1f;
+    public float VisualScaleZ = 1f;
+
+    /// <summary>静态分类 + 运行时分类（召唤物在存活期间才算召唤物）。显式赋值会覆盖静态部分。</summary>
     public Classification Classifications
     {
         get
         {
-            Classification classes = Type?.Classifications ?? Classification.None;
+            Classification classes = _classificationOverride ?? (Type?.Classifications ?? Classification.None);
             if (SummonRemaining > 0f) classes |= Classification.Summoned;
             if (IsIllusion) classes |= Classification.Summoned;
             return classes;
         }
+        set => _classificationOverride = value;
     }
+
+    Classification? _classificationOverride;
 
     public bool IsDetectedByPlayer(int player) => !Hidden || true;
 

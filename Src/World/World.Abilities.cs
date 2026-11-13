@@ -426,6 +426,9 @@ public sealed partial class World
         ReleaseFootprint(unit, unit.CollisionSize);
     }
 
+    /// <summary>客户端 World.SpawnViaCreateUnit 的等价入口。</summary>
+    public void SpawnViaCreateUnit(Unit unit) => Spawn(unit);
+
     public void Spawn(Unit unit)
     {
         if (unit == null) return;

@@ -669,6 +669,14 @@ public static class RuntimeAbilityFactory
         ability.Type = type;
         return ability;
     }
+
+    /// <summary>客户端给召唤物挂限时生命。</summary>
+    public static void ApplyTimedLife(Unit unit, float seconds)
+    {
+        if (unit == null || seconds <= 0f) return;
+        unit.SummonRemaining = seconds;
+    }
+
 }
 
 /// <summary>未实现的技能占位：数据与图标都在，但没有任何效果。</summary>
@@ -677,4 +685,5 @@ public sealed class PassiveAbility : Ability
     public override bool IsPassive => true;
 
     public override bool OnCast(World world, Unit target, Vector3 point) => false;
+
 }
