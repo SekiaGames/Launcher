@@ -31,7 +31,6 @@ public sealed partial class FdfLoadingScreen : Control
     private LoadingScreenBinding _loading;
     private GodotUiRenderDevice _device;
     private GodotUiTextureResolver _textures;
-    private readonly MapSource _map;
     private readonly string _title, _subtitle, _body;
     private string _barLabel;
     private string _stage;
@@ -41,7 +40,6 @@ public sealed partial class FdfLoadingScreen : Control
     public FdfLoadingScreen(Node parent, MapSource map, int raceId = 0, float seconds = 2.2f)
     {
         _remaining = Mathf.Max(0.4f, seconds);
-        _map = map;
 
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
@@ -83,23 +81,6 @@ public sealed partial class FdfLoadingScreen : Control
         if (_loading.LoadingMeleePanel != null) _loading.LoadingMeleePanel.Visible = false;
         if (_loading.LoadingCustomPanel != null) _loading.LoadingCustomPanel.Visible = true;
 
-        if (_loading.MinimapImage != null)
-        {
-            Texture2D thumbnail = MapThumbnail.Load(_map);
-            if (thumbnail != null)
-            {
-                _loading.MinimapImage.AddChild(new TextureFrame("LoadingMapThumbnail")
-                {
-                    Texture = new GodotUiTexture(thumbnail),
-                    MouseTransparent = true,
-                });
-                GD.Print($"[loading] 地图缩略图 {thumbnail.GetWidth()}x{thumbnail.GetHeight()}");
-            }
-            else
-            {
-                GD.Print("[loading] 地图缩略图缺失 war3mapMap.blp");
-            }
-        }
 
         _barLabel = _loading.LoadingBarText?.Text ?? "";
         if (_loading.LoadingTitleText != null) _loading.LoadingTitleText.Text = _title;

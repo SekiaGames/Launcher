@@ -174,12 +174,14 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
         Rect2 area = ToPixels(rect);
         float textWidth = _font.GetStringSize(text, HorizontalAlignment.Left, -1, pixelSize).X;
         float textHeight = _font.GetHeight(pixelSize);
+        // DrawString 的 pos 是基线，不是行框顶边；不加 ascent 会让所有文字整体上浮一个字高
+        float ascent = _font.GetAscent(pixelSize);
 
         float x = area.Position.X;
         if (align == TextAlignment.Center) x += (area.Size.X - textWidth) * 0.5f;
         else if (align == TextAlignment.Right) x += area.Size.X - textWidth;
 
-        float y = area.Position.Y;
+        float y = area.Position.Y + ascent;
         if (verticalAlign == TextVerticalAlignment.Middle) y += (area.Size.Y - textHeight) * 0.5f;
         else if (verticalAlign == TextVerticalAlignment.Bottom) y += area.Size.Y - textHeight;
 
