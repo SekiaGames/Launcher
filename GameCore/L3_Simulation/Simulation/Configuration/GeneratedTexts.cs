@@ -49,6 +49,23 @@ public static class GeneratedTexts
         return root;
     }
 
+    public static bool TryGet(string table, string key, out string value)
+    {
+        value = null;
+        Godot.Collections.Dictionary keys = Get(table)["keys"].AsGodotDictionary();
+        if (keys.TryGetValue(key, out Variant exact)) { value = exact.AsString(); return true; }
+        foreach (KeyValuePair<Variant, Variant> pair in keys)
+        {
+            string name = pair.Key.AsString();
+            int dot = name.LastIndexOf('.');
+            string tail = dot >= 0 ? name[(dot + 1)..] : name;
+            if (!tail.Equals(key, StringComparison.OrdinalIgnoreCase)) continue;
+            value = pair.Value.AsString();
+            return true;
+        }
+        return false;
+    }
+
     static string Normalize(string pathOrName)
     {
         string name = pathOrName ?? "";

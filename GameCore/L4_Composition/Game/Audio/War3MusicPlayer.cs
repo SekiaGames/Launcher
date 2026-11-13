@@ -1,4 +1,5 @@
 using Godot;
+using OpenWC3.Game;
 using System;
 using System.Collections.Generic;
 
@@ -126,33 +127,25 @@ public sealed class War3MusicPlayer
         if (_sections != null) return;
         _sections = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-        const string path = "res://extract/UI/war3skins.txt";
-        if (!FileAccess.FileExists(path))
+        Godot.Collections.Dictionary keys = GeneratedTexts.Get("UIwar3skins")["keys"].AsGodotDictionary();
+        if (keys.Count == 0)
         {
-            GD.PushWarning("[MUSIC] 缺 UI/war3skins.txt");
+            GD.PushWarning("[MUSIC] 生成的 war3skins 为空");
             return;
         }
 
-        Dictionary<string, string> fields = null;
-        foreach (string raw in FileAccess.GetFileAsString(path).Split('\n'))
+        foreach (KeyValuePair<Variant, Variant> pair in keys)
         {
-            string line = raw.Trim().TrimStart('\uFEFF');
-            if (line.Length == 0 || line.StartsWith("//", StringComparison.Ordinal) || line.StartsWith(';')) continue;
-
-            if (line.StartsWith('[') && line.EndsWith(']'))
+            string name = pair.Key.AsString();
+            int dot = name.IndexOf('.');
+            string section = dot > 0 ? name[..dot] : "Default";
+            string key = dot > 0 ? name[(dot + 1)..] : name;
+            if (!_sections.TryGetValue(section, out Dictionary<string, string> fields))
             {
-                string section = line[1..^1];
-                if (!_sections.TryGetValue(section, out fields))
-                {
-                    fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    _sections[section] = fields;
-                }
-                continue;
+                fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                _sections[section] = fields;
             }
-
-            int equals = line.IndexOf('=');
-            if (fields == null || equals <= 0) continue;
-            fields[line[..equals].Trim()] = line[(equals + 1)..].Trim().Trim('"');
+            fields[key] = pair.Value.AsString().Trim('"');
         }
     }
 

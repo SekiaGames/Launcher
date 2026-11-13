@@ -23,49 +23,19 @@ public static class FogRules
         if (_loaded) return;
         _loaded = true;
 
-        string text = ReadMiscData(out string source);
-        if (string.IsNullOrEmpty(text)) return;
-
-        Source = source;
-        foreach (string line in text.Split('\n'))
-        {
-            string trimmed = line.Trim();
-            if (trimmed.StartsWith("FoggedTerrain", StringComparison.OrdinalIgnoreCase))
-            {
-                if (TryParseArgb(trimmed, out Color color)) FoggedTerrain = color;
-            }
-            else if (trimmed.StartsWith("BlackMaskedTerrain", StringComparison.OrdinalIgnoreCase))
-            {
-                if (TryParseArgb(trimmed, out Color color)) BlackMaskedTerrain = color;
-            }
-            else if (trimmed.StartsWith("DarkMaskedTerrain", StringComparison.OrdinalIgnoreCase))
-            {
-                if (TryParseArgb(trimmed, out Color color)) DarkMaskedTerrain = color;
-            }
-        }
+        if (!ReadMiscData("FoggedTerrain", out string fogged)) return;
+        Source = "生成表 UIMiscData";
+        if (TryParseArgb("FoggedTerrain=" + fogged, out Color fog)) FoggedTerrain = fog;
+        if (ReadMiscData("BlackMaskedTerrain", out string black)
+            && TryParseArgb("BlackMaskedTerrain=" + black, out Color dark)) BlackMaskedTerrain = dark;
+        if (ReadMiscData("DarkMaskedTerrain", out string masked)
+            && TryParseArgb("DarkMaskedTerrain=" + masked, out Color dim)) DarkMaskedTerrain = dim;
 
         GD.Print($"[FOG] 配置来源 {Source}：黑区={BlackMaskedTerrain} 雾区={FoggedTerrain}");
     }
 
-    private static string ReadMiscData(out string source)
-    {
-        const string packed = "res://extract/UI/MiscData.txt";
-        if (FileAccess.FileExists(packed))
-        {
-            source = "extract.pck:UI/MiscData.txt";
-            return FileAccess.GetFileAsString(packed);
-        }
-
-        string unpacked = Assets.WorkspaceDir + "/test/war3-unpack/UI/MiscData.txt";
-        if (System.IO.File.Exists(unpacked))
-        {
-            source = "解包目录:UI/MiscData.txt";
-            return System.IO.File.ReadAllText(unpacked);
-        }
-
-        source = "内置默认";
-        return null;
-    }
+    private static bool ReadMiscData(string key, out string value) =>
+        GeneratedTexts.TryGet("UIMiscData", key, out value);
 
     private static bool TryParseArgb(string line, out Color color)
     {
