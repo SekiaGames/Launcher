@@ -298,7 +298,8 @@ public abstract class Ability
     public virtual bool NightSight => false;
 
     /// <summary>负面状态的时长缩放（抗性皮肤 0.5）。</summary>
-    public virtual float DebuffDurationScale => 1f;
+    /// <summary>抗性皮肤：控制类负面效果的持续时间减半（客户端用 ProvidesResistantSkin 标记）。</summary>
+    public virtual float DebuffDurationScale => ProvidesResistantSkin ? 0.5f : 1f;
 
     public virtual void OnLearned() { }
 
