@@ -561,6 +561,8 @@ public sealed partial class World
         {
             if (ability is IAttackLaunchBuff hook) hook.OnAttackLaunched(this, target, ref result);
         }
+        // 普攻出手即破隐（客户端的隐身能力没有自带的出手钩子，规则落在这里）
+        if (attacker.State.Invisible) attacker.State.RemoveAll(StateMod.Invisible);
         return result;
     }
 

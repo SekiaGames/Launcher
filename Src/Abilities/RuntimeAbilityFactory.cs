@@ -117,7 +117,7 @@ public static class RuntimeAbilityFactory
         ["Ahea"] = () => new Heal(),
         // —— 人族单位 ——
         ["Aslo"] = () => new RuntimeSlowAbility(),          // 减速（女巫，自动施法）
-        ["Aivs"] = () => new RuntimeInvisibilityAbility(), // 隐身术（女巫，普攻破隐）
+        ["Aivs"] = () => WithObjects<RuntimeInvisibilityAbility>(), // 隐身术（女巫，普攻破隐）
         ["Afla"] = () => new RuntimeFlareAbility(),             // 照明弹（翔车，区域揭示）
         ["AHta"] = () => new RevealArea(),        // 魔法岗哨反隐
         ["Atru"] = () => new DetectPassive(),     // 真实视域（阴影/直升机/魔法哨塔）
