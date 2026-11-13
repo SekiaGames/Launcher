@@ -94,4 +94,10 @@ public sealed partial class CommandCardBuilder
     }
 
     public const int SlotCount = Slots;
+
+    public void SetPending(Func<int, bool> isPending)
+    {
+        for (int i = 0; i < Slots; i++)
+            _buttons[i].PendingHighlight = isPending(i);
+    }
 }

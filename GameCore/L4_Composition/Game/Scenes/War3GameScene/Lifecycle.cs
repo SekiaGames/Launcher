@@ -249,7 +249,10 @@ public sealed partial class War3GameScene : Node3D
         _newHud = new GameHudScreen { Name = "HudScreen" };
         hudLayer.AddChild(_newHud);
         _newHud.Load(HudRaceName(), sample: false);
-        _hud = new MeleeHudController(_newHud, War3Strings.Resolve(map.Name));
+        _hud = new MeleeHudController(_newHud, War3Strings.Resolve(map.Name))
+        {
+            CommandSource = BuildCommandEntries,
+        };
         _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
         ConfigureNewMinimap(map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");

@@ -56,6 +56,7 @@ public sealed class MeleeHudController : IUiCommandListener
 
     public Func<Unit, string> DetailProvider;
     public Action<Unit> SelectionSlotClicked;
+    public Func<IReadOnlyList<CommandEntry>> CommandSource;
 
     public MeleeHudController(GameHudScreen host, string mapName)
     {
@@ -74,11 +75,18 @@ public sealed class MeleeHudController : IUiCommandListener
 
     public void SetSelectionBox(Rect2 rect, bool visible) => _host.SetSelectionBox(rect, visible);
 
+    public void SetPendingCommand(UiCommandKind? kind) => _host.SetPendingCommand(kind);
+
     public void SetCommands(IReadOnlyList<CommandEntry> commands)
     {
         _commands.Clear();
         if (commands != null) _commands.AddRange(commands);
         _host.SetCommands(commands);
+    }
+
+    public void RefreshCommands()
+    {
+        SetCommands(CommandSource?.Invoke() ?? Array.Empty<CommandEntry>());
     }
 
     public void SetInventory(IReadOnlyList<CommandEntry> items)

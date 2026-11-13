@@ -31,6 +31,7 @@ public sealed partial class GameHudScreen : Control
     private readonly CommandEntry[] _slotEntries = new CommandEntry[CommandCardBuilder.SlotCount];
     private bool _uiPointerDown;
     private UiRect? _selectionBox;
+    private UiCommandKind? _pendingKind;
 
     public IUiCommandListener Listener { get; set; }
 
@@ -147,7 +148,24 @@ public sealed partial class GameHudScreen : Control
         }
         _commands = new CommandCardView(slots);
         _card.Build(_commands);
+        ApplyPendingKind();
         QueueRedraw();
+    }
+
+    public void SetPendingCommand(UiCommandKind? kind)
+    {
+        _pendingKind = kind;
+        ApplyPendingKind();
+        QueueRedraw();
+    }
+
+    private void ApplyPendingKind()
+    {
+        _card.SetPending(slot =>
+        {
+            CommandEntry entry = SlotEntry(slot);
+            return _pendingKind.HasValue && entry != null && entry.Kind == _pendingKind.Value;
+        });
     }
 
     private void OnCommandClicked(UiFrame frame, UiCommand command, int button)

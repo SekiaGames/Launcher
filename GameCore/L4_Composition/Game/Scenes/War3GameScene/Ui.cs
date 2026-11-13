@@ -372,11 +372,11 @@ public sealed partial class War3GameScene
         if (player == ViewPlayer) ShowResourceFloat(FindHall(player), credited, false, false);
     }
 
-    private void UpdateCommandCard()
-    {
-        if (_hud == null) return;
+    private void UpdateCommandCard() => _hud?.RefreshCommands();
 
-        _hud.SetInventory(null);
+    private List<CommandEntry> BuildCommandEntries()
+    {
+        _hud?.SetInventory(null);
         PlayerSlot slot = Slot(ViewPlayer);
         var commands = new List<CommandEntry>();
         if (_selected.Count > 0 && (_selected[0].Player == slot.Id || IsNeutralShop(_selected[0])))
@@ -426,7 +426,7 @@ public sealed partial class War3GameScene
             }
         }
 
-        _hud.SetCommands(commands);
+        return commands;
     }
 
     private void AddCancelConstructionCommand(List<CommandEntry> commands, Unit site)

@@ -32,12 +32,20 @@ public sealed partial class War3GameScene
         if (_selected.Count == 0 || _world == null) return;
         CancelCast();
         _pendingCommand = kind;
+        _hud?.SetPendingCommand(kind switch
+        {
+            PendingCommandKind.Move => UiCommandKind.Move,
+            PendingCommandKind.Attack => UiCommandKind.AttackMove,
+            PendingCommandKind.Patrol => UiCommandKind.Patrol,
+            _ => null,
+        });
         _hud?.SetHint(hint);
     }
 
     private void ClearPendingCommand()
     {
         _pendingCommand = PendingCommandKind.None;
+        _hud?.SetPendingCommand(null);
     }
 
     public bool TryCommandAt(Vector2 screenPosition)
@@ -46,6 +54,7 @@ public sealed partial class War3GameScene
 
         PendingCommandKind kind = _pendingCommand;
         _pendingCommand = PendingCommandKind.None;
+        _hud?.SetPendingCommand(null);
 
         if (kind == PendingCommandKind.Attack)
         {
