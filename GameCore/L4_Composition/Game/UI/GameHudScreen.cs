@@ -1,6 +1,8 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using OpenWC3.Game.UI.Views;
+using OpenWC3.RHI;
 using OpenWC3.UI;
 
 namespace OpenWC3.Game.UI;
@@ -16,10 +18,13 @@ public sealed partial class GameHudScreen : Control
     private ConsoleSkinFrame _console;
     private TopBarFrame _topBar;
     private CommandCardBuilder _card;
+    private int _gold, _lumber, _food, _foodCap;
+    private double _timeOfDay;
+    private CommandCardView _commands = CommandCardView.Empty;
 
     public int FrameCount => _root?.Children.Count ?? 0;
 
-    public void Load(string race = "Human")
+    public void Load(string race = "Human", bool sample = true)
     {
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Ignore;
@@ -40,11 +45,65 @@ public sealed partial class GameHudScreen : Control
         _root.AddChild(_card.Root);
         _root.AddChild(_topBar);
 
-        _topBar.UpdateResources(500, 220, 12, 24);
-        _topBar.UpdateTime(6.0);
-        _card.Build(SampleCommands());
+        SetResources(500, 220, 12, 24);
+        SetClock(6.0);
+        if (sample) _card.Build(SampleCommands());
+        else SetCommands(null);
         QueueRedraw();
     }
+
+    public void SetResources(int gold, int lumber, int food, int foodCap)
+    {
+        _gold = gold;
+        _lumber = lumber;
+        _food = food;
+        _foodCap = foodCap;
+        _topBar.UpdateResources(gold, lumber, food, foodCap);
+        QueueRedraw();
+    }
+
+    public void SetClock(double hours)
+    {
+        _timeOfDay = hours;
+        _topBar.UpdateTime(hours);
+        QueueRedraw();
+    }
+
+    public void SetCommands(IReadOnlyList<CommandEntry> commands)
+    {
+        var slots = new CommandSlotView?[CommandCardBuilder.SlotCount];
+        int next = 0;
+        if (commands != null)
+        {
+            foreach (CommandEntry entry in commands)
+            {
+                if (entry == null) continue;
+                int index = entry.SlotIndex is >= 0 and < CommandCardBuilder.SlotCount
+                    ? entry.SlotIndex
+                    : next;
+                while (index < CommandCardBuilder.SlotCount && slots[index] != null) index++;
+                if (index >= CommandCardBuilder.SlotCount) break;
+                next = index + 1;
+
+                float cooldown = entry.CooldownTotal > 0.01f
+                    ? Mathf.Clamp(entry.CooldownRemaining / entry.CooldownTotal, 0f, 1f)
+                    : 0f;
+                string overlay = entry.MaxCharges > 0 && entry.Charges > 0
+                    ? entry.Charges.ToString()
+                    : null;
+                slots[index] = new CommandSlotView(
+                    Icon: "", Hotkey: entry.Hotkey, Disabled: !entry.Enabled,
+                    Cooldown: cooldown, Overlay: overlay,
+                    Title: entry.Name, Body: entry.Tooltip,
+                    IconTexture: entry.Icon == null ? null : new GodotUiTexture(entry.Icon));
+            }
+        }
+        _commands = new CommandCardView(slots);
+        _card.Build(_commands);
+        QueueRedraw();
+    }
+
+    public override void _Process(double delta) => QueueRedraw();
 
     private static CommandCardView SampleCommands()
     {

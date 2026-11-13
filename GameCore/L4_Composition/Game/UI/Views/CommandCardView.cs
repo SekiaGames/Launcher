@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using OpenWC3.RHI;
 
 namespace OpenWC3.Game.UI.Views;
 
@@ -9,7 +10,8 @@ public readonly record struct CommandSlotView(
     float Cooldown = 0f,
     string Overlay = null,
     string Title = null,
-    string Body = null);
+    string Body = null,
+    ITexture IconTexture = null);
 
 public sealed record CommandCardView(IReadOnlyList<CommandSlotView?> Slots)
 {

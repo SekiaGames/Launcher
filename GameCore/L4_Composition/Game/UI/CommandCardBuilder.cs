@@ -64,7 +64,8 @@ public sealed partial class CommandCardBuilder
         {
             ButtonFrame button = _buttons[i];
             CommandSlotView? slot = view?.Slots != null && i < view.Slots.Count ? view.Slots[i] : null;
-            if (slot is not { } command || string.IsNullOrWhiteSpace(command.Icon))
+            if (slot is not { } command
+                || command.IconTexture == null && string.IsNullOrWhiteSpace(command.Icon))
             {
                 button.Visible = false;
                 button.Icon = null;
@@ -75,9 +76,10 @@ public sealed partial class CommandCardBuilder
                 continue;
             }
 
-            button.Icon = _textures.Resolve(command.Icon);
-            button.DisabledIcon = _textures.Resolve(
-                NativeCommandButtonBinding.DisabledArt(command.Icon,
+            button.Icon = command.IconTexture ?? _textures.Resolve(command.Icon);
+            button.DisabledIcon = string.IsNullOrWhiteSpace(command.Icon)
+                ? null
+                : _textures.Resolve(NativeCommandButtonBinding.DisabledArt(command.Icon,
                     @"ReplaceableTextures\CommandButtonsDisabled\"));
             button.ActiveHighlight = _activeHighlight;
             button.Hotkey = string.IsNullOrEmpty(command.Hotkey) ? Hotkeys[i] : command.Hotkey;
@@ -90,5 +92,5 @@ public sealed partial class CommandCardBuilder
         }
     }
 
-    public static int SlotCount => Slots;
+    public const int SlotCount = Slots;
 }

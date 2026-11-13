@@ -186,6 +186,8 @@ public sealed partial class War3GameScene
     {
         PlayerSlot slot = Slot(ViewPlayer);
         _hud?.SetResources(slot.Gold, slot.Lumber, FoodUsed(slot.Id), FoodCap(slot.Id));
+        _newHud?.SetResources(slot.Gold, slot.Lumber, FoodUsed(slot.Id), FoodCap(slot.Id));
+        _newHud?.SetClock(_todHours);
         _hud?.SetPlayerInfo(PlayerInfoText());
         _hud?.SetClock(ClockText());
         UpdateQueueLabel();
@@ -302,6 +304,7 @@ public sealed partial class War3GameScene
         }
 
         _hud.SetCommands(commands);
+        _newHud?.SetCommands(commands);
     }
 
     private void AddCancelConstructionCommand(List<CommandEntry> commands, Unit site)

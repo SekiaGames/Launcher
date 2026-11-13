@@ -34,6 +34,7 @@ public sealed partial class LauncherApp : Node
     private string _fdfProbe;
     private string _fdfBindGen;
     private bool _uiHud;
+    private bool _newHud;
     private string _uiScreen;
     private bool _effectProbe;
     private bool _attachProbe;
@@ -199,6 +200,10 @@ public sealed partial class LauncherApp : Node
             else if (argument.StartsWith("--fdf-probe="))
             {
                 _fdfProbe = argument["--fdf-probe=".Length..];
+            }
+            else if (argument == "--hud=new")
+            {
+                _newHud = true;
             }
             else if (argument == "--ui-hud")
             {
@@ -433,6 +438,7 @@ public sealed partial class LauncherApp : Node
         game.MusicEnabled = !_musicOff;
         game.ShowDamageNumbers = _damageNumbers;
         game.AiDifficulty = _aiDifficulty;
+        game.UseNewHud = _newHud;
         if (_daySeconds > 0f) game.DaySeconds = _daySeconds;
         foreach (int slot in _slots) game.ActiveSlots.Add(slot);
         foreach (List<int> team in _teams) game.Teams.Add(team);

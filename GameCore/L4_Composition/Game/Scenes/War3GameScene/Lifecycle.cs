@@ -12,6 +12,8 @@ public sealed partial class War3GameScene : Node3D
     private World _world;
     private War3Camera _camera;
     private MeleeHudController _hud;
+    private GameHudScreen _newHud;
+    public bool UseNewHud;
     private War3AudioSystem _audio;
     private War3MusicPlayer _music;
     private FogOfWar _fog;
@@ -75,6 +77,16 @@ public sealed partial class War3GameScene : Node3D
     private bool IsActivePlayer(int playerId) => _active.Contains(playerId);
     public bool Housekeeping => AiEnabled;
     public int ViewPlayer;
+
+    private string HudRaceName()
+    {
+        int race = 1;
+        foreach (W3iPlayer player in _map.Players)
+        {
+            if (player.Id == ViewPlayer) { race = player.Race; break; }
+        }
+        return race switch { 2 => "Orc", 3 => "Undead", 4 => "NightElf", _ => "Human" };
+    }
 
     public void Setup(MapSource map, Action back)
     {
@@ -159,9 +171,19 @@ public sealed partial class War3GameScene : Node3D
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
         _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
+        if (UseNewHud)
+        {
+            GetNodeOrNull<CanvasLayer>("MeleeHudController")?.SetVisible(false);
+            var hudLayer = new CanvasLayer { Name = "NewHud", Layer = 45 };
+            AddChild(hudLayer);
+            _newHud = new GameHudScreen { Name = "NewHudScreen" };
+            hudLayer.AddChild(_newHud);
+            _newHud.Load(HudRaceName(), sample: false);
+            GD.Print($"[HUD] 新界面已接管，种族 {HudRaceName()}");
+        }
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
-        _loadingScreen = new LoadingScreen(this, map);
+        _loadingScreen = new FdfLoadingScreen(this, map);
         _gameOverPanel = new GameOverPanel(this, Back);
         _hud.DetailProvider = DescribeUnit;
         _hud.SelectionSlotClicked = unit =>
@@ -202,7 +224,7 @@ public sealed partial class War3GameScene : Node3D
     private readonly List<Unit> _heroScratch = new();
     private ChatFrame _log;
     private EscMenuFrame _escMenu;
-    private LoadingScreen _loadingScreen;
+    private FdfLoadingScreen _loadingScreen;
     private GameOverPanel _gameOverPanel;
     private SkyboxRenderer _skybox;
     private SkyDomeRenderer _skyDome;
