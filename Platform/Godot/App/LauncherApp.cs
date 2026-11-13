@@ -32,6 +32,7 @@ public sealed partial class LauncherApp : Node
     private bool _combatProbe;
     private bool _stateProbe;
     private string _fdfProbe;
+    private string _uiScreen;
     private bool _effectProbe;
     private bool _attachProbe;
     private bool _reviveProbe;
@@ -189,6 +190,10 @@ public sealed partial class LauncherApp : Node
             {
                 _attachProbe = true;
             }
+            else if (argument.StartsWith("--ui-screen="))
+            {
+                _uiScreen = argument["--ui-screen=".Length..];
+            }
             else if (argument.StartsWith("--fdf-probe="))
             {
                 _fdfProbe = argument["--fdf-probe=".Length..];
@@ -298,6 +303,17 @@ public sealed partial class LauncherApp : Node
         {
             int code = CombatProbe.Run();
             GetTree().Quit(code);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(_uiScreen))
+        {
+            string[] parts = _uiScreen.Split('|');
+            var screen = new OpenWC3.Game.UI.FdfScreen();
+            AddChild(screen);
+            screen.Load(parts[0], parts.Length > 1 ? parts[1] : "Loading");
+            string template = parts.Length > 1 ? parts[1] : "Loading";
+            GD.Print($"[UI] 已创建 {template}，帧数 {screen.FrameCount}");
             return;
         }
 
