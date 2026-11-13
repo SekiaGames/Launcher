@@ -162,7 +162,7 @@ public sealed class SlkTable
         }
         return _rows.TryGetValue(row, out Dictionary<int, string> cells) && cells.TryGetValue(index, out string value)
             ? value
-            : null;
+            : "";
     }
 
     public int GetInt(int row, string column, int fallback = 0)

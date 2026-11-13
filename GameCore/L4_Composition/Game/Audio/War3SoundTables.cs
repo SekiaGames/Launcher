@@ -1,4 +1,5 @@
 using Godot;
+using OpenWC3.War3Formats;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -43,47 +44,39 @@ public static class War3SoundTables
 
     private static void LoadTable(string tableName)
     {
-        Variant parsed = Assets.ReadJson($"res://extract/Tables/{tableName}.json");
-        if (parsed.VariantType != Variant.Type.Dictionary) return;
-        Godot.Collections.Dictionary json = parsed.AsGodotDictionary();
-        if (json.Count == 0) return;
+        SlkTable table = War3SlkReader.Get(tableName);
+        if (!table.HasColumn("SoundName") || !table.HasColumn("FileNames")) return;
 
-        if (json["columns"].VariantType != Variant.Type.Array || json["rows"].VariantType != Variant.Type.Array) return;
+        bool hasDirectory = table.HasColumn("DirectoryBase");
+        bool hasVolume = table.HasColumn("Volume");
+        bool hasMin = table.HasColumn("MinDistance");
+        bool hasMax = table.HasColumn("MaxDistance");
+        bool hasFlags = table.HasColumn("Flags");
 
-        var columns = new List<string>();
-        foreach (Variant column in json["columns"].AsGodotArray()) columns.Add(column.AsString());
-        int nameIndex = IndexOf(columns, "SoundName");
-        int filesIndex = IndexOf(columns, "FileNames");
-        if (nameIndex < 0 || filesIndex < 0) return;
-
-        int dirIndex = IndexOf(columns, "DirectoryBase");
-        int volumeIndex = IndexOf(columns, "Volume");
-        int minIndex = IndexOf(columns, "MinDistance");
-        int maxIndex = IndexOf(columns, "MaxDistance");
-        int flagsIndex = IndexOf(columns, "Flags");
-
-        foreach (Variant rowVariant in json["rows"].AsGodotArray())
+        foreach (int row in table.DataRows)
         {
-            Godot.Collections.Array row = rowVariant.AsGodotArray();
-            if (row.Count <= filesIndex) continue;
-
-            string name = Cell(row, nameIndex);
-            string files = Cell(row, filesIndex);
+            string name = Cell(table, row, "SoundName");
+            string files = Cell(table, row, "FileNames");
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(files)) continue;
 
             var entry = new Entry
             {
                 Files = files.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                Directory = Cell(row, dirIndex).Replace('\\', '/').Trim('/'),
-                Volume = Mathf.Clamp(ParseFloat(Cell(row, volumeIndex), 127f) / 127f, 0f, 1f),
-                MinDistance = ParseFloat(Cell(row, minIndex), 3000f),
-                MaxDistance = ParseFloat(Cell(row, maxIndex), 10000f),
-                RandomPitch = Cell(row, flagsIndex).Contains("RANDOMPITCH", StringComparison.OrdinalIgnoreCase),
+                Directory = hasDirectory
+                    ? Cell(table, row, "DirectoryBase").Replace('\\', '/').Trim('/') : "",
+                Volume = Mathf.Clamp(ParseFloat(hasVolume ? Cell(table, row, "Volume") : "", 127f) / 127f, 0f, 1f),
+                MinDistance = ParseFloat(hasMin ? Cell(table, row, "MinDistance") : "", 3000f),
+                MaxDistance = ParseFloat(hasMax ? Cell(table, row, "MaxDistance") : "", 10000f),
+                RandomPitch = hasFlags
+                    && Cell(table, row, "Flags").Contains("RANDOMPITCH", StringComparison.OrdinalIgnoreCase),
             };
             for (int i = 0; i < entry.Files.Length; i++) entry.Files[i] = entry.Files[i].Trim();
             Entries[name] = entry;
         }
     }
+
+    private static string Cell(SlkTable table, int row, string column) =>
+        table.Get(row, column) ?? "";
 
     private static int IndexOf(List<string> columns, string name)
     {
