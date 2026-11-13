@@ -69,8 +69,23 @@ public sealed partial class War3GameScene
             bool visible = own || _fog.IsVisible(unit.Position);
             // 隐身（疾风步）：敌方看不见（有反隐单位/岗哨在附近时照常显示）；自己/盟友能看见，但只能看到一个淡影
             if (unit.State.Invisible) visible = own || (_fog.IsVisible(unit.Position) && _world != null && _world.IsDetectedBy(ViewPlayer, unit));
-            unit.View.Root.Visible = visible;
-            if (visible) unit.View.SetGhost(unit.State.Invisible);
+
+            if (visible)
+            {
+                unit.View.FogSeen = true;
+                unit.View.SetFogFrozen(false);
+                unit.View.Root.Visible = true;
+                unit.View.SetGhost(unit.State.Invisible);
+                continue;
+            }
+
+            if (unit.IsBuilding && unit.View.FogSeen && _fog.IsExplored(unit.Position))
+            {
+                unit.View.SetFogFrozen(true);
+                continue;
+            }
+
+            unit.View.Root.Visible = false;
         }
     }
 }

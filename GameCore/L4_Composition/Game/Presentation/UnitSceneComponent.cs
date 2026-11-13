@@ -18,6 +18,8 @@ public sealed class UnitSceneComponent
 
     public Node3D Root { get; private set; }
     public Unit Owner;
+    public bool FogSeen;
+    public bool FogFrozen { get; private set; }
 
     public AnimationPlayer Player { get; private set; }
     public float Height { get; private set; } = 100f;
@@ -116,6 +118,18 @@ public sealed class UnitSceneComponent
     private bool _ghost;
 
     /// <summary>隐身时只留一个淡影（自己的单位能看见自己在哪里）。</summary>
+    public void SetFogFrozen(bool frozen)
+    {
+        FogFrozen = frozen;
+        if (Player != null)
+        {
+            if (frozen) Player.Pause();
+            else if (!string.IsNullOrEmpty(CurrentAnimation))
+                Player.Play(CurrentAnimation);
+        }
+        Root.Visible = true;
+    }
+
     public void SetGhost(bool ghost)
     {
         if (_ghost == ghost) return;

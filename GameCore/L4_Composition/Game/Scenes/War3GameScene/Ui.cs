@@ -30,6 +30,12 @@ public sealed partial class War3GameScene
                 unit.View?.SetBarVisible(false);
                 continue;
             }
+            bool own = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
+            if (!own && _fog != null && _fog.Enabled && !_fog.IsVisible(unit.Position))
+            {
+                unit.View?.SetBarVisible(false);
+                continue;
+            }
             bool damaged = unit.Hp < unit.MaxHp - 0.01f;
             bool visible = damaged || _selected.Contains(unit);
             if (showAll)
