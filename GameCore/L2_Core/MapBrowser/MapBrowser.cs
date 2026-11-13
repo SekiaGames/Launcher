@@ -71,7 +71,7 @@ public sealed partial class MapBrowser : Control
             Text = maps.Length > 0
                 ? "点击地图进入对局。ESC 返回本列表。"
                 : "先在根目录生成 gmap：\n"
-                  + "Godot --headless --path Launcher -- --import-map=\"<地图.w3x>|<输出.gmap>\"",
+                  + "Godot --headless --path Extract -- --gmap-export=\"<地图.w3x>|<输出.gmap>\"",
         };
         hint.AddThemeFontSizeOverride("font_size", 15);
         hint.AddThemeColorOverride("font_color", new Color(0.7f, 0.72f, 0.75f));

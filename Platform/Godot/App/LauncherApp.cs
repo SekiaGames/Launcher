@@ -71,13 +71,6 @@ public sealed partial class LauncherApp : Node
         string playPath = null;
         foreach (string argument in OS.GetCmdlineUserArgs())
         {
-            if (argument.StartsWith("--import-map="))
-            {
-                string[] parts = argument["--import-map=".Length..].Split('|');
-                int code = parts.Length == 2 ? GmapImporter.Build(parts[0], parts[1]) : 1;
-                GetTree().Quit(code);
-                return;
-            }
             if (argument.StartsWith("--play="))
             {
                 playPath = argument["--play=".Length..];

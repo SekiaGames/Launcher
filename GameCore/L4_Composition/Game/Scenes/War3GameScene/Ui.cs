@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 using OpenWC3.Game.UI;
 using OpenWC3.Game.UI.Views;
@@ -182,6 +183,32 @@ public sealed partial class War3GameScene
             if (ReferenceEquals(order.Building, building)) count++;
         }
         return count;
+    }
+
+    private Texture2D LoadMinimapBaseTexture(MapSource map)
+    {
+        var candidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(map.Info?.MinimapTgaPath))
+            candidates.Add(map.Info.MinimapTgaPath);
+        candidates.Add("war3mapMap.tga");
+        candidates.Add("war3mapMap.blp");
+        candidates.Add("war3mapMap.png");
+        candidates.Add("minimap.tga");
+
+        foreach (string candidate in candidates)
+        {
+            string png = Path.ChangeExtension(candidate.Replace('\\', '/'), ".png");
+            string path = "res://gmap/map/" + png;
+            byte[] bytes = Assets.ReadBytes(path);
+            if (bytes == null) continue;
+            var image = new Image();
+            if (image.LoadPngFromBuffer(bytes) != Error.Ok) continue;
+            GD.Print($"[MINIMAP] 底图={png}");
+            return ImageTexture.CreateFromImage(image);
+        }
+
+        GD.PushWarning("[MINIMAP] 未找到小地图底图 (war3mapMap.png)");
+        return null;
     }
 
     private readonly List<MinimapUnitView> _minimapUnits = new();

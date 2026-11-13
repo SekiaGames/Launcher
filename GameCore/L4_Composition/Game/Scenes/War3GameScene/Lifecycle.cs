@@ -18,6 +18,7 @@ public sealed partial class War3GameScene : Node3D
     private GameHudScreen _newHud;
     private NVector4 _mapUiBounds;
     private GodotUiTexture _minimapFogTexture;
+    private Texture2D _minimapBaseTexture;
     public bool UseNewHud;
     public int SelectedRace;
     private War3AudioSystem _audio;
@@ -223,6 +224,7 @@ public sealed partial class War3GameScene : Node3D
         MiscRules.Log();
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
+        _minimapBaseTexture = LoadMinimapBaseTexture(map);
         _hud = new MeleeHudController(this, War3Strings.Resolve(map.Name));
         if (UseNewHud)
         {
@@ -254,7 +256,7 @@ public sealed partial class War3GameScene : Node3D
             unit => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
         _hud.MinimapFrame.RightNavigate = MinimapOrderAt;
         _hud.MinimapFrame.SetFogTexture(_fog.Texture);
-        _hud.MinimapFrame.SetTexture(LegacyMinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader()));
+        _hud.MinimapFrame.SetTexture(_minimapBaseTexture);
         if (!UseNewHud)
         {
             _heroBar = new LegacyHeroBarFrame(this);
@@ -326,8 +328,7 @@ public sealed partial class War3GameScene : Node3D
             cellsY * MeleeRules.CellWidth);
 
         MinimapFrame minimap = _newHud.Minimap;
-        minimap.SetMapTexture(new GodotUiTexture(
-            LegacyMinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader())));
+        minimap.SetMapTexture(_minimapBaseTexture == null ? null : new GodotUiTexture(_minimapBaseTexture));
         minimap.OnMinimapClick = world =>
             _camera.Focus(new Vector3(-world.X, _camera.Target.Y, world.Y));
         minimap.OnSignalPing = PingMinimap;
