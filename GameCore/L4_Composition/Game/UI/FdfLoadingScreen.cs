@@ -34,12 +34,18 @@ public sealed partial class FdfLoadingScreen : Control
     private readonly string _title, _subtitle, _body;
     private string _barLabel;
     private string _stage;
+    private const float FadeSeconds = 0.5f;
+
     private float _progress;
     private float _remaining;
+    private bool _finishing;
+    private int _settleFrames;
+    private float _fade;
+    private bool _finished;
 
-    public FdfLoadingScreen(Node parent, MapSource map, int raceId = 0, float seconds = 2.2f)
+    public FdfLoadingScreen(Node parent, MapSource map, int raceId = 0, float seconds = 1.2f)
     {
-        _remaining = Mathf.Max(0.4f, seconds);
+        _remaining = Mathf.Max(0f, seconds);
 
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
@@ -127,6 +133,9 @@ public sealed partial class FdfLoadingScreen : Control
         return race switch { 2 => "Orc", 3 => "Undead", 4 => "NightElf", _ => "Human" };
     }
 
+    // 加载完成: 进度直接到 100%, 等最短显示时间后再淡出
+    public bool Finished => _finished;
+
     public void SetProgress(float progress, string stage)
     {
         _progress = Mathf.Clamp(progress, 0f, 1f);
@@ -134,9 +143,20 @@ public sealed partial class FdfLoadingScreen : Control
         QueueRedraw();
     }
 
+    public void Finish()
+    {
+        if (_finishing) return;
+        _finishing = true;
+        _settleFrames = 0;
+        _progress = 1f;
+        QueueRedraw();
+    }
+
     public override void _Draw()
     {
         if (_root == null || _device == null) return;
+        if (_debugLayout)
+            GD.Print($"[loading-draw] progress={_progress:0.##} stage='{_stage}'");
 
         Vector2 size = GetViewportRect().Size;
         _viewport.Update((int)size.X, (int)size.Y);
@@ -411,18 +431,18 @@ public sealed partial class FdfLoadingScreen : Control
 
     public void FrameSeconds(float delta)
     {
-        if (_remaining <= 0f) return;
-        _remaining -= delta;
-        if (_remaining > 0.5f)
-        {
-            _progress = Mathf.Clamp(1f - _remaining / 2.2f, 0f, 1f);
-            QueueRedraw();
-            return;
-        }
-        Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(_remaining / 0.5f, 0f, 1f));
-        QueueRedraw();
-        if (_remaining > 0f) return;
+        if (_finished) return;
+        if (_remaining > 0f) _remaining = Mathf.Max(0f, _remaining - delta);
+        if (!_finishing || _remaining > 0f) return;
+        // 世界刚建好时头几帧还是黑的, 等它画出来再淡出, 否则会闪一下
+        if (_settleFrames < 3) { _settleFrames++; return; }
 
+        _fade += delta;
+        Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(1f - _fade / FadeSeconds, 0f, 1f));
+        QueueRedraw();
+        if (_fade < FadeSeconds) return;
+
+        _finished = true;
         _layer?.QueueFree();
         QueueFree();
     }

@@ -491,38 +491,44 @@ public sealed partial class LauncherApp : Node
         if (_daySeconds > 0f) game.DaySeconds = _daySeconds;
         foreach (int slot in _slots) game.ActiveSlots.Add(slot);
         foreach (List<int> team in _teams) game.Teams.Add(team);
-        game.Setup(map, ShowMapList);
-        if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
-        if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
+        // 先进树再加载: 加载屏要在场景初始化期间就能画出来
         AddChild(game);
-        if (_orderTest) game.ScriptedOrderTest();
-        if (_clickTest) game.RunClickTest();
-        if (_gatherTest) game.ScriptedGatherTest();
-        if (_trainTest) game.ScriptedTrainTest();
-        if (_moveTo.HasValue) game.ScriptedMoveTo(_moveTo.Value.X, _moveTo.Value.Y);
-        if (_lumberTest) game.ScriptedLumberTest();
-        if (_buildTest) game.ScriptedBuildTest();
-        if (_housekeeping) game.RunHousekeeping();
-        if (_creepProbe) game.RunCreepProbe();
-        if (_heroProbe) game.RunHeroProbe();
-        if (_reviveProbe) game.RunReviveProbe();
-        if (_skillProbe) game.RunSkillProbe();
-        if (_morphProbe) game.RunMorphProbe();
-        if (_cardProbe) game.RunCardProbe();
-        if (_hireProbe) game.RunHireProbe();
-        if (_boltProbe) game.RunBoltProbe();
-        if (_rallyProbe) game.RunRallyProbe();
-        if (_subgroupProbe) game.RunSubgroupProbe();
-        if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);
-        if (_pathProbe)
-        {
-            game.PathProbe();
-            GetTree().Quit();
-            return;
-        }
         _current = game;
-        _elapsed = 0f;
-        _shotTaken = false;
+        game.Loaded += AfterLoad;
+        game.Setup(map, ShowMapList);
+
+        void AfterLoad()
+        {
+            if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
+            if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
+            if (_orderTest) game.ScriptedOrderTest();
+            if (_clickTest) game.RunClickTest();
+            if (_gatherTest) game.ScriptedGatherTest();
+            if (_trainTest) game.ScriptedTrainTest();
+            if (_moveTo.HasValue) game.ScriptedMoveTo(_moveTo.Value.X, _moveTo.Value.Y);
+            if (_lumberTest) game.ScriptedLumberTest();
+            if (_buildTest) game.ScriptedBuildTest();
+            if (_housekeeping) game.RunHousekeeping();
+            if (_creepProbe) game.RunCreepProbe();
+            if (_heroProbe) game.RunHeroProbe();
+            if (_reviveProbe) game.RunReviveProbe();
+            if (_skillProbe) game.RunSkillProbe();
+            if (_morphProbe) game.RunMorphProbe();
+            if (_cardProbe) game.RunCardProbe();
+            if (_hireProbe) game.RunHireProbe();
+            if (_boltProbe) game.RunBoltProbe();
+            if (_rallyProbe) game.RunRallyProbe();
+            if (_subgroupProbe) game.RunSubgroupProbe();
+            if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);
+            if (_pathProbe)
+            {
+                game.PathProbe();
+                GetTree().Quit();
+                return;
+            }
+            _elapsed = 0f;
+            _shotTaken = false;
+        }
     }
 
     private static void RunEffectProbe()

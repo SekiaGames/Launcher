@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using OpenWC3.Game.UI;
 namespace OpenWC3.Game;
@@ -93,6 +94,35 @@ public sealed partial class War3GameScene : Node3D
     {
         _map = map;
         _back = back;
+        _loadingScreen = new FdfLoadingScreen(this, map, SelectedRace, seconds: LoadHoldSeconds);
+        _ = RunSetupAsync(map);
+    }
+
+    // 加载完成（加载屏淡出前）触发, 之后的镜头预设与调试入口都挂在这里
+    public event Action Loaded;
+
+    private const float LoadHoldSeconds = 1.2f;
+
+    private async Task RunSetupAsync(MapSource map)
+    {
+        try
+        {
+            await SetupSteps(map);
+        }
+        catch (Exception error)
+        {
+            GD.PushError($"[INIT] 场景初始化失败: {error}");
+        }
+        _loadingScreen?.Finish();
+        Loaded?.Invoke();
+    }
+
+    // 逐帧推进: 每个阶段单独占一帧, 加载屏才有机会把进度画出来
+    private async Task SetupSteps(MapSource map)
+    {
+
+
+        await Loading(.10f, "解析地形与地图配置");
 
         if (SelectedRace > 0)
         {
@@ -118,6 +148,7 @@ public sealed partial class War3GameScene : Node3D
             slot.Ai = AiEnabled;
         }
 
+        await Loading(.22f, "载入地形纹理");
         _terrainBuilder = new MapWorldBuilder();
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads);
         AddChild(worldRoot);
@@ -129,13 +160,17 @@ public sealed partial class War3GameScene : Node3D
         _skybox = SkyboxRenderer.TryCreate(this, map.Info);
         _skyDome = SkyDomeRenderer.TryCreate(this, map.Info);
 
+        await Loading(.34f, "建立地形、水面与光照");
         _fog = new FogOfWar { Name = "Fog" };
         AddChild(_fog);
         _fog.Enabled = FogEnabled;
         _fog.Build(map.Terrain);
 
+        await Loading(.45f, "载入模型与场景资源");
         SpawnUnits();
+        await Loading(.66f, "创建地图预摆单位");
 
+        await Loading(.80f, "构建寻路与碰撞网格");
         _pathGrid = PathGrid.Build(map.Pathing, map.Terrain);
         _trees = _terrainBuilder.Trees;
         _world = new World(map.Terrain, _pathGrid, _trees);
@@ -171,6 +206,7 @@ public sealed partial class War3GameScene : Node3D
             return true;
         };
 
+        await Loading(.90f, "预热单位与界面资源");
         _camera = new War3Camera(this);
         SetCameraBounds();
         FocusStartPosition();
@@ -179,6 +215,7 @@ public sealed partial class War3GameScene : Node3D
         _audio = new War3AudioSystem(this);
         _music = new War3MusicPlayer(this);
 
+        await Loading(.98f, "初始化镜头与游戏界面");
         MiscRules.Log();
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
@@ -195,7 +232,6 @@ public sealed partial class War3GameScene : Node3D
         }
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
-        _loadingScreen = new FdfLoadingScreen(this, map, SelectedRace);
         _gameOverPanel = new GameOverPanel(this, Back);
         _hud.DetailProvider = DescribeUnit;
         _hud.SelectionSlotClicked = unit =>
@@ -228,7 +264,19 @@ public sealed partial class War3GameScene : Node3D
         {
             foreach (PlayerSlot slot in Slots()) BuildPlan(slot);
         }
+
+        await Loading(1f, "进入游戏");
     }
+
+    // 阶段之间让出一帧, 该帧的 _Process/_PhysicsProcess 被 LoadingBlocked 挡住
+    private async Task Loading(float progress, string stage)
+    {
+        _loadingScreen?.SetProgress(progress, stage);
+        if (_loadingScreen == null) return;
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+    }
+
+    private bool LoadingBlocked => _loadingScreen != null && !_loadingScreen.Finished;
 
     private bool _musicPending;
     private WeatherRenderer _weather;
@@ -246,7 +294,12 @@ public sealed partial class War3GameScene : Node3D
 
     public override void _Ready()
     {
-        // 场景树外的 AudioStreamPlayer 不能 Play，音乐等进树再起
+        // 场景树外的 AudioStreamPlayer 不能 Play；真正开播等加载屏走完（见 StartPendingMusic）
+    }
+
+    // 客户端在加载屏 dispose 之后才进第一帧，音乐与模拟都从那时开始
+    private void StartPendingMusic()
+    {
         if (!_musicPending || !MusicEnabled) return;
         _musicPending = false;
         int musicVersion = IsReignOfChaos ? 0 : 1;
@@ -356,7 +409,12 @@ public sealed partial class War3GameScene : Node3D
 
     public override void _Process(double delta)
     {
-        HandleKeyboardPan((float)delta);
+        float frame = (float)delta;
+        _loadingScreen?.FrameSeconds(frame);
+        if (LoadingBlocked) return;
+        StartPendingMusic();
+
+        HandleKeyboardPan(frame);
         UpdatePlacementPreview();
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);
@@ -365,7 +423,6 @@ public sealed partial class War3GameScene : Node3D
         TickLightningBeams((float)delta);
         _weather?.FrameSeconds(_camera.Target);
         _skyDome?.FrameSeconds(_camera.Target);
-        _loadingScreen?.FrameSeconds((float)delta);
 
         _rallyTimer -= (float)delta;
         if (_rallyTimer <= 0f && _worldRoot != null)
@@ -394,6 +451,7 @@ public sealed partial class War3GameScene : Node3D
 
     public override void _PhysicsProcess(double delta)
     {
+        if (LoadingBlocked) return;
         if (Paused) return;
         _world?.Advance();
         TickClock();
