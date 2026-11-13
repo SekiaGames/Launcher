@@ -34,14 +34,16 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
     private readonly ButtonFrame _colorTool;
     private readonly ButtonFrame _creepTool;
     private readonly ButtonFrame _formationTool;
-    private readonly List<MinimapPingView> _pings = new();
 
     private Vector4 _mapBounds;
     private IReadOnlyList<MinimapUnitView> _units = Array.Empty<MinimapUnitView>();
     private int _localPlayerId;
+    private int _localTeam;
     private ITexture _fogTexture;
+    private Vector2 _fogUvMax = Vector2.One;
+    private IReadOnlyList<MinimapPingView> _pings = Array.Empty<MinimapPingView>();
+    private IReadOnlyList<MinimapSpecialIconView> _icons = Array.Empty<MinimapSpecialIconView>();
     private float _time;
-    private int _nextPingId = 1;
     private bool _signalGesture;
     private bool _signalArmed;
     private int _allyColorState;
@@ -136,12 +138,18 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
     }
 
     public void Update(Vector4 mapBounds, IReadOnlyList<MinimapUnitView> units,
-        int localPlayerId, ITexture fogTexture, float timeSeconds)
+        int localPlayerId, int localTeam, ITexture fogTexture, Vector2 fogUvMax,
+        IReadOnlyList<MinimapPingView> pings, IReadOnlyList<MinimapSpecialIconView> icons,
+        float timeSeconds)
     {
         _mapBounds = mapBounds;
         _units = units ?? Array.Empty<MinimapUnitView>();
         _localPlayerId = localPlayerId;
+        _localTeam = localTeam;
         _fogTexture = fogTexture;
+        _fogUvMax = fogUvMax;
+        _pings = pings ?? Array.Empty<MinimapPingView>();
+        _icons = icons ?? Array.Empty<MinimapSpecialIconView>();
         _time = timeSeconds;
     }
 
@@ -163,14 +171,6 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
     }
 
     public void SetSignalArmed(bool armed) => _signalArmed = armed;
-
-    public bool PingActive => _pings.Count > 0;
-
-    public void Ping(Vector2 world)
-    {
-        _pings.Add(new MinimapPingView(_nextPingId++, world.X, world.Y, 2.2f, 2.2f,
-            90, 255, 120, true));
-    }
 
     public void ToggleTerrain()
     {
@@ -204,6 +204,7 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
         base.Render(device);
         DrawFog(device);
         DrawUnitDots(device);
+        DrawSpecialIcons(device);
         DrawPings(device);
         DrawCameraRect(device);
     }
@@ -211,7 +212,8 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
     private void DrawFog(IUiRenderDevice device)
     {
         if (_fogTexture == null || !HasBounds) return;
-        device.DrawTexturedQuad(ContentRect(_mapTexture.RenderBounds), _fogTexture, Vector4.One);
+        device.DrawTexturedQuad(ContentRect(_mapTexture.RenderBounds), _fogTexture, Vector4.One,
+            new UiRect(0, 0, _fogUvMax.X, _fogUvMax.Y));
     }
 
     private float FogAlpha(MinimapFogLevel level) => level switch
@@ -268,7 +270,7 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
                 or MinimapIconKind.HauntedResource or MinimapIconKind.Neutral or MinimapIconKind.Cop;
             Vector4 color = WithAlpha(special ? Vector4.One : _allyColorState == 0
                 ? PlayerDotColor(unit)
-                : DotColor(unit, _localPlayerId, unit.Icon, _misc), alpha);
+                : DotColor(unit, _localPlayerId, _localTeam, unit.Icon, _misc), alpha);
             if (texture != null) device.DrawTexturedQuad(rect, texture, color);
             else device.DrawTexturedQuad(rect, device.WhiteTexture, color);
         }
@@ -295,7 +297,7 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
             ? unit.PlayerId == localPlayerId ? 17.92f : 8.96f
             : unit.IsBuilding ? AreaWidth * 8f / 256f : AreaWidth * 4f / 256f;
 
-    internal static Vector4 DotColor(MinimapUnitView unit, int localPlayerId,
+    internal static Vector4 DotColor(MinimapUnitView unit, int localPlayerId, int localTeam,
         MinimapIconKind icon = MinimapIconKind.Unit, War3MiscData misc = null)
     {
         misc ??= new War3MiscData();
@@ -308,7 +310,7 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
             MinimapIconKind.Neutral or MinimapIconKind.Cop => misc.ColorDestructable,
             _ => unit.PlayerId >= 12 ? misc.ColorCreepAllied
                 : unit.PlayerId == localPlayerId ? misc.ColorPlayer
-                : unit.Allied == true ? misc.ColorAlly : misc.ColorEnemy,
+                : (unit.Allied ?? unit.Team == localTeam) ? misc.ColorAlly : misc.ColorEnemy,
         };
     }
 
@@ -340,6 +342,30 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
         float tx = Math.Clamp((world.X - _mapBounds.X) / (_mapBounds.Z - _mapBounds.X), 0, 1);
         float ty = Math.Clamp((world.Y - _mapBounds.Y) / (_mapBounds.W - _mapBounds.Y), 0, 1);
         return new Vector2(frame.X + tx * frame.Width, frame.Y + (1 - ty) * frame.Height);
+    }
+
+    private void DrawSpecialIcons(IUiRenderDevice device)
+    {
+        if (!HasBounds) return;
+        UiRect frame = ContentRect(_mapTexture.RenderBounds);
+        device.PushScissor(frame);
+        for (int index = 0; index < _icons.Count; index++)
+        {
+            MinimapSpecialIconView icon = _icons[index];
+            if (icon.Kind == MinimapIconKind.CreepCamp && !_showCreeps) continue;
+            Vector2 center = WorldToMinimap(new Vector2(icon.X, icon.Y), frame);
+            float size = Math.Max(4, icon.Size), half = size * .5f;
+            var rect = new UiRect(center.X - half, center.Y - half, size, size);
+            if (icon.Kind == MinimapIconKind.CreepCamp && device.DrawMinimapCamp(rect,
+                icon.CampStrength >= _misc.ToughCampThreshold,
+                _time * Math.Clamp(_misc.CampPulseScale, 0, 1), icon.Color)) continue;
+            ITexture texture = icon.Kind == MinimapIconKind.CreepCamp
+                ? icon.CampStrength >= _misc.ToughCampThreshold ? _toughCreepTexture : _creepTexture
+                : _textures.Resolve(icon.TexturePath);
+            if (texture == null) continue;
+            device.DrawTexturedQuad(rect, texture, icon.Color);
+        }
+        device.PopScissor();
     }
 
     private void DrawPings(IUiRenderDevice device)
@@ -511,17 +537,6 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
     public void OnPointerDrag(Vector2 pos)
     {
         if (!_signalGesture) MoveCameraTo(pos);
-    }
-
-    public void Tick(float deltaSeconds)
-    {
-        for (int index = _pings.Count - 1; index >= 0; index--)
-        {
-            MinimapPingView ping = _pings[index];
-            float remaining = ping.Remaining - deltaSeconds;
-            if (remaining <= 0f) _pings.RemoveAt(index);
-            else _pings[index] = ping with { Remaining = remaining };
-        }
     }
 
     private void MoveCameraTo(Vector2 pos)

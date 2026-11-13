@@ -25,7 +25,7 @@ internal enum MinimapFogLevel : byte
 }
 
 internal readonly record struct MinimapUnitView(
-    float X, float Y, int PlayerId,
+    int SimulationId, float X, float Y, int PlayerId, int Team,
     bool IsHero, bool IsBuilding,
     MinimapIconKind Icon = MinimapIconKind.Unit,
     float CampStrength = 0f,
@@ -36,7 +36,7 @@ internal readonly record struct MinimapUnitView(
 
     public static MinimapUnitView From(Unit unit, MinimapFogLevel fog, bool? allied = null)
     {
-        return new MinimapUnitView(-unit.Position.X, unit.Position.Z, unit.Player,
+        return new MinimapUnitView(0, -unit.Position.X, unit.Position.Z, unit.Player, unit.Player,
             unit.IsHero, unit.IsBuilding, Classify(unit), 0f, fog, unit.Player, null, allied);
     }
 
@@ -56,3 +56,7 @@ internal readonly record struct MinimapUnitView(
 
 internal readonly record struct MinimapPingView(int Id, float X, float Y, float Remaining,
     float Duration, byte Red, byte Green, byte Blue, bool ExtraEffects);
+
+internal readonly record struct MinimapSpecialIconView(float X, float Y, string TexturePath,
+    System.Numerics.Vector4 Color, float Size,
+    MinimapIconKind Kind = MinimapIconKind.Unit, int CampStrength = 0);

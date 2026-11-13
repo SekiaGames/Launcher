@@ -8,7 +8,7 @@ namespace OpenWC3.Game.UI;
 
 internal sealed class HeroBarFrame : UiContainer, IClickable
 {
-    private const int MaxHeroes = 7;
+    private const int MaxHeroes = HeroPresentation.MaxHeroButtons;
     private const float CellSize = 48.64f, CellStepY = 65.51f, OriginX = 4.8f, OriginY = 32f;
     private const string IconFallback = @"ReplaceableTextures\CommandButtons\BTNTemp.blp";
     private const string DisabledDir = @"ReplaceableTextures\CommandButtonsDisabled\";
@@ -83,7 +83,7 @@ internal sealed class HeroBarFrame : UiContainer, IClickable
         if (heroes != null)
         {
             for (int index = 0; index < heroes.Count; index++)
-                _heroes.Add(ShowInHeroBar(heroes[index]) ? heroes[index] : null);
+                _heroes.Add(HeroPresentation.ShowInHeroBar(heroes[index]) ? heroes[index] : null);
         }
         _heroCount = Math.Min(MaxHeroes, _heroes.Count);
 
@@ -115,9 +115,6 @@ internal sealed class HeroBarFrame : UiContainer, IClickable
             slot.Mp.Ratio = hasMana ? Math.Clamp(hero.Mana / hero.MaxMana, 0, 1) : 0;
         }
     }
-
-    private static bool ShowInHeroBar(Unit unit)
-        => unit != null && unit.IsHero && (unit.Type == null || !unit.Type.HideInHeroBar);
 
     bool IClickable.Enabled => Enabled;
 

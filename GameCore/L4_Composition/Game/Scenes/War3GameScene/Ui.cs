@@ -185,10 +185,27 @@ public sealed partial class War3GameScene
     }
 
     private readonly List<MinimapUnitView> _minimapUnits = new();
+    private readonly List<MinimapPingView> _minimapPings = new();
+    private readonly List<MinimapSpecialIconView> _minimapIcons = new();
+    private int _nextMinimapPingId = 1;
 
-    private void UpdateMinimap()
+    private void PingMinimap(System.Numerics.Vector2 world)
+    {
+        _minimapPings.Add(new MinimapPingView(_nextMinimapPingId++, world.X, world.Y,
+            2.2f, 2.2f, 90, 255, 120, true));
+    }
+
+    private void UpdateMinimap(float delta)
     {
         if (_newHud == null || _map == null) return;
+
+        for (int index = _minimapPings.Count - 1; index >= 0; index--)
+        {
+            MinimapPingView ping = _minimapPings[index];
+            float remaining = ping.Remaining - delta;
+            if (remaining <= 0f) _minimapPings.RemoveAt(index);
+            else _minimapPings[index] = ping with { Remaining = remaining };
+        }
 
         _minimapUnits.Clear();
         foreach (Unit unit in _allUnits)
@@ -201,7 +218,8 @@ public sealed partial class War3GameScene
         }
 
         _newHud.Minimap.CameraRect = VisibleWorldRect();
-        _newHud.Minimap.Update(_mapUiBounds, _minimapUnits, ViewPlayer, FogTexture(),
+        _newHud.Minimap.Update(_mapUiBounds, _minimapUnits, ViewPlayer, ViewPlayer,
+            FogTexture(), System.Numerics.Vector2.One, _minimapPings, _minimapIcons,
             Time.GetTicksMsec() / 1000f);
     }
 

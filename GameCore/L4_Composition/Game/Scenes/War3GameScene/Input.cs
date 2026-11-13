@@ -122,7 +122,7 @@ public sealed partial class War3GameScene
                     if (button.Pressed && TryGroundPoint(button.Position, out Vector3 pingPoint))
                     {
                         _hud?.MinimapFrame.Ping(pingPoint);
-                        _newHud?.Minimap.Ping(new System.Numerics.Vector2(-pingPoint.X, pingPoint.Z));
+                        PingMinimap(new System.Numerics.Vector2(-pingPoint.X, pingPoint.Z));
                     }
                     return;
                 }

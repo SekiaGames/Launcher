@@ -330,10 +330,10 @@ public sealed partial class War3GameScene : Node3D
             LegacyMinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader())));
         minimap.OnMinimapClick = world =>
             _camera.Focus(new Vector3(-world.X, _camera.Target.Y, world.Y));
-        minimap.OnSignalPing = world => minimap.Ping(world);
+        minimap.OnSignalPing = PingMinimap;
         minimap.AltHeld = () => Input.IsKeyPressed(Key.Alt);
-        minimap.Update(_mapUiBounds, Array.Empty<MinimapUnitView>(), ViewPlayer,
-            FogTexture(), 0f);
+        minimap.Update(_mapUiBounds, Array.Empty<MinimapUnitView>(), ViewPlayer, ViewPlayer,
+            FogTexture(), System.Numerics.Vector2.One, _minimapPings, _minimapIcons, 0f);
     }
 
     private GodotUiTexture FogTexture()
@@ -380,7 +380,8 @@ public sealed partial class War3GameScene : Node3D
         _heroScratch.Clear();
         foreach (Unit unit in _allUnits)
         {
-            if (unit == null || !unit.IsHero || unit.Player != ViewPlayer) continue;
+            if (unit == null || unit.Player != ViewPlayer
+                || !HeroPresentation.ShowInHeroBar(unit)) continue;
             _heroScratch.Add(unit);
         }
         Unit selected = _selected.Count == 1 ? _selected[0] : null;
@@ -465,7 +466,7 @@ public sealed partial class War3GameScene : Node3D
         }
 
         TickFog((float)delta);
-        UpdateMinimap();
+        UpdateMinimap((float)delta);
         _terrainBuilder?.Blight?.FrameSeconds((float)delta, _allUnits);
         TickVictoryCheck((float)delta);
         RefreshHeroBar();

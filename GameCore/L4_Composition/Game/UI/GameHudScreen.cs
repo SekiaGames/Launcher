@@ -12,6 +12,8 @@ public sealed partial class GameHudScreen : Control
 {
     public const float DesignWidth = 1024f;
     public const float DesignHeight = 768f;
+    private const float TopChromeHeight = 40.96f;
+    private const float BottomChromeHeight = 225.28f;
 
     private UiRoot _root;
     private UiEventRouter _router;
@@ -152,17 +154,45 @@ public sealed partial class GameHudScreen : Control
     private CommandEntry SlotEntry(int slot)
         => slot >= 0 && slot < _slotEntries.Length ? _slotEntries[slot] : null;
 
+    public bool HandlePointerDown(NVector2 uiPos, int button)
+    {
+        _router.PointerDown(uiPos, button);
+        return IsPointerOverHud(uiPos);
+    }
+
+    public bool HandlePointerUp(NVector2 uiPos, int button)
+    {
+        bool hit = IsPointerOverHud(uiPos);
+        _router.PointerUp(uiPos, button);
+        return hit;
+    }
+
+    public void HandlePointerMove(NVector2 uiPos) => _router.PointerMove(uiPos);
+
+    public bool HandleWheel(NVector2 uiPos, float delta) => _router.Wheel(uiPos, delta);
+
+    public void ClearHover() => _router.ClearHover();
+
+    public bool IsPointerOverHud(NVector2 uiPos)
+    {
+        if (uiPos.X >= 0f && uiPos.X < DesignWidth
+            && (uiPos.Y <= TopChromeHeight || uiPos.Y >= DesignHeight - BottomChromeHeight))
+            return true;
+        UiFrame hit = _root.HitTest(uiPos);
+        return hit != null && !ReferenceEquals(hit, _root);
+    }
+
     public override void _GuiInput(InputEvent @event)
     {
         if (_router == null) return;
 
         if (@event is InputEventMouseButton button)
         {
-            NVector2 point = ToDesign(button.Position);
+            NVector2 point = ScreenToUi(button.Position);
             if (button.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
             {
-                if (button.Pressed && _router.Wheel(point, button.ButtonIndex == MouseButton.WheelUp ? 1f : -1f))
-                    AcceptEvent();
+                if (button.Pressed && HandleWheel(point,
+                    button.ButtonIndex == MouseButton.WheelUp ? 1f : -1f)) AcceptEvent();
                 return;
             }
 
@@ -170,9 +200,7 @@ public sealed partial class GameHudScreen : Control
             int index = button.ButtonIndex == MouseButton.Right ? 1 : 0;
             if (button.Pressed)
             {
-                bool hit = _root.HitTest(point) != null;
-                _router.PointerDown(point, index);
-                if (hit)
+                if (HandlePointerDown(point, index))
                 {
                     _uiPointerDown = true;
                     AcceptEvent();
@@ -180,8 +208,8 @@ public sealed partial class GameHudScreen : Control
             }
             else
             {
-                _router.PointerUp(point, index);
-                if (_uiPointerDown)
+                bool hit = HandlePointerUp(point, index);
+                if (hit || _uiPointerDown)
                 {
                     _uiPointerDown = false;
                     AcceptEvent();
@@ -192,12 +220,12 @@ public sealed partial class GameHudScreen : Control
 
         if (@event is InputEventMouseMotion motion)
         {
-            _router.PointerMove(ToDesign(motion.Position));
+            HandlePointerMove(ScreenToUi(motion.Position));
             if (_uiPointerDown) AcceptEvent();
         }
     }
 
-    private NVector2 ToDesign(Vector2 point)
+    private NVector2 ScreenToUi(Vector2 point)
     {
         Vector2 size = Size;
         if (size.X <= 0f || size.Y <= 0f) size = GetViewportRect().Size;
@@ -206,11 +234,7 @@ public sealed partial class GameHudScreen : Control
             point.Y * DesignHeight / Mathf.Max(1f, size.Y));
     }
 
-    public override void _Process(double delta)
-    {
-        _minimap?.Tick((float)delta);
-        QueueRedraw();
-    }
+    public override void _Process(double delta) => QueueRedraw();
 
     private static CommandCardView SampleCommands()
     {
