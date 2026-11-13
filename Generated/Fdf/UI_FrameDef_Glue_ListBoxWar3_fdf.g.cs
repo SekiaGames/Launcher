@@ -1,0 +1,27 @@
+namespace OpenWC3.Game.Generated.Fdf;
+
+internal static class UI_FrameDef_Glue_ListBoxWar3_fdf
+{
+    internal const string Text =
+@"// -- INCLUDE FILES ---------------------------------------------
+
+IncludeFile ""UI\FrameDef\Glue\StandardTemplates.fdf"",
+
+// -- LOCAL TEMPLATES -------------------------------------------
+
+// -- FRAMES ----------------------------------------------------
+
+Frame ""CONTROL"" ""ListBoxWar3"" {
+
+    ControlBackdrop ""ListBoxBackdrop"",
+    Frame ""BACKDROP"" ""ListBoxBackdrop"" INHERITS ""StandardEditBoxBackdropTemplate"" {
+        UseActiveContext,
+    }
+
+    Frame ""SCROLLBAR"" ""ListScrollBar"" INHERITS WITHCHILDREN ""StandardScrollBarTemplate"" {
+        SetPoint TOPRIGHT, ""ListBoxWar3"", TOPRIGHT, 0.0, 0.0,
+        UseActiveContext,
+    }
+}
+";
+}

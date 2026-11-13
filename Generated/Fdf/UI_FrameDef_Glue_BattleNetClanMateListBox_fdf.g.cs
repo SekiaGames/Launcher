@@ -1,0 +1,21 @@
+namespace OpenWC3.Game.Generated.Fdf;
+
+internal static class UI_FrameDef_Glue_BattleNetClanMateListBox_fdf
+{
+    internal const string Text =
+@"// -- INCLUDE FILES ---------------------------------------------
+
+IncludeFile ""UI\FrameDef\Glue\BattleNetTemplates.fdf"",
+
+// -- LOCAL TEMPLATES -------------------------------------------
+
+// -- FRAMES ----------------------------------------------------
+
+Frame ""FRAME"" ""BattleNetClanMateListBox"" {
+    Frame ""SCROLLBAR"" ""ClanMateScrollBar"" INHERITS WITHCHILDREN ""BattleNetScrollBarTemplate"" {
+        Height 0.315625,
+        SetPoint BOTTOMRIGHT, ""BattleNetClanMateListBox"", BOTTOMRIGHT, -0.00625, 0.0,
+    }
+}
+";
+}

@@ -1,0 +1,29 @@
+namespace OpenWC3.Game.Generated.Fdf;
+
+internal static class UI_FrameDef_UI_InfoPanelItemDetail_fdf
+{
+    internal const string Text =
+@"// -- INCLUDE FILES ---------------------------------------------------------
+
+IncludeFile ""UI\FrameDef\UI\InfoPanelTemplates.fdf"",
+
+// -- LOCAL TEMPLATES -------------------------------------------------------
+
+// -- FRAMES ----------------------------------------------------------------
+
+Frame ""FRAME"" ""InfoPanelItemDetail"" {
+    SetAllPoints,
+
+    // --- item name frame --------------------------------------------------
+    Frame ""TEXT"" ""ItemNameValue"" INHERITS ""InfoPanelTitleTextTemplate"" {
+        SetPoint TOP, ""InfoPanelItemDetail"", TOP, 0.0, 0.0,
+    }
+
+    // --- item description frame -------------------------------------------
+    Frame ""TEXT"" ""ItemDescriptionValue"" INHERITS ""InfoPanelDescriptionTextTemplate"" {
+        Width 0.188,
+        SetPoint TOP, ""ItemNameValue"", BOTTOM, 0.0, -0.008,
+    }
+}
+";
+}

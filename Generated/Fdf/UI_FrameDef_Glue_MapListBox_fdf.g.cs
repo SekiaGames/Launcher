@@ -1,0 +1,25 @@
+namespace OpenWC3.Game.Generated.Fdf;
+
+internal static class UI_FrameDef_Glue_MapListBox_fdf
+{
+    internal const string Text =
+@"// -- INCLUDE FILES ---------------------------------------------
+
+IncludeFile ""UI\FrameDef\Glue\StandardTemplates.fdf"",
+
+// -- LOCAL TEMPLATES -------------------------------------------
+
+// -- FRAMES ----------------------------------------------------
+
+Frame ""CONTROL"" ""MapListBox"" {
+
+    ControlBackdrop ""MapListBoxBackdrop"",
+    Frame ""BACKDROP"" ""MapListBoxBackdrop"" INHERITS ""StandardEditBoxBackdropTemplate"" {
+    }
+
+    Frame ""SCROLLBAR"" ""MapListScrollBar"" INHERITS WITHCHILDREN ""StandardScrollBarTemplate"" {
+        SetPoint TOPRIGHT, ""MapListBox"", TOPRIGHT, 0.0, 0.0,
+    }
+}
+";
+}
