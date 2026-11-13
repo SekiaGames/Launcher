@@ -103,7 +103,7 @@ public sealed partial class War3GameScene : Node3D
     {
         _map = map;
         _back = back;
-        _loadingScreen = new FdfLoadingScreen(this, map, SelectedRace, seconds: LoadHoldSeconds);
+        _loadingScreen = new War3LoadingScreenRenderer(this, map, SelectedRace, seconds: LoadHoldSeconds);
         _ = RunSetupAsync(map);
     }
 
@@ -302,7 +302,7 @@ public sealed partial class War3GameScene : Node3D
     // 阶段之间让出一帧, 该帧的 _Process/_PhysicsProcess 被 LoadingBlocked 挡住
     private async Task Loading(float progress, string stage)
     {
-        _loadingScreen?.SetProgress(progress, stage);
+        _loadingScreen?.Report(progress, stage);
         if (_loadingScreen == null) return;
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
@@ -315,7 +315,7 @@ public sealed partial class War3GameScene : Node3D
     private readonly List<Unit> _heroScratch = new();
     private ChatFrame _log;
     private EscMenuFrame _escMenu;
-    private FdfLoadingScreen _loadingScreen;
+    private War3LoadingScreenRenderer _loadingScreen;
     private GameOverPanel _gameOverPanel;
     private SkyboxRenderer _skybox;
     private SkyDomeRenderer _skyDome;

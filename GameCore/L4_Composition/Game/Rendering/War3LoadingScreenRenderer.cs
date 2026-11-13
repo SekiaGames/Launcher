@@ -2,13 +2,14 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using OpenWC3.Game.UI;
 using OpenWC3.Game.UI.Generated;
 using OpenWC3.RHI;
 using OpenWC3.UI;
 
-namespace OpenWC3.Game.UI;
+namespace OpenWC3.Game;
 
-public sealed partial class FdfLoadingScreen : Control
+public sealed partial class War3LoadingScreenRenderer : Control
 {
     private const float DesignWidth = War3UiViewport.BaseWidth;
     private const float DesignHeight = War3UiViewport.BaseHeight;
@@ -43,7 +44,7 @@ public sealed partial class FdfLoadingScreen : Control
     private float _fade;
     private bool _finished;
 
-    public FdfLoadingScreen(Node parent, MapSource map, int raceId = 0, float seconds = 1.2f)
+    public War3LoadingScreenRenderer(Node parent, MapSource map, int raceId = 0, float seconds = 1.2f)
     {
         _remaining = Mathf.Max(0f, seconds);
 
@@ -67,7 +68,7 @@ public sealed partial class FdfLoadingScreen : Control
             LineSizeResolver = font.PixelSizeForLine,
         };
 
-        _layer = new CanvasLayer { Name = "FdfLoadingScreen", Layer = 50 };
+        _layer = new CanvasLayer { Name = "War3LoadingScreen", Layer = 50 };
         parent.AddChild(_layer);
         _layer.AddChild(this);
     }
@@ -141,9 +142,9 @@ public sealed partial class FdfLoadingScreen : Control
     // 加载完成: 进度直接到 100%, 等最短显示时间后再淡出
     public bool Finished => _finished;
 
-    public void SetProgress(float progress, string stage)
+    public void Report(float progress, string stage)
     {
-        _progress = Mathf.Clamp(progress, 0f, 1f);
+        _progress = Mathf.Max(_progress, Mathf.Clamp(progress, 0f, 1f));
         if (!string.IsNullOrWhiteSpace(stage)) _stage = stage;
         QueueRedraw();
     }
