@@ -34,7 +34,7 @@ public sealed partial class LauncherApp : Node
     private string _fdfProbe;
     private string _fdfBindGen;
     private bool _uiHud;
-    private bool _newHud;
+    private bool _newHud = true;
     private int _selectedRace;
     private bool _preGameProbe;
     private string _uiScreen;
@@ -206,6 +206,10 @@ public sealed partial class LauncherApp : Node
             else if (argument == "--hud=new")
             {
                 _newHud = true;
+            }
+            else if (argument == "--hud=old")
+            {
+                _newHud = false;
             }
             else if (argument.StartsWith("--race=") && int.TryParse(argument["--race=".Length..], out int raceId))
             {
