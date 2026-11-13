@@ -3,12 +3,18 @@ using OpenWC3.Game.Diagnostics;
 using System;
 using System.Collections.Generic;
 using OpenWC3.Game;
+using OpenWC3.Game.UI;
 
 namespace OpenWC3;
 
 public sealed partial class LauncherApp : Node
 {
-    private Node _current;
+    private MenuScreenHost _menuHost;
+    private Node _current
+    {
+        get => _menuHost?.Current;
+        set => _menuHost?.Adopt(value);
+    }
     private string _shotPath;
     private float _shotDelay = -1f;
     private float _elapsed;
@@ -67,6 +73,7 @@ public sealed partial class LauncherApp : Node
     public override void _Ready()
     {
         Assets.Init();
+        _menuHost = new MenuScreenHost(this);
 
         string playPath = null;
         foreach (string argument in OS.GetCmdlineUserArgs())
@@ -397,8 +404,9 @@ public sealed partial class LauncherApp : Node
 
         if (_preGameProbe)
         {
-            ShowMapList();
-            ShowPreGameProbe();
+            string[] probeMaps = Assets.ListGmaps();
+            if (probeMaps.Length > 0) StartGame(probeMaps[0]);
+            else ShowMapList();
             return;
         }
 
@@ -415,38 +423,16 @@ public sealed partial class LauncherApp : Node
     public void ShowMapList()
     {
         Clear();
-
-        var screen = new MapBrowser { Name = "MapList" };
-        screen.OnPick += name => ShowPreGame(name, Assets.GmapDir + "/" + name);
+        var screen = new OpenWC3.Game.UI.MapSelectionScreen { Name = "MapSelection" };
+        screen.StartRequested += (mapPath, racePreference, preset) =>
+        {
+            _selectedRace = racePreference == 8 ? 3 : racePreference;
+            _aiDifficulty = MeleeAiPresetRules.Difficulty(preset);
+            Clear();
+            StartGame(mapPath);
+        };
         AddChild(screen);
         _current = screen;
-    }
-
-    private void ShowPreGameProbe()
-    {
-        string[] maps = Assets.ListGmaps();
-        string name = maps.Length > 0 ? maps[0] : "Turtle Rock";
-        ShowPreGame(name, Assets.GmapDir + "/" + name);
-    }
-
-    private void ShowPreGame(string displayName, string gmapPath)
-    {
-        Clear();
-        var dialog = new OpenWC3.Game.UI.PreGameDialog(displayName) { Name = "PreGame" };
-        dialog.Confirmed += (race, difficulty) =>
-        {
-            _selectedRace = race;
-            _aiDifficulty = difficulty;
-            Clear();
-            StartGame(gmapPath);
-        };
-        dialog.Cancelled += () =>
-        {
-            Clear();
-            ShowMapList();
-        };
-        AddChild(dialog);
-        _current = dialog;
     }
 
     public void StartGame(string gmapPath)
@@ -607,11 +593,7 @@ public sealed partial class LauncherApp : Node
 
     private void Clear()
     {
-        if (_current != null)
-        {
-            _current.QueueFree();
-            _current = null;
-        }
+        _menuHost?.Clear();
     }
 
     public override void _Process(double delta)
