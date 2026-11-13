@@ -7,8 +7,6 @@ namespace OpenWC3.Game;
 
 public static class GeneratedTexts
 {
-    const string Root = "res://extract/Texts/";
-
     static readonly Dictionary<string, Godot.Collections.Dictionary> Cache =
         new(StringComparer.OrdinalIgnoreCase);
 
@@ -69,7 +67,6 @@ public static class GeneratedTexts
     static string Normalize(string pathOrName)
     {
         string name = pathOrName ?? "";
-        if (name.StartsWith(Root, StringComparison.OrdinalIgnoreCase)) name = name[Root.Length..];
         if (name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) name = name[..^5];
         int slash = name.LastIndexOf('/');
         if (slash >= 0) name = name[(slash + 1)..];

@@ -99,7 +99,6 @@ public sealed class AbilityType
 public static class AbilityCatalog
 {
     private const string Table = "UnitsAbilityData";
-    private const string TextsRoot = "res://extract/Texts/";
 
     private static readonly string[] StringFiles =
     {

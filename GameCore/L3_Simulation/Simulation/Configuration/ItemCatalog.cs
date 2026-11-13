@@ -45,7 +45,7 @@ public sealed class ItemType
 public static class ItemCatalog
 {
     // 与单位技术树同源：客户端读基础 Units\ItemStrings，Melee_V0 档只有 RoC 那批物品名。
-    private const string StringsPath = "res://extract/Texts/UnitsItemStrings.json";
+    private const string StringsPath = "UnitsItemStrings";
 
     private static readonly Dictionary<string, ItemType> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, int> Rows = new(StringComparer.OrdinalIgnoreCase);

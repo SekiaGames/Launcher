@@ -7,7 +7,7 @@ namespace OpenWC3.Game;
 public static class MiscRules
 {
     // 客户端读 Units/MiscGame.txt（TFT）；Melee_V0 那套是 RoC 档，矩阵与 TFT 不同，不能混用。
-    private const string Table = "res://extract/Texts/UnitsMiscGame.json";
+    private const string Table = "UnitsMiscGame";
 
     public static readonly float GuardDistance = Value("Misc.GuardDistance", 600f);
     public static readonly float MaxGuardDistance = Value("Misc.MaxGuardDistance", 1000f);

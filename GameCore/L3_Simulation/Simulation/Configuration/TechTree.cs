@@ -109,7 +109,6 @@ public sealed class UpgradeType
 
 public static class TechTree
 {
-    private const string TextRoot = "res://extract/Texts/";
 
     // 客户端 War3ObjectData.Load 只读基础 Units\*UnitFunc.txt 这六族；
     // Melee_V0 是 RoC 精简档（没有酒馆 ntav、四族商店与 TFT 单位），不能当技术树数据源。

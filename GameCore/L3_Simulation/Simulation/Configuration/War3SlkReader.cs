@@ -1,47 +1,13 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using OpenWC3.War3Formats;
 
 namespace OpenWC3.Game;
 
 public static class War3SlkReader
 {
-    private const string Root = "res://extract/Tables/";
-
     private static readonly Dictionary<string, SlkTable> Cache = new(StringComparer.OrdinalIgnoreCase);
-    private static string[] _files;
-
-    private static string[] Files
-    {
-        get
-        {
-            if (_files != null) return _files;
-            var list = new List<string>();
-            foreach (string file in DirAccess.GetFilesAt(Root))
-            {
-                if (file.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) list.Add(file[..^5]);
-                else if (file.EndsWith(".json.remap", StringComparison.OrdinalIgnoreCase)) list.Add(file[..^11]);
-            }
-            list.Sort(StringComparer.OrdinalIgnoreCase);
-            _files = list.ToArray();
-            return _files;
-        }
-    }
-
-    private static string ResolveFile(string name)
-    {
-        foreach (string file in Files)
-        {
-            if (string.Equals(file, name, StringComparison.OrdinalIgnoreCase)) return file;
-        }
-        foreach (string file in Files)
-        {
-            if (file.EndsWith(name, StringComparison.OrdinalIgnoreCase)) return file;
-        }
-        return null;
-    }
 
     public static SlkTable Get(string name)
     {
@@ -52,96 +18,33 @@ public static class War3SlkReader
         return table;
     }
 
-    public static bool Has(string name)
-    {
-        return ResolveFile(name) != null;
-    }
-
-    private static bool TryGenerated(string name, out SlkTable table)
-    {
-        table = null;
-        if (!OpenWC3.Game.Generated.SlkTables.All.TryGetValue(name, out var source))
-        {
-            string match = null;
-            foreach (string key in OpenWC3.Game.Generated.SlkTables.All.Keys)
-            {
-                if (key.EndsWith(name, StringComparison.OrdinalIgnoreCase)) { match = key; break; }
-            }
-            if (match == null) return false;
-            source = OpenWC3.Game.Generated.SlkTables.All[match];
-        }
-
-        var rows = new List<string[]>(source.Rows.Length);
-        foreach (string row in source.Rows)
-            rows.Add(row.Length == 0 ? Array.Empty<string>() : row.Split('\t'));
-        table = SlkTable.FromRows(source.Columns, rows.ToArray());
-        return true;
-    }
+    public static bool Has(string name) => Generated.SlkTables.All.ContainsKey(name);
 
     private static SlkTable Load(string name)
     {
-        if (TryGenerated(name, out SlkTable generated)) return generated;
-
-        string file = ResolveFile(name);
-        if (file == null)
+        string key = name;
+        if (!Generated.SlkTables.All.ContainsKey(key))
         {
-            GD.PushError($"[TABLE] Tables 里找不到 {name}");
-            return SlkTable.FromRows(Array.Empty<string>(), Array.Empty<string[]>());
-        }
-
-        string path = Root + file + ".json";
-        using FileAccess stream = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-        if (stream == null)
-        {
-            GD.PushError($"[TABLE] 打不开 {path}");
-            return SlkTable.FromRows(Array.Empty<string>(), Array.Empty<string[]>());
-        }
-
-        try
-        {
-            return Parse(file, stream.GetAsText());
-        }
-        catch (Exception error)
-        {
-            GD.PushError($"[TABLE] 解析 {file} 失败: {error.Message}");
-            return SlkTable.FromRows(Array.Empty<string>(), Array.Empty<string[]>());
-        }
-    }
-
-    private static SlkTable Parse(string name, string json)
-    {
-        using JsonDocument document = JsonDocument.Parse(json);
-        JsonElement root = document.RootElement;
-
-        var columns = new List<string>();
-        if (root.TryGetProperty("columns", out JsonElement columnArray))
-        {
-            foreach (JsonElement column in columnArray.EnumerateArray())
+            string match = null;
+            foreach (string candidate in Generated.SlkTables.All.Keys)
             {
-                columns.Add(column.GetString() ?? "");
+                if (!candidate.EndsWith(name, StringComparison.OrdinalIgnoreCase)) continue;
+                match = candidate;
+                break;
             }
-        }
-
-        var rows = new List<string[]>();
-        if (root.TryGetProperty("rows", out JsonElement rowArray))
-        {
-            foreach (JsonElement row in rowArray.EnumerateArray())
+            if (match == null)
             {
-                var cells = new string[row.GetArrayLength()];
-                int index = 0;
-                foreach (JsonElement cell in row.EnumerateArray())
-                {
-                    cells[index++] = cell.GetString() ?? "";
-                }
-                rows.Add(cells);
+                GD.PushError($"[TABLE] 生成的表里找不到 {name}");
+                return SlkTable.FromRows(Array.Empty<string>(), Array.Empty<string[]>());
             }
+            key = match;
         }
 
-        if (columns.Count == 0)
-        {
-            GD.PushWarning($"[TABLE] {name} 没有列定义");
-        }
-        return SlkTable.FromRows(columns.ToArray(), rows.ToArray());
+        var source = Generated.SlkTables.All[key];
+        var rows = new List<string[]>(source.Rows.Length);
+        foreach (string row in source.Rows)
+            rows.Add(row.Length == 0 ? Array.Empty<string>() : row.Split('\t'));
+        return SlkTable.FromRows(source.Columns, rows.ToArray());
     }
 
     public static SlkTable UnitUI() => Get("UnitsunitUI");
