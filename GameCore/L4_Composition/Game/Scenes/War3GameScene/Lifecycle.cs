@@ -18,6 +18,8 @@ public sealed partial class War3GameScene : Node3D
     private PlayerSelectionController _selection;
     private PlayerCommandProcessor _commandProcessor;
     private War3PickingComponent _picking;
+    private War3WorldInteractionComponent _worldInteraction;
+    private War3InputComponent _inputComponent;
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
     private NVector4 _mapUiBounds;
@@ -33,10 +35,7 @@ public sealed partial class War3GameScene : Node3D
 
     private readonly List<Unit> _allUnits = new();
     private readonly List<Unit> _selected = new();
-    private bool _middleDown;
-    private bool _leftDown;
-    private Vector2 _dragStart;
-    private Node3D _placementGhost;
+        private Node3D _placementGhost;
     private MeshInstance3D _placementFootprintNode;
     private ImmediateMesh _placementFootprintMesh;
     private bool _placementPreviewValid;
@@ -229,6 +228,8 @@ public sealed partial class War3GameScene : Node3D
         await Loading(.90f, "预热单位与界面资源");
         _camera = new War3Camera(this);
         _picking = new War3PickingComponent(this);
+        _worldInteraction = new War3WorldInteractionComponent(this);
+        _inputComponent = new War3InputComponent(this);
         SetCameraBounds();
         FocusStartPosition();
 
@@ -270,7 +271,7 @@ public sealed partial class War3GameScene : Node3D
         };
         _hud.MinimapFrame.Configure(map.Terrain, () => _allUnits, () => _camera.Target, point => _camera.Focus(point),
             unit => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
-        _hud.MinimapFrame.RightNavigate = MinimapOrderAt;
+        _hud.MinimapFrame.RightNavigate = _worldInteraction.MinimapOrderAt;
         _hud.MinimapFrame.SetFogTexture(_fog.Texture);
         _hud.MinimapFrame.SetTexture(_minimapBaseTexture);
         if (!UseNewHud)
@@ -475,7 +476,7 @@ public sealed partial class War3GameScene : Node3D
         if (LoadingBlocked) return;
         StartPendingMusic();
 
-        HandleKeyboardPan(frame);
+        _inputComponent?.HandleKeyboardPan(frame);
         UpdatePlacementPreview();
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);

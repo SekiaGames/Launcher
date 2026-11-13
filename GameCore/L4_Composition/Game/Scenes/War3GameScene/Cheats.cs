@@ -555,7 +555,7 @@ public sealed partial class War3GameScene
         _selected.Clear();
         _selected.Add(hero);
         _hud?.SetSelection(_selected);
-        MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
+        _worldInteraction.MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
         GD.Print($"[UI] 小地图右键下令 MoveTarget={hero.MoveTarget.HasValue}");
         _hud?.MinimapFrame.Ping(hero.Position);
         PingMinimap(new System.Numerics.Vector2(-hero.Position.X, hero.Position.Z));
@@ -1477,7 +1477,7 @@ public sealed partial class War3GameScene
         _hud?.SetSelection(_selected);
 
         Vector2 screen = _camera.Camera.UnprojectPosition(destination + new Vector3(0f, 40f, 0f));
-        OrderAt(screen, false);
+        _worldInteraction.OrderAt(screen, false);
 
         SceneTreeTimer timer = GetTree().CreateTimer(2.5);
         timer.Timeout += () =>
