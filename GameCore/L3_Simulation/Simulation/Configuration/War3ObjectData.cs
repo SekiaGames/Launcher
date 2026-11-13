@@ -84,10 +84,10 @@ public sealed class War3ObjectData
                 string id = (table.Get(row, "alias") ?? "").Trim();
                 if (id.Length == 0) continue;
                 var data = new BuffTypeData { Id = id, BaseId = id };
-                data.Set("code", (table.Get(row, "code") ?? "").Trim());
-                data.Set("comments", (table.Get(row, "comments") ?? "").Trim());
-                data.Set("isEffect", (table.Get(row, "isEffect") ?? "").Trim());
-                data.Set("race", (table.Get(row, "race") ?? "").Trim());
+                data.Fields["code"] = (table.Get(row, "code") ?? "").Trim();
+                data.Fields["comments"] = (table.Get(row, "comments") ?? "").Trim();
+                data.Fields["isEffect"] = (table.Get(row, "isEffect") ?? "").Trim();
+                data.Fields["race"] = (table.Get(row, "race") ?? "").Trim();
                 _buffs[id] = data;
             }
             return _buffs;

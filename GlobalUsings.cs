@@ -5,3 +5,6 @@ global using BinaryReader = System.IO.BinaryReader;
 global using BinaryWriter = System.IO.BinaryWriter;
 global using System.Linq;
 global using System.Text;
+global using OpenWC3.Game;
+global using InvalidDataException = System.IO.InvalidDataException;
+global using EndOfStreamException = System.IO.EndOfStreamException;
