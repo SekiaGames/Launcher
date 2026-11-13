@@ -58,6 +58,7 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
     public Action<Vector2> OnSignalPing;
     public Func<bool> AltHeld;
     public Vector4? CameraRect { get; set; }
+    public Action<int, bool, bool, bool, bool> FilterChanged;
 
     public MinimapFrame(IUiTextureResolver textures, War3UiSkin skin, War3MiscData misc)
         : base("Minimap")
@@ -453,6 +454,8 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
             "human-formation-" + formation.ToLowerInvariant(), true);
         SetToolState(_terrainTool, "MiniMapTerrainButton" + (_terrainVisible ? "Active" : "Inactive"),
             "human-minimap-terrain-" + (_terrainVisible ? "active" : "inactive"));
+        FilterChanged?.Invoke(_allyColorState, _showCreeps, _allyButtonEnabled,
+            _creepButtonEnabled, _formationEnabled);
     }
 
     private void SetToolState(ButtonFrame button, string key, string path, bool formation = false)

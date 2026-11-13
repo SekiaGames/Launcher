@@ -329,6 +329,8 @@ public sealed partial class War3GameScene : Node3D
             _camera.Focus(new Vector3(-world.X, _camera.Target.Y, world.Y));
         minimap.OnSignalPing = PingMinimap;
         minimap.AltHeld = () => Input.IsKeyPressed(Key.Alt);
+        minimap.FilterChanged = (allyState, showCreeps, allyEnabled, creepEnabled, formationEnabled) =>
+            MinimapFilter = (allyState, showCreeps, allyEnabled, creepEnabled, formationEnabled);
         minimap.Update(_mapUiBounds, Array.Empty<MinimapUnitView>(), ViewPlayer, ViewPlayer,
             FogTexture(), System.Numerics.Vector2.One, _minimapPings, _minimapIcons, 0f);
     }

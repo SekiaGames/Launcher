@@ -209,6 +209,9 @@ public sealed partial class War3GameScene
             if (bytes == null) continue;
             var image = new Image();
             if (image.LoadPngFromBuffer(bytes) != Error.Ok) continue;
+            if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
+            _minimapBaseImage = image;
+            _minimapBlightVersion = -1;
             GD.Print($"[MINIMAP] 底图={png}");
             return ImageTexture.CreateFromImage(image);
         }
@@ -218,9 +221,16 @@ public sealed partial class War3GameScene
     }
 
     private readonly List<MinimapUnitView> _minimapUnits = new();
+    private readonly MinimapVisibilityTracker _minimapVisibility = new();
+    private Image _minimapBaseImage;
+    private GodotUiTexture _minimapBlightTexture;
+    private int _minimapBlightVersion = -1;
     private readonly List<MinimapPingView> _minimapPings = new();
     private readonly List<MinimapSpecialIconView> _minimapIcons = new();
     private int _nextMinimapPingId = 1;
+
+    public (int AllyState, bool ShowCreeps, bool AllyEnabled, bool CreepEnabled, bool FormationEnabled)
+        MinimapFilter { get; private set; } = (0, true, true, true, false);
 
     private void PingMinimap(System.Numerics.Vector2 world)
     {
@@ -241,29 +251,107 @@ public sealed partial class War3GameScene
         }
 
         _minimapUnits.Clear();
-        foreach (Unit unit in _allUnits)
-        {
-            if (unit == null || !unit.Alive) continue;
-            MinimapFogLevel fog = MinimapFogFor(unit);
-            if (fog == MinimapFogLevel.Masked) continue;
-            bool allied = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
-            _minimapUnits.Add(MinimapUnitView.From(unit, fog, allied));
-        }
+        IReadOnlyList<Unit> minimapSource = _world != null
+            ? _world.Units.Items : _allUnits;
+        _minimapUnits.AddRange(_minimapVisibility.Update(_fog,
+            minimapSource, ViewPlayer,
+            player => player == ViewPlayer || AreAllied(player, ViewPlayer)));
 
         _newHud.Minimap.CameraRect = VisibleWorldRect();
+        RefreshMinimapBlight();
         _newHud.Minimap.Update(_mapUiBounds, _minimapUnits, ViewPlayer, ViewPlayer,
             FogTexture(), System.Numerics.Vector2.One, _minimapPings, _minimapIcons,
             Time.GetTicksMsec() / 1000f);
     }
 
-    private MinimapFogLevel MinimapFogFor(Unit unit)
+    private void RefreshMinimapBlight()
     {
-        if (_fog == null || !_fog.Enabled) return MinimapFogLevel.Visible;
-        if (unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer))
-            return MinimapFogLevel.Visible;
-        if (_fog.IsVisible(unit.Position)) return MinimapFogLevel.Visible;
-        if (!unit.IsBuilding) return MinimapFogLevel.Masked;
-        return _fog.IsExplored(unit.Position) ? MinimapFogLevel.Fogged : MinimapFogLevel.Masked;
+        BlightMask blight = _terrainBuilder?.Blight;
+        if (blight == null || _minimapBaseImage == null) return;
+        if (blight.Version == _minimapBlightVersion) return;
+        _minimapBlightVersion = blight.Version;
+
+        int width = _minimapBaseImage.GetWidth();
+        int height = _minimapBaseImage.GetHeight();
+        byte[] pixels = _minimapBaseImage.GetData();
+        float minX = _mapUiBounds.X, maxX = _mapUiBounds.Z;
+        float minY = _mapUiBounds.Y, maxY = _mapUiBounds.W;
+        System.Numerics.Vector4 mask = _newHud.Minimap.MiscData.BlightMask;
+        byte red = (byte)Mathf.Clamp(Mathf.Round(mask.X * 255f), 0, 255);
+        byte green = (byte)Mathf.Clamp(Mathf.Round(mask.Y * 255f), 0, 255);
+        byte blue = (byte)Mathf.Clamp(Mathf.Round(mask.Z * 255f), 0, 255);
+        for (int y = 0; y < height; y++)
+        {
+            float mapY = maxY - (y + 0.5f) / height * (maxY - minY);
+            for (int x = 0; x < width; x++)
+            {
+                float mapX = minX + (x + 0.5f) / width * (maxX - minX);
+                if (!blight.IsBlightedMap(mapX, mapY)) continue;
+                int index = (y * width + x) * 4;
+                pixels[index] &= red;
+                pixels[index + 1] &= green;
+                pixels[index + 2] |= blue;
+            }
+        }
+
+        Image image = Image.CreateFromData(width, height, false, Image.Format.Rgba8, pixels);
+        _minimapBlightTexture = new GodotUiTexture(ImageTexture.CreateFromImage(image));
+        _newHud.Minimap.SetMapTexture(_minimapBlightTexture);
+    }
+
+    internal sealed class MinimapVisibilityTracker
+    {
+        readonly Dictionary<int, MinimapUnitView> _memory = new();
+        readonly List<MinimapUnitView> _visible = new();
+        readonly HashSet<int> _observed = new();
+        readonly List<int> _forgotten = new();
+
+        internal IReadOnlyList<MinimapUnitView> Update(FogOfWar fog, IReadOnlyList<Unit> units,
+            int localPlayerId, Func<int, bool> ally)
+        {
+            _visible.Clear();
+            _observed.Clear();
+            if (units == null) return _visible;
+            for (int i = 0; i < units.Count; i++)
+            {
+                Unit unit = units[i];
+                if (unit == null) continue;
+                int id = unit.SimulationId;
+                bool friendly = unit.Player == localPlayerId || ally?.Invoke(unit.Player) == true;
+                bool positionVisible = friendly || fog == null || fog.IsVisible(unit.Position);
+                if (_memory.TryGetValue(id, out MinimapUnitView remembered)
+                    && (fog == null || fog.IsVisible(RememberedWorld(remembered))))
+                    _memory.Remove(id);
+                if (!positionVisible) continue;
+                _observed.Add(id);
+                _memory.Remove(id);
+                if (!unit.Alive || unit.Hidden || unit.IsCargoed) continue;
+
+                MinimapUnitView snapshot = MinimapUnitView.From(unit,
+                    friendly || fog == null ? MinimapFogLevel.Visible : MinimapFogLevel.Fogged, friendly);
+                _visible.Add(snapshot);
+                if (unit.IsBuilding && !friendly) _memory[id] = snapshot;
+            }
+
+            _forgotten.Clear();
+            foreach (KeyValuePair<int, MinimapUnitView> pair in _memory)
+            {
+                if (_observed.Contains(pair.Key)) continue;
+                Vector3 point = RememberedWorld(pair.Value);
+                if (fog == null || fog.IsVisible(point))
+                {
+                    _forgotten.Add(pair.Key);
+                    continue;
+                }
+                if (fog.IsExplored(point))
+                    _visible.Add(pair.Value.WithFog(MinimapFogLevel.Fogged));
+            }
+            foreach (int id in _forgotten) _memory.Remove(id);
+            return _visible;
+        }
+
+        static Vector3 RememberedWorld(MinimapUnitView view) =>
+            new(-view.X, 0f, view.Y);
     }
 
     private NVector4 VisibleWorldRect()

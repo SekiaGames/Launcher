@@ -25,6 +25,17 @@ public sealed class BlightMask
     /// <summary>当前腐地格数（静态 + 动态累计）。</summary>
     public int BlightedCells { get; private set; }
 
+    public int Version => BlightedCells;
+
+    public bool IsBlightedMap(float mapX, float mapY)
+    {
+        int column = (int)MathF.Floor(-mapX / CellSize);
+        int row = (int)MathF.Floor(mapY / CellSize);
+        if (column < 0 || row < 0 || column >= _terrain.Width || row >= _terrain.Height)
+            return false;
+        return _pixels[row * _terrain.Width + column] != 0;
+    }
+
     public BlightMask(W3eTerrain terrain, ShaderMaterial material, Texture2D blightTexture)
     {
         _terrain = terrain;

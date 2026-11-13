@@ -41,7 +41,9 @@ public sealed partial class War3GameScene
 
             Vector2 size = _runtime.GetViewport().GetVisibleRect().Size;
             Vector2 mouse = _runtime.GetViewport().GetMousePosition();
-            if (!_dragging && size.X > 0f && size.Y > 0f
+            if (!_dragging && mouse.X >= 0f && mouse.Y >= 0f
+                && mouse.X < size.X && mouse.Y < size.Y
+                && size.X > 0f && size.Y > 0f
                 && !_runtime.IsScreenPointOverHud(mouse))
             {
                 const float edge = 3f;

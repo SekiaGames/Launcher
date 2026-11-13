@@ -21,6 +21,7 @@ internal sealed class War3MiscData
     public Vector4 ColorDestructable { get; private set; }
     public Vector4 ColorCreepAllied { get; private set; }
     public Vector4 ColorCreepNormal { get; private set; }
+    public Vector4 BlightMask { get; private set; }
 
     public float MiddleCampThreshold { get; private set; }
     public float ToughCampThreshold { get; private set; }
@@ -45,6 +46,7 @@ internal sealed class War3MiscData
         ColorDestructable = new Vector4(0f, 160f / 255f, 128f / 255f, 1f);
         ColorCreepAllied = new Vector4(0f, 0f, 50f / 255f, 1f);
         ColorCreepNormal = ColorCreepAllied;
+        BlightMask = new Vector4(63f / 255f, 63f / 255f, 64f / 255f, 0f);
         MiddleCampThreshold = 10f;
         ToughCampThreshold = 20f;
         MiddleCampScale = 1.3f;
@@ -66,6 +68,7 @@ internal sealed class War3MiscData
         ColorDestructable = ReadRgba("FogColorDestructable", ColorDestructable);
         ColorCreepAllied = ReadRgba("FogColorCreepAllied", ColorCreepAllied);
         ColorCreepNormal = ReadRgba("FogColorCreepNormal", ColorCreepNormal);
+        BlightMask = ReadRgba("FogColorBlightMask", BlightMask);
         MiddleCampThreshold = ReadFloat("MinimapMiddleCampThreshold", MiddleCampThreshold);
         ToughCampThreshold = ReadFloat("MinimapToughCampThreshold", ToughCampThreshold);
         MiddleCampScale = ReadFloat("MinimapMiddleCampScale", MiddleCampScale);
