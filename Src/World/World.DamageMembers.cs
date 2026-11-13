@@ -370,6 +370,8 @@ public sealed partial class World
     }
 
     /// <summary>受到伤害修正钩子（艾露恩恩泽、硬化皮肤）：在护甲与类型矩阵之前改数值。</summary>
+    static readonly List<Ability> _modifierBuffer = new();
+
     public void ApplyIncomingModifiers(DamageData info)
     {
         Unit target = info?.Target;
@@ -382,8 +384,12 @@ public sealed partial class World
         }
 
         if (target.Abilities == null) return;
-        foreach (Ability ability in target.Abilities)
+        // 修正回调里 Buff 可能移除自己（睡眠唤醒、护盾破裂），必须按快照遍历
+        _modifierBuffer.Clear();
+        _modifierBuffer.AddRange(target.Abilities);
+        for (int index = 0; index < _modifierBuffer.Count; index++)
         {
+            Ability ability = _modifierBuffer[index];
             if (!ability.Learned) continue;
             if (ability.OverridesIncomingWorldHook) ability.ModifyIncomingDamage(this, info);
             else ability.ModifyIncomingDamage(ref info);

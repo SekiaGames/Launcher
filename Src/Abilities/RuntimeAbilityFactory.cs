@@ -34,7 +34,7 @@ public static class RuntimeAbilityFactory
         ["AUan"] = () => new RuntimeAnimateDeadAbility(),   // 操纵死尸
         ["AUfn"] = () => new RuntimeFrostNovaAbility(),     // 霜冻新星
         ["AUcs"] = () => new RuntimeCarrionSwarmAbility(),  // 腐臭蜂群
-        ["AUsl"] = () => new Sleep(),         // 睡眠
+        ["AUsl"] = WithObjects<RuntimeSleepAbility>,         // 睡眠
         ["AUav"] = () => new VampiricAura(),  // 吸血光环
         ["AUin"] = () => new RuntimeInfernoAbility(),       // 地狱火
         ["AUim"] = () => new RuntimeImpaleAbility(),        // 穿刺
@@ -369,7 +369,7 @@ public static class RuntimeAbilityFactory
         ["ACsa"] = () => new RuntimeFlamingArrowsAbility(),     // 灼热之箭
         ["ACsh"] = () => new RuntimeShockwaveAbility(),         // 震荡波
         ["ACsi"] = () => new Silence(),           // 沉默
-        ["ACsl"] = () => new Sleep(),             // 睡眠
+        ["ACsl"] = WithObjects<RuntimeSleepAbility>,             // 睡眠
         ["ACss"] = () => new RuntimeShadowStrikeAbility(),      // 暗影突袭
         ["ACt2"] = () => new RuntimeThunderClapAbility(),       // 雷霆一击
         ["ACtb"] = () => new RuntimeStormBoltAbility(),       // 风暴之锤

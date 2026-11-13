@@ -204,11 +204,18 @@ public static partial class CombatProbe
         bool slept = sleepWorld.TryCast(sleeperHero, sleep, sleeper, sleeper.Position);
         Verify("睡眠施放成功", 1f, slept ? 1f : 0f, 0f);
         Verify("睡眠禁止移动", 0f, sleeper.State.CanMove ? 1f : 0f, 0f);
-        Verify("睡眠 20 秒", 20f, sleeper.State.Remaining(StateMod.Sleep), 0.01f);
+        var sl = sleeper.FindBuff<RuntimeSleepBuff>();
+        var pr = sleeper.FindBuff<RuntimeSleepProtectionBuff>();
+        Verify("睡眠 20 秒", 20f, sl?.Remaining ?? 0f, 0.5f);
+        Verify("睡眠保护期=DataA", sleeperHero.FindAbility("AUsl").Type.DataAt(1, 'A'), pr?.Remaining ?? 0f, 0.1f);
 
         sleepWorld.DealDamage(World.MakeAbilityDamage(sleeperHero, sleeper, 10f, AttackType.Spells, DamageType.Magic));
-        Verify("挨打后立刻醒", 0f, sleeper.State.Has(StateMod.Sleep) ? 1f : 0f, 0f);
-        GD.Print($"[自检] 睡眠 20s → 吃 10 点伤害后 {sleeper.State.Describe()}");
+        Verify("保护期内挨打不醒", 1f, sleeper.FindBuff<RuntimeSleepBuff>() != null ? 1f : 0f, 0f);
+
+        for (int tick = 0; tick < 60 && sleeper.FindBuff<RuntimeSleepProtectionBuff>() != null; tick++) sleepWorld.Advance();
+        sleepWorld.DealDamage(World.MakeAbilityDamage(sleeperHero, sleeper, 10f, AttackType.Spells, DamageType.Magic));
+        Verify("保护期过后挨打立刻醒", 0f, sleeper.FindBuff<RuntimeSleepBuff>() != null ? 1f : 0f, 0f);
+GD.Print($"[自检] 睡眠 20s → 吃 10 点伤害后 {sleeper.State.Describe()}");
 
         // —— 吸血光环：普攻伤害的 15% 回血 ——
         var drainWorld = new World(null, null);

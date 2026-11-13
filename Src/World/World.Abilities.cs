@@ -240,16 +240,39 @@ public sealed partial class World
             if (unit.AutoCast && unit.IsHero && unit.SkillPoints > 0) AutoLearnHeroSkills(unit);
 
             float debuffScale = 1f;
+            List<Buff> expired = null;
             for (int upkeepIndex = 0; upkeepIndex < unit.Abilities.Count; upkeepIndex++)
             {
                 Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
                 if (!kept.Learned) continue;
+                if (kept is Buff ticking)
+                {
+                    // Buff 的倒计时在 OnTick(World, dt) 里，返回 false 表示到期
+                    if (!ticking.OnTick(this, FrameSeconds))
+                    {
+                        (expired ??= new List<Buff>()).Add(ticking);
+                        continue;
+                    }
+                    debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
+                    continue;
+                }
                 kept.OnWorldTick(this, FrameSeconds);
                 kept.OnTick(FrameSeconds);
                 debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
             }
             unit.State.DebuffScale = debuffScale;
+
+            // 到期的 Buff 在遍历之后统一摘掉：OnBuffRemove 里可能再动技能表
+            if (expired != null)
+            {
+                for (int index = 0; index < expired.Count; index++)
+                {
+                    Buff gone = expired[index];
+                    unit.Abilities.Remove(gone);
+                    gone.OnRemove();
+                }
+            }
 
             for (int buffIndex = unit.Buffs.Count - 1; buffIndex >= 0; buffIndex--)
             {
