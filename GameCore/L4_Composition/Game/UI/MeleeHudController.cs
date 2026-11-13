@@ -98,6 +98,7 @@ public sealed class MeleeHudController : IUiCommandListener
         _inventory.Clear();
         for (int i = 0; i < Unit.InventorySize; i++)
             _inventory.Add(items != null && i < items.Count ? items[i] : null);
+        _host.SetInventory(items);
     }
 
     public void SetQueue(IReadOnlyList<CommandEntry> entries)
@@ -112,6 +113,7 @@ public sealed class MeleeHudController : IUiCommandListener
     {
         _queue.Clear();
         if (entries != null) _queue.AddRange(entries);
+        _host.SetQueueSlots(entries);
     }
 
     public void SetQueue(string text) { }

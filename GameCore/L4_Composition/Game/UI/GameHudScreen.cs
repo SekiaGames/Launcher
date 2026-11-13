@@ -29,6 +29,10 @@ public sealed partial class GameHudScreen : Control
     private SelectionGroupFrame _selectionGroup;
     private IdlePeonFrame _idlePeon;
     private PortraitViewport _portraitViewport;
+    private InventoryFrame _inventory;
+    private QueueIconRowFrame _queue;
+    private TooltipFrame _tooltip;
+    private readonly CommandEntry[] _inventoryEntries = new CommandEntry[6];
     private GodotUiTexture _portraitTexture;
     private Unit _selectedUnit;
     public Action<Unit> SelectionClicked;
@@ -77,6 +81,10 @@ public sealed partial class GameHudScreen : Control
         _portrait = new PortraitFrame();
         _selectionGroup = new SelectionGroupFrame(resolver);
         _idlePeon = new IdlePeonFrame(resolver, skin);
+        _inventory = new InventoryFrame(resolver);
+        _queue = new QueueIconRowFrame(resolver, skin);
+        _tooltip = new TooltipFrame();
+        _inventory.SlotClicked = index => InvokeEntry(_inventoryEntries[index]);
         _portraitViewport = new PortraitViewport(this);
         _portraitTexture = new GodotUiTexture(_portraitViewport.Texture);
         _portrait.OnStartFollow = () => PortraitFollowStarted?.Invoke(_selectedUnit);
@@ -92,6 +100,14 @@ public sealed partial class GameHudScreen : Control
         _root.AddChild(_portrait);
         _root.AddChild(_selectionGroup);
         _root.AddChild(_idlePeon);
+        _root.AddChild(_inventory);
+        _root.AddChild(_queue);
+        _root.AddChild(_tooltip);
+        _router.HoverChanged += frame =>
+        {
+            if (frame is ButtonFrame button) _tooltip.Show(button);
+            else _tooltip.Hide();
+        };
 
         SetResources(500, 220, 12, 24);
         SetClock(6.0);
@@ -146,6 +162,32 @@ public sealed partial class GameHudScreen : Control
         QueueRedraw();
     }
 
+    public void SetInventory(IReadOnlyList<CommandEntry> entries)
+    {
+        for (int i = 0; i < _inventoryEntries.Length; i++)
+            _inventoryEntries[i] = entries != null && i < entries.Count ? entries[i] : null;
+        _inventory.Update(entries);
+        QueueRedraw();
+    }
+
+    public void SetQueueSlots(IReadOnlyList<QueueEntry> entries)
+    {
+        _queue.Update(entries);
+        QueueRedraw();
+    }
+
+    private void InvokeEntry(CommandEntry entry)
+    {
+        if (entry == null) return;
+        if (Listener != null)
+        {
+            Listener.OnUiCommand(new UiCommand(entry.Kind, entry.Payload,
+                Context: entry, NativeEventKind: 1));
+            return;
+        }
+        entry.Action?.Invoke();
+    }
+
     public void UpdateIdleWorkers(IReadOnlyList<Unit> workers, int localPlayerId, float time)
     {
         _idlePeon.Update(workers, localPlayerId, time);
@@ -180,7 +222,11 @@ public sealed partial class GameHudScreen : Control
                 slots[index] = new CommandSlotView(
                     Icon: "", Hotkey: entry.Hotkey, Disabled: !entry.Enabled,
                     Cooldown: cooldown, Overlay: overlay,
-                    Title: entry.Name, Body: entry.Tooltip,
+                    Title: entry.Name,
+                    Body: string.IsNullOrWhiteSpace(entry.Cost)
+                        ? entry.Tooltip
+                        : (entry.Tooltip ?? "")
+                            + (string.IsNullOrEmpty(entry.Tooltip) ? "" : "\n") + entry.Cost,
                     IconTexture: entry.Icon == null ? null : new GodotUiTexture(entry.Icon));
                 _slotEntries[index] = entry;
             }
@@ -365,6 +411,9 @@ public sealed partial class GameHudScreen : Control
         _portrait.Layout(DesignWidth, DesignHeight);
         _selectionGroup.Layout(DesignWidth, DesignHeight);
         _idlePeon.Layout(DesignWidth, DesignHeight);
+        _inventory.Layout(DesignWidth, DesignHeight);
+        _queue.Layout(DesignWidth, DesignHeight);
+        _tooltip.Layout(DesignWidth, DesignHeight);
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
         if (_selectionBox is { } box)
