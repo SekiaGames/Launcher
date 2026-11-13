@@ -79,7 +79,17 @@ public sealed partial class Unit
     /// <summary>客户端 Unit.Attack 组件：Launcher 侧用当前武器代表「能打」。</summary>
     public Weapon Attack => ActiveWeapon;
 
-    public Classification Classifications => Type?.Classifications ?? Classification.None;
+    /// <summary>静态分类 + 运行时分类（召唤物在存活期间才算召唤物）。</summary>
+    public Classification Classifications
+    {
+        get
+        {
+            Classification classes = Type?.Classifications ?? Classification.None;
+            if (SummonRemaining > 0f) classes |= Classification.Summoned;
+            if (IsIllusion) classes |= Classification.Summoned;
+            return classes;
+        }
+    }
 
     public bool IsDetectedByPlayer(int player) => !Hidden || true;
 
@@ -518,7 +528,7 @@ public sealed class Identity
 
     public TargetFlags TargetType => _unit.TargetType;
 
-    public Classification Classifications => _unit.Type?.Classifications ?? Classification.None;
+    public Classification Classifications => _unit.Classifications;
 
     public bool Is(Classification classification) => _unit.Is(classification);
 }
