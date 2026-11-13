@@ -278,12 +278,14 @@ public sealed class UnitSceneComponent
         return st.Commit();
     }
 
-    public void Play(string kind)
+    public void Play(string kind, float rate = 1f)
     {
         if (Player == null) return;
 
         string found = PickAnimation(kind);
-        if (found == null || found == CurrentAnimation) return;
+        if (found == null) return;
+        Player.SpeedScale = kind == "Walk" ? Mathf.Max(0.05f, rate) : 1f;
+        if (found == CurrentAnimation) return;
 
         CurrentAnimation = found;
         Player.Play(found);

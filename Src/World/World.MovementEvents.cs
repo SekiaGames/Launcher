@@ -97,8 +97,20 @@ public sealed partial class World
         {
             unit.View.Root.Position = unit.Position;
             ApplyFacing(unit);
-            unit.View.Play("Walk");
+            unit.View.Play("Walk", WalkAnimationRate(unit));
         }
+    }
+
+    private static float WalkAnimationRate(Unit unit)
+    {
+        if (unit?.Type == null) return 1f;
+        float speed = SpeedOf(unit);
+        float walk = unit.Type.WalkAnimationSpeed;
+        float run = unit.Type.RunAnimationSpeed;
+        float scale = unit.Type.ModelScale;
+        if (speed < 1f || scale <= 0f) return 1f;
+        float reference = Mathf.Abs(speed - run) <= Mathf.Abs(speed - walk) ? run : walk;
+        return reference != 0f ? speed / (scale * reference) : 1f;
     }
 
     public float SurfaceY(UnitType type, float worldX, float worldZ)

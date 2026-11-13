@@ -14,7 +14,9 @@ public sealed partial class World
             return;
         }
 
-        float reach = target.Type != null ? target.Type.FootprintRadius + 80f : 160f;
+        float reach = target.Type != null
+            ? target.Type.FootprintRadius + Mathf.Max(8f, worker.Radius) + 8f
+            : 160f;
         if (!Advance(worker, target.Position, reach))
         {
             worker.Repairing = false;

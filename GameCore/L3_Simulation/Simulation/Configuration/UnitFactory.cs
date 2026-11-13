@@ -13,6 +13,8 @@ public sealed class UnitType
     public string IconPath;
     public string ModelPath;
     public float ModelScale = 1f;
+    public float WalkAnimationSpeed;
+    public float RunAnimationSpeed;
     public float Hp = 100f;
     public float Speed = 270f;
     public bool IsBuilding;
@@ -287,6 +289,8 @@ public static class UnitFactory
             Id = id,
             ModelPath = PathResolve.ModelScene(file),
             ModelScale = Number(ui.Get(uiRow, "modelScale"), 1f),
+            WalkAnimationSpeed = Number(ui.Get(uiRow, "walk"), 0f),
+            RunAnimationSpeed = Number(ui.Get(uiRow, "run"), 0f),
             Name = file.Replace('\\', '/').Split('/')[^1],
             SoundSet = ui.Get(uiRow, "unitSound") ?? "",
             ShadowArt = (ui.Get(uiRow, "unitShadow") ?? "").Trim(),

@@ -130,7 +130,7 @@ public sealed partial class World
             return;
         }
 
-        float reach = site.Type.FootprintRadius + 80f;
+        float reach = site.Type.FootprintRadius + Mathf.Max(8f, worker.Radius) + 8f;
         if (Advance(worker, site.Position, reach))
         {
             worker.BuildingNow = true;
