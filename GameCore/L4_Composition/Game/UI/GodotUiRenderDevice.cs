@@ -19,6 +19,7 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
 
     private float _scaleX = 1f;
     private float _scaleY = 1f;
+    private float _offsetX;
 
     public GodotUiRenderDevice(CanvasItem target, Font font = null)
     {
@@ -39,9 +40,13 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
     }
 
     public void Begin(float viewportWidth, float viewportHeight, float scaleX, float scaleY)
+        => Begin(viewportWidth, viewportHeight, scaleX, scaleY, 0f);
+
+    public void Begin(float viewportWidth, float viewportHeight, float scaleX, float scaleY, float pixelOffsetX)
     {
         _scaleX = scaleX <= 0f ? 1f : scaleX;
         _scaleY = scaleY <= 0f ? 1f : scaleY;
+        _offsetX = pixelOffsetX;
         _clips.Clear();
     }
 
@@ -137,12 +142,12 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
         int segments = Mathf.Max(3, Mathf.CeilToInt(48 * amount));
 
         var points = new Vector2[segments + 2];
-        points[0] = new Vector2(centerX, centerY) * new Vector2(_scaleX, _scaleY);
+        points[0] = new Vector2(_offsetX + centerX * _scaleX, centerY * _scaleY);
         for (int i = 0; i <= segments; i++)
         {
             float angle = -Mathf.Pi * 0.5f + Mathf.Tau * amount * (i / (float)segments);
             var point = new NVector2(centerX + Mathf.Cos(angle) * radius, centerY + Mathf.Sin(angle) * radius);
-            points[i + 1] = new Vector2(point.X * _scaleX, point.Y * _scaleY);
+            points[i + 1] = new Vector2(_offsetX + point.X * _scaleX, point.Y * _scaleY);
         }
         _target.DrawColoredPolygon(points, ToColor(color));
     }
@@ -246,7 +251,7 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
     }
 
     private Rect2 ToPixels(UiRect rect) =>
-        new(rect.X * _scaleX, rect.Y * _scaleY, rect.Width * _scaleX, rect.Height * _scaleY);
+        new(_offsetX + rect.X * _scaleX, rect.Y * _scaleY, rect.Width * _scaleX, rect.Height * _scaleY);
 
     private static Rect2 SourceRect(Texture2D texture, UiRect uv)
     {

@@ -195,7 +195,7 @@ public sealed partial class War3GameScene : Node3D
         }
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
-        _loadingScreen = new FdfLoadingScreen(this, map);
+        _loadingScreen = new FdfLoadingScreen(this, map, SelectedRace);
         _gameOverPanel = new GameOverPanel(this, Back);
         _hud.DetailProvider = DescribeUnit;
         _hud.SelectionSlotClicked = unit =>
