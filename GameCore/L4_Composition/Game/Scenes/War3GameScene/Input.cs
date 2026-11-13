@@ -150,11 +150,8 @@ public sealed partial class War3GameScene
                     BoxSelect(_dragStart, button.Position, button.ShiftPressed);
                 }
             }
-            else if (button.ButtonIndex == MouseButton.Right)
+            else if (button.ButtonIndex == MouseButton.Right && button.Pressed)
             {
-                _rightDown = button.Pressed;
-                if (!button.Pressed) return;
-                if (_selected.Count > 0 && _placingId == null) _cursor?.FlashMove();
                 if (_placingId != null) CancelPlacement();
                 else if (CastPending) CancelCast();
                 else OrderAt(button.Position, button.ShiftPressed);

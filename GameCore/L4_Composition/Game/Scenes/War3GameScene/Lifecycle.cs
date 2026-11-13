@@ -32,7 +32,6 @@ public sealed partial class War3GameScene : Node3D
     private readonly List<Unit> _selected = new();
     private bool _middleDown;
     private bool _leftDown;
-    private bool _rightDown;
     private Vector2 _dragStart;
     private Node3D _placementGhost;
     private MeshInstance3D _placementFootprintNode;

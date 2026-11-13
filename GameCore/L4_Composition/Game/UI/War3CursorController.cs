@@ -31,14 +31,13 @@ public sealed partial class War3GameScene
             }
         }
 
-        private enum CursorState { Normal, Target, Select, Move }
+        private enum CursorState { Normal, Target, Select }
 
         private readonly War3GameScene _scene;
         private CursorEffect _effect;
         private CursorState _state = CursorState.Normal;
         private Color _tint = Colors.White;
         private string _animation;
-        private float _moveFlash;
         private Vector2 _lastMouse;
 
         private War3CursorController(War3GameScene scene, CursorEffect effect)
@@ -136,12 +135,6 @@ public sealed partial class War3GameScene
             }
         }
 
-        public void FlashMove()
-        {
-            if (_effect == null) return;
-            _moveFlash = 0.4f;
-        }
-
         public void Tick(float delta)
         {
             if (_effect == null) return;
@@ -158,7 +151,7 @@ public sealed partial class War3GameScene
             _effect.Model.Position = new Vector3(design.X * ViewportScale,
                 (BaseHeight - design.Y) * ViewportScale, 0f);
 
-            UpdateState(design, delta);
+            UpdateState(design);
             ApplyTint(_tint);
             PlaySequence(_state);
         }
@@ -166,10 +159,8 @@ public sealed partial class War3GameScene
         private const float BaseWidth = 1024f;
         private const float BaseHeight = 768f;
 
-        private void UpdateState(Vector2 design, float delta)
+        private void UpdateState(Vector2 design)
         {
-            if (_moveFlash > 0f) _moveFlash = Mathf.Max(0f, _moveFlash - delta);
-
             if (_scene.CommandPending || _scene.CastPending || _scene._placingId != null)
             {
                 SetState(CursorState.Target, Colors.White);
@@ -190,13 +181,6 @@ public sealed partial class War3GameScene
                 return;
             }
 
-            bool rightMove = _scene._rightDown && HasMovableSelection();
-            if (rightMove || _moveFlash > 0f)
-            {
-                SetState(CursorState.Move, Colors.White);
-                return;
-            }
-
             SetState(CursorState.Normal, Colors.White);
         }
 
@@ -208,16 +192,7 @@ public sealed partial class War3GameScene
                 || _scene._fog.IsVisible(unit.Position);
         }
 
-        private bool HasMovableSelection()
-        {
-            foreach (Unit unit in _scene._selected)
-            {
-                if (unit == null || !unit.Alive || unit.IsBuilding) continue;
-                if (unit.Player == _scene.ViewPlayer) return true;
-            }
-            return false;
-        }
-
+        
         private Color TeamTint(Unit unit)
         {
             if (unit.Player >= 12) return new Color(1f, 1f, 0.2f);
@@ -236,10 +211,9 @@ public sealed partial class War3GameScene
         {
             string name = state switch
             {
-                CursorState.Normal => "Normal",
                 CursorState.Target => "Target",
                 CursorState.Select => "Select",
-                _ => "TargetSelect",
+                _ => "Normal",
             };
             if (!_effect.Player.HasAnimation(name))
                 name = _effect.Player.HasAnimation("Normal") ? "Normal" : null;
