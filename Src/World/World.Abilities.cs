@@ -549,12 +549,17 @@ public sealed partial class World
     /// <summary>普攻出手钩子：疾风步的破隐一击挂 Buff 上（隐身要在这时破）。</summary>
     public float ApplyLaunchModifiers(Unit attacker, Unit target, float raw)
     {
-        if (attacker == null || attacker.Buffs.Count == 0) return raw;
+        if (attacker == null) return raw;
 
         float result = raw;
         for (int index = 0; index < attacker.Buffs.Count; index++)
         {
             if (attacker.Buffs[index] is IAttackLaunchBuff hook) hook.OnAttackLaunched(this, target, ref result);
+        }
+        // 客户端 Buff 挂在技能表里（Buff : Ability），破隐这类钩子要在那边找
+        foreach (Ability ability in attacker.Abilities)
+        {
+            if (ability is IAttackLaunchBuff hook) hook.OnAttackLaunched(this, target, ref result);
         }
         return result;
     }
