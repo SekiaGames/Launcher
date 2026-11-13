@@ -89,7 +89,11 @@ public abstract class Ability
     public float HeroDuration => Type?.HeroDurationAt(Level) ?? 0f;
     public float EffectiveDuration => HeroDuration > 0f ? HeroDuration : Duration;
 
-    public bool Learned => Level >= 1;
+    /// <summary>
+    /// 是否生效。Buff 挂在技能表里（Buff : Ability）时没有等级，
+    /// 一律视为生效，否则所有按技能表遍历的修正/tick/触发都会静默跳过它。
+    /// </summary>
+    public bool Learned => this is Buff || Level >= 1;
     public bool CanLevelUp => Type != null && Level < Type.MaxLevel;
     public bool Ready => Learned && CooldownRemaining <= 0f;
 

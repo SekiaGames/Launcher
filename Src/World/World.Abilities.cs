@@ -244,7 +244,7 @@ public sealed partial class World
             {
                 Ability kept = unit.Abilities[upkeepIndex];
                 if (kept.ToggledOn) kept.OnUpkeep(this);
-                if (kept is not Buff && !kept.Learned) continue;
+                if (!kept.Learned) continue;
                 kept.OnWorldTick(this, FrameSeconds);
                 kept.OnTick(FrameSeconds);
                 debuffScale = Mathf.Min(debuffScale, kept.DebuffDurationScale);
