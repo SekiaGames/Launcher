@@ -4,6 +4,8 @@ public sealed class AbilityContainer : IList<Ability>
 {
     readonly List<Ability> _items = new();
 
+    Hero _heroView;
+
     public Unit Owner { get; set; }
 
     public IReadOnlyList<Ability> Items => _items;
@@ -40,6 +42,13 @@ public sealed class AbilityContainer : IList<Ability>
         for (int i = 0; i < _items.Count; i++)
         {
             if (_items[i] is T typed) return typed;
+        }
+        // 客户端的 Hero 是挂在技能表里的能力对象；Launcher 的英雄状态在 Unit 上，
+        // 这里给英雄单位现场造一个同名三围视图，客户端技能按 Get<Hero>() 取值即可。
+        if (typeof(T) == typeof(Hero) && Owner is { IsHero: true } heroUnit)
+        {
+            _heroView ??= new Hero(heroUnit);
+            return (T)(Ability)_heroView;
         }
         return null;
     }

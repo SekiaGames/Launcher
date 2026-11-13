@@ -36,7 +36,7 @@ public sealed class RuntimeAttributeModSkillAbility : Ability
 
     public void RefreshAttributeBonus()
     {
-        Hero hero=Hero.Of(Owner);
+        Hero hero=Owner?.Abilities.Get<Hero>();
         if(hero==null)
         {
             // abilList 在 UnitFactory 中早于 CAbilityHero 装配；OnSpawn 会重试。
