@@ -1,104 +1,292 @@
 using Godot;
 using System;
-using OpenWC3.War3Formats;
+using System.Collections.Generic;
+using System.IO;
+using NVector3 = System.Numerics.Vector3;
 
 namespace OpenWC3.Game;
 
 public sealed class WeatherRenderer
 {
-    private readonly Node3D _root;
-    private readonly CpuParticles3D _rain;
-    private readonly float _spawnHeight;
+    const int GlobalCellsPerSide = 5;
+    const int AreaCellsPerSide = 7;
 
-    private WeatherRenderer(Node3D root, CpuParticles3D rain, float spawnHeight)
+    readonly Node3D _root;
+    readonly WeatherDefinition _definition;
+    readonly Func<float, float, float> _terrainHeight;
+    readonly List<CpuParticles3D> _emitters = new();
+    readonly bool _hasArea;
+    readonly float _areaMinX, _areaMinZ, _areaMaxX, _areaMaxZ;
+    readonly int _cellsPerSide;
+    AudioStreamPlayer _ambient;
+    int _baseCol = int.MinValue;
+    int _baseRow = int.MinValue;
+    bool _enabled = true;
+
+    internal WeatherDefinition Definition => _definition;
+
+    WeatherRenderer(Node parent, WeatherDefinition definition, WeatherType weather,
+        Func<float, float, float> terrainHeight, bool hasArea,
+        Vector3 boundsMin, Vector3 boundsMax)
     {
-        _root = root;
-        _rain = rain;
-        _spawnHeight = spawnHeight;
+        _definition = definition;
+        _terrainHeight = terrainHeight ?? ((_, _) => 0f);
+        _hasArea = hasArea;
+        _areaMinX = Mathf.Min(boundsMin.X, boundsMax.X);
+        _areaMinZ = Mathf.Min(boundsMin.Z, boundsMax.Z);
+        _areaMaxX = Mathf.Max(boundsMin.X, boundsMax.X);
+        _areaMaxZ = Mathf.Max(boundsMin.Z, boundsMax.Z);
+        _cellsPerSide = hasArea ? AreaCellsPerSide : GlobalCellsPerSide;
+
+        _root = new Node3D { Name = $"Weather_{definition.Id}" };
+        parent.AddChild(_root);
+
+        Texture2D texture = LoadTexture(definition.TexturePath);
+        if (texture == null)
+        {
+            GD.PushWarning($"[WEATHER] 贴图缺失 {definition.TexturePath}");
+            return;
+        }
+
+        StandardMaterial3D material = BuildMaterial(definition, texture);
+        float maxScale = Mathf.Max(1e-4f, Mathf.Max(definition.ScaleStart,
+            Mathf.Max(definition.ScaleMid, definition.ScaleEnd)));
+        var mesh = new QuadMesh
+        {
+            Size = new Vector2(maxScale * 2f, maxScale * 2f),
+            Material = material,
+        };
+        Curve scale = BuildScaleCurve(definition, maxScale);
+        Gradient colors = BuildColorRamp(definition);
+        float frames = Math.Max(1, definition.TextureColumns * definition.TextureRows);
+        float uvRange = definition.UvEnd - definition.UvStart;
+        float animSpeed = frames > 1f ? Math.Abs(uvRange) / (frames - 1f) : 0f;
+        float animOffset = frames > 1f ? definition.UvStart / (frames - 1f) : 0f;
+        Vector3 direction = ToWorldDirection(definition.Direction);
+        if (definition.Velocity < 0f) direction = -direction;
+        if (direction.LengthSquared() < 1e-6f) direction = Vector3.Down;
+        float speed = Mathf.Abs(definition.Velocity);
+        float spread = Mathf.RadToDeg(Mathf.Atan(Mathf.Max(0f, definition.Variance)));
+
+        int count = _cellsPerSide * _cellsPerSide;
+        for (int i = 0; i < count; i++)
+        {
+            var emitter = new CpuParticles3D
+            {
+                Name = $"Cell{i}",
+                Amount = Math.Max(1, definition.ActiveParticleCount),
+                Lifetime = definition.LifeSpan,
+                Preprocess = definition.LifeSpan,
+                OneShot = false,
+                LocalCoords = false,
+                Emitting = false,
+                FixedFps = 60,
+                Mesh = mesh,
+                Direction = direction,
+                Spread = spread,
+                InitialVelocityMin = speed,
+                InitialVelocityMax = speed,
+                Gravity = new Vector3(0f, -definition.Acceleration, 0f),
+                EmissionShape = CpuParticles3D.EmissionShapeEnum.Box,
+                EmissionBoxExtents = new Vector3(WeatherDefinition.CellSize * 0.5f, 1f,
+                    WeatherDefinition.CellSize * 0.5f),
+                VisibilityAabb = new Aabb(new Vector3(-20000f, -20000f, -20000f),
+                    new Vector3(40000f, 40000f, 40000f)),
+                ScaleAmountMin = 1f,
+                ScaleAmountMax = 1f,
+                ScaleAmountCurve = scale,
+                ColorRamp = colors,
+                AnimSpeedMin = animSpeed,
+                AnimSpeedMax = animSpeed,
+                AnimOffsetMin = animOffset,
+                AnimOffsetMax = animOffset,
+            };
+            _root.AddChild(emitter);
+            _emitters.Add(emitter);
+        }
+
+        StartAmbient();
+        GD.Print($"[WEATHER] {definition.Id} cells={_cellsPerSide}x{_cellsPerSide} "
+            + $"perCell={definition.ActiveParticleCount} pool={definition.PoolCapacity} "
+            + $"life={definition.LifeSpan:0.##}s height={definition.Height:0.#} "
+            + $"alphaMode={definition.AlphaMode} fog={definition.UseFog} "
+            + $"uv={definition.UvStart:0.#}/{definition.UvMid:0.#}/{definition.UvEnd:0.#} "
+            + $"grid={definition.TextureColumns}x{definition.TextureRows} "
+            + $"anim={animSpeed:0.###} ambient={definition.AmbientLabel ?? "-"}");
     }
 
-    public static WeatherRenderer TryCreate(Node parent, string effectId)
+    public static WeatherRenderer TryCreate(Node parent, string effectId,
+        Func<float, float, float> terrainHeight, Vector3 boundsMin = default,
+        Vector3 boundsMax = default, bool areaSpecified = false)
     {
-        if (string.IsNullOrWhiteSpace(effectId)) return null;
-
-        SlkTable table = War3SlkReader.Get("TerrainArtWeather");
-        if (table == null) return null;
-
-        int row = table.FindRow("effectID", effectId.Trim());
-        if (row < 0) return null;
-
-        string texDir = (table.Get(row, "texDir") ?? "").Replace('\\', '/').Trim('/');
-        string texFile = (table.Get(row, "texFile") ?? "").Trim();
-        if (texFile.Length == 0) return null;
-        if (texFile.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) texFile = texFile[..^4];
-
-        Texture2D texture = Assets.LoadTexture(Assets.Res($"{texDir}/{texFile}.png"));
-        if (texture == null) return null;
-
-        float amount = Mathf.Clamp(Number(table, row, "particles", 120f), 16f, 400f);
-        float lifespan = Mathf.Max(0.3f, Number(table, row, "lifespan", 1f));
-        float velocity = Number(table, row, "veloc", -500f);
-        float acceleration = Number(table, row, "accel", 0f);
-        float spawnHeight = Mathf.Max(120f, Number(table, row, "height", 600f));
-        float scaleStart = Mathf.Max(0.1f, Number(table, row, "scaleStart", 1f));
-
-        var material = new StandardMaterial3D
+        WeatherType type = WeatherTypeParser.FromRawcode(effectId?.Trim());
+        if (type == WeatherType.None) return null;
+        WeatherDefinition definition = WeatherDefinition.Load(type);
+        if (definition == null)
         {
-            AlbedoTexture = texture,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-            AlbedoColor = new Color(
-                Mathf.Clamp(Number(table, row, "redStart", 255f) / 255f, 0f, 1f),
-                Mathf.Clamp(Number(table, row, "greenStart", 255f) / 255f, 0f, 1f),
-                Mathf.Clamp(Number(table, row, "blueStart", 255f) / 255f, 0f, 1f),
-                Mathf.Clamp(Number(table, row, "alphaStart", 255f) / 255f, 0f, 1f)),
-        };
-
-        var rain = new CpuParticles3D
-        {
-            Name = $"Weather_{effectId}",
-            Amount = (int)amount,
-            Lifetime = lifespan,
-            Preprocess = lifespan,
-            LocalCoords = false,
-            Mesh = new QuadMesh { Size = new Vector2(scaleStart * 32f, scaleStart * 32f), Material = material },
-            EmissionShape = CpuParticles3D.EmissionShapeEnum.Box,
-            EmissionBoxExtents = new Vector3(900f, 4f, 900f),
-            Direction = new Vector3(0f, -1f, 0f),
-            Spread = 0f,
-            InitialVelocityMin = Mathf.Abs(velocity),
-            InitialVelocityMax = Mathf.Abs(velocity),
-            Gravity = new Vector3(0f, -Mathf.Abs(acceleration), 0f),
-            ScaleAmountMin = 1f,
-            ScaleAmountMax = 1f,
-            Position = new Vector3(0f, spawnHeight, 0f),
-        };
-
-        var root = new Node3D { Name = "WeatherRoot" };
-        root.AddChild(rain);
-        parent.AddChild(root);
-        return new WeatherRenderer(root, rain, spawnHeight);
+            GD.PushWarning($"[WEATHER] Weather.slk 缺少 {effectId}");
+            return null;
+        }
+        bool hasArea = areaSpecified
+            || (boundsMax.X > boundsMin.X && boundsMax.Z > boundsMin.Z);
+        return new WeatherRenderer(parent, definition, type, terrainHeight,
+            hasArea, boundsMin, boundsMax);
     }
 
     public void FrameSeconds(Vector3 focus)
     {
-        if (_root == null || !GodotObject.IsInstanceValid(_root)) return;
-        _root.Position = new Vector3(focus.X, 0f, focus.Z);
-        _rain.Position = new Vector3(0f, _spawnHeight, 0f);
+        if (!GodotObject.IsInstanceValid(_root)) return;
+        int centerCol = Mathf.FloorToInt(-focus.X / WeatherDefinition.CellSize);
+        int centerRow = Mathf.FloorToInt(focus.Z / WeatherDefinition.CellSize);
+        int baseCol = centerCol - _cellsPerSide / 2;
+        int baseRow = centerRow - _cellsPerSide / 2;
+        if (baseCol == _baseCol && baseRow == _baseRow) return;
+        _baseCol = baseCol;
+        _baseRow = baseRow;
+
+        int slot = 0;
+        float half = WeatherDefinition.CellSize * 0.5f;
+        for (int row = 0; row < _cellsPerSide; row++)
+        {
+            for (int col = 0; col < _cellsPerSide; col++)
+            {
+                if (slot >= _emitters.Count) break;
+                int cellCol = baseCol + col;
+                int cellRow = baseRow + row;
+                float x = -(cellCol + 0.5f) * WeatherDefinition.CellSize;
+                float z = (cellRow + 0.5f) * WeatherDefinition.CellSize;
+                CpuParticles3D emitter = _emitters[slot];
+                if (_hasArea && (x + half < _areaMinX || x - half > _areaMaxX
+                    || z + half < _areaMinZ || z - half > _areaMaxZ))
+                {
+                    emitter.Emitting = false;
+                    continue;
+                }
+                float ground = _terrainHeight(x, z);
+                if (!float.IsFinite(ground)) ground = 0f;
+                emitter.Position = new Vector3(x,
+                    ground + Mathf.Max(1f, _definition.Height), z);
+                emitter.Emitting = _enabled;
+                emitter.Restart();
+                slot++;
+            }
+        }
+        for (; slot < _emitters.Count; slot++) _emitters[slot].Emitting = false;
     }
 
     public void SetEnabled(bool enabled)
     {
-        if (_rain != null && GodotObject.IsInstanceValid(_rain)) _rain.Emitting = enabled;
+        _enabled = enabled;
+        if (!GodotObject.IsInstanceValid(_root)) return;
+        foreach (CpuParticles3D emitter in _emitters)
+            if (GodotObject.IsInstanceValid(emitter)) emitter.Emitting = enabled;
+        if (!GodotObject.IsInstanceValid(_ambient)) return;
+        if (enabled) _ambient.Play();
+        else _ambient.Stop();
     }
 
-    private static float Number(SlkTable table, int row, string column, float fallback)
+    static StandardMaterial3D BuildMaterial(WeatherDefinition definition, Texture2D texture)
     {
-        string text = table.Get(row, column);
-        if (string.IsNullOrWhiteSpace(text) || text == "-") return fallback;
-        return float.TryParse(text, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out float value) ? value : fallback;
+        var material = new StandardMaterial3D
+        {
+            AlbedoTexture = texture,
+            AlbedoColor = Colors.White,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            VertexColorUseAsAlbedo = true,
+            DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
+            DisableFog = !definition.UseFog,
+            ParticlesAnimHFrames = definition.TextureColumns,
+            ParticlesAnimVFrames = definition.TextureRows,
+            ParticlesAnimLoop = false,
+        };
+        if (definition.AlphaMode == 1) material.BlendMode = BaseMaterial3D.BlendModeEnum.Add;
+        return material;
+    }
+
+    static Curve BuildScaleCurve(WeatherDefinition definition, float maxScale)
+    {
+        var curve = new Curve();
+        curve.AddPoint(new Vector2(0f, definition.ScaleStart / maxScale), 0f, 0f,
+            Curve.TangentMode.Linear, Curve.TangentMode.Linear);
+        curve.AddPoint(new Vector2(definition.MidTime, definition.ScaleMid / maxScale), 0f, 0f,
+            Curve.TangentMode.Linear, Curve.TangentMode.Linear);
+        curve.AddPoint(new Vector2(1f, definition.ScaleEnd / maxScale), 0f, 0f,
+            Curve.TangentMode.Linear, Curve.TangentMode.Linear);
+        return curve;
+    }
+
+    static Gradient BuildColorRamp(WeatherDefinition definition)
+    {
+        return new Gradient
+        {
+            Offsets = new[] { 0f, definition.MidTime, 1f },
+            Colors = new[]
+            {
+                ToColor(definition.ColorStart, definition.AlphaStart),
+                ToColor(definition.ColorMid, definition.AlphaMid),
+                ToColor(definition.ColorEnd, definition.AlphaEnd),
+            },
+        };
+    }
+
+    static Color ToColor(NVector3 color, float alpha)
+        => new(Mathf.Clamp(color.X, 0f, 1f), Mathf.Clamp(color.Y, 0f, 1f),
+            Mathf.Clamp(color.Z, 0f, 1f), Mathf.Clamp(alpha, 0f, 1f));
+
+    static Vector3 ToWorldDirection(NVector3 direction)
+        => new(direction.X, direction.Z, -direction.Y);
+
+    static Texture2D LoadTexture(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return null;
+        string relative = Path.ChangeExtension(path.Replace('\\', '/'), ".png");
+        string resPath = ResolveCaseInsensitive(Assets.Res(relative));
+        return Assets.LoadTexture(resPath);
+    }
+
+    static string ResolveCaseInsensitive(string resPath)
+    {
+        if (ResourceLoader.Exists(resPath)) return resPath;
+        int slash = resPath.LastIndexOf('/');
+        if (slash < 0) return resPath;
+        string directory = resPath[..slash];
+        string file = resPath[(slash + 1)..];
+        using DirAccess dir = DirAccess.Open(directory);
+        if (dir == null) return resPath;
+        foreach (string candidate in dir.GetFiles())
+        {
+            string name = candidate.EndsWith(".import", StringComparison.OrdinalIgnoreCase)
+                ? candidate[..^".import".Length] : candidate;
+            if (!string.Equals(name, file, StringComparison.OrdinalIgnoreCase)) continue;
+            return directory + "/" + name;
+        }
+        return resPath;
+    }
+
+    void StartAmbient()
+    {
+        string label = _definition.AmbientLabel;
+        if (label == null) return;
+        AudioStream stream = War3SoundTables.Pick(label, out float volume);
+        if (stream == null)
+        {
+            GD.PushWarning($"[WEATHER] 环境音缺失 {label}");
+            return;
+        }
+        _ambient = new AudioStreamPlayer
+        {
+            Name = "WeatherAmbience",
+            Stream = stream,
+            VolumeDb = Mathf.LinearToDb(Mathf.Max(0.02f, volume)),
+        };
+        _root.AddChild(_ambient);
+        _ambient.Finished += () =>
+        {
+            if (GodotObject.IsInstanceValid(_ambient) && _enabled) _ambient.Play();
+        };
+        _ambient.Play();
     }
 }

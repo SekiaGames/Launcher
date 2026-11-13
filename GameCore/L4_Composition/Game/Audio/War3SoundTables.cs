@@ -39,6 +39,7 @@ public static class War3SoundTables
         LoadTable("UISoundInfoUnitCombatSounds");
         LoadTable("UISoundInfoAbilitySounds");
         LoadTable("UISoundInfoUISounds");
+        LoadTable("UISoundInfoAmbienceSounds");
         GD.Print($"[AUDIO] 音效条目 {Entries.Count}");
     }
 

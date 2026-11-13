@@ -164,7 +164,8 @@ public sealed partial class War3GameScene : Node3D
         AddChild(worldRoot);
         _worldRoot = worldRoot;
 
-        _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather);
+        _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather,
+            CameraTargetHeightAt);
         if (_weather != null) GD.Print($"[WEATHER] {map.Info?.Environment?.GlobalWeather} 已加载");
 
         _skybox = SkyboxRenderer.TryCreate(this, map.Info);
