@@ -203,21 +203,13 @@ public sealed partial class World
             info.Cancelled = true;
             if (info.IsAttack) AttackMissed?.Invoke(info.Source);
             DamageApplied?.Invoke(info);
-        // 客户端钩子：OnDamaged（受击后）、OnAttackHit（普攻命中后）
+        // 客户端钩子：OnDamaged（受击后）；OnAttackHit 只在真命中时派发，见下方
         if (target.Abilities != null)
         {
             foreach (Ability ability in target.Abilities)
             {
                 if (!ability.Learned) continue;
                 ability.OnDamaged(ref info, info.Amount);
-            }
-        }
-        if (info.IsAttack && info.Source?.Abilities != null)
-        {
-            foreach (Ability ability in info.Source.Abilities)
-            {
-                if (!ability.Learned) continue;
-                ability.OnAttackHit(target, info.Amount, in info);
             }
         }
 
@@ -298,6 +290,19 @@ public sealed partial class World
         target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), target.Alive);
         DamageApplied?.Invoke(info);
 
+        // 普攻真命中：分裂攻击、腐蚀吐息这类「命中后再结算」的被动挂这里
+        if (info.IsAttack && info.Amount > 0f && info.Source?.Abilities != null)
+        {
+            _attackHitBuffer.Clear();
+            _attackHitBuffer.AddRange(info.Source.Abilities);
+            for (int index = 0; index < _attackHitBuffer.Count; index++)
+            {
+                Ability ability = _attackHitBuffer[index];
+                if (!ability.Learned) continue;
+                ability.OnAttackHit(target, info.Amount, in info);
+            }
+        }
+
 
         // 被攻击回调：霜冻护甲减速攻击者、荆棘反伤将来也挂这里
         if (info.IsAttack && info.Amount > 0f && info.Source != null && target.Buffs.Count > 0)
@@ -371,6 +376,7 @@ public sealed partial class World
 
     /// <summary>受到伤害修正钩子（艾露恩恩泽、硬化皮肤）：在护甲与类型矩阵之前改数值。</summary>
     static readonly List<Ability> _modifierBuffer = new();
+    static readonly List<Ability> _attackHitBuffer = new();
 
     public void ApplyIncomingModifiers(DamageData info)
     {
