@@ -20,21 +20,28 @@ public sealed partial class FdfLoadingScreen : Control
     private readonly CanvasLayer _layer;
     private readonly War3UiViewport _viewport = new();
     private readonly Dictionary<string, ITexture> _background = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _backgroundPaths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly bool _debugLayout =
+        System.Environment.GetEnvironmentVariable("OPENWC3_LOADING_DEBUG") is "1" or "2";
+    private readonly bool _debugEveryFrame =
+        System.Environment.GetEnvironmentVariable("OPENWC3_LOADING_DEBUG") == "2";
+    private string _lastLayout;
 
     private UiRoot _root;
     private LoadingScreenBinding _loading;
     private GodotUiRenderDevice _device;
     private GodotUiTextureResolver _textures;
+    private readonly MapSource _map;
     private readonly string _title, _subtitle, _body;
     private string _barLabel;
     private string _stage;
     private float _progress;
     private float _remaining;
-    private bool _built;
 
     public FdfLoadingScreen(Node parent, MapSource map, int raceId = 0, float seconds = 2.2f)
     {
         _remaining = Mathf.Max(0.4f, seconds);
+        _map = map;
 
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
@@ -78,14 +85,19 @@ public sealed partial class FdfLoadingScreen : Control
 
         if (_loading.MinimapImage != null)
         {
-            ITexture mini = _textures.Resolve("war3mapMap.blp");
-            if (mini != null)
+            Texture2D thumbnail = MapThumbnail.Load(_map);
+            if (thumbnail != null)
             {
                 _loading.MinimapImage.AddChild(new TextureFrame("LoadingMapThumbnail")
                 {
-                    Texture = mini,
+                    Texture = new GodotUiTexture(thumbnail),
                     MouseTransparent = true,
                 });
+                GD.Print($"[loading] 地图缩略图 {thumbnail.GetWidth()}x{thumbnail.GetHeight()}");
+            }
+            else
+            {
+                GD.Print("[loading] 地图缩略图缺失 war3mapMap.blp");
             }
         }
 
@@ -103,16 +115,19 @@ public sealed partial class FdfLoadingScreen : Control
         int slash = folder.LastIndexOf('\\');
         if (slash > 0) folder = folder[..(slash + 1)];
 
-        Add("TL", folder + "Loading-TopLeft.png");
-        Add("TR", folder + $"Loading-{race}-TopRight.png");
-        Add("BL", folder + "Loading-BotLeft.png");
-        Add("BR", folder + $"Loading-{race}-BotRight.png");
-        return;
-
-        void Add(string key, string path)
+        foreach (string key in new[] { "TL", "TR", "BL", "BR" })
         {
+            string path = key switch
+            {
+                "TL" => folder + "Loading-TopLeft.png",
+                "TR" => folder + $"Loading-{race}-TopRight.png",
+                "BL" => folder + "Loading-BotLeft.png",
+                _ => folder + $"Loading-{race}-BotRight.png",
+            };
             ITexture texture = _textures.Resolve(path);
-            if (texture != null) _background[key] = texture;
+            if (texture == null) continue;
+            _background[key] = texture;
+            _backgroundPaths[key] = path;
         }
     }
 
@@ -147,17 +162,14 @@ public sealed partial class FdfLoadingScreen : Control
 
         _device.Begin(DesignWidth, DesignHeight, _viewport.ScaleX, _viewport.ScaleY, _viewport.PixelOffsetX);
         DrawBackgroundQuads();
-        if (!_built)
-        {
-            _built = true;
-            _root.UpdateViewport(DesignWidth, DesignHeight);
-            _root.Position();
-        }
+        _root.UpdateViewport(DesignWidth, DesignHeight);
+        _root.Position();
 
         UiRect bar = LoadBarRect();
         LayoutTexts(bar);
         DrawBar(bar);
         LayoutBarLabel(bar);
+        DumpLayout(bar);
 
         _root.Render(_device);
         _device.End();
@@ -168,21 +180,20 @@ public sealed partial class FdfLoadingScreen : Control
         var white = System.Numerics.Vector4.One;
         if (_background.Count >= 4)
         {
+            // 原版背景是 2x3 格的 2 列平面: 上带占 2/3 高, 下带占 1/3
             float half = DesignWidth * 0.5f;
-            float top = DesignHeight * 0.5f;
+            float top = DesignHeight * 2f / 3f;
+            float bottom = DesignHeight - top;
             _device.DrawTexturedQuad(new UiRect(0, 0, half, top), _background["TL"], white);
             _device.DrawTexturedQuad(new UiRect(half, 0, half, top), _background["TR"], white);
-            _device.DrawTexturedQuad(new UiRect(0, top, half, top), _background["BL"], white);
-            _device.DrawTexturedQuad(new UiRect(half, top, half, top), _background["BR"], white);
+            _device.DrawTexturedQuad(new UiRect(0, top, half, bottom), _background["BL"], white);
+            _device.DrawTexturedQuad(new UiRect(half, top, half, bottom), _background["BR"], white);
         }
         else
         {
             _device.DrawTexturedQuad(new UiRect(0, 0, DesignWidth, DesignHeight),
                 _device.WhiteTexture, new System.Numerics.Vector4(0.015f, 0.025f, 0.035f, 1f));
         }
-
-        _device.DrawTexturedQuad(new UiRect(0, DesignHeight - 92, DesignWidth, 92),
-            _device.WhiteTexture, new System.Numerics.Vector4(0f, 0f, 0f, 0.38f));
     }
 
     private UiRect LoadBarRect()
@@ -205,20 +216,33 @@ public sealed partial class FdfLoadingScreen : Control
 
         ITexture background = _textures.Resolve(@"UI\Glues\Loading\LoadBar\Loading-BarBackground.blp");
         ITexture fill = _textures.Resolve(@"UI\Glues\Loading\LoadBar\Loading-BarFill.blp");
-        ITexture glass = _textures.Resolve(@"UI\Glues\Loading\LoadBar\Loading-BarGlass.blp");
+        ITexture glass = _textures.Resolve(@"Textures\Loading-BarGlass.blp");
         ITexture border = _textures.Resolve(@"UI\Glues\Loading\LoadBar\Loading-BarBorder.blp");
 
         if (background != null)
-            _device.DrawTexturedQuadTiled(channel, background,
-                System.Numerics.Vector4.One, new UiRect(0, 0, 1, 1));
+            DrawTiledSegment(channel, background, channel.Height);
         if (fill != null && _progress > 0f)
-            _device.DrawTexturedQuadTiled(
+            DrawTiledSegment(
                 new UiRect(channel.X, channel.Y, channel.Width * _progress, channel.Height),
-                fill, System.Numerics.Vector4.One, new UiRect(0, 0, 1, 1));
+                fill, channel.Height);
         if (glass != null)
             _device.DrawTexturedQuad(outer, glass, new System.Numerics.Vector4(1f, 1f, 1f, 0.72f));
         if (border != null)
             _device.DrawTexturedQuad(outer, border, System.Numerics.Vector4.One);
+    }
+
+    // 客户端按条高的宽度切段, 每段铺满整张贴图 (u 0..1), 不是按纹理像素 1:1 平铺
+    private void DrawTiledSegment(UiRect rect, ITexture texture, float tileWidth)
+    {
+        if (rect.Width <= 0f || rect.Height <= 0f || tileWidth <= 0f) return;
+        for (float offset = 0f; offset < rect.Width; offset += tileWidth)
+        {
+            float segment = Math.Min(tileWidth, rect.Width - offset);
+            _device.DrawTexturedQuad(
+                new UiRect(rect.X + offset, rect.Y, segment, rect.Height),
+                texture, System.Numerics.Vector4.One,
+                new UiRect(0f, 0f, segment / tileWidth, 1f));
+        }
     }
 
     private void LayoutTexts(UiRect bar)
@@ -306,7 +330,103 @@ public sealed partial class FdfLoadingScreen : Control
     }
 
     private float TextHeight(string text, float size) =>
-        string.IsNullOrEmpty(text) ? 0f : text.Split('\n').Length * Mathf.Max(size * 1.5f, size) + 8f;
+        string.IsNullOrEmpty(text)
+            ? 0f
+            : text.Split('\n').Sum(line => Math.Max(size * 1.5f,
+                _device.MeasureTextHeight(string.IsNullOrEmpty(line) ? "Ag国" : line, size))) + 8f;
+
+    // 逐元件位置日志, 输出格式与客户端 War3LoadingScreenRenderer.DumpLayout 完全一致.
+    // 两侧设 OPENWC3_LOADING_DEBUG=1 各跑一次, 逐行 diff 即可定位偏移来自哪个元件.
+    private void DumpLayout(UiRect bar)
+    {
+        if (!_debugLayout || _loading == null) return;
+        StringFrame[] frames =
+        {
+            _loading.LoadingTitleText, _loading.LoadingSubtitleText, _loading.LoadingText,
+        };
+        string[] names = { "title", "subtitle", "body" };
+        string mode = _background.Count >= 4 ? "quads" : "solid";
+
+        var signature = new StringBuilder();
+        signature.Append(_viewport.FramebufferWidth).Append('x').Append(_viewport.FramebufferHeight)
+            .Append('|').Append(mode).Append('|').Append(bar.Y.ToString("0.##"));
+        foreach (StringFrame frame in frames)
+            signature.Append('|').Append(frame?.FontSize.ToString("0.##")).Append(':')
+                .Append(frame?.Text ?? "");
+        signature.Append('|').Append(_loading.LoadingBarText?.Text ?? "");
+        string current = signature.ToString();
+        if (!_debugEveryFrame && current == _lastLayout) return;
+        _lastLayout = current;
+
+        GD.Print($"[loading-layout] fb={_viewport.FramebufferWidth}x{_viewport.FramebufferHeight}"
+            + $" active={_viewport.ActivePixelWidth} offset={_viewport.PixelOffsetX}"
+            + $" scale={_viewport.ScaleX:0.####}x{_viewport.ScaleY:0.####}"
+            + $" design={DesignWidth:0}x{DesignHeight:0}");
+        GD.Print($"[loading-layout] bg mode={mode}");
+        foreach (string key in new[] { "TL", "TR", "BL", "BR" })
+        {
+            if (!_background.TryGetValue(key, out ITexture texture)) continue;
+            _backgroundPaths.TryGetValue(key, out string path);
+            GD.Print($"[loading-layout] bg {key} tex={texture.Width}x{texture.Height} path={path}");
+        }
+        if (mode == "quads")
+        {
+            float half = DesignWidth * 0.5f, top = DesignHeight * 2f / 3f;
+            float bottom = DesignHeight - top;
+            GD.Print("[loading-layout] bg rects"
+                + $" TL=0,0,{half:0.##},{top:0.##} TR={half:0.##},0,{half:0.##},{top:0.##}"
+                + $" BL=0,{top:0.##},{half:0.##},{bottom:0.##}"
+                + $" BR={half:0.##},{top:0.##},{half:0.##},{bottom:0.##}");
+        }
+
+        float insetX = bar.Height * 0.5f, insetY = bar.Height * 0.2f;
+        var channel = new UiRect(bar.X + insetX, bar.Y + insetY,
+            Math.Max(0f, bar.Width - insetX * 2), bar.Height * 0.55f);
+        GD.Print($"[loading-layout] bar rect={Rect(bar)}"
+            + $" fdf={Rect(_loading.LoadingBar?.RenderBounds ?? default)}");
+        GD.Print($"[loading-layout] channel rect={Rect(channel)} progress={_progress:0.###}");
+
+        StringFrame label = _loading.LoadingBarText;
+        if (label != null)
+        {
+            string first = FirstLine(label.Text);
+            float width = first.Length == 0 ? 0f : _device.MeasureTextWidth(first, label.FontSize);
+            GD.Print($"[loading-layout] label size={label.FontSize:0.##}"
+                + $" px={_device.TextPixelSize(label.Text, label.FontSize)}"
+                + $" rect={Rect(label.RenderBounds)} lines={LineCount(label.Text)}"
+                + $" w={width:0.##} text='{Clip(label.Text)}'");
+        }
+
+        for (int i = 0; i < frames.Length; i++)
+        {
+            StringFrame frame = frames[i];
+            if (frame == null) continue;
+            string first = FirstLine(frame.Text);
+            float width = first.Length == 0 ? 0f : _device.MeasureTextWidth(first, frame.FontSize);
+            GD.Print($"[loading-layout] text {names[i]}"
+                + $" size={frame.FontSize:0.##}"
+                + $" px={_device.TextPixelSize(frame.Text, frame.FontSize)}"
+                + $" rect={Rect(frame.RenderBounds)}"
+                + $" lines={LineCount(frame.Text)} h={TextHeight(frame.Text, frame.FontSize):0.##}"
+                + $" w={width:0.##} text='{Clip(frame.Text)}'");
+        }
+    }
+
+    private static string Rect(UiRect rect) =>
+        $"{rect.X:0.##},{rect.Y:0.##},{rect.Width:0.##},{rect.Height:0.##}";
+
+    private static string FirstLine(string text) =>
+        string.IsNullOrEmpty(text) ? "" : text.Split('\n')[0];
+
+    private static int LineCount(string text) =>
+        string.IsNullOrEmpty(text) ? 0 : text.Split('\n').Length;
+
+    private static string Clip(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        string flat = text.Replace("\n", "\\n");
+        return flat.Length <= 60 ? flat : flat[..60] + "…";
+    }
 
     public void FrameSeconds(float delta)
     {

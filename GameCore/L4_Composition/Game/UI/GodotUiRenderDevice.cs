@@ -195,6 +195,17 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
     public float MeasureTextWidth(string text, float fontSize)
         => MeasureTextLineWidth(text, fontSize);
 
+    public float MeasureTextHeight(string text, float fontSize)
+    {
+        string plain = UiText.Strip(text);
+        if (string.IsNullOrEmpty(plain)) return 0f;
+        int pixelSize = Mathf.Max(1, Mathf.RoundToInt(LineSize(plain, fontSize) * _scaleY));
+        return _font.GetHeight(pixelSize) / _scaleY;
+    }
+
+    public int TextPixelSize(string text, float lineHeight) =>
+        Mathf.Max(1, Mathf.RoundToInt(LineSize(text, lineHeight) * _scaleY));
+
     public float MeasureTextLineWidth(string text, float lineHeight)
     {
         string plain = UiText.Strip(text);
