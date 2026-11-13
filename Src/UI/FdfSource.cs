@@ -10,9 +10,9 @@ public static class FdfSource
         if (string.IsNullOrWhiteSpace(path)) return null;
         string relative = Normalize(path);
 
-        if (Generated.FdfTables.All.TryGetValue(relative, out string text)) return text;
+        if (OpenWC3.Game.Generated.FdfTables.All.TryGetValue(relative, out string text)) return text;
 
-        foreach (var entry in Generated.FdfTables.All)
+        foreach (var entry in OpenWC3.Game.Generated.FdfTables.All)
         {
             if (entry.Key.EndsWith("/" + relative, StringComparison.OrdinalIgnoreCase))
             {

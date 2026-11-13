@@ -32,6 +32,7 @@ public sealed partial class LauncherApp : Node
     private bool _combatProbe;
     private bool _stateProbe;
     private string _fdfProbe;
+    private string _fdfBindGen;
     private string _uiScreen;
     private bool _effectProbe;
     private bool _attachProbe;
@@ -198,6 +199,14 @@ public sealed partial class LauncherApp : Node
             {
                 _fdfProbe = argument["--fdf-probe=".Length..];
             }
+            else if (argument == "--fdf-bindgen")
+            {
+                _fdfBindGen = "";
+            }
+            else if (argument.StartsWith("--fdf-bindgen="))
+            {
+                _fdfBindGen = argument["--fdf-bindgen=".Length..];
+            }
             else if (argument == "--state-probe")
             {
                 _stateProbe = true;
@@ -290,6 +299,13 @@ public sealed partial class LauncherApp : Node
                     _focusMapPoint = new Vector2(mx, my);
                 }
             }
+        }
+
+        if (_fdfBindGen != null)
+        {
+            int code = FdfBindGen.Run(_fdfBindGen);
+            GetTree().Quit(code);
+            return;
         }
 
         if (_dumpUnits)
