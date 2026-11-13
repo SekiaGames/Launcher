@@ -11,9 +11,10 @@ namespace OpenWC3;
 /// </summary>
 public sealed partial class Unit
 {
-    public readonly AbilityContainer Abilities = new();
+    AbilityContainer _abilities;
 
-    void BindAbilityOwner() => Abilities.Owner = this;
+    /// <summary>技能表。构造时即绑定主人，供「Buff 也在技能表里」的遍历使用。</summary>
+    public AbilityContainer Abilities => _abilities ??= new AbilityContainer { Owner = this };
     public readonly List<Buff> Buffs = new();
 
     // —— 加成（不含单位类型自身的数值） ——

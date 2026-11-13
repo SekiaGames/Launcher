@@ -91,7 +91,6 @@ public sealed class AbilityContainer : IList<Ability>
 
     public void CopyTo(Ability[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
 
-    public IEnumerator<Ability> GetEnumerator() => _items.GetEnumerator();
 
     public int IndexOf(Ability item) => _items.IndexOf(item);
 
@@ -101,5 +100,18 @@ public sealed class AbilityContainer : IList<Ability>
 
     public void RemoveAt(int index) => _items.RemoveAt(index);
 
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _items.GetEnumerator();
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public IEnumerator<Ability> GetEnumerator()
+    {
+        foreach (Ability ability in _items) yield return ability;
+        List<Buff> buffs = Owner?.Buffs;
+        if (buffs == null) yield break;
+        for (int index = 0; index < buffs.Count; index++)
+        {
+            Buff buff = buffs[index];
+            if (buff == null || _items.Contains(buff)) continue;
+            yield return buff;
+        }
+    }
 }
