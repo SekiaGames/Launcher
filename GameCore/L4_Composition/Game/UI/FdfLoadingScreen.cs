@@ -88,6 +88,11 @@ public sealed partial class FdfLoadingScreen : Control
         if (_loading.LoadingCustomPanel != null) _loading.LoadingCustomPanel.Visible = true;
 
 
+        if (_loading.LoadingBarText != null) _loading.LoadingBarText.IgnoreUiFontScale = true;
+        if (_loading.LoadingTitleText != null) _loading.LoadingTitleText.IgnoreUiFontScale = true;
+        if (_loading.LoadingSubtitleText != null) _loading.LoadingSubtitleText.IgnoreUiFontScale = true;
+        if (_loading.LoadingText != null) _loading.LoadingText.IgnoreUiFontScale = true;
+
         _barLabel = _loading.LoadingBarText?.Text ?? "";
         if (_loading.LoadingTitleText != null) _loading.LoadingTitleText.Text = _title;
         if (_loading.LoadingSubtitleText != null) _loading.LoadingSubtitleText.Text = _subtitle;

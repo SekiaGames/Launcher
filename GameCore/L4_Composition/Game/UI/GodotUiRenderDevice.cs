@@ -170,28 +170,37 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
         if (string.IsNullOrEmpty(text)) return;
         if (!Visible(rect)) return;
 
+        string normalized = text.Replace("\r", "").Replace("|n", "\n").Replace("|N", "\n");
+        string[] lines = normalized.Split('\n');
         int pixelSize = Mathf.Max(1, Mathf.RoundToInt(LineSize(text, lineHeight) * _scaleY));
         Rect2 area = ToPixels(rect);
-        float textWidth = _font.GetStringSize(text, HorizontalAlignment.Left, -1, pixelSize).X;
-        float textHeight = _font.GetHeight(pixelSize);
-        // DrawString 的 pos 是基线，不是行框顶边；不加 ascent 会让所有文字整体上浮一个字高
         float ascent = _font.GetAscent(pixelSize);
+        float lineAdvance = Mathf.Max(lineHeight, _font.GetHeight(pixelSize) / _scaleY);
+        float totalHeight = lineAdvance * lines.Length * _scaleY;
 
-        float x = area.Position.X;
-        if (align == TextAlignment.Center) x += (area.Size.X - textWidth) * 0.5f;
-        else if (align == TextAlignment.Right) x += area.Size.X - textWidth;
+        float startY = area.Position.Y + ascent;
+        if (verticalAlign == TextVerticalAlignment.Middle)
+            startY += (area.Size.Y - totalHeight) * 0.5f;
+        else if (verticalAlign == TextVerticalAlignment.Bottom)
+            startY += area.Size.Y - totalHeight;
 
-        float y = area.Position.Y + ascent;
-        if (verticalAlign == TextVerticalAlignment.Middle) y += (area.Size.Y - textHeight) * 0.5f;
-        else if (verticalAlign == TextVerticalAlignment.Bottom) y += area.Size.Y - textHeight;
-
-        var position = new Vector2(x, y);
-        if (shadowColor.HasValue)
+        for (int index = 0; index < lines.Length; index++)
         {
-            _target.DrawString(_font, position + new Vector2(shadowOffset.X, shadowOffset.Y) * _scaleY,
-                text, HorizontalAlignment.Left, -1, pixelSize, ToColor(shadowColor.Value));
+            string line = lines[index];
+            if (line.Length == 0) continue;
+            float textWidth = _font.GetStringSize(line, HorizontalAlignment.Left, -1, pixelSize).X;
+            float x = area.Position.X;
+            if (align == TextAlignment.Center) x += (area.Size.X - textWidth) * 0.5f;
+            else if (align == TextAlignment.Right) x += area.Size.X - textWidth;
+
+            var position = new Vector2(x, startY + index * lineAdvance * _scaleY);
+            if (shadowColor.HasValue)
+            {
+                _target.DrawString(_font, position + new Vector2(shadowOffset.X, shadowOffset.Y) * _scaleY,
+                    line, HorizontalAlignment.Left, -1, pixelSize, ToColor(shadowColor.Value));
+            }
+            _target.DrawString(_font, position, line, HorizontalAlignment.Left, -1, pixelSize, ToColor(color));
         }
-        _target.DrawString(_font, position, text, HorizontalAlignment.Left, -1, pixelSize, ToColor(color));
     }
 
     public float MeasureTextWidth(string text, float fontSize)
