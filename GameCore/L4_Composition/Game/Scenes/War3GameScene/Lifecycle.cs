@@ -39,8 +39,7 @@ public sealed partial class War3GameScene : Node3D
     private MeshInstance3D _placementFootprintNode;
     private ImmediateMesh _placementFootprintMesh;
     private bool _placementPreviewValid;
-    private int _idleWorkerCursor;
-    private float _hudTimer;
+        private float _hudTimer;
     private PathGrid _pathGrid;
     private List<TreeState> _trees = new();
     private string _placingId;
@@ -254,6 +253,13 @@ public sealed partial class War3GameScene : Node3D
             CommandSource = BuildCommandEntries,
         };
         _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
+        _newHud.SelectionClicked = SelectUnitFromHud;
+        _newHud.IdlePeonClicked = SelectIdleWorkerUnit;
+        _newHud.PortraitFollowStarted = unit =>
+        {
+            if (unit != null) _camera?.SetSoftFollowController(unit);
+        };
+        _newHud.PortraitFollowStopped = () => _camera?.ClearSoftFollowController();
         ConfigureNewMinimap(map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);
@@ -384,6 +390,19 @@ public sealed partial class War3GameScene : Node3D
         UpdateCommandCard();
     }
 
+    private bool HeroBarIncludesPlayer(int player)
+    {
+        if (player == ViewPlayer) return true;
+        if (_map?.Info?.Forces == null) return false;
+        foreach (W3iForce force in _map.Info.Forces)
+        {
+            if (force.ContainsPlayer(ViewPlayer)
+                && (force.Flags & W3iForce.SharedControlFlag) != 0
+                && force.ContainsPlayer(player)) return true;
+        }
+        return false;
+    }
+
     private void RefreshHeroBar()
     {
         _heroScratch.Clear();
@@ -391,7 +410,7 @@ public sealed partial class War3GameScene : Node3D
         {
             foreach (Unit unit in _world.HeroUiCandidates())
             {
-                if (unit == null || unit.Player != ViewPlayer
+                if (unit == null || !HeroBarIncludesPlayer(unit.Player)
                     || !HeroPresentation.ShowInHeroBar(unit)) continue;
                 _heroScratch.Add(unit);
             }
@@ -406,7 +425,7 @@ public sealed partial class War3GameScene : Node3D
         IReadOnlyList<Unit> heroes = _world?.HeroUiCandidates() ?? Array.Empty<Unit>();
         foreach (Unit unit in heroes)
         {
-            if (unit == null || unit.Player != ViewPlayer || !unit.Alive
+            if (unit == null || !HeroBarIncludesPlayer(unit.Player) || !unit.Alive
                 || !HeroPresentation.ShowInHeroBar(unit)) continue;
             if (current++ != index) continue;
             SelectHeroFromBar(unit);
@@ -415,25 +434,24 @@ public sealed partial class War3GameScene : Node3D
         return false;
     }
 
-    private void SelectIdleWorker()
+    private void SelectIdleWorker() => _newHud?.TriggerIdlePeon();
+
+    private void SelectIdleWorkerUnit(Unit worker)
     {
-        var workers = new List<Unit>();
-        IReadOnlyList<Unit> candidates = _world?.WorkerUiCandidates() ?? Array.Empty<Unit>();
-        foreach (Unit unit in candidates)
-        {
-            if (unit == null || !unit.Alive || unit.Player != ViewPlayer || !unit.IsWorker) continue;
-            if (unit.GoldMine != null || unit.Tree != null || unit.BuildSite != null || unit.RepairTarget != null) continue;
-            if (unit.MoveTarget.HasValue || unit.Target != null || unit.BuildingNow) continue;
-            workers.Add(unit);
-        }
-        if (workers.Count == 0) return;
-
-        _idleWorkerCursor %= workers.Count;
-        Unit worker = workers[_idleWorkerCursor];
-        _idleWorkerCursor = (_idleWorkerCursor + 1) % workers.Count;
-
+        if (worker == null || !worker.Alive) return;
         _selection?.SelectSingle(worker);
         _camera.Focus(worker.Position);
+    }
+
+    private void SelectUnitFromHud(Unit unit)
+    {
+        if (unit == null || !unit.Alive) return;
+        ClearSelection();
+        _selected.Add(unit);
+        unit.View?.SetSelected(true);
+        _hud?.SetSelection(_selected);
+        UpdateCommandCard();
+        PlaySelectionVoice();
     }
 
     private void SelectHeroFromBar(Unit hero)

@@ -25,6 +25,16 @@ public sealed partial class GameHudScreen : Control
     private UnitInfoPanelFrame _infoPanel;
     private MinimapFrame _minimap;
     private HeroBarFrame _heroBar;
+    private PortraitFrame _portrait;
+    private SelectionGroupFrame _selectionGroup;
+    private IdlePeonFrame _idlePeon;
+    private PortraitViewport _portraitViewport;
+    private GodotUiTexture _portraitTexture;
+    private Unit _selectedUnit;
+    public Action<Unit> SelectionClicked;
+    public Action<Unit> IdlePeonClicked;
+    public Action<Unit> PortraitFollowStarted;
+    public Action PortraitFollowStopped;
     private int _gold, _lumber, _food, _foodCap;
     private double _timeOfDay;
     private CommandCardView _commands = CommandCardView.Empty;
@@ -64,12 +74,24 @@ public sealed partial class GameHudScreen : Control
         _infoPanel = new UnitInfoPanelFrame(resolver, skin);
         _minimap = new MinimapFrame(resolver, skin, new War3MiscData());
         _heroBar = new HeroBarFrame(resolver);
+        _portrait = new PortraitFrame();
+        _selectionGroup = new SelectionGroupFrame(resolver);
+        _idlePeon = new IdlePeonFrame(resolver, skin);
+        _portraitViewport = new PortraitViewport(this);
+        _portraitTexture = new GodotUiTexture(_portraitViewport.Texture);
+        _portrait.OnStartFollow = () => PortraitFollowStarted?.Invoke(_selectedUnit);
+        _portrait.OnStopFollow = () => PortraitFollowStopped?.Invoke();
+        _selectionGroup.OnUnitClick = unit => SelectionClicked?.Invoke(unit);
+        _idlePeon.OnIdlePeonClick = unit => IdlePeonClicked?.Invoke(unit);
         _root.AddChild(_console);
         _root.AddChild(_infoPanel);
         _root.AddChild(_card.Root);
         _root.AddChild(_topBar);
         _root.AddChild(_minimap);
         _root.AddChild(_heroBar);
+        _root.AddChild(_portrait);
+        _root.AddChild(_selectionGroup);
+        _root.AddChild(_idlePeon);
 
         SetResources(500, 220, 12, 24);
         SetClock(6.0);
@@ -114,6 +136,23 @@ public sealed partial class GameHudScreen : Control
         _heroBar.Update(heroes, selected);
         QueueRedraw();
     }
+
+    public void SetSelection(Unit selected, IReadOnlyList<Unit> selection)
+    {
+        _selectedUnit = selected;
+        _portrait.Update(selected);
+        _portraitViewport.Show(selected);
+        _selectionGroup.Update(selected, selection);
+        QueueRedraw();
+    }
+
+    public void UpdateIdleWorkers(IReadOnlyList<Unit> workers, int localPlayerId, float time)
+    {
+        _idlePeon.Update(workers, localPlayerId, time);
+        QueueRedraw();
+    }
+
+    public void TriggerIdlePeon() => _idlePeon.TriggerIdlePeon();
 
     public void SetCommands(IReadOnlyList<CommandEntry> commands)
     {
@@ -323,12 +362,18 @@ public sealed partial class GameHudScreen : Control
         _topBar.Layout(DesignWidth, DesignHeight);
         _minimap.Layout(DesignWidth, DesignHeight);
         _heroBar.Layout(DesignWidth, DesignHeight);
+        _portrait.Layout(DesignWidth, DesignHeight);
+        _selectionGroup.Layout(DesignWidth, DesignHeight);
+        _idlePeon.Layout(DesignWidth, DesignHeight);
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
         if (_selectionBox is { } box)
             _device.DrawTexturedQuad(box, _device.WhiteTexture,
                 new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 0.16f));
         _root.Render(_device);
+        if (_selectedUnit != null && _portrait.Visible)
+            _device.DrawTexturedQuad(PortraitFrame.ModelArea(DesignHeight),
+                _portraitTexture, System.Numerics.Vector4.One);
         _device.End();
     }
 }

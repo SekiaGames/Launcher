@@ -71,7 +71,11 @@ public sealed class MeleeHudController : IUiCommandListener
 
     public void SetPlayerInfo(string text) => _playerInfo = text;
 
-    public void SetSelection(IReadOnlyList<Unit> selected) { }
+    public void SetSelection(IReadOnlyList<Unit> selected)
+    {
+        Unit primary = selected is { Count: 1 } ? selected[0] : null;
+        _host.SetSelection(primary, selected ?? Array.Empty<Unit>());
+    }
 
     public void SetSelectionBox(Rect2 rect, bool visible) => _host.SetSelectionBox(rect, visible);
 

@@ -399,6 +399,8 @@ public sealed partial class War3GameScene
         PlayerSlot slot = Slot(ViewPlayer);
         _hud?.SetResources(slot.Gold, slot.Lumber, FoodUsed(slot.Id), FoodCap(slot.Id));
         _newHud?.SetClock(_todHours);
+        _newHud?.UpdateIdleWorkers(_world != null ? _world.WorkerUiCandidates()
+            : Array.Empty<Unit>(), ViewPlayer, Time.GetTicksMsec() / 1000f);
         _hud?.SetPlayerInfo(PlayerInfoText());
         _hud?.SetClock(ClockText());
         UpdateQueueLabel();
