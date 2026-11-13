@@ -33,6 +33,7 @@ public sealed partial class LauncherApp : Node
     private bool _stateProbe;
     private string _fdfProbe;
     private string _fdfBindGen;
+    private bool _uiHud;
     private string _uiScreen;
     private bool _effectProbe;
     private bool _attachProbe;
@@ -199,6 +200,10 @@ public sealed partial class LauncherApp : Node
             {
                 _fdfProbe = argument["--fdf-probe=".Length..];
             }
+            else if (argument == "--ui-hud")
+            {
+                _uiHud = true;
+            }
             else if (argument == "--fdf-bindgen")
             {
                 _fdfBindGen = "";
@@ -319,6 +324,17 @@ public sealed partial class LauncherApp : Node
         {
             int code = CombatProbe.Run();
             GetTree().Quit(code);
+            return;
+        }
+
+        if (_uiHud)
+        {
+            Clear();
+            var hud = new OpenWC3.Game.UI.GameHudScreen { Name = "Hud" };
+            AddChild(hud);
+            hud.Load();
+            _current = hud;
+            GD.Print($"[HUD] 控制台与顶栏已创建，根帧 {hud.FrameCount}");
             return;
         }
 
