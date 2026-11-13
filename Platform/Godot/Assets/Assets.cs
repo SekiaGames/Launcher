@@ -8,6 +8,7 @@ public static class Assets
 {
     public static string ProjectDir { get; private set; }
     public static string WorkspaceDir { get; private set; }
+    public static string GmapDir => WorkspaceDir + "/test/map_gmap";
     public static bool ExtractMounted { get; private set; }
     public static string ExtractPck { get; private set; }
 
@@ -78,7 +79,7 @@ public static class Assets
     public static string[] ListGmaps()
     {
         var found = new List<string>();
-        DirAccess dir = DirAccess.Open(WorkspaceDir);
+        DirAccess dir = DirAccess.Open(GmapDir);
         if (dir == null) return found.ToArray();
 
         foreach (string name in dir.GetFiles())

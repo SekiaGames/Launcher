@@ -417,7 +417,7 @@ public sealed partial class LauncherApp : Node
         Clear();
 
         var screen = new MapBrowser { Name = "MapList" };
-        screen.OnPick += name => ShowPreGame(name, Assets.WorkspaceDir + "/" + name);
+        screen.OnPick += name => ShowPreGame(name, Assets.GmapDir + "/" + name);
         AddChild(screen);
         _current = screen;
     }
@@ -426,7 +426,7 @@ public sealed partial class LauncherApp : Node
     {
         string[] maps = Assets.ListGmaps();
         string name = maps.Length > 0 ? maps[0] : "Turtle Rock";
-        ShowPreGame(name, Assets.WorkspaceDir + "/" + name);
+        ShowPreGame(name, Assets.GmapDir + "/" + name);
     }
 
     private void ShowPreGame(string displayName, string gmapPath)
@@ -454,7 +454,7 @@ public sealed partial class LauncherApp : Node
         string full = gmapPath;
         if (!System.IO.Path.IsPathRooted(full))
         {
-            full = Assets.WorkspaceDir + "/" + full;
+            full = Assets.GmapDir + "/" + full;
         }
 
         MapSource map = MapSource.Open(full);
@@ -544,7 +544,7 @@ public sealed partial class LauncherApp : Node
 
     private static void DumpUnits(string gmapPath)
     {
-        string full = string.IsNullOrEmpty(gmapPath) ? null : (System.IO.Path.IsPathRooted(gmapPath) ? gmapPath : Assets.WorkspaceDir + "/" + gmapPath);
+        string full = string.IsNullOrEmpty(gmapPath) ? null : (System.IO.Path.IsPathRooted(gmapPath) ? gmapPath : Assets.GmapDir + "/" + gmapPath);
         MapSource map = MapSource.Open(full);
         if (map == null)
         {
