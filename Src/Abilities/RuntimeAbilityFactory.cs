@@ -130,8 +130,8 @@ public static class RuntimeAbilityFactory
         // —— 兽族单位 ——
         ["Ablo"] = () => new RuntimeBloodlustAbility(),         // 嗜血（萨满，攻速/移速）
         ["Alsh"] = () => new RuntimeLightningShieldAbility(),   // 闪电护盾（萨满）
-        ["Apg2"] = () => new RuntimePurgeAbility(),             // 净化（萨满）
-        ["Aprg"] = () => new RuntimePurgeAbility(),             // 净化（萨满祭司 oshm）
+        ["Apg2"] = () => WithObjects<RuntimePurgeAbility>(),             // 净化（萨满）
+        ["Aprg"] = () => WithObjects<RuntimePurgeAbility>(),             // 净化（萨满祭司 oshm）
         ["Awar"] = () => new RuntimePulverizeAbility(),         // 粉碎（牛头人，概率范围伤害）
         ["Absk"] = () => new Berserk(),           // 狂暴（猎头者）
         ["Aliq"] = () => WithObjects<RuntimeLiquidFireAbility>(),        // 液体火焰（蝙蝠骑士，烧建筑）
@@ -356,7 +356,7 @@ public static class RuntimeAbilityFactory
         ["ACim"] = () => new RuntimeImmolationAbility(),        // 献祭
         ["ACls"] = () => new RuntimeLightningShieldAbility(),   // 闪电盾
         ["ACps"] = () => new RuntimeCharmAbility(),             // 占据
-        ["ACpu"] = () => new RuntimePurgeAbility(),             // 净化
+        ["ACpu"] = () => new Purge(),             // 净化
         ["ACpv"] = () => new RuntimePulverizeAbility(),         // 粉碎
         ["ACr2"] = () => new RuntimeRejuvenationAbility(),      // 回春
         ["ACrd"] = () => new RaiseDead(),         // 复活死尸
@@ -445,7 +445,7 @@ public static class RuntimeAbilityFactory
         ["AIbk"] = () => new Blink(),         // 逃脱匕首（点地面，DataA 上限 1000 / DataB 最短 200）
         ["AIse"] = () => new Silence(),       // 沉默权杖（点地面 AoE）
         ["AIsi"] = () => new Silence(),       // 沉默杖（同名别名）
-        ["AIps"] = () => new RuntimePurgeAbility(),         // 萨满图腾（点单位净化）
+        ["AIps"] = () => new Purge(),         // 萨满图腾（点单位净化）
         ["AIwb"] = () => new Web(),           // 蜘蛛丝饰针（点空中单位）
         ["AIrr"] = () => new RuntimeRoarAbility(),          // 野兽卷轴（周围友军 +攻击）
         ["AIin"] = () => new RuntimeInfernoAbility(),       // 恶魔岩石（点地面召地狱火）

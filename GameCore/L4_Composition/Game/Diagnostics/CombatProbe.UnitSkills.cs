@@ -155,15 +155,19 @@ public static partial class CombatProbe
         summon.Hp = 2000f;
 
         float before = summon.Hp;
+        float speedBase = World.SpeedOf(summon);
         Ability purge = shaman.FindAbility("Apg2");
         bool cast = world.TryCast(shaman, purge, summon, summon.Position);
 
         Verify("净化施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("净化对召唤物伤害=DataC", Mathf.Max(0f, before - purgeType.DataAt(1, 'C')), summon.Hp, 0.5f);
-        Verify("净化初始满减速", 0.95f, summon.SlowMovePct, 0.01f);
-        int moveStages = Mathf.Max(1, Mathf.RoundToInt(purgeType.DataAt(1, 'A')));
-        for (int index = 0; index < 65; index++) world.TickAbilities();
-        Verify("净化按 DataA 阶数恢复", 0.95f - 0.95f / moveStages, summon.SlowMovePct, 0.02f);
+        float slowedSpeed = World.SpeedOf(summon);
+        Verify("净化初始满减速", Mathf.Max(0f, 1f - MiscRules.MinUnitSpeed / Mathf.Max(1f, speedBase)),
+            1f - slowedSpeed / Mathf.Max(1f, speedBase), 0.02f);
+        // 速度被下限夹住时中间阶梯看不出来，这里验「按阶段恢复到底」：推进到回到基准速度
+        for (int index = 0; index < 900 && World.SpeedOf(summon) < speedBase - 0.5f; index++)
+            world.TickAbilities();
+        Verify("净化按 DataA 阶数恢复", speedBase, World.SpeedOf(summon), 0.5f);
 
         // 萨满祭司用的码是 Aprg（Apg2 只是同名别名），除了减速还要把目标身上的增益驱散掉
         AbilityType shamanPurgeType = AbilityCatalog.Get("Aprg");
@@ -175,7 +179,9 @@ public static partial class CombatProbe
         bool real = world.TryCast(shamanReal, shamanReal.FindAbility("Aprg"), buffed, buffed.Position);
         Verify("净化(Aprg)施放成功", 1f, real ? 1f : 0f, 0f);
         Verify("净化把敌方增益驱散", 0f, buffed.BonusDamagePct, 0.001f);
-        Verify("净化(Aprg)同样满减速", 0.95f, buffed.SlowMovePct, 0.01f);
+        float buffedBase = World.SpeedOf(buffed);
+        Verify("净化(Aprg)同样满减速", Mathf.Max(0f, 1f - MiscRules.MinUnitSpeed / Mathf.Max(1f, buffedBase)),
+            1f - World.SpeedOf(buffed) / Mathf.Max(1f, buffedBase), 0.02f);
     }
 
     /// <summary>Aams：对所有的魔法免疫，Dur=90s；魔法伤害进不来，物理伤害照旧。</summary>

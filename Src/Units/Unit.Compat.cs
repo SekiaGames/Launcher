@@ -278,7 +278,13 @@ public sealed partial class Unit
     public bool RemoveAbility(Ability ability)
     {
         if (ability == null) return false;
-        ability.OnRemove();
+        // A 的 Buff 在 OnRemove(World) 里回退属性，客户端 Buff 在 OnBuffRemove 里收尾，两个都要走
+        if (ability is Buff buff)
+        {
+            buff.OnRemove(World);
+            buff.OnRemove();
+        }
+        else ability.OnRemove();
         return Abilities.Remove(ability);
     }
 
