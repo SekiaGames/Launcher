@@ -24,6 +24,8 @@ public sealed partial class FogOfWar : Node3D
     private bool[] _explored;
     private Image _image;
     private ImageTexture _texture;
+    private Image _minimapImage;
+    private ImageTexture _minimapTexture;
     private MeshInstance3D _mesh;
     private bool _dirty = true;
     private int _logBudget = 3;
@@ -61,8 +63,11 @@ public sealed partial class FogOfWar : Node3D
         _explored = new bool[_width * _height];
         _image = Image.CreateEmpty(_width, _height, false, Image.Format.Rgba8);
         _image.Fill(FogRules.BlackMaskedTerrain);
+        _minimapImage = Image.CreateEmpty(_width, _height, false, Image.Format.Rgba8);
+        _minimapImage.Fill(FogRules.BlackMaskedTerrain);
 
         _texture = ImageTexture.CreateFromImage(_image);
+        _minimapTexture = ImageTexture.CreateFromImage(_minimapImage);
         BuildMesh();
         _mesh.Visible = _enabled;
         Name = "FogOfWar";
@@ -230,10 +235,12 @@ public sealed partial class FogOfWar : Node3D
                 int index = j * _width + i;
                 Color color = _visible[index] ? new Color(0f, 0f, 0f, 0f) : _explored[index] ? fogged : black;
                 _image.SetPixel(i, j, color);
+                _minimapImage.SetPixel(i, _height - 1 - j, color);
             }
         }
 
         _texture.Update(_image);
+        _minimapTexture.Update(_minimapImage);
         _dirty = false;
     }
 
@@ -266,4 +273,6 @@ public sealed partial class FogOfWar : Node3D
 
     /// <summary>给小地图用的雾贴图（行 0 是南边，画的时候要翻转 V）。</summary>
     public Texture2D Texture => _texture;
+
+    public Texture2D MinimapTexture => _minimapTexture;
 }

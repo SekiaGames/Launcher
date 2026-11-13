@@ -88,6 +88,7 @@ public sealed partial class CommandCardBuilder
             button.OverlayText = command.Overlay;
             button.TooltipTitle = command.Title ?? "";
             button.TooltipBody = command.Body ?? "";
+            button.Command = new UiCommand(UiCommandKind.Ability, Slot: i);
             button.Visible = true;
         }
     }

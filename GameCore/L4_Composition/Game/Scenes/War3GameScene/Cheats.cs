@@ -558,7 +558,8 @@ public sealed partial class War3GameScene
         MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
         GD.Print($"[UI] 小地图右键下令 MoveTarget={hero.MoveTarget.HasValue}");
         _hud?.MinimapFrame.Ping(hero.Position);
-        GD.Print($"[UI] 小地图信号 active={_hud?.MinimapFrame.PingActive}");
+        _newHud?.Minimap.Ping(new System.Numerics.Vector2(-hero.Position.X, hero.Position.Z));
+        GD.Print($"[UI] 小地图信号 active={_hud?.MinimapFrame.PingActive == true || _newHud?.Minimap.PingActive == true}");
 
         Unit fast = Spawn("hkni", ViewPlayer, hero.Position.X + 300f, hero.Position.Z + 300f, 0f, 0f, 1f);
         Unit slow = Spawn("hfoo", ViewPlayer, hero.Position.X + 360f, hero.Position.Z + 360f, 0f, 0f, 1f);

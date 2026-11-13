@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using OpenWC3.Game.UI;
+using OpenWC3.RHI;
+using NVector4 = System.Numerics.Vector4;
 namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene : Node3D
@@ -14,6 +16,8 @@ public sealed partial class War3GameScene : Node3D
     private War3Camera _camera;
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
+    private NVector4 _mapUiBounds;
+    private GodotUiTexture _minimapFogTexture;
     public bool UseNewHud;
     public int SelectedRace;
     private War3AudioSystem _audio;
@@ -228,6 +232,8 @@ public sealed partial class War3GameScene : Node3D
             _newHud = new GameHudScreen { Name = "NewHudScreen" };
             hudLayer.AddChild(_newHud);
             _newHud.Load(HudRaceName(), sample: false);
+            _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
+            ConfigureNewMinimap(map);
             GD.Print($"[HUD] 新界面已接管，种族 {HudRaceName()}");
         }
         _escMenu = new EscMenuFrame(this, Back);
@@ -248,9 +254,12 @@ public sealed partial class War3GameScene : Node3D
             unit => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer) || _fog.IsVisible(unit.Position));
         _hud.MinimapFrame.RightNavigate = MinimapOrderAt;
         _hud.MinimapFrame.SetFogTexture(_fog.Texture);
-        _hud.MinimapFrame.SetTexture(MinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader()));
-        _heroBar = new HeroBarFrame(this);
-        _heroBar.HeroClicked = SelectHeroFromBar;
+        _hud.MinimapFrame.SetTexture(LegacyMinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader()));
+        if (!UseNewHud)
+        {
+            _heroBar = new LegacyHeroBarFrame(this);
+            _heroBar.HeroClicked = SelectHeroFromBar;
+        }
         _log = new ChatFrame(this);
         _log.Add("Enter 输入消息");
         _hud.SetSelection(_selected);
@@ -280,7 +289,7 @@ public sealed partial class War3GameScene : Node3D
 
     private bool _musicPending;
     private WeatherRenderer _weather;
-    private HeroBarFrame _heroBar;
+    private LegacyHeroBarFrame _heroBar;
     private readonly List<Unit> _heroScratch = new();
     private ChatFrame _log;
     private EscMenuFrame _escMenu;
@@ -308,6 +317,30 @@ public sealed partial class War3GameScene : Node3D
 
     public float MapOffsetX => _map.Terrain.OffsetX;
     public float MapOffsetY => _map.Terrain.OffsetY;
+
+    private void ConfigureNewMinimap(MapSource map)
+    {
+        int cellsX = Mathf.Max(1, map.Terrain.Width - 1);
+        int cellsY = Mathf.Max(1, map.Terrain.Height - 1);
+        _mapUiBounds = new NVector4(0f, 0f, cellsX * MeleeRules.CellWidth,
+            cellsY * MeleeRules.CellWidth);
+
+        MinimapFrame minimap = _newHud.Minimap;
+        minimap.SetMapTexture(new GodotUiTexture(
+            LegacyMinimapFrame.BuildTexture(map.Terrain, new TerrainTextureLoader())));
+        minimap.OnMinimapClick = world =>
+            _camera.Focus(new Vector3(-world.X, _camera.Target.Y, world.Y));
+        minimap.OnSignalPing = world => minimap.Ping(world);
+        minimap.AltHeld = () => Input.IsKeyPressed(Key.Alt);
+        minimap.Update(_mapUiBounds, Array.Empty<MinimapUnitView>(), ViewPlayer,
+            FogTexture(), 0f);
+    }
+
+    private GodotUiTexture FogTexture()
+    {
+        if (_fog?.MinimapTexture == null || !_fog.Enabled) return null;
+        return _minimapFogTexture ??= new GodotUiTexture(_fog.MinimapTexture);
+    }
 
     private void LogUnitSummary()
     {
@@ -344,7 +377,6 @@ public sealed partial class War3GameScene : Node3D
 
     private void RefreshHeroBar()
     {
-        if (_heroBar == null) return;
         _heroScratch.Clear();
         foreach (Unit unit in _allUnits)
         {
@@ -352,7 +384,8 @@ public sealed partial class War3GameScene : Node3D
             _heroScratch.Add(unit);
         }
         Unit selected = _selected.Count == 1 ? _selected[0] : null;
-        _heroBar.Update(_heroScratch, selected);
+        _heroBar?.Update(_heroScratch, selected);
+        _newHud?.SetHeroes(_heroScratch, selected);
     }
 
     private bool TrySelectHeroByIndex(int index)
@@ -432,6 +465,7 @@ public sealed partial class War3GameScene : Node3D
         }
 
         TickFog((float)delta);
+        UpdateMinimap();
         _terrainBuilder?.Blight?.FrameSeconds((float)delta, _allUnits);
         TickVictoryCheck((float)delta);
         RefreshHeroBar();

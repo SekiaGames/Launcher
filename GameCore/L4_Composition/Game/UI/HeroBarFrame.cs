@@ -1,143 +1,149 @@
-using Godot;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
+using OpenWC3.RHI;
+using OpenWC3.UI;
 
 namespace OpenWC3.Game.UI;
 
-/// <summary>
-/// 左侧英雄头像栏（客户端 HeroBarFrame）：竖排最多 7 个己方英雄，
-/// 图标下压血条蓝条；点一下选中该英雄，再点一次把镜头对过去。
-/// </summary>
-public sealed class HeroBarFrame
+internal sealed class HeroBarFrame : UiContainer, IClickable
 {
-    private const int MaxSlots = 7;
-    private const float SlotSize = 44f;
-    private const float SlotStep = 58f;
-    private const float OriginX = 8f;
-    private const float OriginY = 56f;
+    private const int MaxHeroes = 7;
+    private const float CellSize = 48.64f, CellStepY = 65.51f, OriginX = 4.8f, OriginY = 32f;
+    private const string IconFallback = @"ReplaceableTextures\CommandButtons\BTNTemp.blp";
+    private const string DisabledDir = @"ReplaceableTextures\CommandButtonsDisabled\";
 
-    private readonly List<Button> _icons = new();
-    private readonly List<ColorRect> _hpFill = new();
-    private readonly List<ColorRect> _mpFill = new();
-    private readonly List<Unit> _heroes = new();
-    private readonly string[] _iconKeys = new string[MaxSlots];
-
-    public Action<Unit> HeroClicked;
-
-    public HeroBarFrame(Node parent)
+    private readonly struct Slot
     {
-        var layer = new CanvasLayer { Name = "HeroBar", Layer = 2 };
-        parent.AddChild(layer);
+        public readonly TextureFrame Icon;
+        public readonly StatusBarFrame Hp;
+        public readonly StatusBarFrame Mp;
 
-        for (int index = 0; index < MaxSlots; index++)
+        public Slot(TextureFrame icon, StatusBarFrame hp, StatusBarFrame mp)
         {
-            int slot = index;
-            float y = OriginY + index * SlotStep;
-
-            var button = new Button
-            {
-                Name = $"HeroIcon{index}",
-                Position = new Vector2(OriginX, y),
-                Size = new Vector2(SlotSize, SlotSize),
-                Visible = false,
-                ExpandIcon = true,
-                IconAlignment = HorizontalAlignment.Center,
-                Flat = false,
-                MouseFilter = Control.MouseFilterEnum.Stop,
-            };
-            button.AddThemeStyleboxOverride("normal", FrameStyle(new Color(0.13f, 0.12f, 0.1f)));
-            button.AddThemeStyleboxOverride("hover", FrameStyle(new Color(0.24f, 0.21f, 0.14f)));
-            button.AddThemeStyleboxOverride("pressed", FrameStyle(new Color(0.32f, 0.27f, 0.16f)));
-            button.Pressed += () =>
-            {
-                if (slot < _heroes.Count && _heroes[slot] != null) HeroClicked?.Invoke(_heroes[slot]);
-            };
-            layer.AddChild(button);
-            _icons.Add(button);
-
-            AddBar(layer, new Vector2(OriginX, y + SlotSize), new Color(0.02f, 0.02f, 0.02f, 1f));
-            _hpFill.Add(AddBar(layer, new Vector2(OriginX, y + SlotSize), new Color(0.1f, 0.78f, 0.12f)));
-
-            AddBar(layer, new Vector2(OriginX, y + SlotSize + 5f), new Color(0.02f, 0.02f, 0.02f, 1f));
-            _mpFill.Add(AddBar(layer, new Vector2(OriginX, y + SlotSize + 5f), new Color(0.05f, 0.2f, 0.9f)));
+            Icon = icon;
+            Hp = hp;
+            Mp = mp;
         }
     }
 
-    private static ColorRect AddBar(Node layer, Vector2 position, Color color)
+    private readonly Slot[] _slots = new Slot[MaxHeroes];
+    private readonly Func<string, ITexture> _iconResolver;
+    private readonly List<Unit> _heroes = new();
+    private int _heroCount;
+
+    public Action<Unit> HeroClicked;
+
+    public HeroBarFrame(IUiTextureResolver textures) : base("HeroBar")
     {
-        var bar = new ColorRect
+        _iconResolver = textures.Resolve;
+        ITexture fillTexture = textures.Resolve(
+            @"UI\Feedback\HpBarConsole\human-healthbar-fill.blp");
+        for (int index = 0; index < MaxHeroes; index++)
         {
-            Color = color,
-            Position = position,
-            Size = new Vector2(SlotSize, 4f),
-            Visible = false,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        layer.AddChild(bar);
-        return bar;
+            var icon = new TextureFrame($"HeroIcon{index}");
+            var hp = new StatusBarFrame($"HeroHp{index}")
+            {
+                FillColor = new Vector4(0.1f, 0.78f, 0.12f, 1f),
+                BackgroundColor = new Vector4(0.02f, 0.02f, 0.02f, 1f),
+                FillTexture = fillTexture,
+            };
+            var mp = new StatusBarFrame($"HeroMp{index}")
+            {
+                FillColor = new Vector4(0.05f, 0.2f, 0.9f, 1f),
+                BackgroundColor = new Vector4(0.02f, 0.02f, 0.02f, 1f),
+                FillTexture = fillTexture,
+            };
+            _slots[index] = new Slot(icon, hp, mp);
+            AddChild(icon);
+            AddChild(hp);
+            AddChild(mp);
+        }
     }
 
-    private static StyleBoxFlat FrameStyle(Color color)
+    public void Layout(float viewportWidth, float viewportHeight)
     {
-        return new StyleBoxFlat
+        for (int index = 0; index < MaxHeroes; index++)
         {
-            BgColor = color,
-            BorderColor = new Color(0.52f, 0.44f, 0.25f),
-            BorderWidthTop = 2,
-            BorderWidthBottom = 2,
-            BorderWidthLeft = 2,
-            BorderWidthRight = 2,
-            CornerRadiusTopLeft = 3,
-            CornerRadiusTopRight = 3,
-            CornerRadiusBottomLeft = 3,
-            CornerRadiusBottomRight = 3,
-        };
+            UiRect iconBounds = IconBounds(index);
+            float x = iconBounds.X, y = iconBounds.Y;
+            ref Slot slot = ref _slots[index];
+            slot.Icon.RenderBounds = iconBounds;
+            slot.Hp.RenderBounds = new UiRect(x, y + CellSize, CellSize, 4);
+            slot.Mp.RenderBounds = new UiRect(x, y + CellSize + 4, CellSize, 3);
+        }
     }
+
+    internal static UiRect IconBounds(int index) => new(OriginX,
+        OriginY + Math.Max(0, index) * CellStepY, CellSize, CellSize);
 
     public void Update(IReadOnlyList<Unit> heroes, Unit selected)
     {
         _heroes.Clear();
         if (heroes != null)
         {
-            foreach (Unit hero in heroes)
-            {
-                if (hero == null || hero.Type == null || !hero.IsHero) continue;
-                if (hero.Type.HideInHeroBar) continue;
-                _heroes.Add(hero);
-                if (_heroes.Count >= MaxSlots) break;
-            }
+            for (int index = 0; index < heroes.Count; index++)
+                _heroes.Add(ShowInHeroBar(heroes[index]) ? heroes[index] : null);
         }
+        _heroCount = Math.Min(MaxHeroes, _heroes.Count);
 
-        for (int index = 0; index < MaxSlots; index++)
+        for (int index = 0; index < MaxHeroes; index++)
         {
-            bool show = index < _heroes.Count;
-            _icons[index].Visible = show;
-            _hpFill[index].Visible = show;
-            _mpFill[index].Visible = show;
-            if (!show) continue;
+            ref Slot slot = ref _slots[index];
+            bool active = index < _heroCount && _heroes[index] != null;
+            slot.Icon.Visible = active;
+            slot.Hp.Visible = active;
+            slot.Mp.Visible = active;
+            if (!active) continue;
 
             Unit hero = _heroes[index];
-            UnitType type = hero.Type;
-            string iconKey = type?.Id ?? "";
-            if (!string.Equals(_iconKeys[index], iconKey, StringComparison.Ordinal))
-            {
-                _iconKeys[index] = iconKey;
-                _icons[index].Icon = type != null && !string.IsNullOrEmpty(type.IconPath)
-                    ? Assets.LoadTexture(type.IconPath)
-                    : null;
-            }
+            string icon = string.IsNullOrWhiteSpace(hero.Type?.IconPath)
+                ? IconFallback : hero.Type.IconPath;
+            if (!hero.Alive) icon = NativeCommandButtonBinding.DisabledArt(icon, DisabledDir);
+            slot.Icon.Texture = _iconResolver(icon);
+            slot.Icon.Color = !hero.Alive
+                ? new Vector4(.72f, .72f, .72f, 1f)
+                : ReferenceEquals(hero, selected)
+                    ? new Vector4(1f, 1f, 0.65f, 1f)
+                    : Vector4.One;
 
-            bool chosen = selected != null && ReferenceEquals(selected, hero);
-            _icons[index].Modulate = !hero.Alive
-                ? new Color(0.55f, 0.55f, 0.55f)
-                : chosen
-                    ? new Color(1f, 0.97f, 0.62f)
-                    : Colors.White;
-
-            float hp = hero.Alive && hero.MaxHp > 0f ? Mathf.Clamp(hero.Hp / hero.MaxHp, 0f, 1f) : 0f;
-            _hpFill[index].Size = new Vector2(SlotSize * hp, 4f);
-            float mp = hero.Alive && hero.MaxMana > 0f ? Mathf.Clamp(hero.Mana / hero.MaxMana, 0f, 1f) : 0f;
-            _mpFill[index].Size = new Vector2(SlotSize * mp, 3f);
+            bool hasHealth = hero.Alive && hero.MaxHp > 0;
+            slot.Hp.Visible = hasHealth;
+            slot.Hp.Ratio = hasHealth ? Math.Clamp(hero.Hp / hero.MaxHp, 0, 1) : 0;
+            bool hasMana = hero.Alive && hero.MaxMana > 0;
+            slot.Mp.Visible = hasMana;
+            slot.Mp.Ratio = hasMana ? Math.Clamp(hero.Mana / hero.MaxMana, 0, 1) : 0;
         }
     }
+
+    private static bool ShowInHeroBar(Unit unit)
+        => unit != null && unit.IsHero && (unit.Type == null || !unit.Type.HideInHeroBar);
+
+    bool IClickable.Enabled => Enabled;
+
+    public override UiFrame HitTest(Vector2 point)
+    {
+        if (!Visible || !Enabled || MouseTransparent) return null;
+        for (int index = 0; index < _heroCount; index++)
+            if (_heroes[index] != null
+                && _slots[index].Icon.RenderBounds.Contains(point.X, point.Y)) return this;
+        return null;
+    }
+
+    void IClickable.OnPointerDown(Vector2 pos)
+    {
+        for (int index = 0; index < _heroCount; index++)
+        {
+            var bounds = new UiRect(OriginX, OriginY + index * CellStepY, CellSize, CellStepY);
+            if (_heroes[index] != null && bounds.Contains(pos.X, pos.Y))
+            {
+                HeroClicked?.Invoke(_heroes[index]);
+                return;
+            }
+        }
+    }
+
+    void IClickable.OnPointerUp(Vector2 pos) { }
+
+    void IClickable.OnClick(int button) { }
 }

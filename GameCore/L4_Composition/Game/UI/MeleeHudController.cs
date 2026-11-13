@@ -102,7 +102,7 @@ public sealed class MeleeHudController
     private Label _armorLabel;
 
     public Func<Unit, string> DetailProvider;
-    public MinimapFrame MinimapFrame { get; }
+    public LegacyMinimapFrame MinimapFrame { get; }
 
     /// <summary>底部多选单位格（客户端那排头像格）：点一下只选中该单位。</summary>
     private void BuildSelectionSlots(Node layer)
@@ -238,7 +238,7 @@ public sealed class MeleeHudController
             14, new Vector2(222f, 862f), new Color(0.7f, 0.72f, 0.75f));
         layer.AddChild(_hint);
 
-        MinimapFrame = new MinimapFrame { Name = "MinimapFrame", Position = new Vector2(14f, 682f) };
+        MinimapFrame = new LegacyMinimapFrame { Name = "MinimapFrame", Position = new Vector2(14f, 682f) };
         layer.AddChild(MinimapFrame);
 
         BuildSelectionSlots(layer);

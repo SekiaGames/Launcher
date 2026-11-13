@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using OpenWC3.Game.UI;
 using OpenWC3.Game.UI.Views;
+using NVector4 = System.Numerics.Vector4;
 namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
@@ -181,6 +182,74 @@ public sealed partial class War3GameScene
             if (ReferenceEquals(order.Building, building)) count++;
         }
         return count;
+    }
+
+    private readonly List<MinimapUnitView> _minimapUnits = new();
+
+    private void UpdateMinimap()
+    {
+        if (_newHud == null || _map == null) return;
+
+        _minimapUnits.Clear();
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive) continue;
+            MinimapFogLevel fog = MinimapFogFor(unit);
+            if (fog == MinimapFogLevel.Masked) continue;
+            bool allied = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
+            _minimapUnits.Add(MinimapUnitView.From(unit, fog, allied));
+        }
+
+        _newHud.Minimap.CameraRect = VisibleWorldRect();
+        _newHud.Minimap.Update(_mapUiBounds, _minimapUnits, ViewPlayer, FogTexture(),
+            Time.GetTicksMsec() / 1000f);
+    }
+
+    private MinimapFogLevel MinimapFogFor(Unit unit)
+    {
+        if (_fog == null || !_fog.Enabled) return MinimapFogLevel.Visible;
+        if (unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer))
+            return MinimapFogLevel.Visible;
+        if (_fog.IsVisible(unit.Position)) return MinimapFogLevel.Visible;
+        if (!unit.IsBuilding) return MinimapFogLevel.Masked;
+        return _fog.IsExplored(unit.Position) ? MinimapFogLevel.Fogged : MinimapFogLevel.Masked;
+    }
+
+    private NVector4 VisibleWorldRect()
+    {
+        Camera3D camera = _camera.Camera;
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        Vector2[] corners =
+        {
+            new(0f, 0f), new(size.X, 0f), new(0f, size.Y), new(size.X, size.Y),
+        };
+
+        float planeY = _camera.Target.Y;
+        float minX = float.MaxValue, minZ = float.MaxValue;
+        float maxX = float.MinValue, maxZ = float.MinValue;
+        int hits = 0;
+        foreach (Vector2 corner in corners)
+        {
+            Vector3 origin = camera.ProjectRayOrigin(corner);
+            Vector3 direction = camera.ProjectRayNormal(corner);
+            if (Mathf.Abs(direction.Y) < 0.0001f) continue;
+            float travel = (planeY - origin.Y) / direction.Y;
+            if (travel <= 0f) continue;
+            Vector3 point = origin + direction * travel;
+            minX = Mathf.Min(minX, point.X);
+            minZ = Mathf.Min(minZ, point.Z);
+            maxX = Mathf.Max(maxX, point.X);
+            maxZ = Mathf.Max(maxZ, point.Z);
+            hits++;
+        }
+
+        if (hits < 2)
+        {
+            Vector3 target = _camera.Target;
+            return new NVector4(-target.X - 700f, target.Z - 500f,
+                -target.X + 700f, target.Z + 500f);
+        }
+        return new NVector4(-maxX, minZ, -minX, maxZ);
     }
 
     private void RefreshHud()

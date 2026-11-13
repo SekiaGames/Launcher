@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using OpenWC3.Game.UI.Views;
 using OpenWC3.RHI;
 using OpenWC3.UI;
+using NVector2 = System.Numerics.Vector2;
 
 namespace OpenWC3.Game.UI;
 
@@ -13,22 +14,29 @@ public sealed partial class GameHudScreen : Control
     public const float DesignHeight = 768f;
 
     private UiRoot _root;
+    private UiEventRouter _router;
     private GodotUiRenderDevice _device;
     private GodotWar3FontFace _font;
     private ConsoleSkinFrame _console;
     private TopBarFrame _topBar;
     private CommandCardBuilder _card;
     private UnitInfoPanelFrame _infoPanel;
+    private MinimapFrame _minimap;
+    private HeroBarFrame _heroBar;
     private int _gold, _lumber, _food, _foodCap;
     private double _timeOfDay;
     private CommandCardView _commands = CommandCardView.Empty;
+    private readonly CommandEntry[] _slotEntries = new CommandEntry[CommandCardBuilder.SlotCount];
+    private bool _uiPointerDown;
 
     public int FrameCount => _root?.Children.Count ?? 0;
+    internal MinimapFrame Minimap => _minimap;
+    internal HeroBarFrame HeroBar => _heroBar;
 
     public void Load(string race = "Human", bool sample = true)
     {
-        SetAnchorsPreset(LayoutPreset.FullRect);
-        MouseFilter = MouseFilterEnum.Ignore;
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        MouseFilter = MouseFilterEnum.Pass;
 
         War3UiSkin skin = War3UiSkin.Load(race);
         _font = GodotWar3FontFace.Load(skin);
@@ -38,15 +46,22 @@ public sealed partial class GameHudScreen : Control
             LineSizeResolver = _font.PixelSizeForLine,
         };
 
-        _root = new UiRoot();
+        _root = new UiRoot { MouseTransparent = true };
+        _router = new UiEventRouter(_root);
+        _router.CommandClicked += OnCommandClicked;
+        _router.CommandRightClicked += OnCommandRightClicked;
         _console = new ConsoleSkinFrame(resolver, skin);
         _topBar = new TopBarFrame(resolver, skin);
         _card = new CommandCardBuilder(resolver);
         _infoPanel = new UnitInfoPanelFrame(resolver, skin);
+        _minimap = new MinimapFrame(resolver, skin, new War3MiscData());
+        _heroBar = new HeroBarFrame(resolver);
         _root.AddChild(_console);
         _root.AddChild(_infoPanel);
         _root.AddChild(_card.Root);
         _root.AddChild(_topBar);
+        _root.AddChild(_minimap);
+        _root.AddChild(_heroBar);
 
         SetResources(500, 220, 12, 24);
         SetClock(6.0);
@@ -86,9 +101,16 @@ public sealed partial class GameHudScreen : Control
         QueueRedraw();
     }
 
+    public void SetHeroes(IReadOnlyList<Unit> heroes, Unit selected)
+    {
+        _heroBar.Update(heroes, selected);
+        QueueRedraw();
+    }
+
     public void SetCommands(IReadOnlyList<CommandEntry> commands)
     {
         var slots = new CommandSlotView?[CommandCardBuilder.SlotCount];
+        Array.Clear(_slotEntries, 0, _slotEntries.Length);
         int next = 0;
         if (commands != null)
         {
@@ -113,6 +135,7 @@ public sealed partial class GameHudScreen : Control
                     Cooldown: cooldown, Overlay: overlay,
                     Title: entry.Name, Body: entry.Tooltip,
                     IconTexture: entry.Icon == null ? null : new GodotUiTexture(entry.Icon));
+                _slotEntries[index] = entry;
             }
         }
         _commands = new CommandCardView(slots);
@@ -120,7 +143,74 @@ public sealed partial class GameHudScreen : Control
         QueueRedraw();
     }
 
-    public override void _Process(double delta) => QueueRedraw();
+    private void OnCommandClicked(UiFrame frame, UiCommand command, int button)
+        => SlotEntry(command.Slot)?.Action?.Invoke();
+
+    private void OnCommandRightClicked(UiFrame frame, UiCommand command)
+        => SlotEntry(command.Slot)?.RightAction?.Invoke();
+
+    private CommandEntry SlotEntry(int slot)
+        => slot >= 0 && slot < _slotEntries.Length ? _slotEntries[slot] : null;
+
+    public override void _GuiInput(InputEvent @event)
+    {
+        if (_router == null) return;
+
+        if (@event is InputEventMouseButton button)
+        {
+            NVector2 point = ToDesign(button.Position);
+            if (button.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
+            {
+                if (button.Pressed && _router.Wheel(point, button.ButtonIndex == MouseButton.WheelUp ? 1f : -1f))
+                    AcceptEvent();
+                return;
+            }
+
+            if (button.ButtonIndex is not (MouseButton.Left or MouseButton.Right)) return;
+            int index = button.ButtonIndex == MouseButton.Right ? 1 : 0;
+            if (button.Pressed)
+            {
+                bool hit = _root.HitTest(point) != null;
+                _router.PointerDown(point, index);
+                if (hit)
+                {
+                    _uiPointerDown = true;
+                    AcceptEvent();
+                }
+            }
+            else
+            {
+                _router.PointerUp(point, index);
+                if (_uiPointerDown)
+                {
+                    _uiPointerDown = false;
+                    AcceptEvent();
+                }
+            }
+            return;
+        }
+
+        if (@event is InputEventMouseMotion motion)
+        {
+            _router.PointerMove(ToDesign(motion.Position));
+            if (_uiPointerDown) AcceptEvent();
+        }
+    }
+
+    private NVector2 ToDesign(Vector2 point)
+    {
+        Vector2 size = Size;
+        if (size.X <= 0f || size.Y <= 0f) size = GetViewportRect().Size;
+        if (size.X <= 0f || size.Y <= 0f) size = new Vector2(1920f, 1080f);
+        return new NVector2(point.X * DesignWidth / Mathf.Max(1f, size.X),
+            point.Y * DesignHeight / Mathf.Max(1f, size.Y));
+    }
+
+    public override void _Process(double delta)
+    {
+        _minimap?.Tick((float)delta);
+        QueueRedraw();
+    }
 
     private static CommandCardView SampleCommands()
     {
@@ -141,6 +231,7 @@ public sealed partial class GameHudScreen : Control
         if (_root == null || _device == null) return;
 
         Vector2 viewport = GetViewportRect().Size;
+        if (Size != viewport) Size = viewport;
         float scaleX = viewport.X / DesignWidth;
         float scaleY = viewport.Y / DesignHeight;
 
@@ -149,6 +240,8 @@ public sealed partial class GameHudScreen : Control
         _infoPanel.Layout(DesignWidth, DesignHeight);
         _card.Layout(DesignWidth, DesignHeight);
         _topBar.Layout(DesignWidth, DesignHeight);
+        _minimap.Layout(DesignWidth, DesignHeight);
+        _heroBar.Layout(DesignWidth, DesignHeight);
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
         _root.Render(_device);
