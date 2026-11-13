@@ -14,6 +14,7 @@ public sealed partial class War3GameScene : Node3D
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
     public bool UseNewHud;
+    public int SelectedRace;
     private War3AudioSystem _audio;
     private War3MusicPlayer _music;
     private FogOfWar _fog;
@@ -92,6 +93,17 @@ public sealed partial class War3GameScene : Node3D
     {
         _map = map;
         _back = back;
+
+        if (SelectedRace > 0)
+        {
+            for (int i = 0; i < _map.Players.Count; i++)
+            {
+                if (_map.Players[i].Id != ViewPlayer) continue;
+                _map.Players[i] = _map.Players[i] with { Race = SelectedRace };
+                GD.Print($"[INIT] 本地玩家种族改写为 {RaceName(SelectedRace)}");
+                break;
+            }
+        }
 
         ResolveActivePlayers();
 

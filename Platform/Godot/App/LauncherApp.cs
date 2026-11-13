@@ -35,6 +35,8 @@ public sealed partial class LauncherApp : Node
     private string _fdfBindGen;
     private bool _uiHud;
     private bool _newHud;
+    private int _selectedRace;
+    private bool _preGameProbe;
     private string _uiScreen;
     private bool _effectProbe;
     private bool _attachProbe;
@@ -204,6 +206,14 @@ public sealed partial class LauncherApp : Node
             else if (argument == "--hud=new")
             {
                 _newHud = true;
+            }
+            else if (argument.StartsWith("--race=") && int.TryParse(argument["--race=".Length..], out int raceId))
+            {
+                _selectedRace = Mathf.Clamp(raceId, 0, 4);
+            }
+            else if (argument == "--pre-game-probe")
+            {
+                _preGameProbe = true;
             }
             else if (argument == "--ui-hud")
             {
@@ -388,6 +398,13 @@ public sealed partial class LauncherApp : Node
             return;
         }
 
+        if (_preGameProbe)
+        {
+            ShowMapList();
+            ShowPreGameProbe();
+            return;
+        }
+
         if (!string.IsNullOrEmpty(playPath))
         {
             StartGame(playPath);
@@ -403,9 +420,36 @@ public sealed partial class LauncherApp : Node
         Clear();
 
         var screen = new MapBrowser { Name = "MapList" };
-        screen.OnPick += name => StartGame(Assets.WorkspaceDir + "/" + name);
+        screen.OnPick += name => ShowPreGame(name, Assets.WorkspaceDir + "/" + name);
         AddChild(screen);
         _current = screen;
+    }
+
+    private void ShowPreGameProbe()
+    {
+        string[] maps = Assets.ListGmaps();
+        string name = maps.Length > 0 ? maps[0] : "Turtle Rock";
+        ShowPreGame(name, Assets.WorkspaceDir + "/" + name);
+    }
+
+    private void ShowPreGame(string displayName, string gmapPath)
+    {
+        Clear();
+        var dialog = new OpenWC3.Game.UI.PreGameDialog(displayName) { Name = "PreGame" };
+        dialog.Confirmed += (race, difficulty) =>
+        {
+            _selectedRace = race;
+            _aiDifficulty = difficulty;
+            Clear();
+            StartGame(gmapPath);
+        };
+        dialog.Cancelled += () =>
+        {
+            Clear();
+            ShowMapList();
+        };
+        AddChild(dialog);
+        _current = dialog;
     }
 
     public void StartGame(string gmapPath)
@@ -439,6 +483,7 @@ public sealed partial class LauncherApp : Node
         game.ShowDamageNumbers = _damageNumbers;
         game.AiDifficulty = _aiDifficulty;
         game.UseNewHud = _newHud;
+        game.SelectedRace = _selectedRace;
         if (_daySeconds > 0f) game.DaySeconds = _daySeconds;
         foreach (int slot in _slots) game.ActiveSlots.Add(slot);
         foreach (List<int> team in _teams) game.Teams.Add(team);
