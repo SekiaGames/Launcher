@@ -27,8 +27,8 @@ public static partial class CombatProbe
         Unit footman = ProbeUnit(world, "hfoo", 1, new Vector3(200f, 0f, 0f));
         if (hall == null || footman == null) return;
 
-        float vsBuilding = world.ApplyAttackModifiers(hero, hall, 100f);
-        float vsUnit = world.ApplyAttackModifiers(hero, footman, 100f);
+        float vsBuilding = AttackWithPacketModifiers(world, hero, hall, 100f);
+        float vsUnit = AttackWithPacketModifiers(world, hero, footman, 100f);
         Verify("粉碎对建筑 ×DataB", 100f * type.DataAt(1, 'B'), vsBuilding, 0.5f);
         Verify("粉碎对单位不加成", 100f, vsUnit, 0.5f);
     }
@@ -102,4 +102,15 @@ public static partial class CombatProbe
         Verify("工厂已立起来", 1f, built != null ? 1f : 0f, 0f);
         Verify("工厂挂上出兵计时", 1f, world.GroundSpellCount > spellsBefore ? 1f : 0f, 0f);
     }
+
+    /// <summary>按武器系统的顺序取一次普攻伤害：先过浮点攻击修正，再过包级出伤修正。</summary>
+    private static float AttackWithPacketModifiers(World world, Unit attacker, Unit target, float raw)
+    {
+        float amount = world.ApplyAttackModifiers(attacker, target, raw);
+        var info = new DamageData { Source = attacker, Target = target, Amount = amount, IsAttack = true };
+        world.ApplyDamagePacketModifiers(info);
+        if (info.Cancelled) return 0f;
+        return (info.Amount + info.BonusAmount) * info.DamageMultiplier;
+    }
+
 }
