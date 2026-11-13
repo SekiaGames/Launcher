@@ -75,135 +75,47 @@ public sealed partial class War3GameScene
         return true;
     }
 
-    private List<Unit> SelectMovers(out Vector3 centroid)
-    {
-        var movers = new List<Unit>();
-        centroid = Vector3.Zero;
-        foreach (Unit unit in _selected)
-        {
-            if (!unit.Alive || unit.IsBuilding) continue;
-            movers.Add(unit);
-            centroid += unit.Position;
-        }
-        if (movers.Count > 0) centroid /= movers.Count;
-        return movers;
-    }
-
     public void IssueMoveOrders(Vector3 ground, bool queue)
     {
-        if (_world == null) return;
-
-        List<Unit> movers = SelectMovers(out Vector3 centroid);
-        if (movers.Count == 0) return;
-
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
-        foreach (Unit unit in movers)
-        {
-            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
-            _world.IssueOrder(unit, UnitOrder.Move(spot), queue);
-        }
-        ApplyGroupSpeedCap(movers, slots, ground);
-        if (!queue) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
-        PlayVoice(movers[0], "Yes");
+        if (_commandProcessor == null) return;
+        _commandProcessor.Move(new Vec2(ground.X, ground.Z), queue);
         _hud?.SetHint(queue
-            ? $"追加移动 {movers.Count} 个单位"
-            : $"移动到 ({ground.X:0}, {ground.Z:0})，{movers.Count} 个单位按阵型展开");
+            ? $"追加移动 {_selected.Count} 个单位"
+            : $"移动到 ({ground.X:0}, {ground.Z:0})，{_selected.Count} 个单位按阵型展开");
     }
 
     public void IssuePatrolOrders(Vector3 ground, bool queue)
     {
-        if (_world == null) return;
-
-        List<Unit> movers = SelectMovers(out Vector3 centroid);
-        if (movers.Count == 0) return;
-
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
-        foreach (Unit unit in movers)
-        {
-            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
-            _world.IssueOrder(unit, UnitOrder.Patrol(spot), queue);
-        }
-        ApplyGroupSpeedCap(movers, slots, ground);
-        if (!queue) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
-        PlayVoice(movers[0], "Yes");
+        if (_commandProcessor == null) return;
+        _commandProcessor.Patrol(new Vec2(ground.X, ground.Z), queue);
         _hud?.SetHint(queue
-            ? $"追加巡逻 {movers.Count} 个单位"
-            : $"巡逻：{movers.Count} 个单位往返 ({ground.X:0}, {ground.Z:0})");
+            ? $"追加巡逻 {_selected.Count} 个单位"
+            : $"巡逻：{_selected.Count} 个单位往返 ({ground.X:0}, {ground.Z:0})");
     }
 
-    /// <summary>攻击移动：走到点，途中遇敌先打（客户端 AttackMoveCommand）。</summary>
     public void IssueAttackMoveOrders(Vector3 ground, bool queue)
     {
-        if (_world == null) return;
-
-        List<Unit> movers = SelectMovers(out Vector3 centroid);
-        if (movers.Count == 0) return;
-
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
-        foreach (Unit unit in movers)
-        {
-            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
-            _world.IssueOrder(unit, UnitOrder.AttackMove(spot), queue);
-        }
-        ApplyGroupSpeedCap(movers, slots, ground);
-        if (!queue) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
-        PlayVoice(movers[0], "Yes");
+        if (_commandProcessor == null) return;
+        _commandProcessor.AttackMove(new Vec2(ground.X, ground.Z), queue);
         _hud?.SetHint(queue
-            ? $"追加攻击移动 {movers.Count} 个单位"
-            : $"攻击移动：{movers.Count} 个单位前往 ({ground.X:0}, {ground.Z:0})");
-    }
-
-    private void ApplyGroupSpeedCap(List<Unit> movers, Dictionary<Unit, Vector3> slots, Vector3 fallback)
-    {
-        foreach (Unit unit in movers)
-        {
-            unit.GroupSpeedCap = 0f;
-            unit.GroupMoveGoal = default;
-        }
-
-        if (movers.Count <= 1) return;
-
-        float cap = float.MaxValue;
-        foreach (Unit unit in movers) cap = Mathf.Min(cap, World.SpeedOf(unit));
-        foreach (Unit unit in movers)
-        {
-            unit.GroupSpeedCap = cap;
-            unit.GroupMoveGoal = slots.TryGetValue(unit, out Vector3 spot) ? spot : fallback;
-        }
+            ? $"追加攻击移动 {_selected.Count} 个单位"
+            : $"攻击移动：{_selected.Count} 个单位前往 ({ground.X:0}, {ground.Z:0})");
     }
 
     public void IssueAttackOrders(Unit target, bool queue)
     {
-        if (_world == null || target == null || !target.Alive) return;
-
-        int attackers = 0;
-        foreach (Unit unit in _selected)
-        {
-            if (!unit.Alive || unit.IsBuilding || !unit.Type.CanAttack) continue;
-            _world.IssueOrder(unit, UnitOrder.Attack(target), queue);
-            unit.GroupSpeedCap = 0f;
-            attackers++;
-        }
-        if (attackers == 0)
-        {
-            _hud?.SetHint("选中的单位不能攻击");
-            return;
-        }
-        PlayVoice(_selected[0], "Yes");
-        _hud?.SetHint(queue ? $"追加攻击 {target.Type.Name}" : $"攻击 {target.Type.Name}（{attackers} 个单位）");
+        if (_commandProcessor == null || target == null || !target.Alive) return;
+        int attackers = _commandProcessor.Attack(target, queue);
+        _hud?.SetHint(attackers == 0 ? "选中的单位不能攻击"
+            : queue ? $"追加攻击 {target.Type.Name}"
+            : $"攻击 {target.Type.Name}（{attackers} 个单位）");
     }
 
     public void IssueStopOrders()
     {
-        if (_world == null) return;
-
-        int count = 0;
-        foreach (Unit unit in _selected)
-        {
-            if (!unit.Alive || unit.IsBuilding) continue;
-            _world.StopUnit(unit);
-            count++;
-        }
+        if (_commandProcessor == null) return;
+        int count = _selected.Count(unit => unit != null && unit.Alive && !unit.IsBuilding);
+        _commandProcessor.Stop();
         _hud?.SetHint(count > 0 ? $"停止 {count} 个单位（队列已清空）" : "没有可停止的单位");
         RefreshHud();
         UpdateCommandCard();
@@ -211,15 +123,9 @@ public sealed partial class War3GameScene
 
     public void IssueHoldOrders()
     {
-        if (_world == null) return;
-
-        int count = 0;
-        foreach (Unit unit in _selected)
-        {
-            if (!unit.Alive || unit.IsBuilding) continue;
-            _world.HoldPosition(unit);
-            count++;
-        }
+        if (_commandProcessor == null) return;
+        int count = _selected.Count(unit => unit != null && unit.Alive && !unit.IsBuilding);
+        _commandProcessor.HoldPosition();
         _hud?.SetHint(count > 0 ? $"原地据守 {count} 个单位（只打射程内）" : "没有可据守的单位");
         RefreshHud();
         UpdateCommandCard();

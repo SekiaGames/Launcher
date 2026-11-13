@@ -62,6 +62,16 @@ public sealed partial class World
 
     /// <summary>场景层每帧写入：影遁这类技能按昼夜决定是否生效。</summary>
     public bool IsNight;
+
+    /// <summary>场景层注入的迷雾可见查询 (x,z -> 可见)，供选择/命令层使用。</summary>
+    public Func<float, float, bool> FogVisible { get; set; }
+
+    public bool CanControl(Unit unit, int player, bool advanced = false)
+    {
+        if (unit == null || !unit.Alive || unit.Removed) return false;
+        if (unit.Player == player) return true;
+        return advanced && IsAllied(player, unit.Player);
+    }
     /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>
     public bool ShowDamageNumbers;
     /// <summary>ApplyAttackModifiers 刚刚判定出致命一击，FireWeapon 据此打标。</summary>

@@ -55,6 +55,10 @@ public sealed partial class Unit
 
     public string Name => Type?.Name ?? "";
 
+    public bool CanMove => Type != null && State.CanMove;
+
+    public bool CanAttack => Type != null && Type.CanAttack && State.CanAttack;
+
     /// <summary>动画请求版本号：改动动画属性后自增，表现层据此重放。</summary>
     public int AnimationRequestVersion;
 

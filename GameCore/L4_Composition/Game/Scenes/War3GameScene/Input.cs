@@ -99,7 +99,7 @@ public sealed partial class War3GameScene
                 int group = (int)(keyEvent.Keycode - Key.Key0);
                 if (group is >= 0 and <= 9)
                 {
-                    HandleGroupKey(group, keyEvent.CtrlPressed);
+                    HandleGroupKey(group, keyEvent.CtrlPressed, keyEvent.ShiftPressed);
                     return;
                 }
             }
@@ -174,7 +174,6 @@ public sealed partial class War3GameScene
         }
     }
 
-    private readonly Dictionary<int, List<Unit>> _groups = new();
     private float _groupPressedAt = -1f;
     private int _groupPressed = -1;
     private float _clickTime = -1f;
@@ -211,30 +210,14 @@ public sealed partial class War3GameScene
     /// <summary>双击：把屏幕上所有同类型单位一起选上（客户端口径）。</summary>
     private void SelectSameType(Unit reference)
     {
-        Camera3D camera = _camera.Camera;
-        Vector2 viewport = GetViewport().GetVisibleRect().Size;
-
-        ClearSelection();
-        foreach (Unit unit in _allUnits)
-        {
-            if (!unit.Alive || unit.Player != ViewPlayer) continue;
-            if (!string.Equals(unit.Type.Id, reference.Type.Id, StringComparison.OrdinalIgnoreCase)) continue;
-
-            Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
-            if (camera.IsPositionBehind(point)) continue;
-            Vector2 screen = camera.UnprojectPosition(point);
-            if (screen.X < 0f || screen.Y < 0f || screen.X > viewport.X || screen.Y > viewport.Y) continue;
-
-            _selected.Add(unit);
-            unit.View?.SetSelected(true);
-            if (_selected.Count >= 12) break;
-        }
-
-        if (_selected.Count == 0) return;
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
-        _hud?.SetHint($"已选中 {_selected.Count} 个 {reference.Type.Name}");
-        PlaySelectionVoice();
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        List<Unit> units = _picking?.UnitsInScreenRect(Vector2.Zero, size,
+            unit => unit.Player == ViewPlayer
+                && string.Equals(unit.Type.Id, reference.Type.Id, StringComparison.OrdinalIgnoreCase))
+            ?? new List<Unit>();
+        _selection?.SelectRect(units, false);
+        if (units.Count > 0)
+            _hud?.SetHint($"已选中 {_selected.Count} 个 {reference.Type.Name}");
     }
 
     private void BoxSelect(Vector2 from, Vector2 to, bool additive)
@@ -242,69 +225,39 @@ public sealed partial class War3GameScene
         Rect2 rect = BoxRect(from, to);
         if (rect.Size.X < 4f || rect.Size.Y < 4f) return;
 
-        Camera3D camera = _camera.Camera;
-        if (!additive) ClearSelection();
-
-        int added = 0;
-        foreach (Unit unit in _allUnits)
-        {
-            if (!unit.Alive || unit.Player != ViewPlayer) continue;
-
-            Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
-            if (camera.IsPositionBehind(point)) continue;
-
-            Vector2 screen = camera.UnprojectPosition(point);
-            if (!rect.HasPoint(screen)) continue;
-            if (_selected.Contains(unit)) continue;
-
-            _selected.Add(unit);
-            unit.View?.SetSelected(true);
-            added++;
-            if (_selected.Count >= 12) break;
-        }
-
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
-        if (added > 0)
-        {
-            _hud?.SetHint($"框选 {_selected.Count} 个单位");
-            PlaySelectionVoice();
-        }
+        List<Unit> units = _picking?.UnitsInScreenRect(rect.Position, rect.End,
+            unit => unit.Player == ViewPlayer) ?? new List<Unit>();
+        _selection?.SelectRect(units, additive);
+        if (units.Count > 0) _hud?.SetHint($"框选 {_selected.Count} 个单位");
     }
 
-    private void HandleGroupKey(int group, bool assign)
+    private void HandleGroupKey(int group, bool ctrl, bool shift)
     {
-        if (assign)
+        if (_selection == null) return;
+        if (ctrl)
         {
-            _groups[group] = new List<Unit>(_selected);
+            _selection.SetControlGroup(group);
             _hud?.SetHint($"编队 {group} 已保存（{_selected.Count} 个单位）");
             return;
         }
-
-        if (!_groups.TryGetValue(group, out List<Unit> members)) return;
-        members.RemoveAll(unit => unit == null || !unit.Alive);
-        if (members.Count == 0) return;
-
-        ClearSelection();
-        Vector3 sum = Vector3.Zero;
-        foreach (Unit unit in members)
+        if (shift)
         {
-            _selected.Add(unit);
-            unit.View?.SetSelected(true);
-            sum += unit.Position;
+            _selection.AddToControlGroup(group);
+            _hud?.SetHint($"已并入编队 {group}");
+            return;
         }
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
+
+        _selection.RecallControlGroup(group);
+        if (_selected.Count == 0) return;
+
+        Vector3 sum = Vector3.Zero;
+        foreach (Unit unit in _selected) sum += unit.Position;
 
         float now = Time.GetTicksMsec() / 1000f;
         bool center = _groupPressed == group && now - _groupPressedAt < 0.5f;
         _groupPressed = group;
         _groupPressedAt = now;
-
-        if (center)
-        {
-            _camera.Focus(sum / members.Count);
-        }
+        if (center) _camera.Focus(sum / _selected.Count);
     }
 
     private void SelectAt(Vector2 screenPosition, bool additive)
@@ -312,28 +265,19 @@ public sealed partial class War3GameScene
         Unit picked = PickUnit(screenPosition, ViewPlayer);
         if (picked == null)
         {
-            if (!additive) ClearSelection();
+            if (!additive) _selection?.Clear();
             return;
         }
-
-        if (!additive) ClearSelection();
-        if (_selected.Contains(picked))
-        {
-            picked.View?.SetSelected(false);
-            _selected.Remove(picked);
-        }
-        else
-        {
-            _selected.Add(picked);
-            picked.View?.SetSelected(true);
-        }
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
-        PlaySelectionVoice();
+        _selection?.SelectClicked(picked, additive, mouseChannel: true);
     }
 
     private void ClearSelection()
     {
+        if (_selection != null)
+        {
+            _selection.Clear();
+            return;
+        }
         foreach (Unit unit in _selected) unit.View?.SetSelected(false);
         _selected.Clear();
         _subgroupPool.Clear();
@@ -342,37 +286,7 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
-    /// <summary>指针下的单位；anyPlayer=true 时不限阵营（技能选目标用），includeCorpses=true 时连尸体一起算。</summary>
-    private Unit PickUnit(Vector2 screenPosition, int player, bool anyPlayer = false, bool includeCorpses = false)
-    {
-        Camera3D camera = _camera.Camera;
-        Unit best = null;
-        float bestDistance = 55f;
-
-        foreach (Unit unit in _allUnits)
-        {
-            if (!unit.Alive && !(includeCorpses && unit.IsCorpse)) continue;
-            if (unit.IsCargoed) continue;
-            if (!anyPlayer && unit.Player != player)
-            {
-                if (!IsNeutralShop(unit)) continue;
-                if (_fog != null && _fog.Enabled && !_fog.IsVisible(unit.Position)) continue;
-            }
-            // 隐身敌方单位点不到（附近有反隐单位时照常可点）
-            if (unit.Alive && unit.State.Invisible && unit.Player != ViewPlayer
-                && (_world == null || !_world.IsDetectedBy(ViewPlayer, unit))) continue;
-
-            Vector3 point = unit.Position + new Vector3(0f, unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
-            if (camera.IsPositionBehind(point)) continue;
-
-            Vector2 screen = camera.UnprojectPosition(point);
-            float distance = screen.DistanceTo(screenPosition);
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                best = unit;
-            }
-        }
-        return best;
-    }
+    private Unit PickUnit(Vector2 screenPosition, int player, bool anyPlayer = false,
+        bool includeCorpses = false)
+        => _picking?.PickUnit(screenPosition, player, anyPlayer, includeCorpses);
 }

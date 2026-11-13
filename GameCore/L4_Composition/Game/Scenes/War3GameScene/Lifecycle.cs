@@ -15,6 +15,9 @@ public sealed partial class War3GameScene : Node3D
     private World _world;
     private War3Camera _camera;
     private War3CursorController _cursor;
+    private PlayerSelectionController _selection;
+    private PlayerCommandProcessor _commandProcessor;
+    private War3PickingComponent _picking;
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
     private NVector4 _mapUiBounds;
@@ -183,6 +186,16 @@ public sealed partial class War3GameScene : Node3D
         _world = new World(map.Terrain, _pathGrid, _trees);
         _world.ShowDamageNumbers = ShowDamageNumbers;
         foreach (Unit unit in _allUnits) _world.Units.Add(unit);
+        _world.FogVisible = (x, z) => _fog == null || !_fog.Enabled
+            || _fog.IsVisible(new Vector3(x, 0f, z));
+        _selection = new PlayerSelectionController(_world, () => ViewPlayer,
+            OnSelectionChanged, _selected);
+        _selection.SelectedAck = (_, _) => PlaySelectionVoice();
+        _commandProcessor = new PlayerCommandProcessor(_world, _selection, () => true, _ => { });
+        _commandProcessor.OrderAck = attack =>
+        {
+            if (_selected.Count > 0) PlayVoice(_selected[0], attack ? "YesAttack" : "Yes");
+        };
         _world.Died += OnUnitDied;
         _world.GoldDeposited += OnGoldDeposited;
         _world.LumberDeposited += OnLumberDeposited;
@@ -215,6 +228,7 @@ public sealed partial class War3GameScene : Node3D
 
         await Loading(.90f, "预热单位与界面资源");
         _camera = new War3Camera(this);
+        _picking = new War3PickingComponent(this);
         SetCameraBounds();
         FocusStartPosition();
 
@@ -378,6 +392,16 @@ public sealed partial class War3GameScene : Node3D
     private bool IsReignOfChaos => false;
 
 
+    private void OnSelectionChanged()
+    {
+        foreach (Unit unit in _allUnits)
+            unit.View?.SetSelected(_selected.Contains(unit));
+        _hud?.SetSelection(_selected);
+        _subgroupPool.Clear();
+        _subgroupType = "";
+        UpdateCommandCard();
+    }
+
     private void RefreshHeroBar()
     {
         _heroScratch.Clear();
@@ -427,13 +451,8 @@ public sealed partial class War3GameScene : Node3D
         Unit worker = workers[_idleWorkerCursor];
         _idleWorkerCursor = (_idleWorkerCursor + 1) % workers.Count;
 
-        ClearSelection();
-        _selected.Add(worker);
-        worker.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
+        _selection?.SelectSingle(worker);
         _camera.Focus(worker.Position);
-        PlaySelectionVoice();
     }
 
     private void SelectHeroFromBar(Unit hero)
@@ -446,8 +465,7 @@ public sealed partial class War3GameScene : Node3D
             return;
         }
 
-        ShowHeroSubgroup(hero);
-        PlaySelectionVoice();
+        _selection?.SelectSingle(hero);
     }
 
     public override void _Process(double delta)
