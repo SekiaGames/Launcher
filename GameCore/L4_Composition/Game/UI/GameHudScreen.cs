@@ -18,6 +18,7 @@ public sealed partial class GameHudScreen : Control
     private ConsoleSkinFrame _console;
     private TopBarFrame _topBar;
     private CommandCardBuilder _card;
+    private UnitInfoPanelFrame _infoPanel;
     private int _gold, _lumber, _food, _foodCap;
     private double _timeOfDay;
     private CommandCardView _commands = CommandCardView.Empty;
@@ -41,13 +42,23 @@ public sealed partial class GameHudScreen : Control
         _console = new ConsoleSkinFrame(resolver, skin);
         _topBar = new TopBarFrame(resolver, skin);
         _card = new CommandCardBuilder(resolver);
+        _infoPanel = new UnitInfoPanelFrame(resolver, skin);
         _root.AddChild(_console);
+        _root.AddChild(_infoPanel);
         _root.AddChild(_card.Root);
         _root.AddChild(_topBar);
 
         SetResources(500, 220, 12, 24);
         SetClock(6.0);
-        if (sample) _card.Build(SampleCommands());
+        if (sample)
+        {
+            _card.Build(SampleCommands());
+            SetUnitInfo(new UnitInfoView("步兵", false, TypeLine: "人族",
+                AttackText: "12-14", ArmorText: "2.5", Strength: 0));
+            SetUnitInfo(new UnitInfoView("山丘之王", true, ClassLine: "等级 3 山丘之王",
+                XpRatio: 0.45f, AttackText: "22-28", AttackLevel: "3",
+                ArmorText: "4.2", ArmorLevel: "3", Strength: 24, Agility: 11, Intellect: 14));
+        }
         else SetCommands(null);
         QueueRedraw();
     }
@@ -66,6 +77,12 @@ public sealed partial class GameHudScreen : Control
     {
         _timeOfDay = hours;
         _topBar.UpdateTime(hours);
+        QueueRedraw();
+    }
+
+    public void SetUnitInfo(UnitInfoView? view)
+    {
+        _infoPanel.Update(view);
         QueueRedraw();
     }
 
@@ -129,6 +146,7 @@ public sealed partial class GameHudScreen : Control
 
         _root.UpdateViewport(DesignWidth, DesignHeight);
         _console.Layout(DesignWidth, DesignHeight);
+        _infoPanel.Layout(DesignWidth, DesignHeight);
         _card.Layout(DesignWidth, DesignHeight);
         _topBar.Layout(DesignWidth, DesignHeight);
 

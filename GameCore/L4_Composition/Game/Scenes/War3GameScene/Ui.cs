@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 
 using OpenWC3.Game.UI;
+using OpenWC3.Game.UI.Views;
 namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
@@ -814,6 +815,15 @@ public sealed partial class War3GameScene
         _hud.SetQueue($"{first.Building.Type.Name}：{QueueNameOf(first)} {Mathf.Max(0f, first.Remaining):0.0}s（{entries.Count}）");
     }
 
+    private static float XpRatioOf(Unit unit)
+    {
+        int need = HeroRules.XpToNext(unit.Level);
+        return need <= 0 ? 0f : Mathf.Clamp(unit.Xp / need, 0f, 1f);
+    }
+
+    private static string RaceLabelOf(Unit unit) =>
+        unit.Type == null ? null : (unit.Type.IsBuilding ? "建筑" : "单位");
+
     private static string QueueNameOf(BuildingOrder order)
     {
         return order.Kind switch
@@ -837,6 +847,7 @@ public sealed partial class War3GameScene
         {
             _hud?.SetUnitSummary(null, "", "");
             _hud?.SetBuffs(null);
+            _newHud?.SetUnitInfo(null);
             return;
         }
 
@@ -846,6 +857,24 @@ public sealed partial class War3GameScene
         string attack = type != null && type.CanAttack ? $"{type.Weapon.MinDamage:0}-{type.Weapon.MaxDamage:0}" : "—";
         float armor = _world != null ? _world.ArmorOf(unit) : 0f;
         _hud.SetUnitSummary(portrait, attack, $"{armor:0.#}");
+
+        if (_newHud != null)
+        {
+            bool hero = unit.IsHero;
+            _newHud.SetUnitInfo(new UnitInfoView(
+                Name: type?.Name ?? unit.Name ?? "",
+                IsHero: hero,
+                ClassLine: hero ? $"等级 {unit.Level} {type?.Name}" : null,
+                TypeLine: !hero && !unit.IsBuilding ? RaceLabelOf(unit) : null,
+                XpRatio: hero ? XpRatioOf(unit) : 0f,
+                AttackText: attack,
+                AttackLevel: hero ? unit.Level.ToString() : null,
+                ArmorText: $"{armor:0.#}",
+                ArmorLevel: hero ? unit.Level.ToString() : null,
+                Strength: hero ? unit.Strength : null,
+                Agility: hero ? unit.Agility : null,
+                Intellect: hero ? unit.Intelligence : null));
+        }
 
         var buffs = new List<BuffEntry>();
         foreach (Buff buff in unit.Buffs)
