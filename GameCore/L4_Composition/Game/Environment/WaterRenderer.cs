@@ -32,8 +32,8 @@ public sealed partial class MapWorldBuilder
         _waterMaterial = shaderMaterial;
         _waterFrameCount = Mathf.Max(1, war3WaterConfig.FrameCount);
         _waterFrameRate = Mathf.Max(1, war3WaterConfig.FrameRate);
-        SurfaceTool surfaceTool = new SurfaceTool();
-        surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
+        const int chunkCells = 8;
+        var chunks = new Dictionary<(int X, int Y), SurfaceTool>();
         int width = terrain.Width;
         int height = terrain.Height;
         int num = 0;
@@ -46,44 +46,55 @@ public sealed partial class MapWorldBuilder
                 W3eTerrain.Corner corner2 = terrain.Corners[i * width + j + 1];
                 W3eTerrain.Corner corner3 = terrain.Corners[(i + 1) * width + j];
                 W3eTerrain.Corner corner4 = terrain.Corners[(i + 1) * width + j + 1];
-                if (corner.HasWater || corner2.HasWater || corner3.HasWater || corner4.HasWater)
+                if (!corner.HasWater && !corner2.HasWater && !corner3.HasWater && !corner4.HasWater)
                 {
-                    float x = (float)j * 128f;
-                    float x2 = (float)(j + 1) * 128f;
-                    float z = (float)i * 128f;
-                    float z2 = (float)(i + 1) * 128f;
-                    Vector3 position = new Vector3(x, WaterWorld(corner, war3WaterConfig), z);
-                    Vector3 position2 = new Vector3(x2, WaterWorld(corner2, war3WaterConfig), z);
-                    Vector3 position3 = new Vector3(x, WaterWorld(corner3, war3WaterConfig), z2);
-                    Vector3 position4 = new Vector3(x2, WaterWorld(corner4, war3WaterConfig), z2);
-                    CountLevel(levels, corner);
-                    CountLevel(levels, corner2);
-                    CountLevel(levels, corner3);
-                    CountLevel(levels, corner4);
-                    Vector2 uv = new Vector2(j, 1 - i);
-                    Vector2 uv2 = new Vector2(j + 1, 1 - i);
-                    Vector2 uv3 = new Vector2(j, -i);
-                    Vector2 uv4 = new Vector2(j + 1, -i);
-                    AddWaterVertex(surfaceTool, position, uv, WaterColor(war3WaterConfig, terrain, j, i));
-                    AddWaterVertex(surfaceTool, position4, uv4, WaterColor(war3WaterConfig, terrain, j + 1, i + 1));
-                    AddWaterVertex(surfaceTool, position2, uv2, WaterColor(war3WaterConfig, terrain, j + 1, i));
-                    AddWaterVertex(surfaceTool, position, uv, WaterColor(war3WaterConfig, terrain, j, i));
-                    AddWaterVertex(surfaceTool, position3, uv3, WaterColor(war3WaterConfig, terrain, j, i + 1));
-                    AddWaterVertex(surfaceTool, position4, uv4, WaterColor(war3WaterConfig, terrain, j + 1, i + 1));
-                    num++;
+                    continue;
                 }
+                var key = (j / chunkCells, i / chunkCells);
+                if (!chunks.TryGetValue(key, out SurfaceTool surfaceTool))
+                {
+                    surfaceTool = new SurfaceTool();
+                    surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
+                    chunks[key] = surfaceTool;
+                }
+                float x = (float)j * 128f;
+                float x2 = (float)(j + 1) * 128f;
+                float z = (float)i * 128f;
+                float z2 = (float)(i + 1) * 128f;
+                Vector3 position = new Vector3(x, WaterWorld(corner, war3WaterConfig), z);
+                Vector3 position2 = new Vector3(x2, WaterWorld(corner2, war3WaterConfig), z);
+                Vector3 position3 = new Vector3(x, WaterWorld(corner3, war3WaterConfig), z2);
+                Vector3 position4 = new Vector3(x2, WaterWorld(corner4, war3WaterConfig), z2);
+                CountLevel(levels, corner);
+                CountLevel(levels, corner2);
+                CountLevel(levels, corner3);
+                CountLevel(levels, corner4);
+                Vector2 uv = new Vector2(j, 1 - i);
+                Vector2 uv2 = new Vector2(j + 1, 1 - i);
+                Vector2 uv3 = new Vector2(j, -i);
+                Vector2 uv4 = new Vector2(j + 1, -i);
+                AddWaterVertex(surfaceTool, position, uv, WaterColor(war3WaterConfig, terrain, j, i));
+                AddWaterVertex(surfaceTool, position4, uv4, WaterColor(war3WaterConfig, terrain, j + 1, i + 1));
+                AddWaterVertex(surfaceTool, position2, uv2, WaterColor(war3WaterConfig, terrain, j + 1, i));
+                AddWaterVertex(surfaceTool, position, uv, WaterColor(war3WaterConfig, terrain, j, i));
+                AddWaterVertex(surfaceTool, position3, uv3, WaterColor(war3WaterConfig, terrain, j, i + 1));
+                AddWaterVertex(surfaceTool, position4, uv4, WaterColor(war3WaterConfig, terrain, j + 1, i + 1));
+                num++;
             }
         }
         WaterY = MostCommonLevel(levels, war3WaterConfig);
-        if (num != 0)
+        foreach (KeyValuePair<(int X, int Y), SurfaceTool> chunk in chunks)
         {
             Root.AddChild(new MeshInstance3D
             {
-                Mesh = surfaceTool.Commit(null, 0uL),
+                Mesh = chunk.Value.Commit(null, 0uL),
                 MaterialOverride = shaderMaterial,
-                Name = "MapWater"
+                Name = $"MapWater_{chunk.Key.X}_{chunk.Key.Y}"
             }, forceReadableName: false, Node.InternalMode.Disabled);
-            GD.Print($"[WATER] 水面格 {num}，水面 y={WaterY:0.0}，帧数 {war3WaterConfig.FrameCount}");
+        }
+        if (num != 0)
+        {
+            GD.Print($"[WATER] 水面格 {num}，分块 {chunks.Count}，水面 y={WaterY:0.0}，帧数 {war3WaterConfig.FrameCount}");
         }
     }
 

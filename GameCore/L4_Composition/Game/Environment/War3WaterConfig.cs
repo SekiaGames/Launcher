@@ -9,6 +9,16 @@ public sealed class War3WaterConfig
 {
 
     public float HeightOffset { get; private set; }
+    public float WavesDepth { get; private set; } = 25f / 128f;
+    public string ShoreDirectory { get; private set; } = "";
+    public string StraightFile { get; private set; } = "";
+    public int StraightVariations { get; private set; } = 1;
+    public string OutsideCornerFile { get; private set; } = "";
+    public int OutsideCornerVariations { get; private set; } = 1;
+    public string InsideCornerFile { get; private set; } = "";
+    public int InsideCornerVariations { get; private set; } = 1;
+    public bool ShowCliffWaves { get; private set; } = true;
+    public bool ShowRollingWaves { get; private set; } = true;
     public int FrameCount { get; private set; }
     public int FrameRate { get; private set; }
     public Color ShallowMin { get; private set; } = new Color(1f, 1f, 1f, 1f);
@@ -38,6 +48,14 @@ public sealed class War3WaterConfig
         var water = new War3WaterConfig
         {
             HeightOffset = table.GetFloat(row, "height"),
+            WavesDepth = ReadMiscFloat("Water.WavesDepth", 25f) / 128f,
+            ShoreDirectory = (table.Get(row, "shoreDir") ?? "").Replace('\\', '/').Trim('/'),
+            StraightFile = table.Get(row, "shoreSFile") ?? "",
+            StraightVariations = Mathf.Max(1, table.GetInt(row, "shoreSVar", 1)),
+            OutsideCornerFile = table.Get(row, "shoreOCFile") ?? "",
+            OutsideCornerVariations = Mathf.Max(1, table.GetInt(row, "shoreOCVar", 1)),
+            InsideCornerFile = table.Get(row, "shoreICFile") ?? "",
+            InsideCornerVariations = Mathf.Max(1, table.GetInt(row, "shoreICVar", 1)),
             FrameCount = Mathf.Max(0, table.GetInt(row, "numTex")),
             FrameRate = Mathf.Max(1, table.GetInt(row, "texRate")),
             ShallowMin = ReadColor(table, row, "Smin"),
@@ -57,6 +75,13 @@ public sealed class War3WaterConfig
             table.GetInt(row, prefix + "_G") / 255f,
             table.GetInt(row, prefix + "_B") / 255f,
             table.GetInt(row, prefix + "_A") / 255f);
+    }
+
+    private static float ReadMiscFloat(string key, float fallback)
+    {
+        if (!GeneratedTexts.TryGet("UIMiscData", key, out string value)) return fallback;
+        return float.TryParse(value, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out float parsed) ? parsed : fallback;
     }
 
     private static Texture2DArray BuildTexture(string texFile, int frameCount)

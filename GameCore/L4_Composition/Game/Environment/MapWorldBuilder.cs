@@ -28,6 +28,7 @@ public sealed partial class MapWorldBuilder
         bool[,] covered = BuildCliffs(terrain);
         BuildTerrain(terrain, covered);
         BuildWater(terrain);
+        new ShorelineWaveRenderer(Root, terrain, War3WaterConfig.Load(terrain.Tileset));
         if (doodads != null)
         {
             BuildDoodads(terrain, doodads);
