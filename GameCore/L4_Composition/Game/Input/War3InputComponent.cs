@@ -85,23 +85,19 @@ public sealed partial class War3GameScene
         {
             if (button.ButtonIndex == MouseButton.WheelUp && button.Pressed)
             {
-                _scene._camera.Zoom(-1);
+                _scene._cameraComponent?.Scroll(button.Factor > 0f ? button.Factor : 1f);
                 return;
             }
             if (button.ButtonIndex == MouseButton.WheelDown && button.Pressed)
             {
-                _scene._camera.Zoom(1);
+                _scene._cameraComponent?.Scroll(button.Factor < 0f ? button.Factor : -1f);
                 return;
             }
             if (button.ButtonIndex == MouseButton.Middle)
             {
                 _middleDown = button.Pressed;
-                Input.MouseMode = button.Pressed
-                    ? Input.MouseModeEnum.Captured
-                    : (_scene._cursor?.Active == true
-                        ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible);
-                if (!button.Pressed)
-                    Input.WarpMouse(_scene.GetViewport().GetVisibleRect().Size / 2f);
+                if (button.Pressed) _scene._cameraComponent?.BeginDrag(button.Position);
+                else _scene._cameraComponent?.EndDrag();
                 return;
             }
 
@@ -115,35 +111,10 @@ public sealed partial class War3GameScene
         {
             if (_middleDown)
             {
-                _scene._camera.Pan(new Vector2(-motion.Relative.X, -motion.Relative.Y) * 1.6f);
+                _scene._cameraComponent?.ContinueDrag(motion.Position);
                 return;
             }
             _scene._worldInteraction?.PointerMove(motion.Position);
-        }
-
-        internal void HandleKeyboardPan(float delta)
-        {
-            if (_scene._camera == null) return;
-
-            float forwardInput = 0f;
-            float rightInput = 0f;
-            if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) forwardInput += 1f;
-            if (Input.IsKeyPressed(Key.S) && _scene.PanKeyAvailable(Key.S)
-                || Input.IsKeyPressed(Key.Down)) forwardInput -= 1f;
-            if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) rightInput += 1f;
-            if (Input.IsKeyPressed(Key.A) && _scene.PanKeyAvailable(Key.A)
-                || Input.IsKeyPressed(Key.Left)) rightInput -= 1f;
-            if (forwardInput == 0f && rightInput == 0f) return;
-
-            Vector3 forward = -_scene._camera.Camera.GlobalTransform.Basis.Z;
-            forward.Y = 0f;
-            forward = forward.Normalized();
-            Vector3 right = _scene._camera.Camera.GlobalTransform.Basis.X;
-            right.Y = 0f;
-            right = right.Normalized();
-
-            Vector3 move = forward * forwardInput + right * rightInput;
-            _scene._camera.Pan(new Vector2(move.X, move.Z) * (1200f * delta));
         }
     }
 }

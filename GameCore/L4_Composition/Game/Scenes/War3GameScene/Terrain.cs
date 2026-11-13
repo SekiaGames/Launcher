@@ -6,6 +6,10 @@ namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
 {
+    internal float CameraTargetHeightAt(float worldX, float worldZ) =>
+        MathF.Max(MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ),
+            MapWorldBuilder.WaterHeightAt(_map.Terrain, worldX, worldZ));
+
     /// <summary>w3i 地图坐标 → 世界坐标（与地形 mesh 的取负 X 约定一致）。</summary>
     private Vector3 ToWorld(float mapX, float mapY)
     {

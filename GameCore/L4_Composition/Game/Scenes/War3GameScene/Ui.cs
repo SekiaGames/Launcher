@@ -303,6 +303,9 @@ public sealed partial class War3GameScene
         return new NVector4(-maxX, minZ, -minX, maxZ);
     }
 
+    internal bool IsScreenPointOverHud(Vector2 screenPoint)
+        => _newHud?.IsScreenPointOverHud(screenPoint) == true;
+
     private void RefreshHud()
     {
         PlayerSlot slot = Slot(ViewPlayer);

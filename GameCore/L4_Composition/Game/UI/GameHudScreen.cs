@@ -182,6 +182,9 @@ public sealed partial class GameHudScreen : Control
         return hit != null && !ReferenceEquals(hit, _root);
     }
 
+    public bool IsScreenPointOverHud(Vector2 screenPoint)
+        => IsPointerOverHud(ScreenToUi(screenPoint));
+
     public override void _GuiInput(InputEvent @event)
     {
         if (_router == null) return;

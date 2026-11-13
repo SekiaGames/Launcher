@@ -14,6 +14,7 @@ public sealed partial class War3GameScene : Node3D
     private MapWorldBuilder _terrainBuilder;
     private World _world;
     private War3Camera _camera;
+    private War3CameraComponent _cameraComponent;
     private War3CursorController _cursor;
     private PlayerSelectionController _selection;
     private PlayerCommandProcessor _commandProcessor;
@@ -45,7 +46,7 @@ public sealed partial class War3GameScene : Node3D
     private List<TreeState> _trees = new();
     private string _placingId;
 
-    /// <summary>暂停只停模拟层（世界推进与 AI），相机/UI 照常响应。</summary>
+    /// <summary>暂停只停模拟层与玩家镜头输入，脚本/界面照常存在。</summary>
     public bool Paused;
 
     private void TogglePause()
@@ -226,7 +227,8 @@ public sealed partial class War3GameScene : Node3D
         };
 
         await Loading(.90f, "预热单位与界面资源");
-        _camera = new War3Camera(this);
+        _camera = new War3Camera(this, CameraTargetHeightAt);
+        _cameraComponent = new War3CameraComponent(this);
         _picking = new War3PickingComponent(this);
         _worldInteraction = new War3WorldInteractionComponent(this);
         _inputComponent = new War3InputComponent(this);
@@ -476,7 +478,7 @@ public sealed partial class War3GameScene : Node3D
         if (LoadingBlocked) return;
         StartPendingMusic();
 
-        _inputComponent?.HandleKeyboardPan(frame);
+        _cameraComponent?.Update(frame);
         UpdatePlacementPreview();
         _terrainBuilder?.TickWater(delta);
         TickProjectiles((float)delta);
