@@ -16,7 +16,7 @@ public static class RuntimeAbilityFactory
     {
         // —— 圣骑士 ——
         ["AHhb"] = () => new HolyLight(),     // 圣光术
-        ["AHds"] = () => new RuntimeDivineShieldAbility(),  // 神圣护甲
+        ["AHds"] = () => WithObjects<RuntimeDivineShieldAbility>(),  // 神圣护甲
         ["AHad"] = () => new DevotionAura(),  // 专注光环
         // —— 山丘之王 ——
         ["AHtb"] = () => new RuntimeStormBoltAbility(),   // 风暴之锤
@@ -341,7 +341,7 @@ public static class RuntimeAbilityFactory
         ["ACde"] = () => new RuntimeDevourMagicAbility(),       // 吞噬魔法
         ["ACdm"] = () => new AbolishMagic(),      // 废除魔法
         ["ACdr"] = () => new LifeDrain(),         // 生命汲取
-        ["ACds"] = () => new RuntimeDivineShieldAbility(),      // 神圣护甲
+        ["ACds"] = () => WithObjects<RuntimeDivineShieldAbility>(),      // 神圣护甲
         ["ACdv"] = () => new Devour(),            // 吞噬
         ["ACev"] = () => new Evasion(),           // 闪避
         ["ACf2"] = () => new RuntimeFrostArmorAbility(),        // 霜冻护甲
@@ -439,7 +439,7 @@ public static class RuntimeAbilityFactory
         ["AIcs"] = () => new CriticalStrike(),// 物品版致命一击
         ["AIad"] = () => new DevotionAura(),  // 物品版专注光环
         ["AIgx"] = WithObjects<RuntimeLifeRegenerationAuraAbility>, // 物品版再生光环
-        ["AIdv"] = () => new RuntimeDivineShieldAbility(),  // 物品版神圣护甲
+        ["AIdv"] = () => WithObjects<RuntimeDivineShieldAbility>(),  // 物品版神圣护甲
         ["AIhl"] = () => new HolyLight(),     // 物品版圣光术
         // —— 物品主动：直接复用同源技能实现（目标形态跟着别家能力走） ——
         ["AIbk"] = () => new Blink(),         // 逃脱匕首（点地面，DataA 上限 1000 / DataB 最短 200）
