@@ -57,8 +57,31 @@ public static class War3SlkReader
         return ResolveFile(name) != null;
     }
 
+    private static bool TryGenerated(string name, out SlkTable table)
+    {
+        table = null;
+        if (!OpenWC3.Game.Generated.SlkTables.All.TryGetValue(name, out var source))
+        {
+            string match = null;
+            foreach (string key in OpenWC3.Game.Generated.SlkTables.All.Keys)
+            {
+                if (key.EndsWith(name, StringComparison.OrdinalIgnoreCase)) { match = key; break; }
+            }
+            if (match == null) return false;
+            source = OpenWC3.Game.Generated.SlkTables.All[match];
+        }
+
+        var rows = new List<string[]>(source.Rows.Length);
+        foreach (string row in source.Rows)
+            rows.Add(row.Length == 0 ? Array.Empty<string>() : row.Split('\t'));
+        table = SlkTable.FromRows(source.Columns, rows.ToArray());
+        return true;
+    }
+
     private static SlkTable Load(string name)
     {
+        if (TryGenerated(name, out SlkTable generated)) return generated;
+
         string file = ResolveFile(name);
         if (file == null)
         {

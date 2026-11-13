@@ -294,7 +294,7 @@ public static class AbilityCatalog
         _strings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in StringFiles)
         {
-            Variant json = Assets.ReadJson(TextsRoot + file);
+            Variant json = GeneratedTexts.Get(file);
             if (json.VariantType != Variant.Type.Dictionary) continue;
 
             Godot.Collections.Dictionary root = json.AsGodotDictionary();

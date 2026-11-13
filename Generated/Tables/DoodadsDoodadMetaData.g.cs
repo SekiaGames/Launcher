@@ -1,0 +1,66 @@
+namespace OpenWC3.Game.Generated.Tables;
+
+internal static class DoodadsDoodadMetaData
+{
+    internal static readonly string[] Columns =
+    {
+        "ID",
+        "field",
+        "slk",
+        "index",
+        "repeat",
+        "category",
+        "displayName",
+        "sort",
+        "type",
+        "changeFlags",
+        "importType",
+        "stringExt",
+        "caseSens",
+        "canBeEmpty",
+        "minVal",
+        "maxVal",
+        "forceNonNeg",
+        "version",
+        "section",
+    };
+
+    internal static readonly string[] Rows =
+    {
+        "dnam\tName\tDoodadData\t0\t0\ttext\tWESTRING_DEVAL_DNAM\ta1a00\tstring\tt\t\t1\t1\t0\t\tTTName\t0\t1",
+        "dcat\tcategory\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DCAT\ta2a00\tdoodadCategory\tc\t\t0\t0\t0\t\t\t0\t1",
+        "dtil\ttilesets\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DTIL\ta3a00\ttilesetList\tc\t\t0\t0\t0\t\tTTDesc\t0\t1",
+        "dtsp\ttilesetSpecific\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DTSP\ta4a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dfil\tfile\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DFIL\ta6a00\tmodel\tm\tModel\t0\t0\t0\t\tTTDesc\t0\t1",
+        "dsnd\tsoundLoop\tDoodadData\t0\t0\tsound\tWESTRING_DEVAL_DSND\ta8a00\tsoundLabel\t\t\t0\t0\t1\t\tTTDesc\t0\t1",
+        "dsel\tselSize\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DSEL\ta9a00\tunreal\tm\t\t0\t0\t0\t0\t99999\t1\t1",
+        "ddes\tdefScale\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DDES\tb1a00\tunreal\tm\t\t0\t0\t0\t0.01\t100\t1\t1",
+        "dmis\tminScale\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DMIS\tb2a00\tunreal\tm\t\t0\t0\t0\t0.01\t100\t1\t1",
+        "dmas\tmaxScale\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DMAS\tb3a00\tunreal\tm\t\t0\t0\t0\t0.01\t100\t1\t1",
+        "dcpr\tcanPlaceRandScale\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DCPR\tb4a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "duch\tuseClickHelper\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DUCH\tb5a00\tbool\tm\t\t0\t0\t0\t\t\t0\t1",
+        "dimc\tignoreModelClick\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DIMC\tb5a01\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dmap\tmaxPitch\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DMAP\tb6a00\tunreal\tm\t\t0\t0\t0\t0\t99999\t1\t1",
+        "dmar\tmaxRoll\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DMAR\tb7a00\tunreal\tm\t\t0\t0\t0\t0\t99999\t1\t1",
+        "dvis\tvisRadius\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DVIS\tb8a00\tunreal\t\t\t0\t0\t0\t0\t99999\t1\t1",
+        "dwlk\twalkable\tDoodadData\t0\t0\tpath\tWESTRING_DEVAL_DWLK\tb9a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dvar\tnumVar\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DVAR\tu1a00\tint\tm\t\t0\t0\t0\t1\t10\t0\t1",
+        "donc\tonCliffs\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DONC\tc2a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "donw\tonWater\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DONW\tc3a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dflt\tfloats\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DFLT\tc4a00\tbool\tm\t\t0\t0\t0\t\t\t0\t1",
+        "dshd\tshadow\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DSHD\tc5a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dshf\tshowInFog\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DSHF\tc6a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "danf\tanimInFog\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DANF\tc7a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dfxr\tfixedRot\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DFXR\tc8a00\tunreal\tm\t\t0\t0\t0\t-1\t360\t0\t1",
+        "dptx\tpathTex\tDoodadData\t0\t0\tpath\tWESTRING_DEVAL_DPTX\tc9a00\tpathingTexture\tm\tImage\t0\t0\t1\t\t\t0\t1",
+        "dsmm\tshowInMM\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DSMM\td1a00\tbool\t\t\t0\t0\t0\t\t\t0\t1",
+        "dumc\tuseMMColor\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DUMC\td2a00\tbool\tm\t\t0\t0\t0\t\t\t0\t1",
+        "dmmr\tMMRed\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DMMR\td3a00\tint\tm\t\t0\t0\t0\t0\t255\t0\t1",
+        "dmmg\tMMGreen\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DMMG\td4a00\tint\tm\t\t0\t0\t0\t0\t255\t0\t1",
+        "dmmb\tMMBlue\tDoodadData\t0\t0\tart\tWESTRING_DEVAL_DMMB\td5a00\tint\tm\t\t0\t0\t0\t0\t255\t0\t1",
+        "dvr1\tvertR\tDoodadData\t0\t10\tart\tWESTRING_DEVAL_DVR1\tv1a00\tint\tm\t\t0\t0\t0\t0\t255\t0\t1",
+        "dvg1\tvertG\tDoodadData\t0\t10\tart\tWESTRING_DEVAL_DVG1\tv1b00\tint\tm\t\t0\t0\t0\t0\t255\t0\t1",
+        "dvb1\tvertB\tDoodadData\t0\t10\tart\tWESTRING_DEVAL_DVB1\tv1c00\tint\tm\t\t0\t0\t0\t0\t255\t0\t1",
+        "dusr\tUserList\tDoodadData\t0\t0\teditor\tWESTRING_DEVAL_DUSR\tb000\tbool\tc\t\t0\t0\t0\t\t\t0\t1",
+    };
+}

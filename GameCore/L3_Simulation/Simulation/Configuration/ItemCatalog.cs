@@ -168,7 +168,7 @@ public static class ItemCatalog
     private static Dictionary<string, string> LoadStrings()
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        Variant json = Assets.ReadJson(StringsPath);
+        Variant json = GeneratedTexts.Get(StringsPath);
         if (json.VariantType != Variant.Type.Dictionary) return result;
 
         Godot.Collections.Dictionary root = json.AsGodotDictionary();

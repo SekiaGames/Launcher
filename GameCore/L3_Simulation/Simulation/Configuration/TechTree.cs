@@ -181,7 +181,7 @@ public static class TechTree
         var merged = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         foreach (string table in tables)
         {
-            Variant json = Assets.ReadJson(TextRoot + table + ".json");
+            Variant json = GeneratedTexts.Get(table);
             if (json.VariantType != Variant.Type.Dictionary) continue;
 
             Godot.Collections.Dictionary root = json.AsGodotDictionary();

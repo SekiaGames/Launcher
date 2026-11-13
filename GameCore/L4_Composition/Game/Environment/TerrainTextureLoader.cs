@@ -21,7 +21,7 @@ public sealed class TerrainTextureLoader
     /// <summary>腐地贴图：`UI\WorldEditData` 的 [TileSets] 每行第二段就是该地形集的 blight 贴图。</summary>
     private static string BlightPathFromTable(char tileset)
     {
-        Variant json = Assets.ReadJson("res://extract/Texts/UIWorldEditData.json");
+        Variant json = OpenWC3.Game.GeneratedTexts.Get("UIWorldEditData");
         if (json.VariantType != Variant.Type.Dictionary) return null;
 
         Godot.Collections.Dictionary root = json.AsGodotDictionary();

@@ -27,7 +27,7 @@ public static class MiscRules
 
     public static string Text(string key)
     {
-        Variant json = Assets.ReadJson(Table);
+        Variant json = GeneratedTexts.Get(Table);
         if (json.VariantType != Variant.Type.Dictionary) return null;
 
         Godot.Collections.Dictionary root = json.AsGodotDictionary();
