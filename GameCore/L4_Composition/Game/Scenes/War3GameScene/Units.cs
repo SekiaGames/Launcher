@@ -362,6 +362,7 @@ public sealed partial class War3GameScene
             View = view,
         };
 
+        view.Owner = unit;
         unit.BaseMaxHp = maxHp;
 
         if (type.IsHero)
@@ -442,6 +443,7 @@ public sealed partial class War3GameScene
         view.Root.Name = $"morph_{unit.Type.Id}_{_morphSerial++}";
         AddChild(view.Root);
 
+        view.Owner = unit;
         unit.View = view;
         view.SetSelected(selected);
         view.SetHp(unit.Hp / Mathf.Max(1f, unit.MaxHp), unit.Alive);

@@ -17,6 +17,8 @@ public sealed class UnitSceneComponent
     private static ArrayMesh _ringMesh;
 
     public Node3D Root { get; private set; }
+    public Unit Owner;
+
     public AnimationPlayer Player { get; private set; }
     public float Height { get; private set; } = 100f;
     public MeshInstance3D BarFill { get; private set; }
@@ -278,22 +280,134 @@ public sealed class UnitSceneComponent
         return st.Commit();
     }
 
+    private readonly AnimationTagCache _animationTags = new();
+    private readonly Dictionary<string, (HashSet<string> Primary, HashSet<string> Secondary,
+        HashSet<string> Form)> _sequenceTags = new(StringComparer.Ordinal);
+
     public void Play(string kind, float rate = 1f)
     {
         if (Player == null) return;
 
-        string found = PickAnimation(kind);
+        string primary = kind;
+        string[] requested = Array.Empty<string>();
+        int space = kind.IndexOf(' ');
+        if (space > 0)
+        {
+            primary = kind[..space];
+            requested = kind[(space + 1)..].Split(' ',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+
+        string harvest = Owner == null ? null
+            : Owner.Carry > 0 ? "Gold"
+            : Owner.CarryLumber > 0 ? "Lumber" : null;
+        bool cutting = Owner != null && (Owner.BuildingNow
+            || (Owner.Tree != null && Owner.CarryLumber <= 0 && Owner.Carry <= 0
+                && !Owner.MoveTarget.HasValue));
+        (IReadOnlyCollection<string> tags, _) = _animationTags.Get(Owner, requested, harvest, cutting);
+        string found = SelectSequence(primary, tags) ?? PickAnimation(kind);
         if (found == null) return;
         Player.SpeedScale = kind == "Walk" ? Mathf.Max(0.05f, rate) : 1f;
         if (found == CurrentAnimation) return;
 
         CurrentAnimation = found;
         Player.Play(found);
-        if (kind is "Stand" or "Walk")
+        if (primary is "Stand" or "Walk")
         {
             Player.GetAnimation(found).LoopMode = Animation.LoopModeEnum.Linear;
         }
     }
+
+    private string SelectSequence(string primary, IReadOnlyCollection<string> requestedTags)
+    {
+        if (string.IsNullOrEmpty(primary)) return null;
+        var requestedForm = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var requestedNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string tag in requestedTags ?? Array.Empty<string>())
+        {
+            bool numeric = tag.Length > 0 && tag.All(char.IsDigit);
+            (numeric ? requestedNumbers : requestedForm).Add(tag);
+        }
+
+        string[] names = Player.GetAnimationList();
+        var matches = new List<(string Name, HashSet<string> Secondary, HashSet<string> Form)>();
+        foreach (string name in names)
+        {
+            (HashSet<string> primaryTags, HashSet<string> secondary, HashSet<string> form) = TagsOf(name);
+            if (primaryTags.Contains(primary)) matches.Add((name, secondary, form));
+        }
+        if (matches.Count == 0) return null;
+
+        string best = null;
+        int bestMatches = -1;
+        int smallestFormCount = int.MaxValue;
+        foreach ((string name, HashSet<string> secondary, HashSet<string> form) in matches)
+        {
+            if (!form.SetEquals(requestedForm)) continue;
+            bool numbersOk = true;
+            foreach (string number in requestedNumbers)
+                if (!secondary.Contains(number)) { numbersOk = false; break; }
+            if (!numbersOk) continue;
+            if (best == null) best = name;
+        }
+        if (best != null) return best;
+
+        bool wantSwim = requestedForm.Contains("SWIM");
+        foreach ((string name, HashSet<string> secondary, HashSet<string> form) in matches)
+        {
+            if (!wantSwim && form.Contains("SWIM")) continue;
+            int matching = 0;
+            foreach (string tag in form)
+                if (requestedForm.Contains(tag)) matching++;
+            if (matching > bestMatches
+                || (matching == bestMatches && form.Count < smallestFormCount))
+            {
+                bestMatches = matching;
+                smallestFormCount = form.Count;
+                best = name;
+            }
+        }
+        return best;
+    }
+
+    private (HashSet<string> Primary, HashSet<string> Secondary, HashSet<string> Form) TagsOf(string name)
+    {
+        if (_sequenceTags.TryGetValue(name, out var cached)) return cached;
+        var primary = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var secondary = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string token in name.Split(new[] { ' ', '\t', '\r', '\n', ',' },
+            StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (token.All(character => character == '-')) continue;
+            if (PrimaryTags.Contains(token)) primary.Add(token);
+            else if (SecondaryTags.Contains(token)) secondary.Add(token);
+            else if (primary.Count > 0 && token.All(char.IsDigit)) secondary.Add(token);
+            else break;
+        }
+        var form = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string tag in secondary)
+            if (!tag.All(char.IsDigit)) form.Add(tag);
+        var result = (primary, secondary, form);
+        _sequenceTags[name] = result;
+        return result;
+    }
+
+    private static readonly HashSet<string> PrimaryTags = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ATTACK", "BIRTH", "DEATH", "DECAY", "DISSIPATE", "MORPH", "PORTRAIT",
+        "SLEEP", "SPELL", "STAND", "WALK",
+    };
+
+    private static readonly HashSet<string> SecondaryTags = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ALTERNATE", "ALTERNATEEX", "BONE", "CHAIN", "CHANNEL", "COMPLETE", "CRITICAL",
+        "DEFEND", "DRAIN", "EATTREE", "FAST", "FILL", "FLAIL", "FLESH", "FIFTH", "FIRE",
+        "FIRST", "FIVE", "FOUR", "FOURTH", "GOLD", "HIT", "LARGE", "LEFT", "LIGHT",
+        "LOOPING", "LUMBER", "MEDIUM", "MODERATE", "OFF", "ONE", "PUKE", "READY",
+        "RIGHT", "SECOND", "SEVERE", "SLAM", "SMALL", "SPIKED", "SPIN", "SPELL",
+        "CINEMATIC", "SWIM", "TALK", "THIRD", "THREE", "THROW", "TWO", "TURN",
+        "VICTORY", "WORK", "WOUNDED", "UPGRADE",
+    };
 
     private string PickAnimation(string kind)
     {
