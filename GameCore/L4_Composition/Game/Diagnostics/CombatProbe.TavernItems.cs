@@ -162,7 +162,9 @@ public static partial class CombatProbe
 
         var info = new DamageData { Source = caster, Target = first, Amount = 100f, IsAttack = true };
         float before = second.Hp;
-        caster.FindAbility("ANca").OnAttackLanded(world, info);
+        // 走和武器系统一致的顺序：先出伤修正（分裂攻击在里头挂 _pendingCleave），再结算
+        world.ApplyDamagePacketModifiers(info);
+        world.DealDamage(info);
 
         float expected = War3GameplayConfig.Default.Resolve(100f * cleaveType.DataAt(1, 'A'), AttackType.Normal,
             second.Type.DefenseType, DamageType.Universal, 0f, false, false);
