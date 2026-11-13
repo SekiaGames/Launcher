@@ -118,6 +118,9 @@ public sealed partial class World
     }
 
     /// <summary>瞬移/落点定位：改模拟坐标的同时把节点也挪过去（对标客户端 World.SetUnitPosition）。</summary>
+    public void SetUnitPosition(Unit unit, Vec2 position)
+        => MoveUnitTo(unit, new Vector3(position.X, 0f, position.Y));
+
     public void MoveUnitTo(Unit unit, Vector3 position)
     {
         if (unit == null) return;

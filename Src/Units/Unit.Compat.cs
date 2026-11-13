@@ -512,6 +512,9 @@ public sealed class Death
 
     public Death(Unit unit) => _unit = unit;
 
+    /// <summary>就地死亡（客户端 Death.Die）。</summary>
+    public void Die(Unit killer) => _unit.World?.KillUnit(_unit, killer);
+
     public bool IsCorpse => _unit.IsCorpse;
 
     public bool RevivalForbidden => _unit.IsCorpse && _unit.CorpseRemaining <= 0f;
