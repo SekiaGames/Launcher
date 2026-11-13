@@ -5,7 +5,7 @@ using Vector4 = System.Numerics.Vector4;
 
 namespace OpenWC3.Game;
 
-internal sealed class War3UiSkin
+public sealed class War3UiSkin
 {
     private const int Edition = 1;
 
@@ -14,7 +14,7 @@ internal sealed class War3UiSkin
     private readonly Dictionary<string, string> _rocLookups = new(StringComparer.OrdinalIgnoreCase);
     private Vector4[] _teamColors = Array.Empty<Vector4>();
 
-    internal Vector4? TeamColor(int index) => _teamColors.Length == 0
+    public Vector4? TeamColor(int index) => _teamColors.Length == 0
         ? null
         : _teamColors[Math.Abs(index % _teamColors.Length)];
 

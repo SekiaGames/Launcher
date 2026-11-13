@@ -8,6 +8,9 @@ namespace OpenWC3.Game.UI;
 public sealed class GodotUiTextureResolver : IUiTextureResolver
 {
     readonly Dictionary<string, ITexture> _cache = new(System.StringComparer.OrdinalIgnoreCase);
+    readonly HashSet<string> _missing = new(System.StringComparer.OrdinalIgnoreCase);
+
+    public War3UiSkin Skin { get; set; }
 
     public Texture2D Load(string path)
     {
@@ -18,11 +21,15 @@ public sealed class GodotUiTextureResolver : IUiTextureResolver
     public ITexture Resolve(string path)
     {
         if (string.IsNullOrWhiteSpace(path)) return null;
-        if (_cache.TryGetValue(path, out ITexture cached)) return cached;
+        string key = path.Trim();
+        if (_cache.TryGetValue(key, out ITexture cached)) return cached;
+        if (_missing.Contains(key)) return null;
 
-        Texture2D texture = LoadFromPack(path);
+        string resolved = Skin?.Get(key, key) ?? key;
+        Texture2D texture = LoadFromPack(resolved);
+        if (texture == null) _missing.Add(key);
         ITexture result = texture == null ? null : new GodotUiTexture(texture);
-        _cache[path] = result;
+        _cache[key] = result;
         return result;
     }
 

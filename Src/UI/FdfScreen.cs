@@ -13,8 +13,9 @@ public sealed partial class FdfScreen : Control
     const string GlobalStrings = @"UI\FrameDef\GlobalStrings.fdf";
 
     UiRoot _root;
-    GodotUiDrawDevice _device;
+    GodotUiRenderDevice _device;
     FdfUiFactory _factory;
+    GodotUiTextureResolver _resolver;
 
     public int FrameCount => _root?.Children.Count ?? 0;
 
@@ -23,13 +24,19 @@ public sealed partial class FdfScreen : Control
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Ignore;
 
-        _factory = new FdfUiFactory(new GodotUiTextureResolver(), FdfSource.Read);
+        War3UiSkin skin = War3UiSkin.Load();
+        GodotWar3FontFace font = GodotWar3FontFace.Load(skin);
+        _resolver = new GodotUiTextureResolver { Skin = skin };
+        _factory = new FdfUiFactory(_resolver, FdfSource.Read);
         _factory.LoadTemplate(GlobalStrings);
         _factory.LoadTemplate(fdfPath);
         _root = new UiRoot();
         UiFrame frame = _factory.Create(templateName, _root);
 
-        _device = new GodotUiDrawDevice(this, ThemeDB.FallbackFont);
+        _device = new GodotUiRenderDevice(this, font.Font)
+        {
+            LineSizeResolver = font.PixelSizeForLine,
+        };
         QueueRedraw();
     }
 
@@ -37,7 +44,7 @@ public sealed partial class FdfScreen : Control
 
     void DrawLoadingBackground(IUiRenderDevice device)
     {
-        var resolver = new GodotUiTextureResolver();
+        GodotUiTextureResolver resolver = _resolver ?? new GodotUiTextureResolver();
         ITexture tl = resolver.Resolve(BackgroundPrefix + "TopLeft.png");
         ITexture tr = resolver.Resolve(BackgroundPrefix + "TopRight.png");
         ITexture bl = resolver.Resolve(BackgroundPrefix + "BotLeft.png");
