@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using OpenWC3.War3Formats;
 
 namespace OpenWC3.Game;
 
@@ -67,7 +68,45 @@ public sealed class W3xObjectDefinition
 
 public sealed class War3ObjectData
 {
-    public BuffTypeData GetBuff(string typeId) => null;
+    static Dictionary<string, BuffTypeData> _buffs;
+
+    /// <summary>Buff 物编只有 9 个结构列（AbilityBuffData.slk），玩法字段由 Buff 子类 override。</summary>
+    static Dictionary<string, BuffTypeData> Buffs
+    {
+        get
+        {
+            if (_buffs != null) return _buffs;
+            _buffs = new Dictionary<string, BuffTypeData>(StringComparer.OrdinalIgnoreCase);
+            SlkTable table = War3SlkReader.Get("UnitsAbilityBuffData");
+            if (table == null) return _buffs;
+            foreach (int row in table.DataRows)
+            {
+                string id = (table.Get(row, "alias") ?? "").Trim();
+                if (id.Length == 0) continue;
+                var data = new BuffTypeData { Id = id, BaseId = id };
+                data.Set("code", (table.Get(row, "code") ?? "").Trim());
+                data.Set("comments", (table.Get(row, "comments") ?? "").Trim());
+                data.Set("isEffect", (table.Get(row, "isEffect") ?? "").Trim());
+                data.Set("race", (table.Get(row, "race") ?? "").Trim());
+                _buffs[id] = data;
+            }
+            return _buffs;
+        }
+    }
+
+    public BuffTypeData GetBuff(string typeId)
+        => string.IsNullOrEmpty(typeId) ? null : (Buffs.TryGetValue(typeId, out BuffTypeData found) ? found : null);
+
+    public ObjectDataBuff CreateBuff(string typeId, int level, Unit caster = null,
+        Ability sourceAbility = null, float? duration = null)
+    {
+        BuffTypeData data = GetBuff(typeId);
+        if (data == null) return null;
+        var buff = new ObjectDataBuff();
+        buff.BindBuffObjectData(typeId, data, level, caster, sourceAbility);
+        if (duration.HasValue) buff.Duration = Math.Max(0f, duration.Value);
+        return buff;
+    }
 
     public const string UnitFile = "war3map.w3u";
     public const string DoodadFile = "war3map.w3d";
