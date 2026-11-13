@@ -55,6 +55,9 @@ public sealed partial class Unit
 
     public string Name => Type?.Name ?? "";
 
+    /// <summary>动画请求版本号：改动动画属性后自增，表现层据此重放。</summary>
+    public int AnimationRequestVersion;
+
     public bool Is(Classification classification)
     {
         if (classification == Classification.None) return false;
