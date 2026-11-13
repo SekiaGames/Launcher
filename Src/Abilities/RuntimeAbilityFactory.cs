@@ -466,6 +466,7 @@ public static class RuntimeAbilityFactory
         ["Agra"] = () => new RuntimeGrabTreeAbility(),       // 战棍（山岭巨人拔树：攻城攻击 + 射程）
         ["Aro1"] = () => new Root(),           // 扎根/拔根（古树）
         ["Aro2"] = () => new Root(),           // 扎根/拔根（远古守护者）
+        ["AIpm"] = WithObjects<RuntimeItemPlaceMineAbility>,   // 布雷（物品）
         ["Amin"] = () => new Mine(),           // 地精地雷（踩到就引爆）
         ["Amnx"] = () => new MineBlast(),      // 地雷爆炸伤害（死亡触发）
         ["ANen"] = () => new Ensnare(),        // 诱捕（纳迦）
@@ -577,6 +578,27 @@ public static class RuntimeAbilityFactory
         ["Atwa"] = () => new RuntimeHarvestAbility(),  // 龙卷风游走
         ["ANcl"] = () => new RuntimeHarvestAbility(),  // 伊利丹引导（战役）
     };
+
+    /// <summary>召唤一个单位（客户端 RuntimeAbilityFactory.SpawnSummoned 的等价入口）。</summary>
+    internal static Unit SpawnSummoned(War3ObjectData objects, Unit owner, string unitId,
+        Vec2 position, float duration, string timedLifeRawcode = "BTLF", float? facing = null,
+        Action<Unit> initialize = null, bool resolveCreationPlacement = true,
+        bool permanentTimedLife = false, int? ownerPlayerId = null, int? ownerTeam = null,
+        Func<Unit, bool> preparePlacement = null)
+    {
+        if (objects == null || owner?.World == null) return null;
+        if (string.IsNullOrWhiteSpace(unitId) || unitId == "-" || unitId.Length < 4) return null;
+        Unit summoned = UnitFactory.Create(objects, unitId[..4], ownerTeam ?? owner.Team,
+            position, facing ?? owner.Facing);
+        if (summoned == null) return null;
+        summoned.PlayerId = ownerPlayerId ?? owner.PlayerId;
+        if (preparePlacement != null && !preparePlacement(summoned)) return null;
+        if (duration > 0f || permanentTimedLife) summoned.SummonRemaining = duration;
+        initialize?.Invoke(summoned);
+        if (resolveCreationPlacement) owner.World.SpawnViaCreateUnit(summoned);
+        else owner.World.Spawn(summoned);
+        return summoned;
+    }
 
     public static bool IsImplemented(string id) => Map.ContainsKey(id);
 
