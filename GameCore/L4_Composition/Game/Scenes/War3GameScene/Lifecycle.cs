@@ -14,6 +14,7 @@ public sealed partial class War3GameScene : Node3D
     private MapWorldBuilder _terrainBuilder;
     private World _world;
     private War3Camera _camera;
+    private War3CursorController _cursor;
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
     private NVector4 _mapUiBounds;
@@ -31,6 +32,7 @@ public sealed partial class War3GameScene : Node3D
     private readonly List<Unit> _selected = new();
     private bool _middleDown;
     private bool _leftDown;
+    private bool _rightDown;
     private Vector2 _dragStart;
     private Node3D _placementGhost;
     private MeshInstance3D _placementFootprintNode;
@@ -119,6 +121,7 @@ public sealed partial class War3GameScene : Node3D
             GD.PushError($"[INIT] 场景初始化失败: {error}");
         }
         _loadingScreen?.Finish();
+        _cursor = War3CursorController.TryCreate(this, HudRaceName());
         Loaded?.Invoke();
     }
 
@@ -478,6 +481,7 @@ public sealed partial class War3GameScene : Node3D
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
         RefreshConstruction();
+        _cursor?.Tick(frame);
 
         _hudTimer += (float)delta;
         if (_hudTimer >= 0.2f)
@@ -489,6 +493,12 @@ public sealed partial class War3GameScene : Node3D
             RefreshHud();
             UpdateCommandCard();
         }
+    }
+
+    public override void _ExitTree()
+    {
+        _cursor?.Dispose();
+        _cursor = null;
     }
 
     public override void _PhysicsProcess(double delta)

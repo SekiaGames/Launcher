@@ -112,7 +112,9 @@ public sealed partial class War3GameScene
             else if (button.ButtonIndex == MouseButton.Middle)
             {
                 _middleDown = button.Pressed;
-                Input.MouseMode = button.Pressed ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
+                Input.MouseMode = button.Pressed
+                    ? Input.MouseModeEnum.Captured
+                    : (_cursor?.Active == true ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible);
                 if (!button.Pressed) Input.WarpMouse(GetViewport().GetVisibleRect().Size / 2f);
             }
             else if (button.ButtonIndex == MouseButton.Left)
@@ -148,8 +150,11 @@ public sealed partial class War3GameScene
                     BoxSelect(_dragStart, button.Position, button.ShiftPressed);
                 }
             }
-            else if (button.ButtonIndex == MouseButton.Right && button.Pressed)
+            else if (button.ButtonIndex == MouseButton.Right)
             {
+                _rightDown = button.Pressed;
+                if (!button.Pressed) return;
+                if (_selected.Count > 0 && _placingId == null) _cursor?.FlashMove();
                 if (_placingId != null) CancelPlacement();
                 else if (CastPending) CancelCast();
                 else OrderAt(button.Position, button.ShiftPressed);
