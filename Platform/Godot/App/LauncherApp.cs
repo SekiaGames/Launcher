@@ -1,4 +1,5 @@
 using Godot;
+using OpenWC3.Game.Diagnostics;
 using System;
 using System.Collections.Generic;
 using OpenWC3.Game;
@@ -30,6 +31,7 @@ public sealed partial class LauncherApp : Node
     private bool _heroProbe;
     private bool _combatProbe;
     private bool _stateProbe;
+    private string _fdfProbe;
     private bool _effectProbe;
     private bool _attachProbe;
     private bool _reviveProbe;
@@ -187,6 +189,10 @@ public sealed partial class LauncherApp : Node
             {
                 _attachProbe = true;
             }
+            else if (argument.StartsWith("--fdf-probe="))
+            {
+                _fdfProbe = argument["--fdf-probe=".Length..];
+            }
             else if (argument == "--state-probe")
             {
                 _stateProbe = true;
@@ -292,6 +298,13 @@ public sealed partial class LauncherApp : Node
         {
             int code = CombatProbe.Run();
             GetTree().Quit(code);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(_fdfProbe))
+        {
+            int fdfCode = FdfProbe.Run(_fdfProbe);
+            GetTree().Quit(fdfCode);
             return;
         }
 
