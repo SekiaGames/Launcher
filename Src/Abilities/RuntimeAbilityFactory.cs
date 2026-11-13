@@ -692,6 +692,10 @@ public static class RuntimeAbilityFactory
         return ability;
     }
 
+    /// <summary>客户端签名：objects/unit/rawcode/duration。Launcher 只记剩余时长。</summary>
+    public static void ApplyTimedLife(War3ObjectData objects, Unit unit, string rawcode, float seconds)
+        => ApplyTimedLife(unit, seconds);
+
     /// <summary>客户端给召唤物挂限时生命。</summary>
     public static void ApplyTimedLife(Unit unit, float seconds)
     {

@@ -18,6 +18,9 @@ public sealed partial class World
 
     public System.Random ScriptRandom => _random;
 
+    /// <summary>事件总线：客户端技能/触发器按 GameEvent 订阅，Launcher 侧在相应时机 Fire。</summary>
+    public EventBus Events { get; } = new();
+
     public System.Random Rng => _random;
 
     public Func<int, bool> ComputerSpellAiQuery { get; set; } = _ => true;
