@@ -20,12 +20,19 @@ public sealed class UnitList : IList<Unit>
         item.World = _world;
         item.Removed = false;
         _items.Add(item);
+        _world.BumpUnitCollectionVersion();
+        _world.OnUiCandidateAdded(item);
     }
 
     public bool Remove(Unit item)
     {
         bool removed = _items.Remove(item);
-        if (removed && item != null && item.World == _world) item.Removed = true;
+        if (removed && item != null)
+        {
+            if (item.World == _world) item.Removed = true;
+            _world.BumpUnitCollectionVersion();
+            _world.OnUiCandidateRemoved(item);
+        }
         return removed;
     }
 
@@ -33,22 +40,62 @@ public sealed class UnitList : IList<Unit>
     {
         if (item == null) return;
         item.World = _world;
+        item.Removed = false;
         _items.Insert(index, item);
+        _world.BumpUnitCollectionVersion();
+        _world.OnUiCandidateAdded(item);
     }
 
     public Unit Find(Predicate<Unit> match) => _items.Find(match);
 
     public bool Exists(Predicate<Unit> match) => _items.Exists(match);
 
-    public int RemoveAll(Predicate<Unit> match) => _items.RemoveAll(match);
+    public int RemoveAll(Predicate<Unit> match)
+    {
+        int removed = 0;
+        for (int i = _items.Count - 1; i >= 0; i--)
+        {
+            Unit item = _items[i];
+            if (!match(item)) continue;
+            _items.RemoveAt(i);
+            _world.OnUiCandidateRemoved(item);
+            removed++;
+        }
+        if (removed > 0) _world.BumpUnitCollectionVersion();
+        return removed;
+    }
 
-    public Unit this[int index] { get => _items[index]; set => _items[index] = value; }
+    public Unit this[int index]
+    {
+        get => _items[index];
+        set
+        {
+            if (ReferenceEquals(_items[index], value)) return;
+            Unit previous = _items[index];
+            if (previous != null) _world.OnUiCandidateRemoved(previous);
+            if (value != null)
+            {
+                value.World = _world;
+                value.Removed = false;
+                _world.OnUiCandidateAdded(value);
+            }
+            _items[index] = value;
+            _world.BumpUnitCollectionVersion();
+        }
+    }
 
     public int Count => _items.Count;
 
     public bool IsReadOnly => false;
 
-    public void Clear() => _items.Clear();
+    public void Clear()
+    {
+        if (_items.Count == 0) return;
+        foreach (Unit item in _items)
+            if (item != null) _world.OnUiCandidateRemoved(item);
+        _items.Clear();
+        _world.BumpUnitCollectionVersion();
+    }
 
     public bool Contains(Unit item) => _items.Contains(item);
 
@@ -58,7 +105,17 @@ public sealed class UnitList : IList<Unit>
 
     public int IndexOf(Unit item) => _items.IndexOf(item);
 
-    public void RemoveAt(int index) => _items.RemoveAt(index);
+    public void RemoveAt(int index)
+    {
+        Unit item = _items[index];
+        _items.RemoveAt(index);
+        if (item != null)
+        {
+            if (item.World == _world) item.Removed = true;
+            _world.OnUiCandidateRemoved(item);
+        }
+        _world.BumpUnitCollectionVersion();
+    }
 
     IEnumerator IEnumerable.GetEnumerator() => _items.GetEnumerator();
 }

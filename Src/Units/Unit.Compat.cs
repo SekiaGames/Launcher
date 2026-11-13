@@ -98,7 +98,14 @@ public sealed partial class Unit
             if (IsIllusion) classes |= Classification.Summoned;
             return classes;
         }
-        set => _classificationOverride = value;
+        set
+        {
+            Classification before = Classifications;
+            _classificationOverride = value;
+            Classification after = Classifications;
+            if (((before ^ after) & (Classification.Hero | Classification.Peon)) != 0)
+                _identity?.NotifyUiClassificationMembershipChanged(this);
+        }
     }
 
     Classification? _classificationOverride;
@@ -552,6 +559,11 @@ public sealed class Identity
     public Classification Classifications => _unit.Classifications;
 
     public bool Is(Classification classification) => _unit.Is(classification);
+
+    internal event Action<Unit> UiClassificationMembershipChanged;
+
+    internal void NotifyUiClassificationMembershipChanged(Unit unit)
+        => UiClassificationMembershipChanged?.Invoke(unit);
 }
 
 public sealed class UnitOrders

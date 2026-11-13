@@ -12,6 +12,10 @@ public sealed partial class World
     /// <summary>客户端 World.Tick：单调递增的帧计数，配合 TickSeconds 换算经过时间。</summary>
     public long Tick { get; private set; }
 
+    public long UnitCollectionVersion { get; private set; }
+
+    internal void BumpUnitCollectionVersion() => UnitCollectionVersion++;
+
     public const float TickSeconds = FrameSeconds;
 
     public object Terrain => null;

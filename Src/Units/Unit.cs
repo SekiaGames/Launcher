@@ -71,7 +71,18 @@ public sealed partial class Unit
     public bool HeroEscort;
 
     // —— 英雄状态 ——
-    public bool IsHero;
+    bool _isHero;
+    public bool IsHero
+    {
+        get => _isHero;
+        set
+        {
+            if (_isHero == value) return;
+            _isHero = value;
+            _identity?.NotifyUiClassificationMembershipChanged(this);
+        }
+    }
+
     public int Level = 1;
     public float Xp;
     public int SkillPoints;

@@ -379,11 +379,14 @@ public sealed partial class War3GameScene : Node3D
     private void RefreshHeroBar()
     {
         _heroScratch.Clear();
-        foreach (Unit unit in _allUnits)
+        if (_world != null)
         {
-            if (unit == null || unit.Player != ViewPlayer
-                || !HeroPresentation.ShowInHeroBar(unit)) continue;
-            _heroScratch.Add(unit);
+            foreach (Unit unit in _world.HeroUiCandidates())
+            {
+                if (unit == null || unit.Player != ViewPlayer
+                    || !HeroPresentation.ShowInHeroBar(unit)) continue;
+                _heroScratch.Add(unit);
+            }
         }
         Unit selected = _selected.Count == 1 ? _selected[0] : null;
         _heroBar?.Update(_heroScratch, selected);
@@ -393,9 +396,11 @@ public sealed partial class War3GameScene : Node3D
     private bool TrySelectHeroByIndex(int index)
     {
         int current = 0;
-        foreach (Unit unit in _allUnits)
+        IReadOnlyList<Unit> heroes = _world?.HeroUiCandidates() ?? Array.Empty<Unit>();
+        foreach (Unit unit in heroes)
         {
-            if (unit == null || !unit.IsHero || unit.Player != ViewPlayer || !unit.Alive) continue;
+            if (unit == null || unit.Player != ViewPlayer || !unit.Alive
+                || !HeroPresentation.ShowInHeroBar(unit)) continue;
             if (current++ != index) continue;
             SelectHeroFromBar(unit);
             return true;
@@ -406,7 +411,8 @@ public sealed partial class War3GameScene : Node3D
     private void SelectIdleWorker()
     {
         var workers = new List<Unit>();
-        foreach (Unit unit in _allUnits)
+        IReadOnlyList<Unit> candidates = _world?.WorkerUiCandidates() ?? Array.Empty<Unit>();
+        foreach (Unit unit in candidates)
         {
             if (unit == null || !unit.Alive || unit.Player != ViewPlayer || !unit.IsWorker) continue;
             if (unit.GoldMine != null || unit.Tree != null || unit.BuildSite != null || unit.RepairTarget != null) continue;

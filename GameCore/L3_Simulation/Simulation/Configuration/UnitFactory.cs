@@ -348,6 +348,7 @@ public static class UnitFactory
             type.StockRegen = Number(balance.Get(balanceRow, "stockRegen"), 0f);
             type.StockStart = Number(balance.Get(balanceRow, "stockStart"), 0f);
             type.UpgradesApplied = SplitList(balance.Get(balanceRow, "upgrades"));
+            type.Classifications = UnitType.ParseClassifications(balance.Get(balanceRow, "type"));
             string comment = balance.Get(balanceRow, "comment(s)");
             if (!string.IsNullOrWhiteSpace(comment)) type.Name = comment.Trim();
         }
@@ -368,7 +369,6 @@ public static class UnitFactory
             type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
             type.DeathType = data.GetInt(dataRow, "deathType", 3);
             type.Race = (data.Get(dataRow, "race") ?? "").Trim();
-            type.Classifications = UnitType.ParseClassifications(data.Get(dataRow, "type"));
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim().ToLowerInvariant();
             type.MoveType = moveType.Length == 0 || moveType == "_" ? "foot" : moveType;
             type.Flying = type.MoveType is "fly" or "hover";
