@@ -17,6 +17,13 @@ public sealed partial class War3GameScene
         public float Travel;
         public Unit Target;
         public float TargetHeight = 60f;
+        public readonly War3MissileAnimation Animation = new();
+        public AnimationPlayer Player;
+        public float Age;
+        public bool Impacted;
+        public float ImpactAge;
+        public Vector3 ImpactPosition;
+        public float ImpactYaw;
     }
 
     private readonly List<Projectile> _projectiles = new();
@@ -64,7 +71,9 @@ public sealed partial class War3GameScene
             Length = Mathf.Max(1f, from.DistanceTo(to)),
             Target = target,
             TargetHeight = impactHeight,
+            Player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
         };
+        projectile.Animation.Start(projectile.Player);
         _projectiles.Add(projectile);
         if (_missileLogBudget > 0)
         {
@@ -111,7 +120,7 @@ public sealed partial class War3GameScene
         node.Name = $"AbilityMissile_{ability.Id}";
         AddChild(node);
 
-        _projectiles.Add(new Projectile
+        var projectile = new Projectile
         {
             Node = node,
             From = from,
@@ -121,7 +130,10 @@ public sealed partial class War3GameScene
             Length = Mathf.Max(1f, from.DistanceTo(to)),
             Target = target,
             TargetHeight = impactHeight,
-        });
+            Player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
+        };
+        projectile.Animation.Start(projectile.Player);
+        _projectiles.Add(projectile);
 
         if (_missileLogBudget > 0)
         {
@@ -240,27 +252,57 @@ public sealed partial class War3GameScene
                 continue;
             }
 
-            if (projectile.Target != null && projectile.Target.Alive)
+            projectile.Age += delta;
+            if (!projectile.Impacted)
             {
-                projectile.To = projectile.Target.Position + new Vector3(0f, projectile.TargetHeight, 0f);
-            }
+                if (projectile.Target != null && projectile.Target.Alive)
+                {
+                    projectile.To = projectile.Target.Position
+                        + new Vector3(0f, projectile.TargetHeight, 0f);
+                }
 
-            projectile.Travel += projectile.Speed * delta / projectile.Length;
-            if (projectile.Travel >= 1f)
-            {
-                projectile.Node.QueueFree();
-                _projectiles.RemoveAt(index);
+                projectile.Travel += projectile.Speed * delta / projectile.Length;
+                if (projectile.Travel >= 1f)
+                {
+                    projectile.Impacted = true;
+                    projectile.ImpactAge = 0f;
+                    projectile.ImpactPosition = projectile.To;
+                    Vector3 impactDirection = projectile.To - projectile.From;
+                    projectile.ImpactYaw = impactDirection.LengthSquared() > 1f
+                        ? Mathf.Atan2(impactDirection.X, impactDirection.Z)
+                        : projectile.Node.Rotation.Y;
+                    projectile.Node.Position = projectile.ImpactPosition;
+                    projectile.Node.Rotation = new Vector3(0f, projectile.ImpactYaw, 0f);
+                    if (projectile.Animation.Advance(projectile.Player, projectile.Age, 0f))
+                    {
+                        projectile.Node.QueueFree();
+                        _projectiles.RemoveAt(index);
+                    }
+                    continue;
+                }
+
+                Vector3 position = projectile.From.Lerp(projectile.To, projectile.Travel);
+                position.Y += projectile.Arc * projectile.Length * 4f
+                    * projectile.Travel * (1f - projectile.Travel);
+                Vector3 direction = projectile.To - projectile.From;
+                if (direction.LengthSquared() > 1f)
+                {
+                    projectile.Node.Rotation = new Vector3(0f,
+                        Mathf.Atan2(direction.X, direction.Z), 0f);
+                }
+                projectile.Node.Position = position;
+                projectile.Animation.Advance(projectile.Player, projectile.Age, null);
                 continue;
             }
 
-            Vector3 position = projectile.From.Lerp(projectile.To, projectile.Travel);
-            position.Y += projectile.Arc * projectile.Length * 4f * projectile.Travel * (1f - projectile.Travel);
-            Vector3 direction = projectile.To - projectile.From;
-            if (direction.LengthSquared() > 1f)
+            projectile.ImpactAge += delta;
+            projectile.Node.Position = projectile.ImpactPosition;
+            projectile.Node.Rotation = new Vector3(0f, projectile.ImpactYaw, 0f);
+            if (projectile.Animation.Advance(projectile.Player, projectile.Age, projectile.ImpactAge))
             {
-                projectile.Node.Rotation = new Vector3(0f, Mathf.Atan2(direction.X, direction.Z), 0f);
+                projectile.Node.QueueFree();
+                _projectiles.RemoveAt(index);
             }
-            projectile.Node.Position = position;
         }
     }
 
