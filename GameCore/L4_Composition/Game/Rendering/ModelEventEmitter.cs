@@ -15,7 +15,7 @@ public sealed class ModelEventEmitter
     }
 
     private readonly Node3D _root;
-    private readonly AnimationPlayer _player;
+    private AnimationPlayer _player;
     private readonly Dictionary<string, List<Track>> _byClip = new(StringComparer.Ordinal);
     private string _lastClip;
     private float _lastTime = -1f;
@@ -94,9 +94,14 @@ public sealed class ModelEventEmitter
 
     public void Tick(Action<War3ModelEventData, Vector3> fire, bool emit = true)
     {
-        if (fire == null || _player == null || _byClip.Count == 0)
+        if (fire == null || _byClip.Count == 0) return;
+        if (_root == null || !GodotObject.IsInstanceValid(_root)) return;
+        if (_player == null || !GodotObject.IsInstanceValid(_player))
         {
-            return;
+            _player = _root.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
+            if (_player == null) return;
+            _lastClip = _player.CurrentAnimation;
+            _lastTime = -1f;
         }
 
         string clip = _player.CurrentAnimation;
