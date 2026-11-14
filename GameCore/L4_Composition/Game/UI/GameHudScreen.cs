@@ -37,7 +37,9 @@ public sealed partial class GameHudScreen : Control
     private CommandErrorFrame _commandError;
     private FdfUiFactory _strings;
     private TextTagFrame _textTag;
-    private AboutDialogFrame _aboutDialog;
+private AboutDialogFrame _aboutDialog;
+    private ChatFrame _chat;
+    private ControlGroupFrame _controlGroups;
     private IReadOnlyList<TextTagFrame.TagView> _worldText;
     private readonly CommandEntry[] _inventoryEntries = new CommandEntry[6];
     private GodotUiTexture _portraitTexture;
@@ -49,7 +51,7 @@ public sealed partial class GameHudScreen : Control
     public Action<Unit> IdlePeonClicked;
     public Action<Unit> PortraitFollowStarted;
     public Action PortraitFollowStopped;
-    public Action MenuClicked;
+public Action MenuClicked;
     public Action<float> CameraDistanceChanged;
     public Action<float> PanSensitivityChanged;
     public Action<float> MusicVolumeChanged;
@@ -58,6 +60,7 @@ public sealed partial class GameHudScreen : Control
     public Action<float> RenderScaleChanged;
     public Action AboutDialogClosed;
     public Action AboutDialogExitRequested;
+    public Action<int, bool> ControlGroupClicked;
     private int _gold, _lumber, _food, _foodCap;
     private double _timeOfDay;
     private CommandCardView _commands = CommandCardView.Empty;
@@ -71,6 +74,7 @@ public sealed partial class GameHudScreen : Control
     public int FrameCount => _root?.Children.Count ?? 0;
     internal MinimapFrame Minimap => _minimap;
     internal HeroBarFrame HeroBar => _heroBar;
+    internal ChatFrame Chat => _chat;
 
     public void Load(string race = "Human", bool sample = true, GameUserSettings settings = null)
     {
@@ -171,7 +175,12 @@ public sealed partial class GameHudScreen : Control
         _root.AddChild(_inventory);
         _root.AddChild(_queue);
         _root.AddChild(_tooltip);
-_root.AddChild(_aboutDialog);
+_chat = new ChatFrame(this);
+        _controlGroups = new ControlGroupFrame(resolver);
+        _controlGroups.GroupClicked = (group, center) => ControlGroupClicked?.Invoke(group, center);
+        _root.AddChild(_controlGroups);
+        _root.AddChild(_chat);
+        _root.AddChild(_aboutDialog);
         _root.AddChild(_commandError);
         _router.HoverChanged += OnHoverChanged;
 
@@ -808,10 +817,12 @@ _root.AddChild(_aboutDialog);
         _inventory.Layout(DesignWidth, DesignHeight);
         _queue.Layout(DesignWidth, DesignHeight);
         _tooltip.Layout(DesignWidth, DesignHeight);
-_aboutDialog.Layout(DesignWidth, DesignHeight);
+_controlGroups.Layout(DesignWidth, DesignHeight);
+        _aboutDialog.Layout(DesignWidth, DesignHeight);
         _commandError.Layout();
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
+        _chat.Update(DesignWidth, DesignHeight, _device);
         _textTag.Update(_worldText, DesignWidth, DesignHeight);
         if (_textTag.Visible) _textTag.Render(_device);
         if (_selectionBox is { } box)

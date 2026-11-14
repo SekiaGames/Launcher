@@ -467,49 +467,16 @@ _loopingSounds = new War3LoopingSoundService(_audio,
         _newHud.PortraitFollowStarted = BeginPortraitFollow;
         _newHud.PortraitFollowStopped = EndPortraitFollow;
         _newHud.ItemDragReleased = HandleInventoryDragReleased;
-        _newHud.MenuClicked = () => _newHud.ToggleAboutDialog();
-        _newHud.CameraDistanceChanged = value =>
-        {
-            _userSettings.SetCameraDistance(value);
-            SetCameraDistanceScale(value);
-        };
-        _newHud.PanSensitivityChanged = value =>
-        {
-            _userSettings.SetPanSensitivity(value);
-            SetCameraPanSensitivity(value);
-        };
-        _newHud.MusicVolumeChanged = value =>
-        {
-            _userSettings.SetMusicVolume(value);
-            _music?.SetUserVolume(value);
-        };
-        _newHud.SoundVolumeChanged = value =>
-        {
-            _userSettings.SetSoundVolume(value);
-            _audio?.SetVolume(value);
-            _weather?.SetVolume(value);
-        };
-        _newHud.FrameRateLimitChanged = value =>
-        {
-            _userSettings.SetFrameRateLimit(value);
-            ApplyFrameRateLimit(value);
-            _userSettings.Save();
-        };
-        _newHud.RenderScaleChanged = value =>
-        {
-            _userSettings.SetRenderScale(value);
-            ApplyRenderScale(value);
-            _userSettings.Save();
-        };
-        _newHud.AboutDialogClosed = () => _userSettings.Save();
+_newHud.AboutDialogClosed = () => _userSettings.Save();
         _newHud.AboutDialogExitRequested = Back;
+        _newHud.ControlGroupClicked = RecallControlGroup;
         ConfigureNewMinimap(_map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
         _escMenu.OptionsRequested = () => _newHud.ShowAboutDialog();
         _gameOverPanel = new GameOverPanel(this, Back);
-        _log = new ChatFrame(this);
+        _log = _newHud.Chat;
         _log.Add("Enter 输入消息");
         _hud.SetSelection(_selected, PrimarySelection);
         RefreshHud();

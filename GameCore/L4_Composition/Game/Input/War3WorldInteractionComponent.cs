@@ -137,17 +137,11 @@ public sealed partial class War3GameScene
                 return;
             }
 
-            _scene._selection.RecallControlGroup(group);
-            if (_scene._selected.Count == 0) return;
-
-            Vector3 sum = Vector3.Zero;
-            foreach (Unit unit in _scene._selected) sum += unit.Position;
-
             float now = Time.GetTicksMsec() / 1000f;
             bool center = _groupPressed == group && now - _groupPressedAt < 0.5f;
             _groupPressed = group;
             _groupPressedAt = now;
-            if (center) _scene._camera.Focus(sum / _scene._selected.Count);
+            _scene.RecallControlGroup(group, center);
         }
 
         private bool SelectSameType(Unit reference, bool additive)

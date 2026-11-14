@@ -6,6 +6,17 @@ namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
 {
+    internal void RecallControlGroup(int group, bool center)
+    {
+        if (_selection == null) return;
+        _selection.RecallControlGroup(group);
+        if (!center || _selected.Count == 0) return;
+
+        Vector3 sum = Vector3.Zero;
+        foreach (Unit unit in _selected) sum += unit.Position;
+        _camera?.Focus(sum / _selected.Count);
+    }
+
     private void PushClick(Vector2 position, MouseButton button)
     {
         var press = new InputEventMouseButton
