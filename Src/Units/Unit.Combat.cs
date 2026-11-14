@@ -26,7 +26,7 @@ public sealed partial class Unit
         AttackWindupActive = true;
         AttackWindup = Mathf.Max(0.01f, damagePoint);
         WindupTarget = target;
-        View?.Play("Attack");
+        View?.Play("Attack", World.AttackSpeedFactor(this), true);
     }
 
     public void EndWindup()

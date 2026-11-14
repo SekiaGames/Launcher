@@ -412,7 +412,9 @@ public sealed class UnitSceneComponent
     private readonly Dictionary<string, (HashSet<string> Primary, HashSet<string> Secondary,
         HashSet<string> Form)> _sequenceTags = new(StringComparer.Ordinal);
 
-    public void Play(string kind, float rate = 1f)
+    private const double SequenceBlend = 0.1;
+
+    public void Play(string kind, float rate = 1f, bool restart = false)
     {
         if (Player == null) return;
 
@@ -433,21 +435,38 @@ public sealed class UnitSceneComponent
             || (Owner.Tree != null && Owner.CarryLumber <= 0 && Owner.Carry <= 0
                 && !Owner.MoveTarget.HasValue));
         (IReadOnlyCollection<string> tags, _) = _animationTags.Get(Owner, requested, harvest, cutting);
-        string found = SelectSequence(primary, tags) ?? PickAnimation(kind);
+        string found = SelectSequence(primary, tags, out List<string> candidates);
+        if (found == null)
+        {
+            found = PickAnimation(kind);
+            candidates = null;
+        }
         if (found == null) return;
-        Player.SpeedScale = kind == "Walk" ? Mathf.Max(0.05f, rate) : 1f;
-        if (found == CurrentAnimation) return;
+
+        Player.SpeedScale = Mathf.Max(0.05f, rate);
+        if (CurrentAnimation != null && candidates != null
+            && candidates.Contains(CurrentAnimation))
+        {
+            if (!restart) return;
+            found = CurrentAnimation;
+        }
+        else if (candidates != null && candidates.Count > 1)
+        {
+            found = candidates[GD.RandRange(0, candidates.Count - 1)];
+        }
 
         CurrentAnimation = found;
-        Player.Play(found);
+        Player.Play(found, SequenceBlend);
         if (primary is "Stand" or "Walk")
         {
             Player.GetAnimation(found).LoopMode = Animation.LoopModeEnum.Linear;
         }
     }
 
-    private string SelectSequence(string primary, IReadOnlyCollection<string> requestedTags)
+    private string SelectSequence(string primary, IReadOnlyCollection<string> requestedTags,
+        out List<string> candidates)
     {
+        candidates = null;
         if (string.IsNullOrEmpty(primary)) return null;
         var requestedForm = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var requestedNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -467,6 +486,7 @@ public sealed class UnitSceneComponent
         if (matches.Count == 0) return null;
 
         string best = null;
+        HashSet<string> bestForm = null;
         int bestMatches = -1;
         int smallestFormCount = int.MaxValue;
         foreach ((string name, HashSet<string> secondary, HashSet<string> form) in matches)
@@ -476,9 +496,9 @@ public sealed class UnitSceneComponent
             foreach (string number in requestedNumbers)
                 if (!secondary.Contains(number)) { numbersOk = false; break; }
             if (!numbersOk) continue;
-            if (best == null) best = name;
+            if (best == null) { best = name; bestForm = form; }
         }
-        if (best != null) return best;
+        if (best != null) return AssignCandidates(matches, bestForm, out candidates, best);
 
         bool wantSwim = requestedForm.Contains("SWIM");
         foreach ((string name, HashSet<string> secondary, HashSet<string> form) in matches)
@@ -493,8 +513,22 @@ public sealed class UnitSceneComponent
                 bestMatches = matching;
                 smallestFormCount = form.Count;
                 best = name;
+                bestForm = form;
             }
         }
+        return AssignCandidates(matches, bestForm, out candidates, best);
+    }
+
+    private static string AssignCandidates(
+        List<(string Name, HashSet<string> Secondary, HashSet<string> Form)> matches,
+        HashSet<string> form, out List<string> candidates, string best)
+    {
+        candidates = null;
+        if (best == null || form == null) return best;
+        var pool = new List<string>();
+        foreach ((string name, _, HashSet<string> matchForm) in matches)
+            if (matchForm.SetEquals(form)) pool.Add(name);
+        if (pool.Count > 0) candidates = pool;
         return best;
     }
 

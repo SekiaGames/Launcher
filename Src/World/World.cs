@@ -302,7 +302,8 @@ public sealed partial class World
             return;
         }
 
-        unit.View?.Play("Stand");
+        bool engaged = unit.Target != null && unit.Target.Alive;
+        unit.View?.Play(engaged ? "Stand Ready" : "Stand");
     }
 
     private const string TurretBone = "Bone_Turret";

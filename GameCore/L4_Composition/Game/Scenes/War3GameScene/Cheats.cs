@@ -289,6 +289,31 @@ public sealed partial class War3GameScene
         };
     }
 
+    public void RunAttackProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+
+        Unit attacker = Spawn("hfoo", ViewPlayer, origin.X + 500f, origin.Z, 0f, 0f, 1f);
+        Unit victim = Spawn("hfoo", 1, origin.X + 600f, origin.Z, 0f, 0f, 1f);
+        if (attacker == null || victim == null)
+        {
+            GD.Print($"[ATK] 生成失败 attacker={attacker != null} victim={victim != null}");
+            return;
+        }
+
+        victim.MaxHp = 100000f;
+        victim.Hp = 100000f;
+        attacker.BonusAttackSpeedPct = 0.5f;
+
+        _world?.Units.Add(attacker);
+        _world?.Units.Add(victim);
+        attacker.Target = victim;
+
+        GD.Print($"[ATK] 摆好 world=({origin.X + 500f:0},{origin.Z:0}) "
+            + $"focus=({-8192f - origin.X - 500f:0},{-8192f + origin.Z:0})");
+    }
+
     public void RunTurretProbe()
     {
         Unit hall = FindHall(ViewPlayer);
