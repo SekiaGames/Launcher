@@ -289,11 +289,14 @@ public sealed partial class War3GameScene
                         ? $"{ability.ManaCost:0} 法力"
                         : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
 
+            bool manaOnly = !toggledOn && !autoOn && ability.Ready;
             commands.Add(new CommandEntry
             {
                 Id = id,
                 Name = ability.Name,
                 Cost = cost,
+                TooltipCosts = CommandEntry.Costs(Mathf.RoundToInt(ability.ManaCost), 0, 0, 0),
+                StructuredCostOnly = manaOnly,
                 SlotIndex = slot,
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
@@ -361,6 +364,8 @@ public sealed partial class War3GameScene
                 Id = ability.Id,
                 Name = ability.Name,
                 Cost = ability.IsPassive ? "被动" : cost,
+                TooltipCosts = ability.IsPassive ? null : CommandEntry.Costs(Mathf.RoundToInt(ability.ManaCost), 0, 0, 0),
+                StructuredCostOnly = !ability.IsPassive && !toggledOn && !autoOn && ability.Ready,
                 SlotIndex = slot,
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level)
@@ -406,11 +411,14 @@ public sealed partial class War3GameScene
                         ? $"{ability.ManaCost:0} 法力"
                         : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
 
+            bool manaOnly = !toggledOn && !autoOn && ability.Ready;
             commands.Add(new CommandEntry
             {
                 Id = ability.Id,
                 Name = ability.Name,
                 Cost = cost,
+                TooltipCosts = CommandEntry.Costs(Mathf.RoundToInt(ability.ManaCost), 0, 0, 0),
+                StructuredCostOnly = manaOnly,
                 SlotIndex = slot,
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),

@@ -741,6 +741,8 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = queued ? $"训练 {type.Name}（队列）" : $"训练 {type.Name}",
                 Cost = cost,
+                TooltipCosts = CommandEntry.Costs(0, type.GoldCost, type.LumberCost, type.FoodUsed),
+                StructuredCostOnly = true,
                 SlotIndex = commandSlot,
                 Hotkey = TechTree.UnitHotkey(id),
                 Tooltip = $"训练 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.TrainSeconds:0}s"
@@ -798,6 +800,8 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = $"买 {type.Name}",
                 Cost = cost,
+                TooltipCosts = CommandEntry.Costs(0, type.GoldCost, type.LumberCost, type.FoodUsed),
+                StructuredCostOnly = true,
                 SlotIndex = commandSlot,
                 Hotkey = TechTree.UnitHotkey(id),
                 Tooltip = $"{type.Name}（库存 {stockText}）\n"
@@ -836,6 +840,8 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = $"研究 {name}",
                 Cost = $"{gold}金/{lumber}木",
+                TooltipCosts = CommandEntry.Costs(0, gold, lumber, 0),
+                StructuredCostOnly = true,
                 SlotIndex = commandSlot,
                 Hotkey = upgrade.HotkeyFor(next),
                 Tooltip = $"{name}（{next}/{upgrade.MaxLevel}）\n{upgrade.Description}\n右键：取消该建筑最后一个订单并退钱",
@@ -864,6 +870,8 @@ public sealed partial class War3GameScene
                 Id = buildingId,
                 Name = $"升级为 {target.Name}",
                 Cost = $"{target.GoldCost}金/{target.LumberCost}木",
+                TooltipCosts = CommandEntry.Costs(0, target.GoldCost, target.LumberCost, 0),
+                StructuredCostOnly = true,
                 SlotIndex = commandSlot,
                 Hotkey = TechTree.UnitHotkey(buildingId),
                 Tooltip = $"升级为 {target.Name}  {target.GoldCost}金 {target.LumberCost}木  {target.BuildSeconds:0}s\n右键：取消该建筑最后一个订单并退钱",
@@ -897,6 +905,8 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = $"买 {type.Name}",
                 Cost = $"{type.GoldCost}金",
+                TooltipCosts = CommandEntry.Costs(0, type.GoldCost, 0, 0),
+                StructuredCostOnly = true,
                 Tooltip = $"{type.Name}（等级 {type.Level} {type.Class}）\n{type.BonusText}\n库存 {stock}/{max}"
                     + (buyerNearby ? "" : $"\n需要己方单位在 {range:0} 范围内")
                     + (afford ? "" : $"\n金币不足（{type.GoldCost}）"),

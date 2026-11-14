@@ -178,6 +178,7 @@ public sealed partial class CommandCardBuilder
             button.OverlayText = command.Overlay;
             button.TooltipTitle = command.Title ?? "";
             button.TooltipBody = command.Body ?? "";
+            button.TooltipCosts = command.Costs;
             button.Visible = true;
         }
     }

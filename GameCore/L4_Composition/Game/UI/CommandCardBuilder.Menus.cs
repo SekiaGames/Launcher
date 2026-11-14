@@ -139,6 +139,8 @@ public sealed partial class CommandCardBuilder
                 SlotIndex = slot,
                 Hotkey = TechTree.UnitHotkey(id),
                 Cost = cost,
+                TooltipCosts = CommandEntry.Costs(0, type.GoldCost, type.LumberCost, type.FoodUsed),
+                StructuredCostOnly = true,
                 Tooltip = type.Tip,
                 Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
                 Enabled = canBuild?.Invoke(type) ?? true,

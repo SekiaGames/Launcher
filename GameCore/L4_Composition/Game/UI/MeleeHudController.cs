@@ -10,6 +10,8 @@ public sealed class CommandEntry
     public string Id;
     public string Name;
     public string Cost;
+    public int[] TooltipCosts;
+    public bool StructuredCostOnly;
     public string Tooltip;
     public Texture2D Icon;
     public bool Enabled = true;
@@ -27,6 +29,15 @@ public sealed class CommandEntry
     public int MaxCharges;
     /// <summary>图标右下角的角标（客户端 CommandSlot.NumberText）：学习页显示剩余技能点。</summary>
     public string Overlay;
+
+    public static int[] Costs(int mana, int gold, int lumber, int supply)
+    {
+        if (mana <= 0 && gold <= 0 && lumber <= 0 && supply <= 0) return null;
+        return new[]
+        {
+            Mathf.Max(0, mana), Mathf.Max(0, gold), Mathf.Max(0, lumber), Mathf.Max(0, supply),
+        };
+    }
 }
 
 public sealed class QueueEntry

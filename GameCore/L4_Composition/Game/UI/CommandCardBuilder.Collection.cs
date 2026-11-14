@@ -120,6 +120,8 @@ public sealed partial class CommandCardBuilder
             Id = primary.Id,
             Name = primary.Name,
             Cost = primary.Cost,
+            TooltipCosts = primary.TooltipCosts,
+            StructuredCostOnly = primary.StructuredCostOnly,
             Tooltip = primary.Tooltip,
             Icon = primary.Icon,
             Enabled = enabled,

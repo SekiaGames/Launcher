@@ -597,13 +597,16 @@ _chat = new ChatFrame(this);
                     Icon: "", Hotkey: entry.Hotkey, Disabled: !entry.Enabled,
                     Cooldown: cooldown, Overlay: overlay,
                     Title: entry.Name,
-                    Body: string.IsNullOrWhiteSpace(entry.Cost)
+                    Body: entry.StructuredCostOnly
                         ? entry.Tooltip
-                        : (entry.Tooltip ?? "")
-                            + (string.IsNullOrEmpty(entry.Tooltip) ? "" : "\n") + entry.Cost,
+                        : string.IsNullOrWhiteSpace(entry.Cost)
+                            ? entry.Tooltip
+                            : (entry.Tooltip ?? "")
+                                + (string.IsNullOrEmpty(entry.Tooltip) ? "" : "\n") + entry.Cost,
                     IconTexture: entry.Icon == null ? null : new GodotUiTexture(entry.Icon),
                     AutoCastActive: entry.Active,
-                    CooldownId: entry.Id);
+                    CooldownId: entry.Id,
+                    Costs: entry.TooltipCosts);
                 _slotEntries[index] = entry;
             }
         }
