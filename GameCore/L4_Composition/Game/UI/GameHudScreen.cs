@@ -457,6 +457,13 @@ _chat = new ChatFrame(this);
         QueueRedraw();
     }
 
+    public void PlayPortraitTalk(Unit unit, float durationSeconds)
+    {
+        if (unit == null) return;
+        _portraitViewport.Show(unit);
+        _portraitViewport.Talk(unit, durationSeconds);
+    }
+
     public bool LearnMenuOpen => _card.LearnMenuOpen;
 
     public bool AboutDialogVisible => _aboutDialog?.Visible == true;
@@ -770,6 +777,7 @@ _chat = new ChatFrame(this);
     public override void _Process(double delta)
     {
         _commandError?.Update();
+        _portraitViewport?.FrameSeconds(delta);
         QueueRedraw();
     }
 

@@ -525,6 +525,44 @@ public sealed class UnitSceneComponent
         }
     }
 
+    public IReadOnlyList<string> AnimationNames =>
+        Player == null ? Array.Empty<string>() : Player.GetAnimationList();
+
+    public float SequenceLength(string name)
+    {
+        Animation animation = Player?.GetAnimation(name);
+        return animation == null ? 0f : (float)animation.Length;
+    }
+
+    public string SelectPortraitSequence(string primary, IReadOnlyCollection<string> tags,
+        string avoid, Random random)
+    {
+        string found = SelectSequence(primary, tags, out List<string> candidates);
+        if (found == null) return null;
+        if (candidates != null && candidates.Count > 1 && !string.IsNullOrEmpty(avoid))
+        {
+            int removed = candidates.RemoveAll(candidate => candidate == avoid);
+            if (removed > 0 && candidates.Count == 0) return found;
+        }
+        if (candidates != null && candidates.Count > 0)
+            return candidates[random.Next(candidates.Count)];
+        return found;
+    }
+
+    public void PlayPortraitSequence(string name, float seconds)
+    {
+        if (Player == null || string.IsNullOrEmpty(name)) return;
+        Animation animation = Player.GetAnimation(name);
+        if (animation == null) return;
+        if (CurrentAnimation != name)
+        {
+            CurrentAnimation = name;
+            Player.SpeedScale = 1f;
+            Player.Play(name, 0.0);
+        }
+        Player.Seek(Mathf.Max(0f, seconds), true);
+    }
+
     private string SelectSequence(string primary, IReadOnlyCollection<string> requestedTags,
         out List<string> candidates)
     {

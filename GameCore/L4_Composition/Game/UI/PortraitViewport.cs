@@ -9,8 +9,12 @@ internal sealed class PortraitViewport
     readonly Node3D _stage;
     readonly Camera3D _camera;
     readonly DirectionalLight3D _light;
+    readonly PortraitAnimator _animator = new();
     UnitSceneComponent _view;
     Unit _unit;
+    string _typeId;
+    string _modelPath;
+    float _nowSeconds;
 
     public ViewportTexture Texture { get; }
 
@@ -50,24 +54,60 @@ internal sealed class PortraitViewport
 
     public void Show(Unit unit)
     {
-        if (ReferenceEquals(_unit, unit)) return;
+        string typeId = unit?.TypeId;
+        string modelPath = unit?.Type?.ModelPath;
+        if (ReferenceEquals(_unit, unit)
+            && string.Equals(_typeId, typeId, StringComparison.Ordinal)
+            && string.Equals(_modelPath, modelPath, StringComparison.Ordinal)) return;
         _unit = unit;
+        _typeId = typeId;
+        _modelPath = modelPath;
         if (_view != null)
         {
             _view.Root.QueueFree();
             _view = null;
         }
-        if (unit?.Type == null || string.IsNullOrWhiteSpace(unit.Type.ModelPath)) return;
-        PackedScene scene = Assets.LoadScene(unit.Type.ModelPath);
+        if (unit?.Type == null || string.IsNullOrWhiteSpace(modelPath)) return;
+        (PackedScene scene, string path) = LoadPortraitScene(modelPath);
         if (scene == null) return;
         _view = UnitSceneComponent.Create(scene, unit.Player,
-            unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, unit.Type.ModelPath,
+            unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, path,
             SceneLight.Fallback);
         _stage.AddChild(_view.Root);
         _view.Root.Position = Vector3.Zero;
         _view.Root.Rotation = new Vector3(0f, Mathf.Pi, 0f);
-        _view.Play("Stand");
         FrameModel();
+        _animator.Reset(_view, unit, _nowSeconds);
+        _animator.Frame(_view, unit, _nowSeconds);
+    }
+
+    public void Talk(Unit unit, float durationSeconds)
+    {
+        if (_view == null || unit == null || !ReferenceEquals(_unit, unit)) return;
+        _animator.Talk(unit, durationSeconds, _nowSeconds);
+    }
+
+    public void FrameSeconds(double delta)
+    {
+        _nowSeconds += (float)Math.Max(0d, delta);
+        if (_view == null || _unit == null) return;
+        _animator.Frame(_view, _unit, _nowSeconds);
+    }
+
+    static (PackedScene Scene, string Path) LoadPortraitScene(string mainPath)
+    {
+        const string root = "res://extract/";
+        string relative = mainPath.StartsWith(root, StringComparison.Ordinal)
+            ? mainPath[root.Length..] : mainPath;
+        string stem = relative.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase)
+            ? relative[..^5] : relative;
+        foreach (string candidate in new[] { stem + "_Portrait", stem + "Portrait", stem })
+        {
+            string path = PathResolve.ResourceFile(candidate, ".tscn");
+            PackedScene scene = Assets.LoadScene(path);
+            if (scene != null) return (scene, path);
+        }
+        return (Assets.LoadScene(mainPath), mainPath);
     }
 
     void FrameModel()

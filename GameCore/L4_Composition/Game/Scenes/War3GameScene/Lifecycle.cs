@@ -336,7 +336,9 @@ public sealed partial class War3GameScene : Node3D
         _commandProcessor = new PlayerCommandProcessor(_world, _selection, () => true, _ => { });
         _commandProcessor.OrderAck = attack =>
         {
-            if (PrimarySelection != null) _ackSounds?.PlayOrderAck(PrimarySelection, attack);
+            if (PrimarySelection == null) return;
+            float duration = _ackSounds?.PlayOrderAck(PrimarySelection, attack) ?? 0f;
+            _newHud?.PlayPortraitTalk(PrimarySelection, duration);
         };
         _world.Died += OnUnitDied;
         _world.GoldDeposited += OnGoldDeposited;

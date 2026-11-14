@@ -402,7 +402,8 @@ public sealed partial class War3GameScene
     private void OnHeroRevived(Unit hero)
     {
         if (hero?.Type == null) return;
-        _ackSounds?.PlayReady(hero);
+        float duration = _ackSounds?.PlayReady(hero) ?? 0f;
+        if (ReferenceEquals(hero, PrimarySelection)) _newHud?.PlayPortraitTalk(hero, duration);
         RefreshHud();
     }
 
@@ -812,7 +813,8 @@ public sealed partial class War3GameScene
             _uiSounds?.Play("InterfaceClick");
             return;
         }
-        _ackSounds?.PlaySelection(unit, wasSelected);
+        float duration = _ackSounds?.PlaySelection(unit, wasSelected) ?? 0f;
+        _newHud?.PlayPortraitTalk(unit, duration);
     }
 
     private bool CanControlUnit(Unit unit)
