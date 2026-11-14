@@ -511,7 +511,7 @@ public sealed partial class War3GameScene : Node3D
 
         TickFog((float)delta);
         UpdateMinimap((float)delta);
-        _terrainBuilder?.Blight?.FrameSeconds((float)delta, _allUnits);
+        _terrainBuilder?.TickBlight((float)delta, _allUnits, _fog);
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
         RefreshConstruction();

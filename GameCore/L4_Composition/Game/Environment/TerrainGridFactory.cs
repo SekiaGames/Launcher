@@ -6,15 +6,21 @@ namespace OpenWC3.Game;
 
 public sealed partial class MapWorldBuilder
 {
-    private TerrainTextureSet _groundLayers;
+    private const int ChunkTiles = 16;
+    private const float BlightRefreshSeconds = 0.5f;
 
-    /// <summary>地形材质（腐地遮罩等运行时参数都挂在它上面）。</summary>
+    private TerrainTextureSet _groundLayers;
+    private List<string> _groundOrder = new List<string>();
+    private W3eTerrain _terrain;
+    private bool[,] _covered;
+    private MeshInstance3D[] _terrainChunks;
+    private int _chunkColumns;
+    private int _chunkRows;
+    private float _blightTimer;
+
     public ShaderMaterial TerrainMaterial { get; private set; }
 
-    /// <summary>腐地遮罩：场景每帧推进，亡灵建筑落成时往里盖章。</summary>
-    public BlightMask Blight { get; private set; }
-
-    private List<string> _groundOrder = new List<string>();
+    public ScoutedBlight Blight { get; private set; }
 
     private void BuildTerrain(W3eTerrain terrain, bool[,] covered)
     {
@@ -49,6 +55,7 @@ public sealed partial class MapWorldBuilder
             AddGroundTile(CliffTextureSet.GroundTileFor(cliffTexture));
             AddGroundTile(CliffTextureSet.UpperTileFor(cliffTexture));
         }
+        AddGroundTile(TerrainTextureLoader.BlightId);
         void AddGroundTile(string id)
         {
             if (!string.IsNullOrEmpty(id) && !list.Contains(id))
@@ -69,42 +76,62 @@ public sealed partial class MapWorldBuilder
             shaderMaterial.SetShaderParameter("ground_texture", terrainTextureSet.Texture);
         }
         TerrainMaterial = shaderMaterial;
-        Blight = new BlightMask(terrain, shaderMaterial,
-            Assets.LoadTexture(PathResolve.IconPng(TerrainTextureLoader.BlightPath)));
         _groundLayers = terrainTextureSet;
         _groundOrder = list2;
-        int width = terrain.Width;
-        int height = terrain.Height;
+        _terrain = terrain;
+        _covered = covered;
+        Blight = new ScoutedBlight(terrain);
+
+        _chunkColumns = Math.Max(1, (terrain.Width - 1 + ChunkTiles - 1) / ChunkTiles);
+        _chunkRows = Math.Max(1, (terrain.Height - 1 + ChunkTiles - 1) / ChunkTiles);
+        _terrainChunks = new MeshInstance3D[_chunkColumns * _chunkRows];
         int num = 0;
+        for (int row = 0; row < _chunkRows; row++)
+        {
+            for (int column = 0; column < _chunkColumns; column++)
+            {
+                num += BuildTerrainChunk(column, row);
+            }
+        }
+        GD.Print($"[MAP] 地形 {_chunkColumns}x{_chunkRows} 块，地面格抠掉 {num}（悬崖+斜坡过渡），"
+            + $"腐地角点 {Blight.BlightedCells}");
+    }
+
+    private int BuildTerrainChunk(int chunkColumn, int chunkRow)
+    {
+        int width = _terrain.Width;
+        int startX = chunkColumn * ChunkTiles;
+        int startY = chunkRow * ChunkTiles;
+        int endX = Math.Min(startX + ChunkTiles, width - 1);
+        int endY = Math.Min(startY + ChunkTiles, _terrain.Height - 1);
+
         SurfaceTool surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbaFloat);
-        for (int j = 0; j < height - 1; j++)
+        int num = 0;
+        for (int j = startY; j < endY; j++)
         {
-            for (int k = 0; k < width - 1; k++)
+            for (int k = startX; k < endX; k++)
             {
-                if (!IsRampEntrance(terrain, k, j) && (IsCliffTile(terrain, k, j) || _cliffTransitions[k, j] || covered[k, j]))
+                if (IsGroundCellHidden(k, j))
                 {
                     num++;
                     continue;
                 }
-                W3eTerrain.Corner c2 = terrain.Corners[j * width + k];
-                W3eTerrain.Corner corner2 = terrain.Corners[j * width + k + 1];
-                W3eTerrain.Corner corner3 = terrain.Corners[(j + 1) * width + k];
-                W3eTerrain.Corner corner4 = terrain.Corners[(j + 1) * width + k + 1];
-                Vector4 layers = TileLayers(RealTileTexture(terrain, k, j), RealTileTexture(terrain, k + 1, j), RealTileTexture(terrain, k, j + 1), RealTileTexture(terrain, k + 1, j + 1), c2);
+                W3eTerrain.Corner c2 = _terrain.Corners[j * width + k];
+                Vector4 layers = TileLayers(TileTextureAt(k, j), TileTextureAt(k + 1, j), TileTextureAt(k, j + 1), TileTextureAt(k + 1, j + 1), c2);
                 float x = (float)k * 128f;
                 float x2 = (float)(k + 1) * 128f;
                 float z = (float)j * 128f;
                 float z2 = (float)(j + 1) * 128f;
-                Vector3 position = new Vector3(x, CornerWorld(terrain, k, j), z);
-                Vector3 position2 = new Vector3(x2, CornerWorld(terrain, k + 1, j), z);
-                Vector3 position3 = new Vector3(x, CornerWorld(terrain, k, j + 1), z2);
-                Vector3 position4 = new Vector3(x2, CornerWorld(terrain, k + 1, j + 1), z2);
-                Vector3 normal = CornerNormal(terrain, k, j);
-                Vector3 normal2 = CornerNormal(terrain, k + 1, j);
-                Vector3 normal3 = CornerNormal(terrain, k, j + 1);
-                Vector3 normal4 = CornerNormal(terrain, k + 1, j + 1);
+                Vector3 position = new Vector3(x, CornerWorld(_terrain, k, j), z);
+                Vector3 position2 = new Vector3(x2, CornerWorld(_terrain, k + 1, j), z);
+                Vector3 position3 = new Vector3(x, CornerWorld(_terrain, k, j + 1), z2);
+                Vector3 position4 = new Vector3(x2, CornerWorld(_terrain, k + 1, j + 1), z2);
+                Vector3 normal = CornerNormal(_terrain, k, j);
+                Vector3 normal2 = CornerNormal(_terrain, k + 1, j);
+                Vector3 normal3 = CornerNormal(_terrain, k, j + 1);
+                Vector3 normal4 = CornerNormal(_terrain, k + 1, j + 1);
                 Vector2 uv = new Vector2(0f, 1f);
                 Vector2 uv2 = new Vector2(1f, 1f);
                 Vector2 uv3 = new Vector2(1f, 0f);
@@ -117,13 +144,86 @@ public sealed partial class MapWorldBuilder
                 AddVertex(surfaceTool, position, uv, layers, normal);
             }
         }
-        GD.Print($"[MAP] 地面格抠掉 {num}（悬崖+斜坡过渡）");
-        Root.AddChild(new MeshInstance3D
+
+        int chunkIndex = chunkRow * _chunkColumns + chunkColumn;
+        MeshInstance3D chunk = _terrainChunks[chunkIndex];
+        if (chunk == null)
         {
-            Mesh = surfaceTool.Commit(null, 0uL),
-            MaterialOverride = shaderMaterial,
-            Name = "MapTerrain"
-        }, forceReadableName: false, Node.InternalMode.Disabled);
+            chunk = new MeshInstance3D
+            {
+                Name = $"MapTerrain_{chunkColumn}_{chunkRow}",
+                MaterialOverride = TerrainMaterial
+            };
+            Root.AddChild(chunk, forceReadableName: false, Node.InternalMode.Disabled);
+            _terrainChunks[chunkIndex] = chunk;
+        }
+        chunk.Mesh = surfaceTool.Commit(null, 0uL);
+        return num;
+    }
+
+    private bool IsGroundCellHidden(int column, int row)
+    {
+        if (IsRampEntrance(_terrain, column, row)) return false;
+        return IsCliffTile(_terrain, column, row) || _cliffTransitions[column, row] || _covered[column, row];
+    }
+
+    private string TileTextureAt(int x, int y)
+    {
+        if (Blight != null && Blight.IsBlighted(x, y))
+        {
+            return TerrainTextureLoader.BlightId;
+        }
+        return RealTileTexture(_terrain, x, y);
+    }
+
+    public void TickBlight(float delta, IReadOnlyList<Unit> units, FogOfWar fog)
+    {
+        if (Blight == null) return;
+        _blightTimer -= delta;
+        if (_blightTimer > 0f) return;
+        _blightTimer = BlightRefreshSeconds;
+
+        if (units != null)
+        {
+            for (int index = 0; index < units.Count; index++)
+            {
+                Unit unit = units[index];
+                if (unit == null || !unit.Alive || !unit.IsBuilding || unit.IsUnderConstruction) continue;
+                if (unit.Type == null || !string.Equals(unit.Type.Race, "undead", StringComparison.OrdinalIgnoreCase)) continue;
+
+                float radius = unit.BlightRadius > 0f ? unit.BlightRadius : MeleeRules.BlightRadius;
+                int painted = Blight.Stamp(unit.Position, radius);
+                if (painted > 0)
+                {
+                    GD.Print($"[BLIGHT] {unit.Type.Name} 铺开腐地 {painted} 格"
+                        + $"（世界 {Blight.WorldCells}、显示 {Blight.BlightedCells}）");
+                }
+            }
+        }
+
+        if (!Blight.Refresh(fog, out int minX, out int minY, out int maxX, out int maxY)) return;
+        RebuildBlightChunks(minX, minY, maxX, maxY);
+    }
+
+    private void RebuildBlightChunks(int minX, int minY, int maxX, int maxY)
+    {
+        int lastTileColumn = Math.Max(0, _terrain.Width - 2);
+        int lastTileRow = Math.Max(0, _terrain.Height - 2);
+        int firstColumn = Math.Max(0, minX - 1) / ChunkTiles;
+        int lastColumn = Math.Min(lastTileColumn, maxX) / ChunkTiles;
+        int firstRow = Math.Max(0, minY - 1) / ChunkTiles;
+        int lastRow = Math.Min(lastTileRow, maxY) / ChunkTiles;
+        int rebuilt = 0;
+        for (int row = firstRow; row <= lastRow; row++)
+        {
+            for (int column = firstColumn; column <= lastColumn; column++)
+            {
+                BuildTerrainChunk(column, row);
+                rebuilt++;
+            }
+        }
+        GD.Print($"[BLIGHT] 显示更新 角点({minX},{minY})-({maxX},{maxY})"
+            + $" 显示 {Blight.BlightedCells} 格，重建 {rebuilt} 块");
     }
 
     private Vector4 TileLayers(string t00, string t10, string t01, string t11, W3eTerrain.Corner c00)

@@ -266,7 +266,7 @@ public sealed partial class War3GameScene
 
     private void RefreshMinimapBlight()
     {
-        BlightMask blight = _terrainBuilder?.Blight;
+        ScoutedBlight blight = _terrainBuilder?.Blight;
         if (blight == null || _minimapBaseImage == null) return;
         if (blight.Version == _minimapBlightVersion) return;
         _minimapBlightVersion = blight.Version;
@@ -286,7 +286,7 @@ public sealed partial class War3GameScene
             for (int x = 0; x < width; x++)
             {
                 float mapX = minX + (x + 0.5f) / width * (maxX - minX);
-                if (!blight.IsBlightedMap(mapX, mapY)) continue;
+                if (!blight.IsMinimapBlighted(mapX, mapY)) continue;
                 int index = (y * width + x) * 4;
                 pixels[index] &= red;
                 pixels[index + 1] &= green;
