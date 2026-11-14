@@ -69,13 +69,38 @@ public sealed partial class LauncherApp : Node
     private int _startLumber = -1;
     private float _timeScale = 1f;
 
+    private static string[] MergeAngleBracketedArgs(string[] raw)
+    {
+        var result = new List<string>(raw.Length);
+        for (int i = 0; i < raw.Length; i++)
+        {
+            string argument = raw[i];
+            int open = argument.IndexOf('<');
+            if (open >= 0 && argument.IndexOf('>', open) < 0)
+            {
+                int end = i;
+                while (end + 1 < raw.Length && !raw[end].Contains('>'))
+                {
+                    end++;
+                }
+                if (raw[end].Contains('>'))
+                {
+                    argument = string.Join(' ', raw, i, end - i + 1);
+                    i = end;
+                }
+            }
+            result.Add(argument.Replace("<", string.Empty).Replace(">", string.Empty));
+        }
+        return result.ToArray();
+    }
+
     public override void _Ready()
     {
         Assets.Init();
         _menuHost = new MenuScreenHost(this);
 
         string playPath = null;
-        foreach (string argument in OS.GetCmdlineUserArgs())
+        foreach (string argument in MergeAngleBracketedArgs(OS.GetCmdlineUserArgs()))
         {
             if (argument.StartsWith("--play="))
             {
