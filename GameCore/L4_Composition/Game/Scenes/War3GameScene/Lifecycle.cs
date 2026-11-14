@@ -26,6 +26,7 @@ public sealed partial class War3GameScene : Node3D
     private GameHudScreen _newHud;
     private BattleOverlayRenderer _battleOverlay;
     private SelectionCircleRenderer _selectionCircles;
+    private UnitShadowRenderer _unitShadows;
     private NVector4 _mapUiBounds;
     private GodotUiTexture _minimapFogTexture;
     private Texture2D _minimapBaseTexture;
@@ -268,6 +269,8 @@ public sealed partial class War3GameScene : Node3D
         _battleOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         _selectionCircles = new SelectionCircleRenderer { Name = "SelectionCircles" };
         AddChild(_selectionCircles);
+        _unitShadows = new UnitShadowRenderer { Name = "UnitShadows" };
+        AddChild(_unitShadows);
         var hudLayer = new CanvasLayer { Name = "Hud", Layer = 45 };
         AddChild(hudLayer);
         _newHud = new GameHudScreen { Name = "HudScreen" };
@@ -546,6 +549,7 @@ public sealed partial class War3GameScene : Node3D
         RefreshConstruction();
         _battleOverlay?.Frame(_allUnits, StatusBarVisible, StatusBarEnemy);
         _selectionCircles?.Frame(_allUnits, StatusBarHeightAt, StatusBarEnemy, StatusBarVisible);
+        _unitShadows?.Frame(_allUnits, StatusBarHeightAt, StatusBarVisible);
         _cursor?.Tick(frame);
 
         _hudTimer += (float)delta;

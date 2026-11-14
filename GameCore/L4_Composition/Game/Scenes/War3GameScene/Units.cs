@@ -233,22 +233,6 @@ public sealed partial class War3GameScene
         }
     }
 
-    private static void ApplyUnitShadow(UnitSceneComponent view, UnitType type)
-    {
-        if (view == null || type == null) return;
-
-        bool hasBuilding = !string.IsNullOrWhiteSpace(type.BuildingShadowArt) && type.BuildingShadowArt != "_" && type.BuildingShadowArt != "-";
-        if (type.IsBuilding && hasBuilding)
-        {
-            view.ApplyShadow(type.BuildingShadowArt, 0f, 0f, 0f, 0f);
-            return;
-        }
-
-        bool hasUnit = !string.IsNullOrWhiteSpace(type.ShadowArt) && type.ShadowArt != "_" && type.ShadowArt != "-";
-        if (!hasUnit) return;
-        view.ApplyShadow(type.ShadowArt, type.ShadowWidth, type.ShadowHeight, type.ShadowOffsetX, type.ShadowOffsetY);
-    }
-
     private static bool IsGoldMineType(UnitType type)
     {
         if (type == null || !type.IsBuilding || type.CanAttack) return false;
@@ -331,7 +315,6 @@ public sealed partial class War3GameScene
         float scale = type.ModelScale * (entryScale > 0f ? entryScale : 1f);
 
         UnitSceneComponent view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(player), scale, type.IsBuilding, type.FootprintRadius, type.ModelPath, _sceneLighting?.Units ?? SceneLight.Fallback);
-        ApplyUnitShadow(view, type);
         view.Root.Position = new Vector3(worldX, worldY, worldZ);
         view.Root.Rotation = new Vector3(0f, yaw, 0f);
         view.Root.Name = $"{id}_{_allUnits.Count}";
@@ -437,7 +420,6 @@ public sealed partial class War3GameScene
         UnitSceneComponent view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(unit.Player),
             unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, unit.Type.ModelPath,
             _sceneLighting?.Units ?? SceneLight.Fallback);
-        ApplyUnitShadow(view, unit.Type);
         view.Root.Position = position;
         view.Root.Rotation = new Vector3(0f, yaw, 0f);
         view.Root.Name = $"morph_{unit.Type.Id}_{_morphSerial++}";
