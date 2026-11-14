@@ -497,6 +497,10 @@ public static class UnitFactory
         return merged.ToArray();
     }
 
+    public static IEnumerable<string> SplitAnimationProperties(string value) =>
+        (value ?? "").SplitAnimationConfig(
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
     private static string[] SplitList(string csv)
     {
         if (string.IsNullOrWhiteSpace(csv)) return Array.Empty<string>();

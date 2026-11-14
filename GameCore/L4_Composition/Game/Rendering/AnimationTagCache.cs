@@ -46,7 +46,7 @@ internal sealed class AnimationTagCache
         {
             var merged = new HashSet<string>(secondaryCopy, StringComparer.OrdinalIgnoreCase);
             foreach (string property in cache.Properties)
-                foreach (string tag in SplitProperties(property)) merged.Add(tag);
+                foreach (string tag in UnitFactory.SplitAnimationProperties(property)) merged.Add(tag);
             if (!string.IsNullOrEmpty(harvest)) merged.Add(harvest);
             if (cutting) merged.Add("Work");
             tags = merged.ToArray();
@@ -56,13 +56,6 @@ internal sealed class AnimationTagCache
         if (cache.Entries.Count >= 16) cache.Entries.Clear();
         cache.Entries.Add(new Entry(secondaryCopy, harvest, cutting, tags, key));
         return (tags, key);
-    }
-
-    private static IEnumerable<string> SplitProperties(string value)
-    {
-        foreach (string part in (value ?? "").Split(new[] { ',', '|', ';' },
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            yield return part;
     }
 
     private static bool Matches(string[] snapshot, IReadOnlyCollection<string> current)

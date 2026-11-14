@@ -41,10 +41,14 @@ public sealed class ShorelineWaveRenderer
                     || a.LayerHeight != d.LayerHeight;
                 if (cliff ? !water.ShowCliffWaves : !water.ShowRollingWaves) continue;
 
-                int ad = DepthReachesWaves(terrain, water, column, row, a) ? 1 : 0;
-                int bd = DepthReachesWaves(terrain, water, column + 1, row, b) ? 1 : 0;
-                int cd = DepthReachesWaves(terrain, water, column + 1, row + 1, c) ? 1 : 0;
-                int dd = DepthReachesWaves(terrain, water, column, row + 1, d) ? 1 : 0;
+                int ad = MapWorldBuilder.WaterDepth(a,
+                    MapWorldBuilder.GroundUnitsAtCorner(terrain, column, row), water) > water.WavesDepth ? 1 : 0;
+                int bd = MapWorldBuilder.WaterDepth(b,
+                    MapWorldBuilder.GroundUnitsAtCorner(terrain, column + 1, row), water) > water.WavesDepth ? 1 : 0;
+                int cd = MapWorldBuilder.WaterDepth(c,
+                    MapWorldBuilder.GroundUnitsAtCorner(terrain, column + 1, row + 1), water) > water.WavesDepth ? 1 : 0;
+                int dd = MapWorldBuilder.WaterDepth(d,
+                    MapWorldBuilder.GroundUnitsAtCorner(terrain, column, row + 1), water) > water.WavesDepth ? 1 : 0;
                 int count = ad + bd + cd + dd;
                 string file;
                 int variations;
@@ -172,15 +176,6 @@ public sealed class ShorelineWaveRenderer
             if (animation.TrackGetKeyValue(track, key).AsBool()) return true;
         }
         return false;
-    }
-
-    static bool DepthReachesWaves(TerrainData terrain, War3WaterConfig water,
-        int column, int row, TerrainData.Corner corner)
-    {
-        float waterHeight = corner.WaterWorld + water.HeightOffset;
-        return corner.HasWater
-            && waterHeight - MapWorldBuilder.GroundUnitsAtCorner(terrain, column, row)
-                > water.WavesDepth;
     }
 
     static float CornerRotation(int a, int b, int c)

@@ -154,21 +154,25 @@ public sealed partial class MapWorldBuilder
         return (corner.WaterWorld + water.HeightOffset) * 128f;
     }
 
+    internal static float WaterDepth(TerrainData.Corner corner, float groundHeight,
+        War3WaterConfig config) => corner.HasWater
+            ? config.HeightOffset + corner.WaterWorld - groundHeight
+            : 0f;
+
     private static Color WaterColor(War3WaterConfig water, TerrainData terrain, int x, int y)
     {
         TerrainData.Corner corner = terrain.Corners[y * terrain.Width + x];
-        float num = corner.WaterWorld + water.HeightOffset;
-        float num2 = CornerWorld(terrain, x, y) / 128f;
-        float num3 = Mathf.Clamp(num - num2, 0f, 1f);
-        if (num3 <= water.DeepLevel)
+        float depth = Mathf.Clamp(
+            WaterDepth(corner, CornerWorld(terrain, x, y) / 128f, water), 0f, 1f);
+        if (depth <= water.DeepLevel)
         {
-            float weight = Mathf.Clamp((num3 - water.MinimumDepth)
+            float shallow = Mathf.Clamp((depth - water.MinimumDepth)
                 / Mathf.Max(0.0001f, water.DeepLevel - water.MinimumDepth), 0f, 1f);
-            return water.ShallowMin.Lerp(water.ShallowMax, weight);
+            return water.ShallowMin.Lerp(water.ShallowMax, shallow);
         }
-        float weight2 = Mathf.Clamp((num3 - water.DeepLevel)
+        float deep = Mathf.Clamp((depth - water.DeepLevel)
             / Mathf.Max(0.0001f, water.MaximumDepth - water.DeepLevel), 0f, 1f);
-        return water.DeepMin.Lerp(water.DeepMax, weight2);
+        return water.DeepMin.Lerp(water.DeepMax, deep);
     }
 
     private static void AddWaterVertex(SurfaceTool st, Vector3 position, Vector2 uv, Color color)
