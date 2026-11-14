@@ -596,8 +596,8 @@ public sealed partial class War3GameScene
             + $" 条目={BuildCommandEntries().Count} {_hud?.DescribeCommandSlots()}");
 
         _selection?.SelectClicked(hero, false);
-        ProbeCommandHotkeys(hero);
         ProbeSpellBookPage(hero);
+        ProbeCommandHotkeys(hero);
     }
 
     private void ProbeCommandHotkeys(Unit hero)
