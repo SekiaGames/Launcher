@@ -231,9 +231,9 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>
-    /// 英雄技能命令卡，口径与原版一致：
-    /// 没学的技能占一格（点=学）；**有点数且还能升级时，技能图标上挂「+」，点它就是升级**；
-    /// 否则点它才是施法。被动技能只在没学/可升级时占格。
+    /// 英雄技能卡（客户端 CollectAbilityCommands）：格位取物编 Buttonpos（abpx/abpy）。
+    /// 没学的技能不在技能卡上占格 —— 它们在学习页（CommandCardBuilder.CollectLearnMenu），
+    /// 技能图标上也不再挂「+」。
     /// </summary>
     private void AddAbilityCommands(System.Collections.Generic.List<CommandEntry> commands, Unit hero)
     {
@@ -243,29 +243,13 @@ public sealed partial class War3GameScene
             if (type == null) continue;
 
             Ability ability = hero.FindAbility(id) ?? hero.GiveAbility(id, 0);
-            if (ability == null) continue;
+            if (ability == null || !ability.Learned) continue;
 
-            bool canUpgrade = ability.CanLevelUp && hero.SkillPoints > 0 && LevelRequirementMet(hero, ability);
-            if (!ability.Learned || (ability.IsPassive && canUpgrade))
-            {
-                commands.Add(LearnEntry(hero, ability));
-                continue;
-            }
-
-            if (canUpgrade)
-            {
-                // 原版：技能图标右上角一个「+」，点一下就是加点（优先于施法）
-                CommandEntry upgrade = LearnEntry(hero, ability);
-                upgrade.Name = ability.Name;
-                upgrade.Cost = "+";
-                upgrade.Tooltip = AbilityTooltip(ability, ability.Level + 1) + "\n左键：升级（1 技能点）";
-                commands.Add(upgrade);
-                continue;
-            }
+            int slot = AbilitySlot(ability);
 
             if (ability.IsPassive && ability.SupportsAutoCast)
             {
-                AddArrowCommand(commands, hero, ability);
+                AddArrowCommand(commands, hero, ability, slot);
                 continue;
             }
 
@@ -277,6 +261,7 @@ public sealed partial class War3GameScene
                     Id = id,
                     Name = ability.Name,
                     Cost = "被动",
+                    SlotIndex = slot,
                     Hotkey = ability.Hotkey,
                     Tooltip = AbilityTooltip(ability, ability.Level),
                     Icon = TechTree.Icon(ability.IconArt),
@@ -301,6 +286,7 @@ public sealed partial class War3GameScene
                 Id = id,
                 Name = ability.Name,
                 Cost = cost,
+                SlotIndex = slot,
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
                 Icon = TechTree.Icon(ability.IconArt),
@@ -311,9 +297,11 @@ public sealed partial class War3GameScene
                 CooldownTotal = ability.Type.CooldownAt(Mathf.Max(1, ability.Level)),
             });
         }
-
-        AddInventoryCommands(hero);
     }
+
+    /// <summary>技能在命令卡上的格号（物编 Buttonpos）；没有配置时按 (0,0) 排，和客户端一致。</summary>
+    private static int AbilitySlot(Ability ability)
+        => CommandCardBuilder.TryGetConfiguredSlot(ability, research: false, out int slot) ? slot : -1;
 
     /// <summary>
     /// 非英雄单位的技能格（德鲁伊熊/乌鸦形态这类）：等级固定、没有技能点，点一下就是施放。
@@ -323,9 +311,10 @@ public sealed partial class War3GameScene
         foreach (Ability ability in unit.Abilities)
         {
             if (!ability.Learned || ability.IsAura) continue;
+            int slot = AbilitySlot(ability);
             if (ability.IsPassive)
             {
-                if (ability.SupportsAutoCast) AddArrowCommand(commands, unit, ability);
+                if (ability.SupportsAutoCast) AddArrowCommand(commands, unit, ability, slot);
                 continue;
             }
 
@@ -344,6 +333,7 @@ public sealed partial class War3GameScene
                 Id = ability.Id,
                 Name = ability.Name,
                 Cost = cost,
+                SlotIndex = slot,
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
                 Icon = TechTree.Icon(ability.IconArt),
@@ -356,13 +346,15 @@ public sealed partial class War3GameScene
         }
     }
 
-    private void AddArrowCommand(System.Collections.Generic.List<CommandEntry> commands, Unit owner, Ability ability)
+    private void AddArrowCommand(System.Collections.Generic.List<CommandEntry> commands, Unit owner,
+        Ability ability, int slot)
     {
         commands.Add(new CommandEntry
         {
             Id = ability.Id,
             Name = ability.Name,
             Cost = ability.AutoCastEnabled ? "自动" : "关闭",
+            SlotIndex = slot,
             Hotkey = ability.Hotkey,
             Tooltip = AbilityTooltip(ability, ability.Level) + "\n左键/右键：开/关自动施法",
             Icon = TechTree.Icon(ability.IconArt),
@@ -370,15 +362,6 @@ public sealed partial class War3GameScene
             Action = () => ToggleAutoCast(owner, ability),
             RightAction = () => ToggleAutoCast(owner, ability),
         });
-    }
-
-    private static bool LevelRequirementMet(Unit hero, Ability ability)
-    {
-        if (ability?.Type == null) return false;
-        int next = ability.Level + 1;
-        int skip = Mathf.Max(1, ability.Type.LevelSkip);
-        int need = (next - 1) * skip + Mathf.Max(1, ability.Type.RequiredLevel);
-        return hero.Level >= need;
     }
 
     private static string AutoCastHint(Ability ability)
@@ -542,41 +525,6 @@ public sealed partial class War3GameScene
         int charges = World.ChargesLeft(item);
         if (charges > 0) text += $"\n剩余 {charges} 次";
         return text;
-    }
-
-    /// <summary>学习/升级格：技能点 + 英雄等级 双重门槛。</summary>
-    private CommandEntry LearnEntry(Unit hero, Ability ability)
-    {
-        AbilityType type = ability.Type;
-        int nextLevel = ability.Level + 1;
-        int need = (nextLevel - 1) * Mathf.Max(1, type.LevelSkip) + Mathf.Max(1, type.RequiredLevel);
-        bool levelOk = hero.Level >= need;
-        bool hasPoint = hero.SkillPoints > 0;
-        string action = ability.Learned ? "升级" : "学习";
-
-        return new CommandEntry
-        {
-            Id = ability.Id,
-            Name = $"{action} {ability.Name}",
-            Cost = hasPoint ? "1 技能点" : "无点数",
-            Tooltip = AbilityTooltip(ability, nextLevel) + (levelOk ? "" : $"\n需要英雄等级 {need}"),
-            Icon = TechTree.Icon(ability.IconArt),
-            Enabled = levelOk && hasPoint,
-            Action = () =>
-            {
-                if (_world == null) return;
-                if (_world.LearnAbility(hero, ability.Id))
-                {
-                    _hud?.SetHint($"{ability.Name} 升到 {ability.Level} 级");
-                    RefreshHud();
-                    UpdateCommandCard();
-                }
-                else
-                {
-                    _hud?.SetHint(levelOk ? "没有技能点" : $"需要英雄等级 {need}");
-                }
-            },
-        };
     }
 
     /// <summary>

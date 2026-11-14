@@ -141,20 +141,71 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
-    private void AddStandardCommands(List<CommandEntry> commands, bool canMove)
+    /// <summary>
+    /// 基础命令（客户端 AddBaseCommands）：移动/巡逻/保持位置只在能移动时才有格子，
+    /// 攻击按单位有没有武器给格 —— 混选时「全员都有」才留得下，所以这里不能拿禁用代替缺失。
+    /// </summary>
+    private void AddStandardCommands(List<CommandEntry> commands, Unit unit)
     {
-        commands.Add(new CommandEntry
+        if (unit == null) return;
+
+        if (!unit.IsBuilding)
         {
-            Id = "cmd-move",
-            Name = "移动",
-            Kind = UiCommandKind.Move,
-            SlotIndex = 0,
-            Hotkey = "M",
-            Tooltip = "点地面移动。Shift 追加到队列末尾",
-            Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNMove.blp"),
-            Enabled = canMove,
-            Action = BeginMoveCommand,
-        });
+            commands.Add(new CommandEntry
+            {
+                Id = "cmd-move",
+                Name = "移动",
+                Kind = UiCommandKind.Move,
+                SlotIndex = 0,
+                Hotkey = "M",
+                Tooltip = "点地面移动。Shift 追加到队列末尾",
+                Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNMove.blp"),
+                Enabled = true,
+                Action = BeginMoveCommand,
+            });
+
+            commands.Add(new CommandEntry
+            {
+                Id = "cmd-patrol",
+                Name = "巡逻",
+                Kind = UiCommandKind.Patrol,
+                SlotIndex = 4,
+                Hotkey = "P",
+                Tooltip = "在当前位置与落点之间往返，遇敌自动开火",
+                Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNPatrol.blp"),
+                Enabled = true,
+                Action = BeginPatrolCommand,
+            });
+
+            commands.Add(new CommandEntry
+            {
+                Id = "cmd-hold",
+                Name = "保持位置",
+                Kind = UiCommandKind.Hold,
+                SlotIndex = 2,
+                Hotkey = "H",
+                Tooltip = "原地不动，只攻击进入射程的敌人",
+                Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNHoldPosition.blp"),
+                Enabled = true,
+                Action = IssueHoldOrders,
+            });
+        }
+
+        if (unit.Type is { CanAttack: true })
+        {
+            commands.Add(new CommandEntry
+            {
+                Id = "cmd-attack",
+                Name = "攻击",
+                Kind = UiCommandKind.AttackMove,
+                SlotIndex = 3,
+                Hotkey = "A",
+                Tooltip = "点目标攻击。Shift 追加到队列末尾",
+                Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNAttack.blp"),
+                Enabled = true,
+                Action = BeginAttackCommand,
+            });
+        }
 
         commands.Add(new CommandEntry
         {
@@ -167,45 +218,6 @@ public sealed partial class War3GameScene
             Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNStop.blp"),
             Enabled = true,
             Action = IssueStopOrders,
-        });
-
-        commands.Add(new CommandEntry
-        {
-            Id = "cmd-hold",
-            Name = "保持位置",
-            Kind = UiCommandKind.Hold,
-            SlotIndex = 2,
-            Hotkey = "H",
-            Tooltip = "原地不动，只攻击进入射程的敌人",
-            Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNHoldPosition.blp"),
-            Enabled = canMove,
-            Action = IssueHoldOrders,
-        });
-
-        commands.Add(new CommandEntry
-        {
-            Id = "cmd-attack",
-            Name = "攻击",
-            Kind = UiCommandKind.AttackMove,
-            SlotIndex = 3,
-            Hotkey = "A",
-            Tooltip = "点目标攻击。Shift 追加到队列末尾",
-            Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNAttack.blp"),
-            Enabled = true,
-            Action = BeginAttackCommand,
-        });
-
-        commands.Add(new CommandEntry
-        {
-            Id = "cmd-patrol",
-            Name = "巡逻",
-            Kind = UiCommandKind.Patrol,
-            SlotIndex = 4,
-            Hotkey = "P",
-            Tooltip = "在当前位置与落点之间往返，遇敌自动开火",
-            Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNPatrol.blp"),
-            Enabled = canMove,
-            Action = BeginPatrolCommand,
         });
     }
 

@@ -391,6 +391,22 @@ public static class TechTree
         return Get(fields, "Requires");
     }
 
+    /// <summary>单位物编字段（单位 ObjectData 同口径：Buttonpos / Art / …），供命令卡按物编排位。</summary>
+    public static string UnitCommandField(string id, string field)
+    {
+        EnsureLoaded();
+        if (_unitFields == null || !_unitFields.TryGetValue(id, out Dictionary<string, string> fields)) return "";
+        return Get(fields, field);
+    }
+
+    /// <summary>单位热键（Units\*UnitStrings.txt 的 Hotkey）：训练/建造/研究的按钮字母。</summary>
+    public static string UnitHotkey(string id)
+    {
+        EnsureLoaded();
+        if (_unitText == null || !_unitText.TryGetValue(id, out Dictionary<string, string> text)) return "";
+        return Get(text, "Hotkey").Trim();
+    }
+
     /// <summary>
     /// 依赖别名的或列表：ItemFunc.txt 里 TALT = halt,oalt,eate,uaod（任一祭坛），
     /// TWN2/TWN3 = 二/三级主基。买中立英雄的 Requires 用的是这些别名，不是建筑 id。

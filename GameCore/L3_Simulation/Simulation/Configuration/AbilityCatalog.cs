@@ -56,6 +56,22 @@ public sealed class AbilityType
 
     public string IconArt = "";
 
+    /// <summary>学习页的图标（物编 Researchart）。</summary>
+    public string ResearchArt = "";
+    public string ResearchHotkey = "";
+    public string ResearchTip = "";
+    public string ResearchUbertip = "";
+
+    /// <summary>
+    /// 命令卡位置字段（客户端的 ability ObjectData 同口径）：Buttonpos / Unbuttonpos /
+    /// Researchbuttonpos 及拆开的 abpx·abpy / aubx·auby / arpx·arpy。
+    /// 数据来自 Units\*AbilityFunc.txt。
+    /// </summary>
+    public readonly Dictionary<string, string> CommandFields = new(StringComparer.OrdinalIgnoreCase);
+
+    public string CommandField(string name)
+        => name != null && CommandFields.TryGetValue(name, out string value) ? value : null;
+
     public float CooldownAt(int level) => Pick(Cooldown, level);
     public float CostAt(int level) => Pick(ManaCost, level);
     public float RangeAt(int level) => Pick(CastRange, level);
@@ -110,6 +126,26 @@ public static class AbilityCatalog
         "UnitsCampaignAbilityStrings.json",
         "UnitsCommonAbilityStrings.json",
         "UnitsItemAbilityStrings.json",
+    };
+
+    /// <summary>命令卡位置/图标的来源：客户端的 AbilityFunc.txt 这一组（按种族分文件，这里合并）。</summary>
+    private static readonly string[] FuncFiles =
+    {
+        "UnitsHumanAbilityFunc.json",
+        "UnitsOrcAbilityFunc.json",
+        "UnitsUndeadAbilityFunc.json",
+        "UnitsNightElfAbilityFunc.json",
+        "UnitsNeutralAbilityFunc.json",
+        "UnitsCampaignAbilityFunc.json",
+        "UnitsCommonAbilityFunc.json",
+        "UnitsItemAbilityFunc.json",
+    };
+
+    private static readonly (string Field, string SplitX, string SplitY)[] CommandPositionFields =
+    {
+        ("Buttonpos", "abpx", "abpy"),
+        ("Unbuttonpos", "aubx", "auby"),
+        ("Researchbuttonpos", "arpx", "arpy"),
     };
 
     /// <summary>物编的 Art 列没导出，常用技能的图标按原版路径补齐；缺了只是没图标。</summary>
@@ -174,6 +210,7 @@ public static class AbilityCatalog
     private static readonly Dictionary<string, AbilityType> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, int> Rows = new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, string> _strings;
+    private static Dictionary<string, string> _funcs;
     private static bool _indexed;
 
     public static int Count
@@ -257,15 +294,37 @@ public static class AbilityCatalog
         }
 
         Dictionary<string, string> strings = Strings();
+        Dictionary<string, string> funcs = Funcs();
         type.Name = Pick(strings, id + ".Name");
         type.Tip = Pick(strings, id + ".Tip");
         type.Ubertip = Pick(strings, id + ".Ubertip");
         if (string.IsNullOrEmpty(type.Ubertip)) type.Ubertip = Pick(strings, id + ".UberTip");
         type.Hotkey = Pick(strings, id + ".Hotkey");
+        type.ResearchArt = Pick(funcs, id + ".Researchart");
+        type.ResearchHotkey = Pick(strings, id + ".Researchhotkey");
+        type.ResearchTip = Pick(strings, id + ".Researchtip");
+        type.ResearchUbertip = Pick(strings, id + ".Researchubertip");
+
+        foreach ((string field, string splitX, string splitY) in CommandPositionFields)
+        {
+            string raw = Pick(funcs, id + "." + field);
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            type.CommandFields[field] = raw;
+            string[] parts = raw.Split(',');
+            if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0])) type.CommandFields[splitX] = parts[0].Trim();
+            if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1])) type.CommandFields[splitY] = parts[1].Trim();
+        }
 
         if (string.IsNullOrEmpty(type.Name)) type.Name = id;
-        if (IconFallback.TryGetValue(id, out string icon)) type.IconArt = icon;
-        else if (IconFallback.TryGetValue(type.Code, out string codeIcon)) type.IconArt = codeIcon;
+        type.IconArt = Pick(funcs, id + ".Art");
+        if (string.IsNullOrWhiteSpace(type.IconArt) || type.IconArt is "_" or "-")
+        {
+            if (IconFallback.TryGetValue(id, out string icon)) type.IconArt = icon;
+            else if (IconFallback.TryGetValue(type.Code, out string codeIcon)) type.IconArt = codeIcon;
+            else type.IconArt = "";
+        }
+        if (string.IsNullOrWhiteSpace(type.ResearchArt) || type.ResearchArt is "_" or "-")
+            type.ResearchArt = type.IconArt;
 
         Cache[id] = type;
         return type;
@@ -307,6 +366,29 @@ public static class AbilityCatalog
             }
         }
         return _strings;
+    }
+
+    private static Dictionary<string, string> Funcs()
+    {
+        if (_funcs != null) return _funcs;
+
+        _funcs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string file in FuncFiles)
+        {
+            Variant json = GeneratedTexts.Get(file);
+            if (json.VariantType != Variant.Type.Dictionary) continue;
+
+            Godot.Collections.Dictionary root = json.AsGodotDictionary();
+            if (!root.ContainsKey("keys")) continue;
+
+            Godot.Collections.Dictionary keys = root["keys"].AsGodotDictionary();
+            foreach (KeyValuePair<Variant, Variant> pair in keys)
+            {
+                string key = pair.Key.AsString();
+                if (!_funcs.ContainsKey(key)) _funcs[key] = pair.Value.AsString();
+            }
+        }
+        return _funcs;
     }
 
     private static string Pick(Dictionary<string, string> map, string key)

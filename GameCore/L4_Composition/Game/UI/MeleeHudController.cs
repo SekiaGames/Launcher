@@ -25,6 +25,8 @@ public sealed class CommandEntry
     public double CooldownEnd;
     public int Charges;
     public int MaxCharges;
+    /// <summary>图标右下角的角标（客户端 CommandSlot.NumberText）：学习页显示剩余技能点。</summary>
+    public string Overlay;
 }
 
 public sealed class QueueEntry
@@ -76,6 +78,24 @@ public sealed class MeleeHudController : IUiCommandListener
     {
         _host.SetSelection(primary, selected ?? Array.Empty<Unit>(), cargo);
     }
+
+    public bool LearnMenuOpen => _host.LearnMenuOpen;
+
+    public bool BuildMenuOpen => _host.BuildMenuOpen;
+
+    public void OpenLearnMenu(Unit selected) => _host.OpenLearnMenu(selected);
+
+    public void CloseLearnMenu() => _host.CloseLearnMenu();
+
+    public void OpenBuildMenu(Unit selected) => _host.OpenBuildMenu(selected);
+
+    public void CloseBuildMenu() => _host.CloseBuildMenu();
+
+    public void BackMenu() => _host.BackMenu();
+
+    public void ClickCommandSlot(int slot) => _host.ClickCommandSlot(slot);
+
+    public string DescribeCommandSlots() => _host.DescribeCommandSlots();
 
     public void SetSelectionBox(Rect2 rect, bool visible) => _host.SetSelectionBox(rect, visible);
 

@@ -539,6 +539,60 @@ public sealed partial class War3GameScene
         ProbeShopEntry(hero);
         ProbeUiEntry(hero);
         ProbeHeroGuardEntry(hero);
+        ProbeCommandCardPages(hero);
+    }
+
+    /// <summary>
+    /// 命令卡四个功能格的探针：学习页（Researchbuttonpos + 第 12 格返回）、建造页、
+    /// 放置模式取消格、混选聚合。打印的是真正落到 12 格上的结果。
+    /// </summary>
+    private void ProbeCommandCardPages(Unit hero)
+    {
+        if (hero == null) return;
+
+        CancelPlacement();
+        _selection?.SelectClicked(hero, false);
+        GD.Print($"[CARD] 英雄技能卡 {_hud?.DescribeCommandSlots()}");
+
+        _newHud?.OpenLearnMenu(hero);
+        UpdateCommandCard();
+        GD.Print($"[CARD] 学习页 {_hud?.DescribeCommandSlots()}");
+        _hud?.ClickCommandSlot(2);
+        GD.Print($"[CARD] 点学习页第 3 格后 技能点={hero.SkillPoints}"
+            + $" 学习页={_newHud?.LearnMenuOpen} {_hud?.DescribeCommandSlots()}");
+        _newHud?.OpenLearnMenu(hero);
+        UpdateCommandCard();
+        _newHud?.BackMenu();
+        UpdateCommandCard();
+        GD.Print($"[CARD] 返回后 {_hud?.DescribeCommandSlots()}");
+
+        Unit worker = Spawn("hpea", ViewPlayer, hero.Position.X - 140f, hero.Position.Z + 140f, 0f, 0f, 1f);
+        if (worker != null)
+        {
+            _world.Units.Add(worker);
+            _selection?.SelectClicked(worker, false);
+            GD.Print($"[CARD] 工人卡 {_hud?.DescribeCommandSlots()}");
+
+            _newHud?.OpenBuildMenu(worker);
+            UpdateCommandCard();
+            GD.Print($"[CARD] 建造页 {_hud?.DescribeCommandSlots()}");
+            _hud?.ClickCommandSlot(0);
+            GD.Print($"[CARD] 点建造页第 1 格后 建造页={_newHud?.BuildMenuOpen}"
+                + $" 放置={_placingId ?? "无"} {_hud?.DescribeCommandSlots()}");
+            CancelPlacement();
+            UpdateCommandCard();
+        }
+
+        Unit mate = Spawn("hfoo", ViewPlayer, hero.Position.X + 80f, hero.Position.Z - 80f, 0f, 0f, 1f);
+        if (mate == null) return;
+        _world.Units.Add(mate);
+        _selected.Add(hero);
+        _selected.Add(mate);
+        _selection?.SelectFromGroup(hero);
+        GD.Print($"[CARD] 混选(英雄+步兵) 成员={_selected.Count} 主位={PrimarySelection?.Type?.Id}"
+            + $" 条目={BuildCommandEntries().Count} {_hud?.DescribeCommandSlots()}");
+
+        _selection?.SelectClicked(hero, false);
     }
 
     private void ProbeHeroGuardEntry(Unit hero)

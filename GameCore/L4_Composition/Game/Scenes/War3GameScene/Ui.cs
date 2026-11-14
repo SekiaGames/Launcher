@@ -5,6 +5,7 @@ using System.IO;
 
 using OpenWC3.Game.UI;
 using OpenWC3.Game.UI.Views;
+using OpenWC3.UI;
 using NVector4 = System.Numerics.Vector4;
 namespace OpenWC3.Game;
 
@@ -427,51 +428,180 @@ public sealed partial class War3GameScene
             _selection?.SelectFromGroup(unit);
     }
 
+    /// <summary>
+    /// 命令卡的组成（客户端 CommandCardBuilder.Build 的入口）：学习页 / 建造页优先，
+    /// 否则按主位 + 全队成员聚合；选目标与放置模式把第 12 格换成取消。
+    /// </summary>
     private List<CommandEntry> BuildCommandEntries()
     {
         _hud?.SetInventory(null);
         PlayerSlot slot = Slot(ViewPlayer);
-        var commands = new List<CommandEntry>();
-        // 命令卡跟着选择里的主位走（客户端 CommandCardBuilder.Build(selected, …, _selection)）:
-        // 混选里点不同的头像 = 换主位 = 换整张命令卡。
-        Unit single = PrimarySelection;
-        if (single != null && (single.Player == slot.Id || IsNeutralShop(single)))
+        Unit primary = PrimarySelection;
+        if (primary == null || slot == null) return new List<CommandEntry>();
+
+        // 物品格跟着主位英雄走（客户端 InventoryFrame 也是独立于命令卡翻页的）
+        if (primary.IsHero && CanControl(primary)) AddInventoryCommands(primary);
+
+        if (_newHud is { LearnMenuOpen: true })
+            return CommandCardBuilder.CollectLearnMenu(primary, LearnAbility, BackMenu);
+
+        if (_newHud is { BuildMenuOpen: true })
+            return CommandCardBuilder.CollectBuildMenu(primary, type => CanBuild(slot, type),
+                PlaceBuilding, BackMenu);
+
+        List<CommandEntry> commands = CommandCardBuilder.CollectCommands(_selected, primary,
+            CurrentRefreshMode(), member => CollectMemberCommands(member, slot), CancelPendingMode);
+        return commands;
+    }
+
+    private CommandCardRefreshMode CurrentRefreshMode()
+    {
+        if (_placingId != null) return CommandCardRefreshMode.Placement;
+        if (CastPending) return CommandCardRefreshMode.Target;
+        return CommandCardRefreshMode.Normal;
+    }
+
+    private void CancelPendingMode()
+    {
+        if (_placingId != null) CancelPlacement();
+        else CancelCast();
+        UpdateCommandCard();
+    }
+
+    private void BackMenu()
+    {
+        _newHud?.BackMenu();
+        UpdateCommandCard();
+    }
+
+    private void LearnAbility(Ability ability)
+    {
+        if (ability?.Owner == null || _world == null) return;
+        if (!_world.LearnAbility(ability.Owner, ability.Id))
         {
-            if (single.IsBuilding && single.IsUnderConstruction)
-            {
-                AddCancelConstructionCommand(commands, single);
-            }
-            else if (single.IsBuilding && !single.IsUnderConstruction)
-            {
-                bool own = single.Player == slot.Id;
-                if (own) AddTrainingCommands(commands, slot, single);
-                AddSellUnitCommands(commands, slot, single);
-                if (own)
-                {
-                    AddResearchCommands(commands, slot, single);
-                    AddUpgradeCommands(commands, slot, single);
-                }
-                if (single.Type.IsShop) AddShopCommands(commands, slot, single);
-                if (own) AddUnitAbilityCommands(commands, single);
-            }
-            else if (single.IsHero)
-            {
-                AddStandardCommands(commands, true);
-                AddAbilityCommands(commands, single);
-            }
-            else if (single.IsWorker)
-            {
-                AddStandardCommands(commands, true);
-                AddBuildCommands(commands, slot, single);
-            }
-            else
-            {
-                AddStandardCommands(commands, !single.IsBuilding);
-                if (!single.IsBuilding) AddUnitAbilityCommands(commands, single);
-            }
+            _hud?.SetHint(ability.Owner.SkillPoints > 0
+                ? $"需要英雄等级 {CommandCardBuilder.LearnLevelRequirement(ability)}"
+                : "没有技能点");
+            return;
+        }
+        _hud?.SetHint($"{ability.Name} 升到 {ability.Level} 级");
+        if (ability.Owner.SkillPoints <= 0) _newHud?.CloseLearnMenu();
+        RefreshHud();
+        UpdateCommandCard();
+    }
+
+    private void PlaceBuilding(string buildingId)
+    {
+        _newHud?.CloseBuildMenu();
+        BeginPlacement(buildingId);
+        UpdateCommandCard();
+    }
+
+    private bool CanBuild(PlayerSlot slot, UnitType type)
+        => slot != null && type != null
+            && slot.Gold >= type.GoldCost && slot.Lumber >= type.LumberCost
+            && RequirementsMet(slot, type.Requires);
+
+    /// <summary>单个成员的命令卡内容（客户端 CollectCommands 的每成员一遍）。</summary>
+    private List<CommandEntry> CollectMemberCommands(Unit member, PlayerSlot slot)
+    {
+        var commands = new List<CommandEntry>();
+        if (member == null || member.Removed || slot == null) return commands;
+
+        bool own = member.Player == slot.Id;
+        bool neutralShop = IsNeutralShop(member);
+
+        if (member.IsBuilding && member.IsUnderConstruction)
+        {
+            if (own) AddCancelConstructionCommand(commands, member);
+            return commands;
         }
 
+        if (member.IsBuilding)
+        {
+            if (own)
+            {
+                AddTrainingCommands(commands, slot, member);
+                AddSellUnitCommands(commands, slot, member);
+                AddResearchCommands(commands, slot, member);
+                AddUpgradeCommands(commands, slot, member);
+                if (member.Type.IsShop) AddShopCommands(commands, slot, member);
+                AddUnitAbilityCommands(commands, member);
+            }
+            else if (neutralShop)
+            {
+                AddSellUnitCommands(commands, slot, member);
+                AddShopCommands(commands, slot, member);
+            }
+            return commands;
+        }
+
+        if (!own && !neutralShop) return commands;
+
+        AddStandardCommands(commands, member);
+        if (member.IsHero) AddAbilityCommands(commands, member);
+        else AddUnitAbilityCommands(commands, member);
+        if (own) AddMenuCommands(commands, member);
         return commands;
+    }
+
+    /// <summary>
+    /// 命令卡上的两个功能格（客户端 CollectCommands 末尾的 slots[7] / slots[8]）：
+    /// 英雄第 8 格「学习技能」BTNSkillz + O + 剩余点数角标；工人第 9 格「建造」+ B。
+    /// </summary>
+    private void AddMenuCommands(List<CommandEntry> commands, Unit member)
+    {
+        if (member.IsHero && HeroHasLearnableSkill(member))
+        {
+            Unit hero = member;
+            commands.Add(new CommandEntry
+            {
+                Id = "cmd-open-learn",
+                Name = "学习技能",
+                Kind = UiCommandKind.OpenLearnSkills,
+                SlotIndex = 7,
+                Hotkey = "O",
+                Icon = TechTree.Icon(@"ReplaceableTextures\CommandButtons\BTNSkillz.blp"),
+                Overlay = hero.SkillPoints > 0 ? hero.SkillPoints.ToString() : null,
+                Tooltip = "打开技能学习页",
+                Action = () =>
+                {
+                    _newHud?.OpenLearnMenu(hero);
+                    UpdateCommandCard();
+                },
+            });
+        }
+
+        if (!member.IsHero && member.Type.Builds.Length > 0)
+        {
+            Unit worker = member;
+            commands.Add(new CommandEntry
+            {
+                Id = "cmd-open-build",
+                Name = "建造建筑",
+                Kind = UiCommandKind.OpenBuild,
+                SlotIndex = 8,
+                Hotkey = "B",
+                Icon = TechTree.Icon(CommandCardBuilder.BuildMenuIcon(member.Type.Race)),
+                Tooltip = "打开建造页",
+                Action = () =>
+                {
+                    _newHud?.OpenBuildMenu(worker);
+                    UpdateCommandCard();
+                },
+            });
+        }
+    }
+
+    private static bool HeroHasLearnableSkill(Unit hero)
+    {
+        if (hero?.Type == null) return false;
+        foreach (string id in hero.Type.HeroAbilList)
+        {
+            Ability ability = hero.FindAbility(id);
+            if (ability == null || ability.CanLevelUp) return true;
+        }
+        return false;
     }
 
     private void AddCancelConstructionCommand(List<CommandEntry> commands, Unit site)
@@ -638,32 +768,6 @@ public sealed partial class War3GameScene
                 Enabled = afford && requires,
                 Action = () => StartBuildingUpgrade(source, buildingId),
                 RightAction = () => CancelBuildingOrder(source, buildingId),
-            });
-        }
-    }
-
-    private void AddBuildCommands(List<CommandEntry> commands, PlayerSlot slot, Unit worker)
-    {
-        foreach (string buildingId in worker.Type.Builds)
-        {
-            UnitType type = UnitFactory.Get(buildingId);
-            if (type == null) continue;
-
-            bool afford = slot.Gold >= type.GoldCost && slot.Lumber >= type.LumberCost;
-            bool requires = RequirementsMet(slot, type.Requires);
-            bool known = HasBuilding(slot, buildingId);
-            string id = buildingId;
-            commands.Add(new CommandEntry
-            {
-                Id = id,
-                Name = $"建造 {type.Name}",
-                Cost = $"{type.GoldCost}金/{type.LumberCost}木",
-                Tooltip = $"建造 {type.Name}  {type.GoldCost}金 {type.LumberCost}木  {type.BuildSeconds:0}s"
-                    + (type.FoodMade > 0 ? $"  供给 +{type.FoodMade}" : "")
-                    + (known ? "  已有" : ""),
-                Icon = TechTree.Icon(TechTree.UnitIconArt(id)),
-                Enabled = afford && requires,
-                Action = () => BeginPlacement(id),
             });
         }
     }

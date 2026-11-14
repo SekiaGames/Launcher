@@ -206,11 +206,43 @@ public sealed partial class GameHudScreen : Control
         IReadOnlyList<Unit> cargo = null)
     {
         _selectedUnit = selected;
+        _card.UpdateMenuSelection(selected);
         _portrait.Update(selected);
         _portraitViewport.Show(selected);
         bool cargoMode = cargo != null && cargo.Count > 0;
         _selectionGroup.Update(selected, cargoMode ? cargo : selection, cargoMode);
         QueueRedraw();
+    }
+
+    public bool LearnMenuOpen => _card.LearnMenuOpen;
+
+    public bool BuildMenuOpen => _card.BuildMenuOpen;
+
+    public void OpenLearnMenu(Unit selected) => _card.OpenLearnMenu(selected);
+
+    public void CloseLearnMenu() => _card.CloseLearnMenu();
+
+    public void OpenBuildMenu(Unit selected) => _card.OpenBuildMenu(selected);
+
+    public void CloseBuildMenu() => _card.CloseBuildMenu();
+
+    public void BackMenu() => _card.BackMenu();
+
+    /// <summary>调试用：等价于左键点某一格命令卡（走真实点击链路）。</summary>
+    public void ClickCommandSlot(int slot) => InvokeEntry(SlotEntry(slot));
+
+    /// <summary>命令卡当前 12 格的占用情况（调试用：格号:名字）。</summary>
+    public string DescribeCommandSlots()
+    {
+        var parts = new List<string>();
+        for (int i = 0; i < _slotEntries.Length; i++)
+        {
+            CommandEntry entry = _slotEntries[i];
+            if (entry == null) continue;
+            parts.Add($"{i}:{entry.Name}{(entry.Enabled ? "" : "(禁用)")}"
+                + (string.IsNullOrEmpty(entry.Overlay) ? "" : $"[{entry.Overlay}]"));
+        }
+        return string.Join(" ", parts);
     }
 
     public void SetInventory(IReadOnlyList<CommandEntry> entries)
@@ -257,19 +289,19 @@ public sealed partial class GameHudScreen : Control
             foreach (CommandEntry entry in commands)
             {
                 if (entry == null) continue;
-                int index = entry.SlotIndex is >= 0 and < CommandCardBuilder.SlotCount
+                int requested = entry.SlotIndex is >= 0 and < CommandCardBuilder.SlotCount
                     ? entry.SlotIndex
                     : next;
-                while (index < CommandCardBuilder.SlotCount && slots[index] != null) index++;
-                if (index >= CommandCardBuilder.SlotCount) break;
+                int index = CommandCardBuilder.FindNativeSlot(slots, requested);
+                if (index < 0) continue;
                 next = index + 1;
 
                 float cooldown = entry.CooldownTotal > 0.01f
                     ? Mathf.Clamp(entry.CooldownRemaining / entry.CooldownTotal, 0f, 1f)
                     : 0f;
-                string overlay = entry.MaxCharges > 0 && entry.Charges > 0
-                    ? entry.Charges.ToString()
-                    : null;
+                string overlay = !string.IsNullOrEmpty(entry.Overlay)
+                    ? entry.Overlay
+                    : entry.MaxCharges > 0 && entry.Charges > 0 ? entry.Charges.ToString() : null;
                 slots[index] = new CommandSlotView(
                     Icon: "", Hotkey: entry.Hotkey, Disabled: !entry.Enabled,
                     Cooldown: cooldown, Overlay: overlay,
@@ -283,7 +315,7 @@ public sealed partial class GameHudScreen : Control
             }
         }
         _commands = new CommandCardView(slots);
-        _card.Build(_commands);
+        _card.Build(_commands, _selectedUnit);
         ApplyPendingKind();
         QueueRedraw();
     }
