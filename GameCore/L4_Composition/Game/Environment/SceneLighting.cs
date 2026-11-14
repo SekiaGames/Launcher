@@ -271,6 +271,14 @@ public static class SceneLightRig
         }
 
         ForEachMaterial(root, material => Write(material, IsModelMaterial(material) ? units : terrain));
+
+        foreach (Node child in root.FindChildren("*", "GPUParticles3D", true, false))
+        {
+            if (child is GpuParticles3D { MaterialOverride: ShaderMaterial particleMaterial })
+            {
+                SceneFog.Write(particleMaterial);
+            }
+        }
     }
 
     public static void ForEachMaterial(Node root, Action<ShaderMaterial> action)
@@ -299,14 +307,6 @@ public static class SceneLightRig
             if (mesh.GetSurfaceOverrideMaterial(surface) is ShaderMaterial material)
             {
                 action(material);
-            }
-        }
-
-        foreach (Node child in root.FindChildren("*", "GPUParticles3D", true, false))
-        {
-            if (child is GpuParticles3D { MaterialOverride: ShaderMaterial particleMaterial })
-            {
-                SceneFog.Write(particleMaterial);
             }
         }
     }
