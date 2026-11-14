@@ -164,6 +164,38 @@ public sealed partial class War3GameScene
         }
     }
 
+    public int RunPauseProbe()
+    {
+        int failures = 0;
+        void Verify(string label, bool ok)
+        {
+            if (!ok) failures++;
+            GD.Print($"[PAUSE] {(ok ? "通过" : "不符")} {label}");
+        }
+
+        if (_newHud == null)
+        {
+            GD.Print("[PAUSE] HUD 未就绪");
+            return 1;
+        }
+
+        bool manual = Paused;
+        Verify("初始未因对话框暂停", !MenuPauseRequested);
+        _newHud.ShowAboutDialog();
+        Verify("设置页打开时暂停模拟", SimulationBlocked && MenuPauseRequested);
+        Verify("不改写手动暂停状态", Paused == manual);
+        _newHud.HideAboutDialog();
+        Verify("关闭设置页恢复模拟", !SimulationBlocked || manual);
+        Paused = true;
+        _newHud.ShowAboutDialog();
+        _newHud.HideAboutDialog();
+        Verify("关闭设置页保留手动暂停", SimulationBlocked);
+        Paused = manual;
+        Verify("手动暂停状态已还原", Paused == manual);
+        GD.Print(failures == 0 ? "[PAUSE] 全部通过" : $"[PAUSE] {failures} 项不符");
+        return failures;
+    }
+
     public int RunFogMemoryProbe()
     {
         int failures = 0;

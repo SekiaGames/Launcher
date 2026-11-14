@@ -56,6 +56,12 @@ public sealed partial class War3GameScene : Node3D
     /// <summary>暂停只停模拟层与玩家镜头输入，脚本/界面照常存在。</summary>
     public bool Paused;
 
+    /// <summary>设置等对话框可见时暂停模拟（客户端 MenuPauseRequested，不改动手动暂停状态）。</summary>
+    internal bool MenuPauseRequested => _newHud?.AutoPauseRequested == true;
+
+    /// <summary>模拟是否停步：手动暂停或设置类对话框可见。</summary>
+    internal bool SimulationBlocked => Paused || MenuPauseRequested;
+
     private GameUserSettings _userSettings;
 
     private void ApplyFrameRateLimit(int fps) => Engine.MaxFps = GameUserSettings.NormalizeFrameRate(fps);
@@ -766,7 +772,7 @@ _newHud.AboutDialogClosed = () => _userSettings.Save();
     public override void _PhysicsProcess(double delta)
     {
         if (LoadingBlocked) return;
-        if (Paused) return;
+        if (SimulationBlocked) return;
         _world?.Advance();
         TickClock();
         // 位置只在物理步更新，循环音也必须按同一节拍判断移动，否则渲染帧会误判为已停下。

@@ -67,6 +67,7 @@ public sealed partial class LauncherApp : Node
     private bool _itemProbe;
     private bool _floatProbe;
     private bool _fogMemoryProbe;
+    private bool _pauseProbe;
     private bool _eventSoundProbe;
     private readonly List<string> _spawnItems = new();
     private bool _aggro;
@@ -333,6 +334,10 @@ public sealed partial class LauncherApp : Node
             else if (argument == "--fog-memory-probe")
             {
                 _fogMemoryProbe = true;
+            }
+            else if (argument == "--pause-probe")
+            {
+                _pauseProbe = true;
             }
             else if (argument == "--event-sound-probe")
             {
@@ -604,6 +609,11 @@ public sealed partial class LauncherApp : Node
                 GetTree().Quit(game.RunFogMemoryProbe());
                 return;
             }
+            if (_pauseProbe)
+            {
+                GetTree().Quit(game.RunPauseProbe());
+                return;
+            }
             if (_eventSoundProbe)
             {
                 GetTree().Quit(game.RunEventSoundProbe());
@@ -638,6 +648,11 @@ public sealed partial class LauncherApp : Node
         controller.SetHint("子组切换");
         Check("SetHint 进命令提示", hud.CommandErrorVisible && hud.CommandErrorMessage == "子组切换",
             hud.CommandErrorMessage);
+
+        hud.ShowAboutDialog();
+        Check("设置页请求暂停", hud.AutoPauseRequested && hud.AboutDialogVisible);
+        hud.HideAboutDialog();
+        Check("关闭设置页恢复", !hud.AutoPauseRequested && !hud.AboutDialogVisible);
 
         Check("资源栏帧存在", hud.HoverForProbe("ResIcon0"));
         Check("金币提示", hud.TooltipVisible && hud.TooltipTitle == "金币", hud.TooltipTitle);

@@ -468,6 +468,9 @@ _chat = new ChatFrame(this);
 
     public bool AboutDialogVisible => _aboutDialog?.Visible == true;
 
+    /// <summary>设置/选项类对话框可见时请求暂停模拟（客户端 MeleeHudController.AutoPauseRequested）。</summary>
+    public bool AutoPauseRequested => AboutDialogVisible;
+
     public void ShowAboutDialog() => _aboutDialog?.Show();
 
     public void HideAboutDialog() => _aboutDialog?.Close();
