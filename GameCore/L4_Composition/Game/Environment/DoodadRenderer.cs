@@ -32,11 +32,8 @@ public sealed partial class MapWorldBuilder
                 num2++;
                 continue;
             }
-            if (entry.Dead)
-            {
-                num3++;
-                continue;
-            }
+            bool dead = entry.Dead;
+            if (dead) num3++;
             DoodadModel doodadModel = DoodadMeshLibrary.Get(entry.Id, entry.Variation);
             if (doodadModel?.Scene == null)
             {
@@ -51,6 +48,7 @@ public sealed partial class MapWorldBuilder
             ModelLibrary.ApplyMissingMaterials(node3D2, doodadModel.ScenePath);
             DoodadMeshLibrary.ApplyReplaceableTexture(node3D2, doodadModel);
             ApplyUnitTextureFilter(node3D2);
+            AnimationPlayer animator = TreeState.ResolveAnimator(node3D2);
             node3D.AddChild(node3D2, forceReadableName: false, Node.InternalMode.Disabled);
             DoodadDefinition doodadDefinition = DoodadMeshLibrary.Describe(entry.Id);
             TreeState tree = null;
@@ -59,11 +57,20 @@ public sealed partial class MapWorldBuilder
                 tree = new TreeState
                 {
                     Node = node3D2,
+                    Animator = animator,
                     Position = node3D2.Position,
                     Id = entry.Id,
-                    Hp = doodadDefinition.Hp
+                    Hp = doodadDefinition.Hp,
+                    Alive = !dead
                 };
                 Trees.Add(tree);
+            }
+            if (dead)
+            {
+                if (tree != null) tree.HoldDeathPose();
+                else TreeState.HoldDeathPose(animator);
+                num++;
+                continue;
             }
             if (!string.IsNullOrEmpty(doodadModel.Shadow))
             {
@@ -73,7 +80,7 @@ public sealed partial class MapWorldBuilder
             if (doodadDefinition is { Walkable: true }) Walkable.Add(node3D2);
             num++;
         }
-        GD.Print($"[DOODAD] 装饰物 {num}（模型 {DoodadMeshLibrary.Count} 种），隐藏 {num2} 死亡 {num3} 缺模型 {num4}，树 {Trees.Count}，"
+        GD.Print($"[DOODAD] 装饰物 {num}（模型 {DoodadMeshLibrary.Count} 种），隐藏 {num2} 已毁 {num3} 缺模型 {num4}，树 {Trees.Count}，"
             + $"带阴影 {_treeShadows.Count}");
     }
 

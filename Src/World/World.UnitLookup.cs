@@ -42,12 +42,11 @@ public sealed partial class World
         return best;
     }
 
-    /// <summary>把树吃掉/砍倒：隐藏模型并解开它占的那圈阻挡（与砍倒同一套处理）。</summary>
+    /// <summary>把树吃掉/砍倒：播放死亡序列并定格，解开它占的那圈阻挡（与砍倒同一套处理）。</summary>
     public void ConsumeTree(TreeState tree)
     {
         if (tree == null || !tree.Alive) return;
-        tree.Alive = false;
-        if (tree.Node != null) tree.Node.Visible = false;
+        tree.EnterDeath();
         _pathGrid?.ClearArea(tree.Position, 24f);
     }
 
