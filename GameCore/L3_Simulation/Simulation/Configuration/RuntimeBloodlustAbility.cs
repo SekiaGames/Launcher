@@ -43,7 +43,7 @@ public sealed class RuntimeBloodlustAbility(War3ObjectData objects) : Ability
                 |TargetFlags.Player|TargetFlags.Ally|TargetFlags.Self|TargetFlags.Alive
                 |TargetFlags.Vulnerable;
         BuffTypeData data=objects?.GetBuff(BloodlustBuffRawcode);
-        string art=AbilityArt.FirstArt(data,BloodlustBuffRawcode,level,"TargetArt","atat");
+        string art=AbilityArt.FirstArt(data,level,"TargetArt","atat");
         _runtimePreloadArts=string.IsNullOrWhiteSpace(art)
             ?Array.Empty<string>():new[]{art};
     }
