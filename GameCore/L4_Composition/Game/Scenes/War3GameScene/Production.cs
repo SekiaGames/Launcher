@@ -499,7 +499,6 @@ public sealed partial class War3GameScene
             return false;
         }
 
-        _world.TickItemPickup();
         _hud?.SetHint($"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金，掉在店旁）");
         RefreshHud();
         return true;

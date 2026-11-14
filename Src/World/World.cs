@@ -172,7 +172,6 @@ public sealed partial class World
         TickFogReveals();
         TickMorph();
         TickRegeneration();
-        TickItemPickup();
         TickItemCooldowns();
         TickShops();
         TickSeparation();
@@ -257,6 +256,12 @@ public sealed partial class World
         if (unit.GoldMine != null)
         {
             StepGather(unit);
+            return;
+        }
+
+        if (unit.PickupTarget != null)
+        {
+            StepPickupItem(unit);
             return;
         }
 

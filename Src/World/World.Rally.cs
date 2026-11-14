@@ -136,6 +136,7 @@ public sealed partial class World
         unit.Repairing = false;
         unit.ReturnHall = null;
         unit.FollowTarget = null;
+        unit.PickupTarget = null;
         unit.Path = null;
         unit.PathIndex = 0;
         ClearQueuedOrders(unit);

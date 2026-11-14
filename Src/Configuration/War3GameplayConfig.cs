@@ -24,6 +24,9 @@ public sealed class War3GameplayConfig
 
     public readonly float DefenseArmor = MiscRules.Value("Misc.DefenseArmor", 0.06f);
 
+    /// <summary>拾取订单的结算半径（客户端 War3GameplayConfig.PickupItemRange，MiscGame 的 PickupItemRange）。</summary>
+    public readonly float PickupItemRange = MiscRules.Value("Misc.PickupItemRange", 250f);
+
     public readonly float DecayTime = MiscDataValue("Misc.DecayTime", 2f);
     public readonly float StructureDecayTime = MiscDataValue("Misc.StructureDecayTime", 30f);
     public readonly float BoneDecayTime = MiscDataValue("Misc.BoneDecayTime", 88f);

@@ -320,16 +320,24 @@ public sealed partial class War3GameScene
                 }
             }
 
-            // 6. 地面物品：由主位单位走过去捡（拾取本身靠走近触发）。
+            // 6. 地面物品：主位单位接拾取订单，走到 PickupItemRange 内再结算。
             if (_scene._picking.PickGroundItem(screenPosition, null, out Item item))
             {
                 Unit picker = _scene.PrimarySelection;
-                if (picker != null && picker.Alive && picker.CanMove)
+                if (picker != null && picker.Alive)
                 {
-                    _scene._commandProcessor.Move(new Vec2(item.Position.X, item.Position.Z),
-                        queue, silent: true, explicitMovers: new[] { picker });
-                    _scene._hud?.SetHint($"拾取 {item.Type.Name}");
-                    return;
+                    PickupItemResult pickup = _scene._world.IssuePickupItem(picker, item);
+                    if (pickup == PickupItemResult.InventoryFull)
+                    {
+                        _scene._hud?.SetHint("物品栏已满。");
+                        return;
+                    }
+                    if (pickup == PickupItemResult.Issued)
+                    {
+                        _scene._hud?.SetHint($"拾取 {item.Type.Name}");
+                        MoveUnhandled(new HashSet<Unit> { picker }, null, item.Position, queue);
+                        return;
+                    }
                 }
             }
 

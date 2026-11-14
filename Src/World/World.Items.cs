@@ -5,14 +5,20 @@ using OpenWC3.Game;
 
 namespace OpenWC3;
 
+/// <summary>拾取订单结果（客户端 JassGameNatives.PickupItemResult）。</summary>
+public enum PickupItemResult
+{
+    None,
+    Issued,
+    InventoryFull,
+}
+
 /// <summary>
-/// 地面物品与拾取。对标客户端 War3GameScene/AutoPickup.cs：
-/// 英雄走到物品附近（PickupRange）就自动捡起，没有空格则留在原地。
+/// 地面物品与拾取。对标客户端 JassGameNatives.PlayerPickupItemOrder：
+/// 玩家右键物品下发拾取订单，单位寻路走到 Misc.PickupItemRange 内再入包。
 /// </summary>
 public sealed partial class World
 {
-    private const float PickupRange = 150f;
-
     private readonly List<Item> _groundItems = new();
 
     public IReadOnlyList<Item> GroundItems => _groundItems;
@@ -279,27 +285,65 @@ public sealed partial class World
         return true;
     }
 
-    public void TickItemPickup()
+    /// <summary>玩家右键地面物品：能收下就下拾取订单（客户端 IssuePickupItem）。</summary>
+    public PickupItemResult IssuePickupItem(Unit unit, Item item)
     {
-        if (_groundItems.Count == 0) return;
+        if (unit?.Type == null || item?.Type == null) return PickupItemResult.None;
+        if (!unit.Alive || unit.IsBuilding || !unit.CanCarryItems) return PickupItemResult.None;
+        if (item.Owner != null || !_groundItems.Contains(item)) return PickupItemResult.None;
+        if (!unit.HasFreeSlot) return PickupItemResult.InventoryFull;
 
-        for (int index = _groundItems.Count - 1; index >= 0; index--)
+        IssueOrder(unit, UnitOrder.Pickup(item), false);
+        return PickupItemResult.Issued;
+    }
+
+    private void StepPickupItem(Unit unit)
+    {
+        Item item = unit.PickupTarget;
+        if (item == null || item.Type == null || item.Owner != null || !_groundItems.Contains(item))
         {
-            Item item = _groundItems[index];
-            Unit picker = NearestPicker(item.Position);
-            if (picker == null) continue;
-
-            if (!picker.AddItem(item)) continue;
-
-            _groundItems.RemoveAt(index);
-            ApplyItemBonus(picker, item);
-            ItemPickedUp?.Invoke(picker, item);
-            if (_logItemBudget > 0)
-            {
-                _logItemBudget--;
-                GD.Print($"[ITEM] {picker.Type.Name} 捡起 {item.Type.Name}（{picker.ItemCount}/{Unit.InventorySize}）");
-            }
+            CancelPickup(unit);
+            AdvanceOrder(unit);
+            return;
         }
+
+        float range = GameplayConfig.PickupItemRange;
+        float dx = unit.Position.X - item.Position.X;
+        float dz = unit.Position.Z - item.Position.Z;
+        if (dx * dx + dz * dz <= range * range)
+        {
+            CancelPickup(unit);
+            CompletePickup(unit, item);
+            AdvanceOrder(unit);
+            return;
+        }
+
+        unit.MoveTarget = item.Position;
+        Advance(unit, item.Position, range);
+    }
+
+    private static void CancelPickup(Unit unit)
+    {
+        unit.PickupTarget = null;
+        unit.MoveTarget = null;
+        unit.Path = null;
+        unit.PathIndex = 0;
+        unit.View?.Play("Stand");
+    }
+
+    private bool CompletePickup(Unit unit, Item item)
+    {
+        if (!unit.AddItem(item)) return false;
+
+        _groundItems.Remove(item);
+        ApplyItemBonus(unit, item);
+        ItemPickedUp?.Invoke(unit, item);
+        if (_logItemBudget > 0)
+        {
+            _logItemBudget--;
+            GD.Print($"[ITEM] {unit.Type.Name} 拾取 {item.Type.Name}（{unit.ItemCount}/{Unit.InventorySize}）");
+        }
+        return true;
     }
 
     private int _logItemBudget = 8;
@@ -348,22 +392,4 @@ public sealed partial class World
         }
     }
 
-    private Unit NearestPicker(Vector3 position)
-    {
-        Unit best = null;
-        float bestDistance = PickupRange;
-        foreach (Unit unit in Units)
-        {
-            if (!unit.Alive || !unit.CanCarryItems) continue;
-            if (!unit.HasFreeSlot) continue;
-
-            float dx = unit.Position.X - position.X;
-            float dz = unit.Position.Z - position.Z;
-            float distance = Mathf.Sqrt(dx * dx + dz * dz);
-            if (distance >= bestDistance) continue;
-            bestDistance = distance;
-            best = unit;
-        }
-        return best;
     }
-}

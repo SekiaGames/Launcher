@@ -510,13 +510,16 @@ public sealed partial class War3GameScene
         _world.LearnAbility(hero, "AHhb");
         _world.LearnAbility(hero, "AHds");
 
+        var spawnedItems = new List<Item>();
         foreach (string itemId in new[] { "ratc", "rat9", "phea", "pman", "pomn", "ankh" })
         {
             if (!ItemCatalog.Exists(itemId)) continue;
             var spot = new Vector3(hero.Position.X + 40f, hero.Position.Y, hero.Position.Z + 40f);
-            SpawnItem(itemId, spot);
+            Item spawned = SpawnItem(itemId, spot);
+            if (spawned != null) spawnedItems.Add(spawned);
         }
-        _world.TickItemPickup();
+        foreach (Item spawned in spawnedItems) _world.IssueOrder(hero, UnitOrder.Pickup(spawned), true);
+        for (int tick = 0; tick <= spawnedItems.Count; tick++) _world.Advance();
 
         _selected.Clear();
         _selected.Add(hero);
@@ -1904,14 +1907,17 @@ public sealed partial class War3GameScene
         }
 
         // 摆两件物品让英雄自己捡（顺便验装备加成），再演示 使用/丢弃
+        var spawnedItems = new List<Item>();
         foreach (string itemId in new[] { "ckng", "phea" })
         {
             ItemType itemType = ItemCatalog.Get(itemId);
             if (itemType == null) continue;
             var spot = new Vector3(hero.Position.X + 40f, hero.Position.Y, hero.Position.Z + 40f);
-            SpawnItem(itemId, spot);
+            Item spawned = SpawnItem(itemId, spot);
+            if (spawned != null) spawnedItems.Add(spawned);
         }
-        _world.TickItemPickup();
+        foreach (Item spawned in spawnedItems) _world.IssueOrder(hero, UnitOrder.Pickup(spawned), true);
+        for (int tick = 0; tick <= spawnedItems.Count; tick++) _world.Advance();
 
         _selected.Clear();
         _selected.Add(hero);

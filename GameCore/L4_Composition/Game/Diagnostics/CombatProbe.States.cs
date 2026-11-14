@@ -560,9 +560,15 @@ public static partial class CombatProbe
 
         var first = new Item { Type = crown, Position = new Vector3(50f, 0f, 0f) };
         world.DropItem(first, first.Position);
-        world.TickItemPickup();
+        world.Advance();
 
-        Verify("英雄走近自动拾取", 1f, paladin.ItemCount == 1 ? 1f : 0f, 0f);
+        Verify("未下令不会自动拾取", 0f, paladin.ItemCount, 0f);
+        Verify("物品留在地上", 1f, world.GroundItems.Count, 0f);
+
+        Verify("下发拾取订单", (float)PickupItemResult.Issued, (float)world.IssuePickupItem(paladin, first), 0f);
+        world.Advance();
+
+        Verify("英雄走到物品旁拾取", 1f, paladin.ItemCount == 1 ? 1f : 0f, 0f);
         Verify("物品离地", 0f, first.OnGround ? 1f : 0f, 0f);
         Verify("地上清单清空", 0f, world.GroundItems.Count, 0f);
 
@@ -571,7 +577,9 @@ public static partial class CombatProbe
         world.Units.Add(soldier);
         var second = new Item { Type = crown, Position = new Vector3(30f, 0f, 0f) };
         world.DropItem(second, second.Position);
-        world.TickItemPickup();
+        Verify("非英雄拾取被拒", (float)PickupItemResult.None,
+            (float)world.IssuePickupItem(soldier, second), 0f);
+        world.Advance();
 
         Verify("非英雄不会拾取", 0f, soldier.ItemCount, 0f);
         Verify("物品仍留在地上", 1f, second.OnGround ? 1f : 0f, 0f);
@@ -608,7 +616,8 @@ public static partial class CombatProbe
         paladin.IsHero = true;
         if (world.GroundItems.Count > 0) paladin.Position = world.GroundItems[0].Position;
         world.Units.Add(paladin);
-        world.TickItemPickup();
+        if (world.GroundItems.Count > 0) world.IssuePickupItem(paladin, world.GroundItems[0]);
+        world.Advance();
         Verify("英雄捡起掉落的物品", 1f, paladin.ItemCount, 0f);
 
         GD.Print($"[自检] 掉落 {creep.Name} → {(spawned > 0 ? "有" : "无")}，"

@@ -43,6 +43,8 @@ public sealed partial class Unit
 
     public Unit GoldMine;
     public Unit HomeHall;
+    /// <summary>拾取订单的目标地面物品（走到 PickupItemRange 内结算）。</summary>
+    public Item PickupTarget;
     /// <summary>右键点友军单位后的跟随目标：只要它活着，移动目标就每帧贴着它走。</summary>
     public Unit FollowTarget;
     /// <summary>正在往哪座建筑送携带的资源（右键点主城交付时指定）。</summary>

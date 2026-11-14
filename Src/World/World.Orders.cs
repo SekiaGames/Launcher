@@ -11,6 +11,8 @@ public enum UnitOrderKind
     Patrol,
     /// <summary>攻击移动：走到点，途中见敌就打（客户端 AttackMoveCommand → COrderTarget(Point)）。</summary>
     AttackMove,
+    /// <summary>拾取地面物品：走到 PickupItemRange 内再入包（客户端 PlayerPickupItemOrder）。</summary>
+    PickupItem,
 }
 
 public sealed class UnitOrder
@@ -18,11 +20,13 @@ public sealed class UnitOrder
     public UnitOrderKind Kind;
     public Vector3 Point;
     public Unit Target;
+    public Item Item;
 
     public static UnitOrder Move(Vector3 point) => new() { Kind = UnitOrderKind.Move, Point = point };
     public static UnitOrder Attack(Unit target) => new() { Kind = UnitOrderKind.Attack, Target = target };
     public static UnitOrder Patrol(Vector3 point) => new() { Kind = UnitOrderKind.Patrol, Point = point };
     public static UnitOrder AttackMove(Vector3 point) => new() { Kind = UnitOrderKind.AttackMove, Point = point };
+    public static UnitOrder Pickup(Item item) => new() { Kind = UnitOrderKind.PickupItem, Item = item };
 }
 
 public sealed partial class World
@@ -50,7 +54,8 @@ public sealed partial class World
     public bool HasActiveOrder(Unit unit)
     {
         if (unit == null) return false;
-        return unit.MoveTarget.HasValue || unit.Target != null || unit.Patrolling || unit.HoldingPosition;
+        return unit.MoveTarget.HasValue || unit.Target != null || unit.Patrolling
+            || unit.HoldingPosition || unit.PickupTarget != null;
     }
 
     public void ClearQueuedOrders(Unit unit)
@@ -114,6 +119,7 @@ public sealed partial class World
         unit.GroupMoveId = 0;
         unit.Returning = false;
         unit.ReturnDelay = 0f;
+        unit.PickupTarget = null;
 
         switch (order.Kind)
         {
@@ -137,6 +143,11 @@ public sealed partial class World
                 unit.AttackMoveGoal = order.Point;
                 unit.MoveTarget = order.Point;
                 unit.AttackMoving = true;
+                break;
+            case UnitOrderKind.PickupItem:
+                unit.Target = null;
+                unit.PickupTarget = order.Item;
+                unit.MoveTarget = order.Item?.Position;
                 break;
         }
     }
@@ -199,6 +210,7 @@ public sealed partial class World
             UnitOrderKind.Attack => $"攻击 {order.Target?.Type?.Name ?? "?"}",
             UnitOrderKind.Patrol => $"巡逻 ({order.Point.X:0},{order.Point.Z:0})",
             UnitOrderKind.AttackMove => $"攻击移动 ({order.Point.X:0},{order.Point.Z:0})",
+            UnitOrderKind.PickupItem => $"拾取 {order.Item?.Type?.Name ?? "?"}",
             _ => $"移动 ({order.Point.X:0},{order.Point.Z:0})",
         };
     }
