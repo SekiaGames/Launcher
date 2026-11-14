@@ -438,11 +438,11 @@ public sealed class War3Camera
     {
         if (_modelCamera != null)
         {
-            (Vector3 eye, Vector3 look, float modelFov, float near, float far) = _modelCamera.Step(deltaTime);
+            (Vector3 eye, Vector3 look, float modelFov, float near, float far, float roll) = _modelCamera.Step(deltaTime);
             Position = eye;
             Target = look;
             _smoothedTarget = look;
-            _rollAngle = 0f;
+            _rollAngle = roll;
             FieldOfView = DegreesToRadians(modelFov) * (FallbackPresets[0].Fov * 0.5f / PlatformGodotFov);
             NearZ = MathF.Max(0.1f, near);
             FarZ = MathF.Max(NearZ + 1f, far);

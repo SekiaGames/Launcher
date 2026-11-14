@@ -7,6 +7,7 @@ internal sealed class CinematicModelCamera
 {
     private readonly Node3D _eye;
     private readonly Node3D _target;
+    private readonly Node3D _roll;
     private readonly AnimationPlayer _player;
     private string _sequence;
     private double _sequenceLength;
@@ -17,6 +18,7 @@ internal sealed class CinematicModelCamera
     {
         _eye = modelRoot.FindChild("camera0", true, false) as Node3D;
         _target = modelRoot.FindChild("camera0_target", true, false) as Node3D;
+        _roll = modelRoot.FindChild("camera0_roll", true, false) as Node3D;
         _player = modelRoot.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
         if (modelRoot.FindChild("AnimationTree", true, false) is AnimationTree tree) tree.Active = false;
         if (modelRoot.GetNodeOrNull("Model") is Node3D model && !model.IsAncestorOf(_eye)) model.Free();
@@ -24,7 +26,7 @@ internal sealed class CinematicModelCamera
 
     public bool Valid => _eye != null && _target != null;
 
-    public (Vector3 Eye, Vector3 Target, float Fov, float Near, float Far) Step(float seconds)
+    public (Vector3 Eye, Vector3 Target, float Fov, float Near, float Far, float Roll) Step(float seconds)
     {
         if (!Prepare()) return Pose();
         _elapsed += Math.Max(0f, seconds);
@@ -32,11 +34,12 @@ internal sealed class CinematicModelCamera
         return Pose();
     }
 
-    private (Vector3 Eye, Vector3 Target, float Fov, float Near, float Far) Pose()
+    private (Vector3 Eye, Vector3 Target, float Fov, float Near, float Far, float Roll) Pose()
     {
         var camera = _eye as Camera3D;
         return (_eye.GlobalPosition, _target.GlobalPosition,
-            camera?.Fov ?? 70f, camera?.Near ?? 100f, camera?.Far ?? 5000f);
+            camera?.Fov ?? 70f, camera?.Near ?? 100f, camera?.Far ?? 5000f,
+            _roll?.Rotation.Z ?? 0f);
     }
 
     private bool Prepare()
