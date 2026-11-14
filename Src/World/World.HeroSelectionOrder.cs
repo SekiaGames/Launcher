@@ -83,4 +83,21 @@ public sealed partial class World
     }
 
     private int _heroLogBudget = 12;
+
+    private readonly Dictionary<int, int> _heroAcquisitionCounts = new();
+
+    /// <summary>
+    /// 英雄被某玩家"获得"的顺序号。客户端 Game.dll 50b930/50c440：获得时递增该玩家的计数器，
+    /// 移除不回退已发出的序号。同一玩家有多个英雄时，选择面板与 Tab 的先后就按它排。
+    /// </summary>
+    internal void RecordHeroAcquisition(Unit unit)
+    {
+        if (unit == null || !unit.IsHero || unit.IsIllusion) return;
+        int next = _heroAcquisitionCounts.GetValueOrDefault(unit.Player) + 1;
+        _heroAcquisitionCounts[unit.Player] = next;
+        unit.HeroAcquisitionOrdinal = next;
+    }
+
+    public int HeroSelectionAge(Unit unit) => unit.HeroAcquisitionOrdinal == 0 ? 0
+        : _heroAcquisitionCounts.GetValueOrDefault(unit.Player) - unit.HeroAcquisitionOrdinal;
 }

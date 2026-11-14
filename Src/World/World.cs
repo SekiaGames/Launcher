@@ -70,8 +70,14 @@ public sealed partial class World
     {
         if (unit == null || !unit.Alive || unit.Removed) return false;
         if (unit.Player == player) return true;
-        return advanced && IsAllied(player, unit.Player);
+        // 客户端 World.CanControl：advanced 走"共享高级控制"，普通走"共享单位控制"。
+        // Launcher 目前只接共享单位控制（框选/选择要用），高级语义仍按同盟判定。
+        if (advanced) return IsAllied(player, unit.Player);
+        return PlayerControlQuery?.Invoke(unit.Player, player) == true;
     }
+
+    /// <summary>共享单位控制查询 (owner, controller)：w3i forces 里勾了"共享单位控制"的队伍成员互可用。</summary>
+    public Func<int, int, bool> PlayerControlQuery { get; set; }
     /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>
     public bool ShowDamageNumbers;
     /// <summary>ApplyAttackModifiers 刚刚判定出致命一击，FireWeapon 据此打标。</summary>

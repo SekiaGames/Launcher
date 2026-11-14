@@ -161,7 +161,7 @@ public sealed partial class War3GameScene
         _pathGrid?.RemoveBlocker(site.Position, footprint);
         _world?.Units.Remove(site);
         _allUnits.Remove(site);
-        if (_selected.Remove(site)) _hud?.SetSelection(_selected);
+        DropFromSelection(site);
         site.Alive = false;
         site.IsUnderConstruction = false;
         site.View?.Root.QueueFree();
@@ -413,7 +413,7 @@ public sealed partial class War3GameScene
         slot.Research[order.Id] = order.Level;
         _world?.SetResearchLevel(slot.Id, order.Id, order.Level);
         _world?.RefreshUpgradeStats(slot.Id);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         GD.Print($"[TECH] P{slot.Id} 研究完成 {upgrade.Id} {upgrade.NameFor(order.Level)} {order.Level}/{upgrade.MaxLevel}");
         PlayUiSound($"ResearchComplete{RaceSoundSuffix(slot.Id)}", order.Building.Position, slot.Id);
         RefreshHud();
@@ -799,7 +799,7 @@ public sealed partial class War3GameScene
 
         if (selected)
         {
-            _selected.Remove(building);
+            DropFromSelection(building);
             building.View?.SetSelected(false);
         }
 
@@ -824,7 +824,7 @@ public sealed partial class War3GameScene
         {
             _selected.Add(replacement);
             replacement.View?.SetSelected(true);
-            _hud?.SetSelection(_selected);
+            RefreshSelection();
         }
         GD.Print($"[BUILD] P{player} 升级完成 {replacement.Type.Name}");
         PlayUiSound($"UpgradeComplete{RaceSoundSuffix(player)}", replacement.Position, player);

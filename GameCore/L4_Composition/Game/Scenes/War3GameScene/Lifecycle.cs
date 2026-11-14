@@ -319,13 +319,14 @@ public sealed partial class War3GameScene : Node3D
         _commandProcessor = new PlayerCommandProcessor(_world, _selection, () => true, _ => { });
         _commandProcessor.OrderAck = attack =>
         {
-            if (_selected.Count > 0) PlayVoice(_selected[0], attack ? "YesAttack" : "Yes");
+            if (PrimarySelection != null) PlayVoice(PrimarySelection, attack ? "YesAttack" : "Yes");
         };
         _world.Died += OnUnitDied;
         _world.GoldDeposited += OnGoldDeposited;
         _world.LumberDeposited += OnLumberDeposited;
         _world.MissileFired += OnMissileFired;
         _world.Allied = AreAllied;
+        _world.PlayerControlQuery = ShareUnitControl;
         _world.AttackLanded += OnAttackLanded;
         _world.DamageApplied += OnDamageApplied;
         _world.ManaBurned += ShowManaBurnFloat;
@@ -358,6 +359,7 @@ public sealed partial class War3GameScene : Node3D
     {
         SpawnUnits();
         foreach (Unit unit in _allUnits) _world.Units.Add(unit);
+        foreach (Unit unit in _allUnits) _world.RecordHeroAcquisition(unit);
 
         await Loading(.66f, StageName(LoadingStage.PlacedUnits));
     }
@@ -424,7 +426,7 @@ public sealed partial class War3GameScene : Node3D
             CommandSource = BuildCommandEntries,
         };
         _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
-        _newHud.SelectionClicked = SelectUnitFromHud;
+        _newHud.SelectionClicked = OnSelectionGroupClicked;
         _newHud.IdlePeonClicked = SelectIdleWorkerUnit;
         _newHud.PortraitFollowStarted = BeginPortraitFollow;
         _newHud.PortraitFollowStopped = EndPortraitFollow;
@@ -435,7 +437,7 @@ public sealed partial class War3GameScene : Node3D
         _gameOverPanel = new GameOverPanel(this, Back);
         _log = new ChatFrame(this);
         _log.Add("Enter 输入消息");
-        _hud.SetSelection(_selected);
+        _hud.SetSelection(_selected, PrimarySelection);
         RefreshHud();
         UpdateCommandCard();
         LogUnitSummary();
@@ -551,9 +553,7 @@ public sealed partial class War3GameScene : Node3D
     {
         foreach (Unit unit in _allUnits)
             unit.View?.SetSelected(_selected.Contains(unit));
-        _hud?.SetSelection(_selected);
-        _subgroupPool.Clear();
-        _subgroupType = "";
+        RefreshSelection();
         UpdateCommandCard();
     }
 
@@ -582,7 +582,7 @@ public sealed partial class War3GameScene : Node3D
                 _heroScratch.Add(unit);
             }
         }
-        Unit selected = _selected.Count == 1 ? _selected[0] : null;
+        Unit selected = PrimarySelection;
         _newHud?.SetHeroes(_heroScratch, selected);
     }
 
@@ -610,22 +610,11 @@ public sealed partial class War3GameScene : Node3D
         _camera.Focus(worker.Position);
     }
 
-    private void SelectUnitFromHud(Unit unit)
-    {
-        if (unit == null || !unit.Alive) return;
-        ClearSelection();
-        _selected.Add(unit);
-        unit.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
-        PlaySelectionVoice();
-    }
-
     private void SelectHeroFromBar(Unit hero)
     {
         if (hero == null || !hero.Alive || hero.Player != ViewPlayer) return;
 
-        if (_selected.Count == 1 && ReferenceEquals(_selected[0], hero))
+        if (ReferenceEquals(PrimarySelection, hero))
         {
             _camera.Focus(hero.Position);
             return;
@@ -705,7 +694,7 @@ public sealed partial class War3GameScene : Node3D
         {
             _hudTimer = 0f;
             PruneCargoedSelection();
-            _hud?.SetSelection(_selected);
+            RefreshSelection();
             RefreshHud();
             UpdateCommandCard();
         }

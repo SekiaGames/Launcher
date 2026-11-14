@@ -122,7 +122,7 @@ public sealed partial class War3GameScene
         ClearSelection();
         _selected.Add(_followProbeUnit);
         _followProbeUnit.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
 
         switch (mode)
@@ -243,7 +243,7 @@ public sealed partial class War3GameScene
             _log?.Add("镜头锁定跟随：关");
             return;
         }
-        Unit focused = _selected.Count > 0 ? _selected[0] : null;
+        Unit focused = PrimarySelection;
         if (focused != null && focused.Alive) _lockFollowUnit = focused;
         if (_lockFollowUnit == null || !_lockFollowUnit.Alive)
         {
@@ -437,7 +437,7 @@ public sealed partial class War3GameScene
             _log?.Add("镜头跟随标记单位：关");
             return;
         }
-        Unit focused = _selected.Count > 0 ? _selected[0] : null;
+        Unit focused = PrimarySelection;
         if (focused != null && focused.Alive) _markedFollowUnit = focused;
         if (_markedFollowUnit == null || !_markedFollowUnit.Alive)
         {

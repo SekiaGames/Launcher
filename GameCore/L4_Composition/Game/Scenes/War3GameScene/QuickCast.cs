@@ -100,6 +100,36 @@ public sealed partial class War3GameScene
         return true;
     }
 
+    /// <summary>
+    /// 待施法的目标单位直接落到某个单位上（点选择面板头像 / 点矿里的工人走这里）。
+    /// 只吃"单位目标"的技能与物品，落点类返回 false 让调用方继续走选中逻辑。
+    /// </summary>
+    public bool TryCastOnUnit(Unit unit)
+    {
+        if (unit == null) return false;
+
+        if (_pendingItem != null)
+        {
+            if (ItemUseRules.TargetModeFor(_pendingItem.Type) != ItemTargetMode.Unit) return false;
+            Item item = _pendingItem;
+            Unit hero = _pendingItemHero;
+            int slot = _pendingItemSlot;
+            CancelCast();
+            if (hero == null || !hero.Alive || item?.Type == null) return false;
+            if (slot < 0 || slot >= hero.Inventory.Length || hero.Inventory[slot] != item) return true;
+            UseItemNow(hero, item, slot, unit, hero.Position);
+            return true;
+        }
+
+        if (_pendingCast == null || _pendingCast.TargetMode != AbilityTargetMode.Unit) return false;
+        Ability ability = _pendingCast;
+        Unit caster = _pendingCaster;
+        CancelCast();
+        if (caster == null || !caster.Alive || !ability.Ready) return false;
+        CastNow(caster, ability, unit, caster.Position);
+        return true;
+    }
+
     /// <summary>待施放的物品：按计划收目标/落点再去用（对标客户端 UseItem 的目标先前置验证）。</summary>
     private bool TryUsePendingItem(Vector2 screenPosition)
     {
@@ -397,17 +427,17 @@ public sealed partial class War3GameScene
     public bool TrySelectionHotkey(Key keycode)
     {
         if (_selected.Count == 0) return false;
-        Unit picked = _selected.Count == 1 ? _selected[0] : null;
+        Unit picked = _selected.Count == 1 ? PrimarySelection : null;
 
         if (picked != null && TrySelectionItemOrAbilityHotkey(picked, keycode)) return true;
-        return TryStandardCommandHotkey(_selected[0], keycode);
+        return PrimarySelection != null && TryStandardCommandHotkey(PrimarySelection, keycode);
     }
 
     /// <summary>小键盘 1~6 对应英雄物品六格（原版物品热键就在小键盘上）。</summary>
     public bool TryInventoryHotkey(Key keycode)
     {
         if (_hud == null) return false;
-        if (_selected.Count != 1 || !_selected[0].IsHero) return false;
+        if (_selected.Count != 1 || PrimarySelection is not { IsHero: true }) return false;
         int slot = keycode switch
         {
             Key.Kp1 => 0,

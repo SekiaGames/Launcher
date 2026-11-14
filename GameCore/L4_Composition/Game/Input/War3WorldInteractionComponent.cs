@@ -79,20 +79,29 @@ public sealed partial class War3GameScene
             if (_scene.TryCommandAt(position)) return;
             if (_scene.TryCastAt(position)) return;
 
-            float now = Time.GetTicksMsec() / 1000f;
             Unit picked = _scene.PickUnit(position, _scene.ViewPlayer);
-
-            if (picked != null && _clickUnit == picked && now - _clickTime < 0.4f)
+            if (picked == null)
             {
-                SelectSameType(picked);
-                _clickUnit = null;
-                _clickTime = -1f;
+                if (!additive) _scene._selection?.Clear();
+                _scene.CancelPending();
                 return;
             }
 
-            SelectAt(position, additive);
-            _clickUnit = picked;
+            // 原版 "Ctrl + 选定单位 或者 双击单位 = 选中屏幕附近所有的此种单位"。
+            if (IsSelectAllSameType(picked) && SelectSameType(picked, additive)) return;
+
+            _scene._selection?.SelectClicked(picked, additive, mouseChannel: true);
+            _scene.CancelPending();
+        }
+
+        /// <summary>双击（同一单位、0.4 秒内）或按住 Ctrl 点单位。</summary>
+        private bool IsSelectAllSameType(Unit clicked)
+        {
+            float now = Time.GetTicksMsec() / 1000f;
+            bool doubleClick = ReferenceEquals(_clickUnit, clicked) && now - _clickTime <= 0.4f;
+            _clickUnit = clicked;
             _clickTime = now;
+            return doubleClick || Input.IsKeyPressed(Key.Ctrl);
         }
 
         internal void HandleGroupKey(int group, bool ctrl, bool shift)
@@ -124,38 +133,38 @@ public sealed partial class War3GameScene
             if (center) _scene._camera.Focus(sum / _scene._selected.Count);
         }
 
-        private void SelectSameType(Unit reference)
+        private bool SelectSameType(Unit reference, bool additive)
         {
             Vector2 size = _scene.GetViewport().GetVisibleRect().Size;
             List<Unit> units = _scene._picking?.UnitsInScreenRect(Vector2.Zero, size,
-                unit => unit.Player == _scene.ViewPlayer
+                unit => _scene.CanControl(unit)
                     && string.Equals(unit.Type.Id, reference.Type.Id, StringComparison.OrdinalIgnoreCase))
                 ?? new List<Unit>();
-            _scene._selection?.SelectRect(units, false);
-            if (units.Count > 0)
-                _scene._hud?.SetHint($"已选中 {_scene._selected.Count} 个 {reference.Type.Name}");
+            // 一颗都选不到时退回单选，不让一次 Ctrl+点击变成"什么都没发生"。
+            if (units.Count == 0) return false;
+            _scene._selection?.SelectRect(units, additive);
+            _scene.CancelPending();
+            return true;
         }
 
         private void BoxSelect(Vector2 from, Vector2 to, bool additive)
         {
-            Rect2 rect = BoxRect(from, to);
-            if (rect.Size.X < 4f || rect.Size.Y < 4f) return;
-
-            List<Unit> units = _scene._picking?.UnitsInScreenRect(rect.Position, rect.End,
-                unit => unit.Player == _scene.ViewPlayer) ?? new List<Unit>();
+            if (!ClipToViewport(from, to, out Vector2 lo, out Vector2 hi)) return;
+            List<Unit> units = _scene._picking?.UnitsInScreenRect(lo, hi,
+                unit => _scene.CanControl(unit)) ?? new List<Unit>();
             _scene._selection?.SelectRect(units, additive);
-            if (units.Count > 0) _scene._hud?.SetHint($"框选 {_scene._selected.Count} 个单位");
+            _scene.CancelPending();
         }
 
-        private void SelectAt(Vector2 screenPosition, bool additive)
+        /// <summary>框到屏幕外的部分裁掉而不是整框作废（客户端 ScreenViewport.TryClipRect）。</summary>
+        private bool ClipToViewport(Vector2 first, Vector2 second, out Vector2 lo, out Vector2 hi)
         {
-            Unit picked = _scene.PickUnit(screenPosition, _scene.ViewPlayer);
-            if (picked == null)
-            {
-                if (!additive) _scene._selection?.Clear();
-                return;
-            }
-            _scene._selection?.SelectClicked(picked, additive, mouseChannel: true);
+            Vector2 size = _scene.GetViewport().GetVisibleRect().Size;
+            lo = new Vector2(Mathf.Max(Mathf.Min(first.X, second.X), 0f),
+                Mathf.Max(Mathf.Min(first.Y, second.Y), 0f));
+            hi = new Vector2(Mathf.Min(Mathf.Max(first.X, second.X), size.X),
+                Mathf.Min(Mathf.Max(first.Y, second.Y), size.Y));
+            return lo.X < hi.X && lo.Y < hi.Y;
         }
 
         internal void MinimapOrderAt(Vector3 worldPoint, bool queue)

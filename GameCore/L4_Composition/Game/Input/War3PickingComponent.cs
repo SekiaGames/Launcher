@@ -57,7 +57,6 @@ public sealed partial class War3GameScene
                 if (camera.IsPositionBehind(point)) continue;
                 if (!rect.HasPoint(camera.UnprojectPosition(point))) continue;
                 result.Add(unit);
-                if (result.Count >= PlayerSelectionController.MaxSelection) break;
             }
             return result;
         }

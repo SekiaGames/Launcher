@@ -183,6 +183,22 @@ public sealed partial class War3GameScene
         return false;
     }
 
+    /// <summary>
+    /// 共享单位控制：w3i forces 里同一个队伍、且勾了"共享单位控制"的玩家，可以互相选中对方的单位
+    /// 并把它们算进框选（客户端 PlayerAlliance(owner, controller, 6)）。
+    /// </summary>
+    private bool ShareUnitControl(int owner, int controller)
+    {
+        if (owner == controller) return true;
+        if (_map?.Info?.Forces == null) return false;
+        foreach (W3iForce force in _map.Info.Forces)
+        {
+            if ((force.Flags & W3iForce.SharedControlFlag) == 0) continue;
+            if (force.ContainsPlayer(owner) && force.ContainsPlayer(controller)) return true;
+        }
+        return false;
+    }
+
     private static string RaceName(int race)
     {
         return race switch

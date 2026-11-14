@@ -14,11 +14,7 @@ public sealed partial class War3GameScene
             _log?.Add($"{PlayerName(unit.Player)} 的 {unit.Type?.Name} 阵亡");
         }
 
-        if (_selected.Remove(unit))
-        {
-            _hud?.SetSelection(_selected);
-            UpdateCommandCard();
-        }
+        DropFromSelection(unit);
         RefreshHud();
     }
 

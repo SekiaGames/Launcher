@@ -42,6 +42,18 @@ internal sealed class SelectionGroupFrame : UiContainer, IClickable
 
     public Action<Unit> OnUnitClick;
 
+    /// <summary>
+    /// 单选一个能装人的单位时，面板改显示肚子里的乘客（地洞里的苦工、载具乘客）。
+    /// 点乘客图标 = 卸下他；与客户端 SelectionGroupFrame.DisplayedCargo 同口径。
+    /// </summary>
+    internal static IReadOnlyList<Unit> DisplayedCargo(Unit selected, IReadOnlyList<Unit> selection,
+        bool controllable)
+    {
+        if (selection?.Count != 1 || selected == null || !controllable) return Array.Empty<Unit>();
+        IReadOnlyList<Unit> passengers = selected.Cargo;
+        return passengers.Count > 0 ? passengers : Array.Empty<Unit>();
+    }
+
     public SelectionGroupFrame(IUiTextureResolver textures) : base("SelectionGroup")
     {
         _iconResolver = textures.Resolve;
@@ -111,14 +123,16 @@ internal sealed class SelectionGroupFrame : UiContainer, IClickable
         }
     }
 
-    public void Update(Unit selected, IReadOnlyList<Unit> selection)
+    public void Update(Unit selected, IReadOnlyList<Unit> selection, bool cargoMode = false)
     {
         _selected = selected;
         _selection.Clear();
         if (selection != null)
             for (int i = 0; i < selection.Count && i < Slots; i++)
                 _selection.Add(selection[i]);
-        bool show = _selection.Count > 1;
+        // 面板顺序与框选/Tab 同源：原生按 prio 排序，主位只是被高亮的那个，不占首格。
+        if (!cargoMode) NativeSelectionOrder.Sort(_selection);
+        bool show = cargoMode || _selection.Count > 1;
         _selectedIndex = -1;
         for (int i = 0; i < _selection.Count; i++)
             if (ReferenceEquals(_selection[i], selected)) { _selectedIndex = i; break; }
@@ -140,7 +154,7 @@ internal sealed class SelectionGroupFrame : UiContainer, IClickable
             slot.Icon.Texture = _iconResolver(icon);
             slot.Icon.Color = unit.Alive ? Vector4.One : new Vector4(.72f, .72f, .72f, 1f);
             bool selectedSlot = i == _selectedIndex
-                || PlayerSelectionController.SameCommandSubgroup(selected, unit);
+                || (!cargoMode && PlayerSelectionController.SameCommandSubgroup(selected, unit));
             slot.Border.Visible = selectedSlot;
             bool hasHealth = unit.Alive && unit.MaxHp > 0;
             slot.Hp.Visible = hasHealth;

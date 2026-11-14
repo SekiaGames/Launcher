@@ -379,6 +379,7 @@ public sealed partial class War3GameScene
             view.Play("Sleep");
         }
         _allUnits.Add(unit);
+        _world?.RecordHeroAcquisition(unit);
         return unit;
     }
 
@@ -443,10 +444,12 @@ public sealed partial class War3GameScene
     private void PruneCargoedSelection()
     {
         if (_selected.Count == 0) return;
-        if (_selected.RemoveAll(unit => unit.IsCargoed) == 0) return;
-
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
+        for (int index = _selected.Count - 1; index >= 0; index--)
+        {
+            Unit unit = _selected[index];
+            if (unit == null) _selected.RemoveAt(index);
+            else if (unit.IsCargoed) DropFromSelection(unit);
+        }
     }
 
     /// <summary>骑乘合成 / 分离把单位从世界上拿掉：模型与选中列表同步清掉，避免残留空节点。</summary>
@@ -454,11 +457,10 @@ public sealed partial class War3GameScene
     {
         if (unit == null) return;
 
-        bool selected = _selected.Remove(unit);
+        DropFromSelection(unit);
         _allUnits.Remove(unit);
         unit.View?.Root.QueueFree();
         unit.View = null;
-        if (selected) _hud?.SetSelection(_selected);
 
         GD.Print($"[UNIT] {unit.Type?.Id ?? "?"} 已离场（骑乘/分离）");
     }

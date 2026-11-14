@@ -160,12 +160,14 @@ public sealed partial class GameHudScreen : Control
         QueueRedraw();
     }
 
-    public void SetSelection(Unit selected, IReadOnlyList<Unit> selection)
+    public void SetSelection(Unit selected, IReadOnlyList<Unit> selection,
+        IReadOnlyList<Unit> cargo = null)
     {
         _selectedUnit = selected;
         _portrait.Update(selected);
         _portraitViewport.Show(selected);
-        _selectionGroup.Update(selected, selection);
+        bool cargoMode = cargo != null && cargo.Count > 0;
+        _selectionGroup.Update(selected, cargoMode ? cargo : selection, cargoMode);
         QueueRedraw();
     }
 

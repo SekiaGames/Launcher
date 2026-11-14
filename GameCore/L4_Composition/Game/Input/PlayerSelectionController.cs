@@ -114,6 +114,7 @@ internal sealed class PlayerSelectionController
             Fire(GameEvent.UnitDeselected, removed);
         foreach (Unit added in _items.Where(value => !previous.Contains(value)))
             Fire(GameEvent.UnitSelected, added);
+        NativeSelectionOrder.Sort(_items);
         Primary = _items.FirstOrDefault();
         _changed?.Invoke();
         if (Primary != null) SelectedAck?.Invoke(Primary, previous.Contains(Primary));
@@ -211,6 +212,7 @@ internal sealed class PlayerSelectionController
     internal void CycleSubgroup()
     {
         if (_items.Count < 2) return;
+        NativeSelectionOrder.Sort(_items);
         Unit primary = Primary;
         int current = -1;
         for (int i = 0; i < _items.Count; i++)

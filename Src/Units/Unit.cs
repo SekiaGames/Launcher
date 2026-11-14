@@ -9,6 +9,7 @@ public sealed partial class Unit
     public UnitType Type;
     public int Player;
     public Vector3 Position;
+    public float SelectionPriority = 1f;
     public float Facing;
     public float TargetFacing;
     public float Hp;
@@ -87,6 +88,7 @@ public sealed partial class Unit
 
     public int Level = 1;
     public float Xp;
+    internal int HeroAcquisitionOrdinal;
     public int SkillPoints;
     public float Mana;
     public float MaxMana;

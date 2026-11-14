@@ -37,7 +37,7 @@ public sealed partial class War3GameScene
             _selected.Add(unit);
             unit.View?.SetSelected(true);
         }
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
 
         Vector3 center = _camera.Target;
@@ -72,7 +72,7 @@ public sealed partial class War3GameScene
             moved++;
             if (moved >= 4) break;
         }
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         _hud?.SetHint($"脚本测试：{moved} 个单位向 {target.X:0},{target.Z:0} 移动");
     }
 
@@ -134,7 +134,7 @@ public sealed partial class War3GameScene
         _selected.Add(worker);
         worker.View?.SetSelected(true);
         _world.SetGather(worker, mine);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         _hud?.SetHint($"采集测试：{worker.Type.Name} → 金矿（{mine.Gold} 金，距离 {best:0}）");
         GD.Print($"[TEST] 采集 {worker.Type.Name} → 金矿 距离 {best:0} 储量 {mine.Gold}");
     }
@@ -158,7 +158,7 @@ public sealed partial class War3GameScene
             _selected.Add(unit);
             unit.View?.SetSelected(true);
         }
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
         PlaySelectionVoice();
         StartTraining(hall, hall.Type.Trains[0]);
@@ -185,7 +185,7 @@ public sealed partial class War3GameScene
             moved++;
             if (moved >= 6) break;
         }
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         GD.Print($"[TEST] 移动测试单位 {moved} 个");
     }
 
@@ -232,7 +232,7 @@ public sealed partial class War3GameScene
         _selected.Add(worker);
         worker.View?.SetSelected(true);
         _world.SetChop(worker, tree);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         _hud?.SetHint($"伐木测试：{worker.Type.Name} → 树 HP {tree.Hp:0} 距离 {best:0}");
     }
 
@@ -249,7 +249,7 @@ public sealed partial class War3GameScene
         ClearSelection();
         _selected.Add(worker);
         worker.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
 
         string buildingId = null;
         foreach (string candidate in worker.Type.Builds)
@@ -283,7 +283,7 @@ public sealed partial class War3GameScene
             ClearSelection();
             _selected.Add(site);
             site.View?.SetSelected(true);
-            _hud?.SetSelection(_selected);
+            RefreshSelection();
             UpdateCommandCard();
             if (site.Type.Trains.Length > 0) StartTraining(site, site.Type.Trains[0]);
         };
@@ -521,7 +521,7 @@ public sealed partial class War3GameScene
         _selected.Clear();
         _selected.Add(hero);
         hero.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
 
         int carried = 0;
@@ -629,7 +629,7 @@ public sealed partial class War3GameScene
 
         _selected.Clear();
         _selected.Add(hero);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         _worldInteraction.MinimapOrderAt(hero.Position + new Vector3(200f, 0f, 0f), false);
         GD.Print($"[UI] 小地图右键下令 MoveTarget={hero.MoveTarget.HasValue}");
         PingMinimap(new System.Numerics.Vector2(-hero.Position.X, hero.Position.Z));
@@ -644,10 +644,10 @@ public sealed partial class War3GameScene
             _selected.Clear();
             _selected.Add(fast);
             _selected.Add(slow);
-            _hud?.SetSelection(_selected);
+            RefreshSelection();
             _selected.Clear();
             _selected.Add(hero);
-            _hud?.SetSelection(_selected);
+            RefreshSelection();
             UpdateUnitSummary();
             _hud?.SetQueueSlots(new List<QueueEntry>
             {
@@ -662,7 +662,7 @@ public sealed partial class War3GameScene
             _selected.Clear();
             _selected.Add(fast);
             _selected.Add(slow);
-            _hud?.SetSelection(_selected);
+            RefreshSelection();
             ProbeCreepSleepEntry();
             float fastBase = World.SpeedOf(fast);
             IssueMoveOrders(hero.Position + new Vector3(800f, 0f, 800f), false);
@@ -742,7 +742,7 @@ public sealed partial class War3GameScene
 
         _selected.Clear();
         _selected.Add(shop);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
         GD.Print($"[SHOPCARD] 自有商店卡：{_hud?.DescribeVisibleCommands()}");
 
@@ -775,7 +775,7 @@ public sealed partial class War3GameScene
 
         _selected.Clear();
         _selected.Add(tavern);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
         GD.Print($"[SHOPCARD] 中立商店卡：{_hud?.DescribeVisibleCommands()}");
     }
@@ -879,7 +879,9 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>--rally-probe：给己方前几座建筑设集结点，用来看旗帜模型与队伍色。</summary>
-    /// <summary>--subgroup-probe：验证 Tab 切子组与「点头像切子组」不会把池子里的别的兵丢掉。</summary>
+    /// <summary>
+    /// --subgroup-probe：验证 Tab 与点头像只换主位、成员一个不丢，且面板顺序与 Tab 顺序同源。
+    /// </summary>
     public void RunSubgroupProbe()
     {
         Unit hall = FindHall(ViewPlayer);
@@ -893,10 +895,10 @@ public sealed partial class War3GameScene
         var spawned = new List<Unit>();
         for (int index = 0; index < 2; index++)
         {
-            Unit footman = Spawn("hfoo", ViewPlayer, hall.Position.X + 220f + index * 70f, hall.Position.Z + 220f, 0f, 0f, 1f);
-            if (footman != null) { _world.Units.Add(footman); spawned.Add(footman); }
             Unit rifleman = Spawn("hrif", ViewPlayer, hall.Position.X + 220f + index * 70f, hall.Position.Z + 300f, 0f, 0f, 1f);
             if (rifleman != null) { _world.Units.Add(rifleman); spawned.Add(rifleman); }
+            Unit footman = Spawn("hfoo", ViewPlayer, hall.Position.X + 220f + index * 70f, hall.Position.Z + 220f, 0f, 0f, 1f);
+            if (footman != null) { _world.Units.Add(footman); spawned.Add(footman); }
         }
         if (spawned.Count == 0)
         {
@@ -904,34 +906,58 @@ public sealed partial class War3GameScene
             return;
         }
 
-        foreach (Unit unit in spawned) { _selected.Add(unit); unit.View?.SetSelected(true); }
-        _hud?.SetSelection(_selected);
-        UpdateCommandCard();
-        RememberSubgroupPool();
-        GD.Print($"[SUB] 初始 {DescribeSubgroup()}");
+        // 第一段：真框选。用屏幕坐标拖一个框，走的是玩家同一条 PointerDown/PointerUp 路径。
+        BoxSelectSpawned(spawned);
+        GD.Print($"[SUB] 真框选后 {DescribeSelection()}");
+
+        // 第二段：直接喂控制器，成员定死是这 4 个，用来核对排序与主位轮换。
+        _selection.SelectRect(spawned, false);
+        GD.Print($"[SUB] 框选后 {DescribeSelection()}");
 
         CycleSubgroup();
-        GD.Print($"[SUB] Tab 一次 {DescribeSubgroup()}");
+        GD.Print($"[SUB] Tab 一次 {DescribeSelection()}");
         CycleSubgroup();
-        GD.Print($"[SUB] Tab 两次 {DescribeSubgroup()}");
+        GD.Print($"[SUB] Tab 两次 {DescribeSelection()}");
 
-        ShowHeroSubgroup(spawned[0]);
-        GD.Print($"[SUB] 点第一个头像 {DescribeSubgroup()}");
-        ShowHeroSubgroup(spawned[spawned.Count - 1]);
-        GD.Print($"[SUB] 点最后一个头像 {DescribeSubgroup()}");
+        // 点头像 = 只换主位（客户端 SelectFromGroup），成员不变。
+        OnSelectionGroupClicked(spawned[0]);
+        GD.Print($"[SUB] 点第一个兵的头像 {DescribeSelection()}");
+        OnSelectionGroupClicked(spawned[spawned.Count - 1]);
+        GD.Print($"[SUB] 点最后一个兵的头像 {DescribeSelection()}");
+        OnSelectionGroupClicked(PrimarySelection);
+        GD.Print($"[SUB] 再点已聚焦的头像 {DescribeSelection()}");
+
+        // 收尾回到多选状态：出图时能直接看到排序后的头像格。
+        _selection.SelectRect(spawned, false);
     }
 
-    private string DescribeSubgroup()
+    private void BoxSelectSpawned(List<Unit> spawned)
     {
-        var counts = new Dictionary<string, int>();
-        foreach (Unit unit in _selected)
+        Camera3D camera = _camera?.Camera;
+        if (camera == null) return;
+        var lo = new Vector2(float.MaxValue, float.MaxValue);
+        var hi = new Vector2(float.MinValue, float.MinValue);
+        foreach (Unit unit in spawned)
         {
-            string id = unit?.Type?.Id ?? "?";
-            counts[id] = counts.TryGetValue(id, out int count) ? count + 1 : 1;
+            Vector3 point = unit.Position + new Vector3(0f, 30f, 0f);
+            if (camera.IsPositionBehind(point)) return;
+            Vector2 screen = camera.UnprojectPosition(point);
+            lo = new Vector2(Mathf.Min(lo.X, screen.X), Mathf.Min(lo.Y, screen.Y));
+            hi = new Vector2(Mathf.Max(hi.X, screen.X), Mathf.Max(hi.Y, screen.Y));
         }
-        var parts = new List<string>();
-        foreach (KeyValuePair<string, int> pair in counts) parts.Add($"{pair.Key}x{pair.Value}");
-        return $"当前 {string.Join("+", parts)}，池子 {_subgroupPool.Count}";
+        var from = new Vector2(lo.X - 24f, lo.Y - 24f);
+        var to = new Vector2(hi.X + 24f, hi.Y + 24f);
+        GD.Print($"[SUB] 框选屏幕 ({from.X:0},{from.Y:0})-({to.X:0},{to.Y:0})");
+        _worldInteraction.PointerDown(from, MouseButton.Left);
+        _worldInteraction.PointerMove(to);
+        _worldInteraction.PointerUp(to, MouseButton.Left);
+    }
+
+    private string DescribeSelection()
+    {
+        var order = new List<string>();
+        foreach (Unit unit in _selected) order.Add(unit?.Type?.Id ?? "?");
+        return $"成员 {string.Join(",", order)} 共{_selected.Count} 个，主位 {PrimarySelection?.Type?.Id ?? "无"}";
     }
 
     public void RunRallyProbe()
@@ -1289,7 +1315,7 @@ public sealed partial class War3GameScene
         _selected.Clear();
         _selected.Add(hero);
         hero.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
         GD.Print($"[SKILL] 命令卡：{DescribeCommandCard(hero)}");
 
@@ -1548,7 +1574,7 @@ public sealed partial class War3GameScene
             _selected.Add(unit);
             unit.View?.SetSelected(true);
         }
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
 
         Vector2 screen = _camera.Camera.UnprojectPosition(destination + new Vector3(0f, 40f, 0f));
         _worldInteraction.OrderAt(screen, false);
@@ -1607,7 +1633,7 @@ public sealed partial class War3GameScene
         ClearSelection();
         _selected.Add(cryptLord);
         cryptLord.View?.SetSelected(true);
-        _hud?.SetSelection(_selected);
+        RefreshSelection();
         UpdateCommandCard();
 
         BeginCast(cryptLord, scarabs);

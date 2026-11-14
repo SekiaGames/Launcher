@@ -94,6 +94,17 @@ public sealed class CargoTransport
         return true;
     }
 
+    /// <summary>只放指定乘客出来：点选择面板里的乘客图标就是让这一个下车。</summary>
+    public bool ReleaseCargo(Unit holder, Unit passenger)
+    {
+        if (holder == null || passenger == null) return false;
+        int slot = holder.Cargo.IndexOf(passenger);
+        if (slot < 0) return false;
+        holder.Cargo.RemoveAt(slot);
+        PlaceCargo(holder, passenger, slot);
+        return true;
+    }
+
     /// <summary>载具死了：肚子里的人就地倒出来（不能把人一起带走）。</summary>
     public void ReleaseCargoOnDeath(Unit holder)
     {

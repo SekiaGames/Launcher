@@ -404,19 +404,43 @@ public sealed partial class War3GameScene
 
     private void UpdateCommandCard() => _hud?.RefreshCommands();
 
+    /// <summary>
+    /// 点选择面板里的头像（客户端 OnSelectionGroupClicked）：
+    /// 乘客图标 = 让他下车；待施法的单位目标 = 打这个目标；
+    /// 再点已聚焦的那格 = 退出编队只留它；其余只换主位，整队成员一个不丢。
+    /// </summary>
+    private void OnSelectionGroupClicked(Unit unit)
+    {
+        if (unit == null) return;
+        Unit primary = PrimarySelection;
+        if (primary != null && ReferenceEquals(unit.CargoHolder, primary))
+        {
+            if (CanControl(primary) && _world?.Cargo.ReleaseCargo(primary, unit) == true)
+                RefreshSelection();
+            return;
+        }
+        if (TryCastOnUnit(unit)) return;
+        if (ReferenceEquals(primary, unit) && _selected.Count > 1)
+            _selection?.SelectClicked(unit, false);
+        else
+            _selection?.SelectFromGroup(unit);
+    }
+
     private List<CommandEntry> BuildCommandEntries()
     {
         _hud?.SetInventory(null);
         PlayerSlot slot = Slot(ViewPlayer);
         var commands = new List<CommandEntry>();
-        if (_selected.Count > 0 && (_selected[0].Player == slot.Id || IsNeutralShop(_selected[0])))
+        // 命令卡跟着选择里的主位走（客户端 CommandCardBuilder.Build(selected, …, _selection)）:
+        // 混选里点不同的头像 = 换主位 = 换整张命令卡。
+        Unit single = PrimarySelection;
+        if (single != null && (single.Player == slot.Id || IsNeutralShop(single)))
         {
-            Unit single = _selected.Count == 1 ? _selected[0] : null;
-            if (single != null && single.IsBuilding && single.IsUnderConstruction)
+            if (single.IsBuilding && single.IsUnderConstruction)
             {
                 AddCancelConstructionCommand(commands, single);
             }
-            else if (single != null && single.IsBuilding && !single.IsUnderConstruction)
+            else if (single.IsBuilding && !single.IsUnderConstruction)
             {
                 bool own = single.Player == slot.Id;
                 if (own) AddTrainingCommands(commands, slot, single);
@@ -429,29 +453,20 @@ public sealed partial class War3GameScene
                 if (single.Type.IsShop) AddShopCommands(commands, slot, single);
                 if (own) AddUnitAbilityCommands(commands, single);
             }
-            else if (single != null && single.IsHero)
+            else if (single.IsHero)
             {
                 AddStandardCommands(commands, true);
                 AddAbilityCommands(commands, single);
             }
-            else if (_selected[0].IsWorker)
+            else if (single.IsWorker)
             {
                 AddStandardCommands(commands, true);
-                AddBuildCommands(commands, slot, _selected[0]);
-            }
-            else if (single != null)
-            {
-                AddStandardCommands(commands, !single.IsBuilding);
-                if (!single.IsBuilding) AddUnitAbilityCommands(commands, single);
+                AddBuildCommands(commands, slot, single);
             }
             else
             {
-                foreach (Unit unit in _selected)
-                {
-                    if (unit.IsBuilding) continue;
-                    AddStandardCommands(commands, true);
-                    break;
-                }
+                AddStandardCommands(commands, !single.IsBuilding);
+                if (!single.IsBuilding) AddUnitAbilityCommands(commands, single);
             }
         }
 

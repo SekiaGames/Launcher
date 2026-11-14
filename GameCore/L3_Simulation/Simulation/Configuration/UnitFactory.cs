@@ -17,6 +17,7 @@ public sealed class UnitType
     public float TerrainTiltRadius;
     public float MaxPitchDegrees;
     public float MaxRollDegrees;
+    public float SelectionPriority = 1f;
     public float WalkAnimationSpeed;
     public float RunAnimationSpeed;
     public float Hp = 100f;
@@ -395,6 +396,7 @@ public static class UnitFactory
             TargetKind kind = CombatCodes.ParseTargets(data.Get(dataRow, "targType"));
             type.Kind = kind != TargetKind.None ? kind : (type.IsBuilding ? TargetKind.Structure : TargetKind.Ground);
             type.DeathType = data.GetInt(dataRow, "deathType", 3);
+            type.SelectionPriority = Number(data.Get(dataRow, "prio"), 1f);
             type.Race = (data.Get(dataRow, "race") ?? "").Trim();
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim().ToLowerInvariant();
             type.MoveType = moveType.Length == 0 || moveType == "_" ? "foot" : moveType;
