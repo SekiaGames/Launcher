@@ -389,7 +389,6 @@ public sealed partial class War3GameScene
         _world?.RefreshUpgradeStats(unit);
 
         view.Play("Stand");
-        view.SetHp(1f, true);
         if (type.CanSleep && player == MeleeRules.PlayerNeutralHostile)
         {
             unit.IsCreepSleeper = true;
@@ -447,7 +446,6 @@ public sealed partial class War3GameScene
         view.Owner = unit;
         unit.View = view;
         view.SetSelected(selected);
-        view.SetHp(unit.Hp / Mathf.Max(1f, unit.MaxHp), unit.Alive);
         view.Play(unit.Alive ? "Stand" : "Death");
 
         string puff = PathResolve.ModelScene(@"Abilities\Spells\Human\RuntimePolymorphAbility\PolyMorphDoneGround");

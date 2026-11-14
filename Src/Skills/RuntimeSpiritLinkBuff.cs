@@ -27,7 +27,6 @@ public sealed class RuntimeSpiritLinkBuff : Buff
         foreach (Unit receiver in receivers)
         {
             receiver.Hp -= share;
-            receiver.View?.SetHp(receiver.Hp / Mathf.Max(1f, receiver.MaxHp), receiver.Alive);
             if (receiver.Hp <= 0f) world.KillUnit(receiver, info.Source);
         }
     }

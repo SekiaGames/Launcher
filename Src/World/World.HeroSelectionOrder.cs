@@ -74,7 +74,6 @@ public sealed partial class World
         UnitType type = hero.Type;
         RefreshHeroAttributes(hero);
         hero.SkillPoints++;
-        hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), true);
         if (_heroLogBudget > 0)
         {
             _heroLogBudget--;

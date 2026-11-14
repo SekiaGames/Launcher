@@ -419,7 +419,6 @@ public sealed class Health
     {
         if (amount <= 0f) return;
         _unit.Hp = Mathf.Min(_unit.MaxHp, _unit.Hp + amount);
-        _unit.View?.SetHp(_unit.Hp / Mathf.Max(1f, _unit.MaxHp), _unit.Alive);
     }
 
     public void AddEvasionSource(float chance)

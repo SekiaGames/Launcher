@@ -23,8 +23,6 @@ public sealed class UnitSceneComponent
 
     public AnimationPlayer Player { get; private set; }
     public float Height { get; private set; } = 100f;
-    public MeshInstance3D BarFill { get; private set; }
-    public Node3D BarRoot { get; private set; }
     public MeshInstance3D Ring { get; private set; }
     public string CurrentAnimation { get; private set; }
 
@@ -52,7 +50,6 @@ public sealed class UnitSceneComponent
 
         view.Height = MeasureHeight(root, isBuilding);
         view._progressRadius = Mathf.Max(40f, footprintRadius);
-        view.BuildBar(isBuilding);
         view.BuildRing(isBuilding);
         if (isBuilding) view.BuildProgressRing();
         return view;
@@ -183,6 +180,7 @@ public sealed class UnitSceneComponent
         foreach (Node node in root.FindChildren("*", "MeshInstance3D", true, false))
         {
             if (node is not MeshInstance3D mesh || mesh.Mesh == null) continue;
+            if (!VisibleInTree(mesh, root)) continue;
 
             Aabb box = mesh.Mesh.GetAabb();
             Transform3D local = RelativeTransform(root, mesh);
@@ -192,7 +190,8 @@ public sealed class UnitSceneComponent
                     (corner & 1) == 0 ? box.Position.X : box.End.X,
                     (corner & 2) == 0 ? box.Position.Y : box.End.Y,
                     (corner & 4) == 0 ? box.Position.Z : box.End.Z);
-                top = Mathf.Max(top, (local * point).Y);
+                float candidate = (local * point).Y;
+                if (candidate > top) top = candidate;
             }
         }
 
@@ -212,41 +211,16 @@ public sealed class UnitSceneComponent
         return transform;
     }
 
-    private void BuildBar(bool isBuilding)
+    private static bool VisibleInTree(Node3D node, Node3D root)
     {
-        float width = isBuilding ? 90f : 56f;
-        BarRoot = new Node3D { Name = "HpBar", Position = new Vector3(0f, Height + 24f, 0f), Visible = false };
-        Root.AddChild(BarRoot);
-
-        var background = new MeshInstance3D
+        Node current = node;
+        while (current != null)
         {
-            Mesh = new QuadMesh { Size = new Vector2(width + 3f, 9f) },
-            MaterialOverride = BarMaterial(Color.FromHtml("141414")),
-            Name = "Bg",
-        };
-        BarRoot.AddChild(background);
-
-        BarFill = new MeshInstance3D
-        {
-            Mesh = new QuadMesh { Size = new Vector2(width, 5f) },
-            MaterialOverride = BarMaterial(Color.FromHtml("3ce03c")),
-            Name = "Fill",
-        };
-        BarFill.Position = new Vector3(0f, 0f, 0.5f);
-        BarRoot.AddChild(BarFill);
-    }
-
-    private static StandardMaterial3D BarMaterial(Color color)
-    {
-        return new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            AlbedoColor = color,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-            NoDepthTest = true,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
-        };
+            if (current is Node3D node3D && !node3D.Visible) return false;
+            if (ReferenceEquals(current, root)) return true;
+            current = current.GetParent();
+        }
+        return true;
     }
 
     private void BuildRing(bool isBuilding)
@@ -524,23 +498,6 @@ public sealed class UnitSceneComponent
 
         Player.Seek((double)(Mathf.Clamp(progress, 0f, 1f) * (float)animation.Length), true);
         Player.Pause();
-    }
-
-    public void SetHp(float ratio, bool alive)
-    {
-        if (BarFill == null) return;
-
-        float clamped = Mathf.Clamp(ratio, 0f, 1f);
-        BarFill.Scale = new Vector3(Mathf.Max(0.01f, clamped), 1f, 1f);
-        BarFill.Position = new Vector3(-(1f - clamped) * 28f, 0f, 0.5f);
-        ((StandardMaterial3D)BarFill.MaterialOverride).AlbedoColor = clamped > 0.6f
-            ? Color.FromHtml("3ce03c")
-            : clamped > 0.3f ? Color.FromHtml("e0d03c") : Color.FromHtml("e03c3c");
-    }
-
-    public void SetBarVisible(bool visible)
-    {
-        if (BarRoot != null) BarRoot.Visible = visible;
     }
 
     public void SetSelected(bool selected)

@@ -24,6 +24,7 @@ public sealed partial class War3GameScene : Node3D
     private War3InputComponent _inputComponent;
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
+    private BattleOverlayRenderer _battleOverlay;
     private NVector4 _mapUiBounds;
     private GodotUiTexture _minimapFogTexture;
     private Texture2D _minimapBaseTexture;
@@ -252,6 +253,16 @@ public sealed partial class War3GameScene : Node3D
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
         _minimapBaseTexture = LoadMinimapBaseTexture(map);
+        var overlayLayer = new CanvasLayer { Name = "BattleOverlay", Layer = 20 };
+        AddChild(overlayLayer);
+        _battleOverlay = new BattleOverlayRenderer
+        {
+            Name = "StatusBars",
+            Camera = _camera?.Camera,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        overlayLayer.AddChild(_battleOverlay);
+        _battleOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         var hudLayer = new CanvasLayer { Name = "Hud", Layer = 45 };
         AddChild(hudLayer);
         _newHud = new GameHudScreen { Name = "HudScreen" };
@@ -485,6 +496,14 @@ public sealed partial class War3GameScene : Node3D
         return 1f;
     }
 
+    private bool StatusBarVisible(Unit unit)
+        => _fog == null || !_fog.Enabled || _fog.IsVisible(unit.Position);
+
+    private bool StatusBarEnemy(Unit unit)
+        => unit.Player != ViewPlayer
+            && unit.Player != MeleeRules.PlayerNeutralPassive
+            && !AreAllied(unit.Player, ViewPlayer);
+
     public override void _Process(double delta)
     {
         float frame = (float)delta;
@@ -517,6 +536,7 @@ public sealed partial class War3GameScene : Node3D
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
         RefreshConstruction();
+        _battleOverlay?.Frame(_allUnits, StatusBarVisible, StatusBarEnemy);
         _cursor?.Tick(frame);
 
         _hudTimer += (float)delta;
@@ -525,7 +545,6 @@ public sealed partial class War3GameScene : Node3D
             _hudTimer = 0f;
             PruneCargoedSelection();
             _hud?.SetSelection(_selected);
-            RefreshBars();
             RefreshHud();
             UpdateCommandCard();
         }

@@ -583,7 +583,6 @@ public sealed partial class World
 
         if (hero.Morphed)
         {
-            hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), hero.Alive);
             return;
         }
 
@@ -596,7 +595,6 @@ public sealed partial class World
         hero.Mana = Mathf.Max(0f, Mathf.Min(newMaxMana, hero.Mana + Mathf.Max(0f, newMaxMana - hero.MaxMana)));
         hero.MaxMana = newMaxMana;
 
-        hero.View?.SetHp(hero.Hp / Mathf.Max(1f, hero.MaxHp), hero.Alive);
     }
 
     /// <summary>移动速度：基础 + 装备，乘光环加成，再乘减速。</summary>

@@ -32,7 +32,6 @@ public sealed partial class World
         image.MaxMana = source.MaxMana;
         image.Mana = source.Mana;
         image.Facing = source.Facing;
-        image.View?.SetHp(image.Hp / Mathf.Max(1f, image.MaxHp), true);
         return image;
     }
 

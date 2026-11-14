@@ -20,33 +20,6 @@ public sealed partial class War3GameScene
         }
     }
 
-    private void RefreshBars()
-    {
-        bool showAll = Input.IsKeyPressed(Key.Alt);
-        foreach (Unit unit in _allUnits)
-        {
-            if (!unit.Alive)
-            {
-                unit.View?.SetBarVisible(false);
-                continue;
-            }
-            bool own = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
-            if (!own && _fog != null && _fog.Enabled && !_fog.IsVisible(unit.Position))
-            {
-                unit.View?.SetBarVisible(false);
-                continue;
-            }
-            bool damaged = unit.Hp < unit.MaxHp - 0.01f;
-            bool visible = damaged || _selected.Contains(unit);
-            if (showAll)
-            {
-                visible = unit.Player == ViewPlayer
-                    || _fog == null || !_fog.Enabled || _fog.IsVisible(unit.Position);
-            }
-            unit.View?.SetBarVisible(visible);
-        }
-    }
-
     /// <summary>技能行：只列已学与可学，带等级。</summary>
     private static string AbilityText(Unit hero)
     {

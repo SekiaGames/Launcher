@@ -109,7 +109,6 @@ public sealed class HealOverTimeBuff : Buff
 
     public override void OnRemove(World world)
     {
-        if (Owner != null) Owner.View?.SetHp(Owner.Hp / Mathf.Max(1f, Owner.MaxHp), Owner.Alive);
     }
 }
 

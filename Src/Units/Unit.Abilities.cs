@@ -151,7 +151,6 @@ public sealed partial class Unit
     {
         if (!Alive || amount <= 0f) return;
         Hp = Mathf.Min(MaxHp, Hp + amount);
-        View?.SetHp(Hp / Mathf.Max(1f, MaxHp), true);
     }
 
     public Ability FindAbility(string id)

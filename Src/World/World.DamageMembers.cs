@@ -126,7 +126,6 @@ public sealed partial class World
             unit.Mana = Mathf.Min(unit.Mana, unit.MaxMana);
         }
 
-        unit.View?.SetHp(unit.Hp / Mathf.Max(1f, unit.MaxHp), unit.Alive);
     }
 
     /// <summary>
@@ -287,7 +286,6 @@ public sealed partial class World
         }
 
         target.Hp -= info.Amount;
-        target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), target.Alive);
         DamageApplied?.Invoke(info);
 
         // 普攻真命中：分裂攻击、腐蚀吐息这类「命中后再结算」的被动挂这里

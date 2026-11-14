@@ -55,7 +55,6 @@ public sealed partial class Unit
         IsCorpse = !IsBuilding && !IsIllusion;
         CorpseRemaining = !IsCorpse ? 0f : Type.CorpseDecays ? CorpseSeconds : float.PositiveInfinity;
         View?.Play("Death");
-        View?.SetHp(0f, false);
         View?.SetSelected(false);
     }
 
@@ -92,7 +91,6 @@ public sealed partial class Unit
             View.Root.Visible = true;
             View.Root.Position = position;
             View.Play("Stand");
-            View.SetHp(Hp / Mathf.Max(1f, MaxHp), true);
         }
     }
 
@@ -109,7 +107,6 @@ public sealed partial class Unit
         IsCorpse = true;
         CorpseRemaining = 2f;
         View?.SetSelected(false);
-        View?.SetHp(0f, false);
         View?.Play("Death");
     }
 
@@ -136,7 +133,6 @@ public sealed partial class Unit
             View.Root.Position = position;
             View.Root.Rotation = new Vector3(0f, yaw, 0f);
             View.Play("Stand");
-            View.SetHp(Hp / Mathf.Max(1f, MaxHp), true);
         }
     }
 }

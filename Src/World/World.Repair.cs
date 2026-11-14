@@ -65,7 +65,6 @@ public sealed partial class World
             }
 
             target.Hp = Mathf.Min(target.MaxHp, target.Hp + amount);
-            target.View?.SetHp(target.Hp / Mathf.Max(1f, target.MaxHp), true);
 
             if (target.Hp >= target.MaxHp) ClearRepair(worker);
         }

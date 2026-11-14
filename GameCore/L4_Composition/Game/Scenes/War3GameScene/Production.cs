@@ -96,7 +96,6 @@ public sealed partial class War3GameScene
         site.BuildRemaining = site.BuildTotal;
         site.Hp = 1f;
         site.MaxHp = type.Hp;
-        site.View?.SetHp(0.01f, true);
         site.View?.Play("Birth");
         PlayPlacementSound(ground);
         _world.Units.Add(site);
@@ -817,7 +816,6 @@ public sealed partial class War3GameScene
         replacement.RallyTarget = rallyTarget;
         replacement.RallyTree = rallyTree;
         replacement.Gold = gold;
-        replacement.View?.SetHp(hpRatio, true);
 
         _world?.Units.Add(replacement);
         Slot(player)?.KnownBuildings.Add(targetId);

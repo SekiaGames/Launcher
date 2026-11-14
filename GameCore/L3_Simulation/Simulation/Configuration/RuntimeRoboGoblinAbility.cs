@@ -71,7 +71,6 @@ public sealed class RuntimeRoboGoblinAbility : Ability
         Owner.MaxHp += (strength - _appliedStrength) * 25f;
         Owner.Hp = Mathf.Clamp(Owner.Hp + (strength - _appliedStrength) * 25f, 1f, Owner.MaxHp);
         Owner.BonusArmor += armor - _appliedArmor;
-        Owner.View?.SetHp(Owner.Hp / Mathf.Max(1f, Owner.MaxHp), Owner.Alive);
 
         _appliedStrength = strength;
         _appliedArmor = armor;

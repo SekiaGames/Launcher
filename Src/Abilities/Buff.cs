@@ -186,7 +186,6 @@ public sealed class AvatarBuff : Buff
         if (Owner.MaxHp > 0f)
         {
             Owner.Hp = System.Math.Min(Owner.MaxHp, Owner.Hp + HitPointBonus);
-            Owner.View?.SetHp(Owner.Hp / Owner.MaxHp, Owner.Alive);
         }
     }
 
@@ -200,7 +199,6 @@ public sealed class AvatarBuff : Buff
         Owner.State.RemoveAll(StateMod.MagicImmune);
         Owner.Hp = System.Math.Max(1f, System.Math.Min(Owner.Hp, Owner.MaxHp - HitPointBonus));
         world?.RefreshHeroAttributes(Owner);
-        Owner.View?.SetHp(Owner.Hp / System.Math.Max(1f, Owner.MaxHp), Owner.Alive);
     }
 }
 

@@ -113,7 +113,6 @@ public sealed partial class World
             }
         }
         site.View?.Play("Stand");
-        site.View?.SetHp(1f, true);
         ConstructionFinished?.Invoke(site);
     }
 
