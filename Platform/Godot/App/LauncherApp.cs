@@ -22,6 +22,9 @@ public sealed partial class LauncherApp : Node
     private int _cameraPreset = -1;
     private Vector2? _focusMapPoint;
     private string _cinematicModel;
+    private float _cameraDistanceScale;
+    private float _cameraPanSensitivity;
+    private string _cameraFollowProbe;
     private bool _orderTest;
     private bool _simTest;
     private bool _clickTest;
@@ -364,6 +367,20 @@ public sealed partial class LauncherApp : Node
             {
                 _cinematicModel = argument["--cinematic=".Length..];
             }
+            else if (argument.StartsWith("--camera-distance=")
+                && float.TryParse(argument["--camera-distance=".Length..], out float distanceScale))
+            {
+                _cameraDistanceScale = distanceScale;
+            }
+            else if (argument.StartsWith("--pan-sensitivity=")
+                && float.TryParse(argument["--pan-sensitivity=".Length..], out float panSensitivity))
+            {
+                _cameraPanSensitivity = panSensitivity;
+            }
+            else if (argument.StartsWith("--camera-follow="))
+            {
+                _cameraFollowProbe = argument["--camera-follow=".Length..];
+            }
         }
 
         if (_fdfBindGen != null)
@@ -509,9 +526,12 @@ public sealed partial class LauncherApp : Node
 
         void AfterLoad()
         {
+            if (_cameraDistanceScale > 0f) game.SetCameraDistanceScale(_cameraDistanceScale);
+            if (_cameraPanSensitivity > 0f) game.SetCameraPanSensitivity(_cameraPanSensitivity);
             if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
             if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
             if (!string.IsNullOrEmpty(_cinematicModel)) game.SetCinematicModel(_cinematicModel);
+            if (!string.IsNullOrEmpty(_cameraFollowProbe)) game.RunCameraFollowProbe(_cameraFollowProbe);
             if (_orderTest) game.ScriptedOrderTest();
             if (_clickTest) game.RunClickTest();
             if (_gatherTest) game.ScriptedGatherTest();

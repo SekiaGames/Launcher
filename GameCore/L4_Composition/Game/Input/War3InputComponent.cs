@@ -64,6 +64,10 @@ public sealed partial class War3GameScene
                 return;
             }
 
+            // 镜头跟随热键排在物编热键**之前**：TrySelectionHotkey 不判修饰键，
+            // 放在后面的话 Ctrl+F 会被当成某个单位的 F 技能吃掉。
+            if (_scene.HandleCameraFollowHotkey(keyEvent.Keycode, keyEvent.ShiftPressed,
+                keyEvent.CtrlPressed, keyEvent.AltPressed)) return;
             if (_scene.TrySelectionHotkey(keyEvent.Keycode)) return;
             if (_scene.TryInventoryHotkey(keyEvent.Keycode)) return;
 

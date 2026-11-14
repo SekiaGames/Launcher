@@ -102,10 +102,14 @@ public sealed class SkyDomeRenderer
     public static string SkyNameFor(int skyboxType)
         => skyboxType is >= 0 and < 15 ? SkyModels[skyboxType] : SkyModels[0];
 
-    public void FrameSeconds(Vector3 focus, float hours)
-    {
+    private const float ShellRadius = 1957f;
+
+    public void FrameSeconds(Vector3 focus, Vector3 eye, float hours)    {
         if (_dome == null || !GodotObject.IsInstanceValid(_dome)) return;
         _dome.Position = focus;
+        float distance = focus.DistanceTo(eye);
+        float scale = distance <= ShellRadius * 0.95f ? 1f : distance / (ShellRadius * 0.95f);
+        _dome.Scale = new Vector3(scale, scale, scale);
         if (_celestial == null || !GodotObject.IsInstanceValid(_celestial)) return;
         _celestial.Rotation = new Vector3(0f, Mathf.Tau * (hours / 24f), 0f);
     }

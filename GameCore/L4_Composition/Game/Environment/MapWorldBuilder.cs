@@ -18,6 +18,11 @@ public sealed partial class MapWorldBuilder
 
     public List<TreeState> Trees { get; } = new List<TreeState>();
 
+    public WalkableSurfaceProbe Walkable { get; } = new();
+
+    public bool TryGetWalkableHeight(float worldX, float worldZ, out float height)
+        => Walkable.TryGetHeight(worldX, worldZ, out height);
+
     public Node3D Build(TerrainData terrain, War3MapDoodads doodads, Color waterBaseColor, War3FogConfig fog)
     {
         Terrain = terrain;
@@ -80,6 +85,24 @@ public sealed partial class MapWorldBuilder
         => GroundWorld(terrain.Corners[y * terrain.Width + x]) + RampLift(terrain, x, y) * CellSize;
 
     private static readonly Dictionary<char, float> _waterOffsets = new();
+
+    public static float WaterPlaneHeightAt(TerrainData terrain, float worldX, float worldZ)
+    {
+        if (terrain == null) return 0f;
+        float gridX = Mathf.Clamp((0f - worldX) / CellSize, 0f, Mathf.Max(0, terrain.Width - 1));
+        float gridZ = Mathf.Clamp(worldZ / CellSize, 0f, Mathf.Max(0, terrain.Height - 1));
+        int x0 = Mathf.Min(Mathf.FloorToInt(gridX), Mathf.Max(0, terrain.Width - 2));
+        int z0 = Mathf.Min(Mathf.FloorToInt(gridZ), Mathf.Max(0, terrain.Height - 2));
+        int x1 = Mathf.Min(x0 + 1, terrain.Width - 1);
+        int z1 = Mathf.Min(z0 + 1, terrain.Height - 1);
+        float u = Mathf.Clamp(gridX - x0, 0f, 1f);
+        float v = Mathf.Clamp(gridZ - z0, 0f, 1f);
+        float w00 = terrain.Corners[z0 * terrain.Width + x0].WaterWorld;
+        float w10 = terrain.Corners[z0 * terrain.Width + x1].WaterWorld;
+        float w01 = terrain.Corners[z1 * terrain.Width + x0].WaterWorld;
+        float w11 = terrain.Corners[z1 * terrain.Width + x1].WaterWorld;
+        return Mathf.Lerp(Mathf.Lerp(w00, w10, u), Mathf.Lerp(w01, w11, u), v) * CellSize;
+    }
 
     public static float WaterHeightAt(TerrainData terrain, float worldX, float worldZ)
     {

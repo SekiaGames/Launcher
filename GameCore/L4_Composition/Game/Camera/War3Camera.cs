@@ -42,6 +42,9 @@ public sealed class War3Camera
         _cinematicRoot = null;
     }
 
+    /// <summary>电影模型镜头是否正在接管（跟随驱动据此让位）。</summary>
+    public bool HasCinematicModel => _modelCamera != null;
+
     sealed class FieldTransition
     {
         public float Start, Target, Duration, Elapsed;
@@ -77,7 +80,12 @@ public sealed class War3Camera
         new(339f, 70f, 90f, 20f, 160f, 1100f, 5000f, 100f, 0f),
     };
 
-    const float PlatformGodotFov = 54.43f;
+    // 玩家设置的两个倍率，量程与客户端 GameUserSettings 同源（MinScale/MaxScale）。
+    public const float MinScale = 0.5f;
+    public const float MaxScale = 4f;
+
+    public static float ClampScale(float value)
+        => Math.Clamp(float.IsFinite(value) ? value : 1f, MinScale, MaxScale);
 
     readonly Func<float, float, float> _terrainHeight;
 
@@ -97,6 +105,53 @@ public sealed class War3Camera
     public Vector4 Bounds { get; set; } = new(-1e9f, -1e9f, 1e9f, 1e9f);
     public Vector4 Margins { get; }
     public Vector3 ShakeOffset { get; private set; }
+
+    /// <summary>
+    /// 玩家设置里的「游戏镜头距离」。只缩放 6 档预设，不碰脚本写入的相机字段
+    /// （脚本距离已是世界单位，再乘倍率会把电影镜头推到景物后面）。
+    /// 三处消费点（SnapToPreset / RestorePresetFields / 每帧 Update）统一走 ClampedDistanceScale。
+    /// </summary>
+    public float DistanceScale
+    {
+        get => _distanceScale;
+        set
+        {
+            float next = ClampScale(value);
+            if (MathF.Abs(_distanceScale - next) < 1e-6f) return;
+            _distanceScale = next;
+            // 已在回归预设的过渡里（RemoveWhenDone）时，只改终点、不动起点，
+            // 免得滑条一拖镜头就跳。
+            if (_fieldTransitions.TryGetValue(0, out FieldTransition reset) && reset.RemoveWhenDone)
+            {
+                float current = CurrentFieldValue(0, reset);
+                reset.Duration = MathF.Max(0f, reset.Duration - reset.Elapsed);
+                reset.Elapsed = 0f;
+                reset.Start = current;
+                reset.Target = Presets[CurrentPreset].Distance * next;
+            }
+        }
+    }
+
+    public float ClampedDistanceScale => ClampScale(_distanceScale);
+
+    /// <summary>
+    /// 设置界面改「镜头距离」：玩家命令，立即生效（不等过渡）。
+    /// 菜单暂停期间 Update 不跑，只建过渡会让滑条松开后镜头迟一步才动。
+    /// </summary>
+    public void SetPlayerDistanceScale(float value)
+    {
+        float previous = ClampedDistanceScale;
+        DistanceScale = value;
+        if (MathF.Abs(previous - ClampedDistanceScale) < 1e-6f) return;
+        float distance = MathF.Max(1f, Presets[CurrentPreset].Distance * ClampedDistanceScale);
+        _fieldTransitions.Remove(0);
+        _distance = distance;
+        UpdateTargetHeight();
+        UpdatePose();
+        GD.Print($"[CAMERA] 距离倍率 {ClampedDistanceScale:0.###} → 第{CurrentPreset + 1}档 "
+            + $"{Presets[CurrentPreset].Distance:0} × {ClampedDistanceScale:0.###} = {_distance:0}");
+    }
+
     public float SmoothingFactor
     {
         get => _smoothingFactor;
@@ -112,6 +167,7 @@ public sealed class War3Camera
     float _verticalAngle;
     float _rollAngle;
     float _distance;
+    float _distanceScale = 1f;
     float _zOffset;
     float _smoothingFactor;
     float _shakeMagnitude, _shakeRemaining, _shakeDuration, _shakeElapsed;
@@ -135,10 +191,10 @@ public sealed class War3Camera
     float _softFollowGlideDuration;
     bool _softFollowGliding;
 
-    public War3Camera(Node parent, Func<float, float, float> terrainHeight)
+    public War3Camera(Node parent, Func<float, float, float> terrainHeight, MapSource map = null)
     {
         _terrainHeight = terrainHeight ?? ((_, _) => 0f);
-        LoadSettings(out Preset[] presets, out Rates rates, out Vector4 margins);
+        LoadSettings(map, out Preset[] presets, out Rates rates, out Vector4 margins);
         Presets = presets;
         CameraRates = rates;
         Margins = margins;
@@ -163,15 +219,26 @@ public sealed class War3Camera
     float GameplayProjectionScale => _modelCamera != null || HasScriptedField(0)
         ? 1f : MathF.Max(1f, _distance / MathF.Max(1f, Presets[CurrentPreset].Distance));
 
-    public static void LoadSettings(out Preset[] presets, out Rates rates, out Vector4 margins)
+    public static void LoadSettings(MapSource map, out Preset[] presets, out Rates rates,
+        out Vector4 margins)
     {
-        float[] aoa = ReadArray("Camera.AOA");
-        float[] fov = ReadArray("Camera.FOV");
-        float[] rotation = ReadArray("Camera.Rotation");
-        float[] distance = ReadArray("Camera.Distance");
-        float[] farZ = ReadArray("Camera.FarZ");
-        float[] nearZ = ReadArray("Camera.NearZ");
-        float[] height = ReadArray("Camera.Height");
+        // 客户端按 UI\MiscData.txt 逐层合并（基础库 → War3x → War3Patch → 当前地图），
+        // 地图可以覆盖 [Camera]/[CameraRates]/[CameraMargins]。本节生成表已经是前几层
+        // 合并后的结果，这里只把**地图自己那层**叠上去。
+        Dictionary<string, Dictionary<string, string>> overrides = LoadMapMiscLayers(map);
+        Dictionary<string, string> camera = Section(overrides, "Camera");
+        Dictionary<string, string> ratesSection = Section(overrides, "CameraRates");
+        Dictionary<string, string> marginSection = Section(overrides, "CameraMargins");
+        if (camera.Count > 0)
+            GD.Print($"[CAMERA] 地图覆盖 [Camera]: {string.Join(", ", camera.Keys)}");
+
+        float[] aoa = ReadArray("Camera.AOA", camera, "AOA");
+        float[] fov = ReadArray("Camera.FOV", camera, "FOV");
+        float[] rotation = ReadArray("Camera.Rotation", camera, "Rotation");
+        float[] distance = ReadArray("Camera.Distance", camera, "Distance");
+        float[] farZ = ReadArray("Camera.FarZ", camera, "FarZ");
+        float[] nearZ = ReadArray("Camera.NearZ", camera, "NearZ");
+        float[] height = ReadArray("Camera.Height", camera, "Height");
         presets = new Preset[6];
         for (int i = 0; i < presets.Length; i++)
         {
@@ -189,17 +256,17 @@ public sealed class War3Camera
         }
 
         rates = new Rates(
-            ReadFloat("CameraRates.AOA", 20f),
-            ReadFloat("CameraRates.FOV", 20f),
-            ReadFloat("CameraRates.Rotation", 30f) * 3f,
-            ReadFloat("CameraRates.Distance", 1200f),
-            ReadFloat("CameraRates.Forward", 3000f),
-            ReadFloat("CameraRates.Strafe", 3000f));
+            ReadFloat("CameraRates.AOA", ratesSection, "AOA", 20f),
+            ReadFloat("CameraRates.FOV", ratesSection, "FOV", 20f),
+            ReadFloat("CameraRates.Rotation", ratesSection, "Rotation", 30f) * 3f,
+            ReadFloat("CameraRates.Distance", ratesSection, "Distance", 1200f),
+            ReadFloat("CameraRates.Forward", ratesSection, "Forward", 3000f),
+            ReadFloat("CameraRates.Strafe", ratesSection, "Strafe", 3000f));
         margins = new Vector4(
-            MathF.Max(0f, ReadFloat("CameraMargins.left", 4f)) * 128f,
-            MathF.Max(0f, ReadFloat("CameraMargins.right", 4f)) * 128f,
-            MathF.Max(0f, ReadFloat("CameraMargins.top", 2f)) * 128f,
-            MathF.Max(0f, ReadFloat("CameraMargins.bottom", 2f)) * 128f);
+            MathF.Max(0f, ReadFloat("CameraMargins.left", marginSection, "left", 4f)) * 128f,
+            MathF.Max(0f, ReadFloat("CameraMargins.right", marginSection, "right", 4f)) * 128f,
+            MathF.Max(0f, ReadFloat("CameraMargins.top", marginSection, "top", 2f)) * 128f,
+            MathF.Max(0f, ReadFloat("CameraMargins.bottom", marginSection, "bottom", 2f)) * 128f);
     }
 
     public void SetBounds(float minX, float minZ, float maxX, float maxZ)
@@ -280,6 +347,16 @@ public sealed class War3Camera
         _targetController = null;
         _presentationControllerPosition = null;
         _inheritOrientation = false;
+    }
+
+    /// <summary>
+    /// 肖像/长按头像跟随：喂渲染插值样本（仿真坐标 20Hz 直接喂镜头就是「一帧一跳」）。
+    /// 与 SetTargetController 同一个字段，只是多了表现层坐标。
+    /// </summary>
+    public void SetPresentationTargetController(Unit unit, Vector3 presentationPosition)
+    {
+        SetTargetController(unit, 0f, 0f);
+        if (ReferenceEquals(_targetController, unit)) _presentationControllerPosition = presentationPosition;
     }
 
     public void SetOrientController(Unit unit, float xOffset, float zOffset)
@@ -434,7 +511,8 @@ public sealed class War3Camera
         _shakeElapsed = 0f;
     }
 
-    public void Update(float deltaTime, bool up, bool down, bool left, bool right)
+    public void Update(float deltaTime, bool up, bool down, bool left, bool right,
+        float panSensitivity = 1f)
     {
         if (_modelCamera != null)
         {
@@ -443,7 +521,8 @@ public sealed class War3Camera
             Target = look;
             _smoothedTarget = look;
             _rollAngle = roll;
-            FieldOfView = DegreesToRadians(modelFov) * (FallbackPresets[0].Fov * 0.5f / PlatformGodotFov);
+            // 原版/导出的相机 FOV 都是**竖直全角**；FieldOfView 存半角弧度，直接一半即可。
+            FieldOfView = DegreesToRadians(modelFov) * 0.5f;
             NearZ = MathF.Max(0.1f, near);
             FarZ = MathF.Max(NearZ + 1f, far);
             _distance = Position.DistanceTo(_smoothedTarget);
@@ -456,8 +535,12 @@ public sealed class War3Camera
         if (_softFollowController != null && !_softFollowController.Alive)
             ClearSoftFollowController();
 
-        float velocityZ = up == down ? 0f : (up ? CameraRates.Forward : -CameraRates.Forward);
-        float velocityX = left == right ? 0f : (right ? CameraRates.Strafe : -CameraRates.Strafe);
+        // 方向键/边缘滚屏走玩家设置的「滑动镜头灵敏度」；=1 时与旧行为逐字一致。
+        float sensitivity = ClampScale(panSensitivity);
+        float velocityZ = (up == down ? 0f : (up ? CameraRates.Forward : -CameraRates.Forward))
+            * sensitivity;
+        float velocityX = (left == right ? 0f : (right ? CameraRates.Strafe : -CameraRates.Strafe))
+            * sensitivity;
         bool scriptedFollow = _targetController != null || _orientController != null;
         if ((velocityX != 0f || velocityZ != 0f) && !scriptedFollow
             && _softFollowController == null)
@@ -522,7 +605,8 @@ public sealed class War3Camera
         float rotation = ResolveField(5, presetRotation, deltaTime);
         _rollAngle = DegreesToRadians(ResolveField(4, 0f, deltaTime));
         float aoa = ResolveField(2, preset.Aoa, deltaTime);
-        float distance = MathF.Max(1f, ResolveField(0, preset.Distance, deltaTime));
+        float distance = MathF.Max(1f, ResolveField(0,
+            preset.Distance * ClampedDistanceScale, deltaTime));
         float fov = ResolveField(3, preset.Fov, deltaTime);
         float nearZ = ResolveField(7, preset.NearZ, deltaTime);
         float farZ = ResolveField(1, preset.FarZ, deltaTime);
@@ -577,7 +661,7 @@ public sealed class War3Camera
         _horizontalAngle = DegreesToRadians(preset.Rotation - 90f);
         _verticalAngle = DegreesToRadians(preset.Aoa - 270f);
         _rollAngle = 0f;
-        _distance = preset.Distance;
+        _distance = preset.Distance * ClampedDistanceScale;
         _zOffset = 0f;
         FieldOfView = DegreesToRadians(preset.Fov * 0.5f);
         NearZ = MathF.Max(0.1f, preset.NearZ);
@@ -590,7 +674,7 @@ public sealed class War3Camera
     void RestorePresetFields(float duration)
     {
         Preset preset = Presets[CurrentPreset];
-        ResetField(0, preset.Distance, duration);
+        ResetField(0, preset.Distance * ClampedDistanceScale, duration);
         ResetField(1, preset.FarZ, duration);
         ResetField(2, preset.Aoa, duration);
         ResetField(3, preset.Fov, duration);
@@ -703,8 +787,11 @@ public sealed class War3Camera
         Camera.LookAtFromPosition(Position, Position + direction, up);
         if (MathF.Abs(_rollAngle) > 1e-6f)
             Camera.RotateObjectLocal(Vector3.Back, _rollAngle);
-        Camera.Fov = RadiansToDegrees(FieldOfView)
-            * (PlatformGodotFov / (FallbackPresets[0].Fov * 0.5f));
+        // 世界投影：客户端恒定竖直 70° 视锥（4:3 时为 70°x86.6°），宽屏只扩水平视野。
+        // Godot 的 Fov 在 KeepHeight 下就是竖直全角，直接把半角量纲还原即可；
+        // 旧实现乘了一个 54.43/35 的魔数，把游戏内竖直视锥压到 54.43°，画面比原版更窄。
+        Camera.KeepAspect = Camera3D.KeepAspectEnum.Height;
+        Camera.Fov = RadiansToDegrees(FieldOfView * 2f);
         Camera.Near = MathF.Max(0.1f, ProjectionNearZ);
         Camera.Far = MathF.Max(Camera.Near + 1f, ProjectionFarZ);
     }
@@ -758,9 +845,19 @@ public sealed class War3Camera
     static float DegreesToRadians(float degrees) => degrees * (MathF.PI / 180f);
     static float RadiansToDegrees(float radians) => radians * (180f / MathF.PI);
 
-    static float ReadFloat(string key, float fallback)
+    // 取值顺序：地图覆盖层（若有）→ 构建期生成的 UIMiscData 表（基础库→War3x→War3Patch 的合并结果）。
+    static string RawText(string generatedKey, Dictionary<string, string> section, string key)
     {
-        if (!GeneratedTexts.TryGet("UIMiscData", key, out string value)) return fallback;
+        if (section != null && section.TryGetValue(key, out string overridden)
+            && !string.IsNullOrWhiteSpace(overridden)) return overridden;
+        return GeneratedTexts.TryGet("UIMiscData", generatedKey, out string value) ? value : null;
+    }
+
+    static float ReadFloat(string generatedKey, Dictionary<string, string> section, string key,
+        float fallback)
+    {
+        string value = RawText(generatedKey, section, key);
+        if (value == null) return fallback;
         int comma = value.IndexOf(',');
         if (comma >= 0) value = value[..comma];
         return float.TryParse(value.Trim(), NumberStyles.Float,
@@ -768,16 +865,61 @@ public sealed class War3Camera
             && float.IsFinite(parsed) ? parsed : fallback;
     }
 
-    static float[] ReadArray(string key)
+    static float[] ReadArray(string generatedKey, Dictionary<string, string> section, string key)
     {
-        if (!GeneratedTexts.TryGet("UIMiscData", key, out string value))
-            return Array.Empty<float>();
+        string value = RawText(generatedKey, section, key);
+        if (value == null) return Array.Empty<float>();
         string[] parts = value.Split(',');
         var result = new float[parts.Length];
         for (int i = 0; i < parts.Length; i++)
             result[i] = float.TryParse(parts[i].Trim(), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out float parsed) ? parsed : float.NaN;
         return result;
+    }
+
+    static Dictionary<string, string> Section(
+        Dictionary<string, Dictionary<string, string>> sections, string name)
+        => sections.TryGetValue(name, out Dictionary<string, string> fields)
+            ? fields : EmptySection;
+
+    static readonly Dictionary<string, string> EmptySection = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 地图自己那层 MiscData。客户端用同一份 INI 的 [Camera] 段覆盖全局设置；
+    /// 地图里的写法有两种：直接的 UI\\MiscData.txt（客户端走的路径），
+    /// 以及世界编辑器导出的 war3mapMisc.txt（同一份内容的常规名字）。
+    /// 低 → 高按 war3mapMisc → UI/MiscData 合并，与客户端「地图层最高」一致。
+    /// </summary>
+    static Dictionary<string, Dictionary<string, string>> LoadMapMiscLayers(MapSource map)
+    {
+        var sections = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        if (map?.Package == null) return sections;
+        MergeIni(sections, map.Package.ReadMapFile("war3mapMisc.txt"));
+        MergeIni(sections, map.Package.ReadMapFile("UI/MiscData.txt"));
+        return sections;
+    }
+
+    static void MergeIni(Dictionary<string, Dictionary<string, string>> sections, byte[] data)
+    {
+        if (data == null || data.Length == 0) return;
+        string text = System.Text.Encoding.UTF8.GetString(data);
+        Dictionary<string, string> current = null;
+        foreach (string raw in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string line = raw.Trim();
+            if (line.StartsWith('[') && line.EndsWith(']'))
+            {
+                string name = line[1..^1].Trim();
+                if (!sections.TryGetValue(name, out current))
+                    sections[name] = current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                continue;
+            }
+            if (current == null || line.StartsWith("//", StringComparison.Ordinal) || line.StartsWith(';'))
+                continue;
+            int equals = line.IndexOf('=');
+            if (equals <= 0) continue;
+            current[line[..equals].Trim()] = line[(equals + 1)..].Trim();
+        }
     }
 
     static float ValueAt(float[] values, int index, float fallback)

@@ -224,7 +224,7 @@ public sealed partial class War3GameScene : Node3D
                 break;
             case LoadingStage.PresentationPreload: await LoadPresentationPreload(); break;
             case LoadingStage.Pathing: await LoadPathing(map); break;
-            case LoadingStage.Selection: await LoadSelection(); break;
+            case LoadingStage.Selection: await LoadSelection(map); break;
             case LoadingStage.Behaviours: AttachBehaviours(); break;
         }
         return true;
@@ -382,9 +382,10 @@ public sealed partial class War3GameScene : Node3D
         await Loading(.93f, StageName(LoadingStage.Pathing));
     }
 
-    private async Task LoadSelection()
+    private async Task LoadSelection(MapSource map)
     {
-        _camera = new War3Camera(this, CameraTargetHeightAt);
+        _camera = new War3Camera(this, CameraTargetHeightAt, map);
+        _camera.SetPlayerDistanceScale(CameraDistanceScale);
         _cameraComponent = new War3CameraComponent(this);
         _picking = new War3PickingComponent(this);
         _worldInteraction = new War3WorldInteractionComponent(this);
@@ -425,11 +426,8 @@ public sealed partial class War3GameScene : Node3D
         _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
         _newHud.SelectionClicked = SelectUnitFromHud;
         _newHud.IdlePeonClicked = SelectIdleWorkerUnit;
-        _newHud.PortraitFollowStarted = unit =>
-        {
-            if (unit != null) _camera?.SetSoftFollowController(unit);
-        };
-        _newHud.PortraitFollowStopped = () => _camera?.ClearSoftFollowController();
+        _newHud.PortraitFollowStarted = BeginPortraitFollow;
+        _newHud.PortraitFollowStopped = EndPortraitFollow;
         ConfigureNewMinimap(_map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);

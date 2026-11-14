@@ -98,6 +98,6 @@ public sealed class SkyBackground
         _camera.Near = Mathf.Max(0.01f, view.Near);
         _camera.Far = Mathf.Max(_camera.Near + 1f, view.Far);
         _camera.Rotation = view.GlobalRotation;
-        _sky.FrameSeconds(Vector3.Zero, hours);
+        _sky.FrameSeconds(Vector3.Zero, Vector3.Zero, hours);
     }
 }

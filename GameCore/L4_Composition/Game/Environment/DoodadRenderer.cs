@@ -69,6 +69,8 @@ public sealed partial class MapWorldBuilder
             {
                 _treeShadows.Add(new TreeShadow(doodadModel.Shadow, node3D2.Position, tree));
             }
+            // 桥/平台：模型表面就是那里的通行高度（客户端同样按 walkable 收集）。
+            if (doodadDefinition is { Walkable: true }) Walkable.Add(node3D2);
             num++;
         }
         GD.Print($"[DOODAD] 装饰物 {num}（模型 {DoodadMeshLibrary.Count} 种），隐藏 {num2} 死亡 {num3} 缺模型 {num4}，树 {Trees.Count}，"

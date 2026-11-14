@@ -20,6 +20,9 @@ public sealed partial class War3GameScene
         {
             War3Camera camera = _runtime._camera;
             if (camera == null) return;
+            // 四条跟随驱动（肖像/锁定/总跟随/标记）与客户端同形态：每帧把要求喂给镜头，
+            // 让位判据在各驱动内部。放在暂停判断之前 —— 它们在暂停里各自会早退。
+            _runtime.UpdateCameraFollow(deltaTime);
             if (_runtime.Paused)
             {
                 _dragPending = false;
@@ -55,7 +58,7 @@ public sealed partial class War3GameScene
 
             camera.SetRotationKeys(Input.IsKeyPressed(Key.Insert),
                 Input.IsKeyPressed(Key.Delete));
-            camera.Update(deltaTime, up, down, left, right);
+            camera.Update(deltaTime, up, down, left, right, _runtime.CameraPanSensitivity);
         }
 
         internal void Scroll(float amount)
@@ -73,6 +76,8 @@ public sealed partial class War3GameScene
             _dragging = true;
             _dragPending = false;
             _dragLastPoint = point;
+            // 中键拖动也是玩家平移镜头：把「失锁定窗口」打开，否则跟随期间 Pan 一律被拒收。
+            _runtime.ResetCameraPanUnlockTimer();
             return true;
         }
 
@@ -98,6 +103,7 @@ public sealed partial class War3GameScene
             if (!TryScreenPoint(_dragPendingScreen, out Vector3 point)) return;
             Vector3 delta = point - _dragLastPoint;
             _runtime._camera.Pan(-delta.X, -delta.Z);
+            _runtime.ResetCameraPanUnlockTimer();
         }
 
         bool TryScreenPoint(Vector2 screen, out Vector3 point)

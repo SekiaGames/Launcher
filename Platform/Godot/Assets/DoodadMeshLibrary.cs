@@ -15,6 +15,8 @@ public sealed class DoodadDefinition
     public float BaseScale = 1f;
     public bool IsDestructable;
     public bool IsTree;
+    /// <summary>SLK 的 walkable 列：桥/平台这类「模型表面即通行面」的装饰物。</summary>
+    public bool Walkable;
     public float Hp = 50f;
 }
 
@@ -122,6 +124,7 @@ public static class DoodadMeshLibrary
                 Shadow = ShadowName(destructables.Get(row, "shadow")),
                 IsDestructable = true,
                 IsTree = string.Equals(destructables.Get(row, "targType"), "tree", StringComparison.OrdinalIgnoreCase),
+                Walkable = destructables.GetFloat(row, "walkable", 0f) > 0f,
                 Hp = destructables.GetFloat(row, "HP", 50f),
             };
             definition.Variations = ParseInt(destructables.Get(row, "numVar"), 1);
@@ -144,6 +147,7 @@ public static class DoodadMeshLibrary
             File = doodads.Get(row, "file"),
             BaseScale = ParseFloat(doodads.Get(row, "defScale"), 1f),
             Shadow = ShadowName(doodads.Get(row, "shadow")),
+            Walkable = doodads.GetFloat(row, "walkable", 0f) > 0f,
         };
         doodad.Variations = ParseInt(doodads.Get(row, "numVar"), 1);
         return doodad;
