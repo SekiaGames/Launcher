@@ -65,7 +65,7 @@ public sealed class UnitSceneComponent
         return view;
     }
 
-    private static void EnsureFallbackMaterials(Node3D root)
+    public static void EnsureFallbackMaterials(Node3D root)
     {
         foreach (Node node in root.FindChildren("*", "MeshInstance3D", true, false))
         {

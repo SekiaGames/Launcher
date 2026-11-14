@@ -1,4 +1,5 @@
 using Godot;
+using OpenWC3.Game;
 
 namespace OpenWC3;
 
@@ -112,15 +113,57 @@ public class Buff : Ability
 
     public virtual bool ShowsDurationBar => TimedLife;
 
-    public override string VisualModelPath => "";
+    string _visualModel;
+    string _visualAttachment;
+    int _visualLevel = int.MinValue;
 
-    public override string VisualAttachmentPoint => "origin";
+    void RefreshVisualArt()
+    {
+        if (_visualModel != null && _visualLevel == Level) return;
+        _visualLevel = Level;
+        IRuntimeObjectData data = ((Ability)this).ObjectData;
+        _visualModel = AbilityArt.FirstArt(data, Id, Level, "TargetArt", "atat");
+        _visualAttachment = AbilityArt.FirstAttachment(data, Id, Level, "Targetattach", "ata0");
+    }
+
+    public override string VisualModelPath
+    {
+        get
+        {
+            RefreshVisualArt();
+            return _visualModel;
+        }
+    }
+
+    public override string VisualAttachmentPoint
+    {
+        get
+        {
+            RefreshVisualArt();
+            return string.IsNullOrEmpty(_visualAttachment) ? "origin" : _visualAttachment;
+        }
+    }
 
     public virtual bool VisualAllowedWhileAirborne => !Aura;
 
     public override bool TickRunsWhilePaused => false;
 
-    public virtual float VisualAgeSeconds => 0f;
+    long _visualStartTick = long.MinValue;
+
+    public virtual float VisualAgeSeconds
+    {
+        get
+        {
+            World ownerWorld = Owner?.World;
+            if (ownerWorld == null) return 0f;
+            if (_visualStartTick == long.MinValue)
+            {
+                _visualStartTick = ownerWorld.Tick;
+                return 0f;
+            }
+            return Mathf.Max(0f, (ownerWorld.Tick - _visualStartTick) * World.TickSeconds);
+        }
+    }
 
     public override void OnAdd() => OnBuffAdd();
 

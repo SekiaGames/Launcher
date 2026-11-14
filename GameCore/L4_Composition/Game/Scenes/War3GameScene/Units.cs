@@ -430,13 +430,9 @@ public sealed partial class War3GameScene
         view.SetSelected(selected);
         view.Play(unit.Alive ? "Stand" : "Death");
 
-        string puff = PathResolve.ModelScene(@"Abilities\Spells\Human\RuntimePolymorphAbility\PolyMorphDoneGround");
-        if (puff != null)
-        {
-            Vector3 ground = position;
-            ground.Y = MapWorldBuilder.HeightAt(_map.Terrain, position.X, position.Z) + 2f;
-            PlayGroundEffect(ground, puff, 1.2f);
-        }
+        string puff = @"Abilities\Spells\Human\Polymorph\PolyMorphDoneGround.mdl";
+        if (PathResolve.ModelScene(puff) != null)
+            _world?.AddSpecialEffect(puff, new Vec2(position.X, position.Z), lifeSpan: 1.2f);
 
         GD.Print($"[MORPH] {unit.Type.Id} 重建模型 {(selected ? "（选中中）" : "")}"
             + $" 生命 {unit.Hp:0}/{unit.MaxHp:0}"

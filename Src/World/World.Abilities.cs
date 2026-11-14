@@ -173,6 +173,7 @@ public sealed partial class World
 
         caster.Mana = Mathf.Max(0f, caster.Mana - cost);
         ability.CooldownRemaining = ability.Cooldown;
+        ability.SpawnArts(target, flat);
         AbilityCast?.Invoke(caster, ability, target);
         return true;
     }

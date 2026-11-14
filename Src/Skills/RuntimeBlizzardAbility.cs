@@ -14,6 +14,12 @@ public sealed class RuntimeBlizzardAbility : Ability
     public override bool IsChanneled => true;
 
     public int Waves => Mathf.Max(1, Mathf.RoundToInt(Data('A')));
+
+    const string ShardArt = @"Abilities\Spells\Human\Blizzard\BlizzardTarget.mdl";
+    const float ShardLifeSpan = 2f;
+
+    /// <summary>DataC 是每波冰片数量（客户端 ShardCount，1..32）。</summary>
+    public int ShardCount => Mathf.Clamp(Mathf.RoundToInt(Data('C')), 1, 32);
     public float WaveDamage => Data('B');
     /// <summary>物编 Cast 列是每波间隔（客户端 RuntimeAbilityFactory.cs:540 读 "Cast"）；原实现误用 DataD。</summary>
     public float WaveInterval => CastInterval > 0f ? CastInterval : 0.5f;
@@ -41,6 +47,15 @@ public sealed class RuntimeBlizzardAbility : Ability
 
     public override void OnChannelWave(World world, Vector3 point)
     {
+        for (int index = 0; index < ShardCount; index++)
+        {
+            float angle = (float)GD.RandRange(0d, Math.PI * 2d);
+            float distance = (float)GD.RandRange(0d, Radius);
+            world.AddSpecialEffect(ShardArt,
+                new Vec2(point.X + Mathf.Cos(angle) * distance, point.Z + Mathf.Sin(angle) * distance),
+                lifeSpan: ShardLifeSpan);
+        }
+
         List<Unit> victims = world.EnemiesInRange(Owner, point, Radius);
         float dealt = 0f;
         foreach (Unit victim in victims)

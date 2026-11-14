@@ -527,20 +527,36 @@ public sealed partial class LauncherApp : Node
 
     private static void RunEffectProbe()
     {
-        int hit = 0;
-        int missing = 0;
-        foreach (string code in EffectArtTable.Codes)
+        var fields = new (string Field, string Raw)[]
         {
-            if (EffectArtTable.TryResolve(code, out string path, out string mount))
+            ("CasterArt", "acat"), ("TargetArt", "atat"), ("SpecialArt", "asat"),
+            ("EffectArt", "aeat"), ("AreaEffectArt", "aaea"),
+        };
+        int ids = 0;
+        int arts = 0;
+        int resolved = 0;
+        int missing = 0;
+        foreach (string code in AbilityArt.Ids)
+        {
+            ids++;
+            foreach ((string field, string raw) in fields)
             {
-                hit++;
-                GD.Print($"[FX] {code,-6} → {path.Replace("res://extract/", "")}（挂点 {mount}）");
-                continue;
+                foreach (string art in AbilityArt.Arts(null, code, 1, field, raw))
+                {
+                    arts++;
+                    string path = PathResolve.ModelScene(art);
+                    if (path != null)
+                    {
+                        resolved++;
+                        GD.Print($"[FX] {code,-6} {field,-13} → {path.Replace("res://extract/", "")}");
+                        continue;
+                    }
+                    missing++;
+                    GD.Print($"[FX] {code,-6} {field,-13} 缺 {art}");
+                }
             }
-            missing++;
-            GD.Print($"[FX] {code,-6} 缺资源");
         }
-        GD.Print($"[FX] 表内 {EffectArtTable.Count} 条，命中 {hit}，缺 {missing}");
+        GD.Print($"[FX] 物编 {ids} 条，美术引用 {arts}，可加载 {resolved}，缺 {missing}");
     }
 
     private static void DumpUnits(string gmapPath)

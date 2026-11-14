@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using NVector4 = System.Numerics.Vector4;
 
 namespace OpenWC3.Game;
 
@@ -91,10 +92,6 @@ public sealed partial class War3GameScene
 
         Node3D node = null;
         PackedScene scene = Assets.LoadScene(PathResolve.ModelScene(ability.MissileArt));
-        if (scene == null && EffectArtTable.TryResolveMissile(ability.Id, out string fallbackMissile))
-        {
-            scene = Assets.LoadScene(fallbackMissile);
-        }
         if (scene != null)
         {
             node = scene.Instantiate<Node3D>();
@@ -219,14 +216,25 @@ public sealed partial class War3GameScene
             };
         }
 
-        if (!EffectArtTable.TryResolve(ability.Id, out string resPath, out _, out _)) return;
+        IReadOnlyList<string> arts = ChannelWaveArts(ability);
+        if (arts.Count == 0) return;
+        if (_world == null) return;
 
         float radius = Mathf.Max(60f, ability.Area);
-        float angle = (float)GD.RandRange(0d, Math.PI * 2d);
-        float distance = (float)GD.RandRange(0d, radius);
-        Vector3 point = effect.Point + new Vector3(Mathf.Cos(angle) * distance, 0f, Mathf.Sin(angle) * distance);
-        point.Y = MapWorldBuilder.HeightAt(_map.Terrain, point.X, point.Z) + 2f;
-        PlayGroundEffect(point, resPath, 1.1f);
+        for (int index = 0; index < arts.Count; index++)
+        {
+            float angle = (float)GD.RandRange(0d, Math.PI * 2d);
+            float distance = (float)GD.RandRange(0d, radius);
+            Vector3 point = effect.Point + new Vector3(Mathf.Cos(angle) * distance, 0f, Mathf.Sin(angle) * distance);
+            _world.AddSpecialEffect(arts[index], new Vec2(point.X, point.Z), lifeSpan: 1.1f);
+        }
+    }
+
+    private static IReadOnlyList<string> ChannelWaveArts(Ability ability)
+    {
+        if (ability.AreaEffectArts.Count > 0) return ability.AreaEffectArts;
+        if (ability.SpecialArts.Count > 0) return ability.SpecialArts;
+        return Array.Empty<string>();
     }
 
     private void OnChannelEnded(Unit caster, Ability ability, bool interrupted)
@@ -650,5 +658,483 @@ public sealed partial class War3GameScene
         }
 
         PlayVoice(unit, "What");
+    }
+
+    private readonly struct VisualEffectKey : IEquatable<VisualEffectKey>
+    {
+        public readonly int Kind;
+        public readonly object Owner;
+        public readonly int Art;
+        public readonly int Attachment;
+
+        public VisualEffectKey(int kind, object owner, int art, int attachment)
+        {
+            Kind = kind;
+            Owner = owner;
+            Art = art;
+            Attachment = attachment;
+        }
+
+        public bool Equals(VisualEffectKey other) => Kind == other.Kind
+            && ReferenceEquals(Owner, other.Owner) && Art == other.Art && Attachment == other.Attachment;
+
+        public override bool Equals(object other) => other is VisualEffectKey key && Equals(key);
+
+        public override int GetHashCode() => HashCode.Combine(Kind, Owner == null ? 0
+            : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Owner), Art, Attachment);
+    }
+
+    private readonly struct VisualEffectRequest
+    {
+        public readonly VisualEffectKey Key;
+        public readonly string ModelPath;
+        public readonly Unit Target;
+        public readonly string Attachment;
+        public readonly Vector3 Position;
+        public readonly bool WorldPosition;
+        public readonly float Scale;
+        public readonly float Age;
+        public readonly bool Death;
+        public readonly NVector4 Color;
+        public readonly int TeamColor;
+        public readonly bool StandAfterBirth;
+        public readonly string PrimaryAnimation;
+        public readonly string AnimationProperties;
+        public readonly SpecialEffect Special;
+
+        public VisualEffectRequest(VisualEffectKey key, string modelPath, Unit target, string attachment,
+            Vector3 position, bool worldPosition, float scale, float age, bool death, NVector4 color,
+            int teamColor, bool standAfterBirth, string primaryAnimation, string animationProperties,
+            SpecialEffect special)
+        {
+            Key = key;
+            ModelPath = modelPath;
+            Target = target;
+            Attachment = attachment;
+            Position = position;
+            WorldPosition = worldPosition;
+            Scale = scale;
+            Age = age;
+            Death = death;
+            Color = color;
+            TeamColor = teamColor;
+            StandAfterBirth = standAfterBirth;
+            PrimaryAnimation = primaryAnimation;
+            AnimationProperties = animationProperties;
+            Special = special;
+        }
+    }
+
+    private sealed class VisualEffectNode
+    {
+        public Node3D Root;
+        public AnimationPlayer Player;
+        public Unit Target;
+        public string Attachment;
+        public string SequenceKey;
+        public string Sequence;
+        public int LastSeenFrame;
+        public int TeamColor = int.MinValue;
+        public bool Failed;
+        public ModelEventEmitter Events;
+        public bool EventsResolved;
+    }
+
+    private readonly Dictionary<VisualEffectKey, VisualEffectNode> _visualEffects = new();
+    private readonly List<VisualEffectKey> _staleVisualEffects = new();
+    private readonly HashSet<string> _missingEffectModels = new(StringComparer.OrdinalIgnoreCase);
+    private int _visualEffectFrame;
+
+    public int ActiveEffectCount => _visualEffects.Count;
+
+    private void RenderVisualEffects(float delta)
+    {
+        if (_worldRoot == null) return;
+        _visualEffectFrame++;
+        CollectWorldEffects();
+        CollectUnitEffectVisuals();
+        RemoveUnseenVisualEffects();
+        ReportVisualEffects(delta);
+    }
+
+    private float _visualEffectReportTimer;
+    private int _visualEffectReported = -1;
+    private int _visualEffectLoadLogBudget = 20;
+
+    private void ReportVisualEffects(float delta)
+    {
+        _visualEffectReportTimer += delta;
+        if (_visualEffectReportTimer < 2f) return;
+        _visualEffectReportTimer = 0f;
+        if (_visualEffects.Count == _visualEffectReported) return;
+        _visualEffectReported = _visualEffects.Count;
+        GD.Print($"[FX] 在场特效 {_visualEffects.Count}");
+    }
+
+    private void CollectWorldEffects()
+    {
+        if (_world == null) return;
+        IReadOnlyList<Effect> effects = _world.Effects;
+        for (int index = 0; index < effects.Count; index++)
+        {
+            Effect effect = effects[index];
+            if (effect is MissileEffect) continue;
+            string modelPath = effect.VisualModelPath;
+            if (string.IsNullOrWhiteSpace(modelPath)) continue;
+            Unit target = effect.VisualTarget;
+            if (target != null && (target.View?.Root == null || !target.View.Root.Visible)) continue;
+            SpecialEffect special = effect as SpecialEffect;
+            int teamColor = special != null && special.TeamColorIndex >= 0
+                ? special.TeamColorIndex
+                : target?.TeamColorIndex ?? 0;
+            float ground = _map?.Terrain != null
+                ? MapWorldBuilder.HeightAt(_map.Terrain, effect.Pos.X, effect.Pos.Y) : 0f;
+            DrawVisualEffect(new VisualEffectRequest(
+                new VisualEffectKey(0, effect, 0, 0), modelPath, target, effect.VisualAttachmentPoint,
+                new Vector3(effect.Pos.X, ground + effect.VisualHeight, effect.Pos.Y),
+                target == null, effect.VisualScale, effect.VisualAgeSeconds,
+                special != null && special.Destroyed, special?.Color ?? NVector4.One, teamColor,
+                special != null && special.PlayStandAfterBirth, special?.AnimationName,
+                special == null ? null : string.Join(' ', special.AnimationSubProperties), special));
+        }
+    }
+
+    private void CollectUnitEffectVisuals()
+    {
+        for (int index = 0; index < _allUnits.Count; index++)
+        {
+            Unit unit = _allUnits[index];
+            if (unit == null || !unit.Alive || unit.View?.Root == null) continue;
+            if (!unit.View.Root.Visible) continue;
+            CollectBuffVisuals(unit);
+            CollectPersistentArts(unit);
+        }
+    }
+
+    private readonly List<(string Model, string Attachment)> _unitBuffVisuals = new();
+
+    private void CollectBuffVisuals(Unit unit)
+    {
+        _unitBuffVisuals.Clear();
+        List<Buff> buffs = unit.Buffs;
+        for (int index = 0; index < buffs.Count; index++) DrawBuffVisual(unit, buffs[index]);
+        IReadOnlyList<Ability> abilities = unit.Abilities.Items;
+        for (int index = 0; index < abilities.Count; index++)
+        {
+            if (abilities[index] is Buff buff) DrawBuffVisual(unit, buff);
+        }
+        _unitBuffVisuals.Clear();
+    }
+
+    private void DrawBuffVisual(Unit unit, Buff buff)
+    {
+        if (buff == null) return;
+        string modelPath = buff.VisualModelPath;
+        if (string.IsNullOrWhiteSpace(modelPath)) return;
+        string attachment = buff.VisualAttachmentPoint;
+        if (AlreadyDrawnForUnit(modelPath, attachment)) return;
+        _unitBuffVisuals.Add((modelPath, attachment));
+        DrawVisualEffect(new VisualEffectRequest(
+            new VisualEffectKey(1, buff, 0, 0), modelPath, unit, attachment,
+            Vector3.Zero, false, 1f, buff.VisualAgeSeconds, false, NVector4.One,
+            unit.TeamColorIndex, false, null, null, null));
+    }
+
+    private bool AlreadyDrawnForUnit(string modelPath, string attachment)
+    {
+        foreach ((string model, string point) in _unitBuffVisuals)
+        {
+            if (!string.Equals(model, modelPath, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(point, attachment, StringComparison.OrdinalIgnoreCase)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    private void CollectPersistentArts(Unit unit)
+    {
+        IReadOnlyList<Ability> abilities = unit.Abilities.Items;
+        float time = Time.GetTicksMsec() / 1000f;
+        for (int index = 0; index < abilities.Count; index++)
+        {
+            Ability ability = abilities[index];
+            if (ability is Buff || ability.Level <= 0 || ability.IsDisabled) continue;
+            for (int kind = 0; kind < 3; kind++)
+            {
+                bool persistent = kind switch
+                {
+                    0 => ability.HasPersistentTargetArts,
+                    1 => ability.HasPersistentCasterArts,
+                    _ => ability.HasPersistentSpecialArts,
+                };
+                if (!persistent) continue;
+                IReadOnlyList<string> arts = kind switch
+                {
+                    0 => ability.TargetArts,
+                    1 => ability.CasterArts,
+                    _ => ability.SpecialArts,
+                };
+                IReadOnlyList<string> attachments = kind switch
+                {
+                    0 => ability.TargetAttachments,
+                    1 => ability.CasterAttachments,
+                    _ => ability.SpecialAttachments,
+                };
+                for (int artIndex = 0; artIndex < arts.Count; artIndex++)
+                {
+                    for (int attachmentIndex = 0; attachmentIndex < attachments.Count; attachmentIndex++)
+                    {
+                        if (kind == 0
+                            && !ability.IsPersistentTargetArtVisible(artIndex, attachmentIndex)) continue;
+                        string art = arts[artIndex];
+                        if (string.IsNullOrWhiteSpace(art)) continue;
+                        DrawVisualEffect(new VisualEffectRequest(
+                            new VisualEffectKey(2 + kind, ability, artIndex, attachmentIndex),
+                            art, unit, attachments[attachmentIndex], Vector3.Zero, false, 1f,
+                            time, false, NVector4.One, unit.TeamColorIndex, false, null, null, null));
+                    }
+                }
+            }
+        }
+    }
+
+    private void DrawVisualEffect(in VisualEffectRequest request)
+    {
+        if (!_visualEffects.TryGetValue(request.Key, out VisualEffectNode node)
+            || !IsReusable(node, request))
+        {
+            FreeVisualEffectNode(node);
+            node = CreateVisualEffectNode(request);
+            _visualEffects[request.Key] = node;
+        }
+        node.LastSeenFrame = _visualEffectFrame;
+        if (node.Player != null) ApplyVisualEffectPose(node, request);
+        TickVisualEffectEvents(node);
+    }
+
+    private void TickVisualEffectEvents(VisualEffectNode node)
+    {
+        if (node?.Root == null || !IsInstanceValid(node.Root)) return;
+        if (!node.EventsResolved)
+        {
+            node.EventsResolved = true;
+            node.Events = ModelEventEmitter.Create(node.Root);
+        }
+        node.Events?.Tick(_groundSplats.Add, node.Root.IsVisibleInTree());
+    }
+
+    private static bool IsReusable(VisualEffectNode node, in VisualEffectRequest request)
+        => node != null && (node.Failed
+            || (IsInstanceValid(node.Root)
+                && ReferenceEquals(node.Target, request.Target)
+                && string.Equals(node.Attachment, request.Attachment, StringComparison.OrdinalIgnoreCase)));
+
+    private void FreeVisualEffectNode(VisualEffectNode node)
+    {
+        if (node?.Root == null || !IsInstanceValid(node.Root)) return;
+        node.Root.QueueFree();
+    }
+
+    private VisualEffectNode CreateVisualEffectNode(in VisualEffectRequest request)
+    {
+        string path = PathResolve.ModelScene(request.ModelPath);
+        PackedScene scene = Assets.LoadScene(path);
+        if (scene == null)
+        {
+            if (_missingEffectModels.Add(request.ModelPath))
+                GD.Print($"[FX] 缺模型 {request.ModelPath}");
+            return new VisualEffectNode { Failed = true };
+        }
+
+        Node3D root = scene.Instantiate<Node3D>();
+        if (root == null) return new VisualEffectNode { Failed = true };
+        ModelLibrary.ApplyMissingMaterials(root, path);
+        UnitSceneComponent.EnsureFallbackMaterials(root);
+        MapWorldBuilder.ApplyUnitTextureFilter(root);
+        var tree = root.FindChild("AnimationTree", true, false) as AnimationTree;
+        if (tree != null) tree.Active = false;
+
+        var node = new VisualEffectNode
+        {
+            Root = root,
+            Player = root.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
+            Target = request.Target,
+            Attachment = request.Attachment,
+        };
+        root.Name = "fx_" + System.IO.Path.GetFileNameWithoutExtension(request.ModelPath);
+        if (node.Player != null) node.Player.Autoplay = "";
+
+        if (request.Target != null)
+        {
+            Node3D host = AttachmentPoints.Find(request.Target.View.Root, request.Attachment)
+                ?? request.Target.View.Root;
+            host.AddChild(root);
+        }
+        else
+        {
+            root.Position = request.Position;
+            _worldRoot.AddChild(root);
+        }
+
+        ApplyVisualEffectTeamColor(node, request.TeamColor);
+        ApplyVisualEffectColor(root, request.Color);
+        if (_visualEffectLoadLogBudget > 0)
+        {
+            _visualEffectLoadLogBudget--;
+            GD.Print($"[FX] 载入 {path.Replace("res://extract/", "")}"
+                + $"{(request.Target == null ? "" : $" → {request.Target.Type?.Name} 的 {request.Attachment}")}");
+        }
+        return node;
+    }
+
+    private static void ApplyVisualEffectTeamColor(VisualEffectNode node, int teamColor)
+    {
+        if (node.TeamColor == teamColor) return;
+        node.TeamColor = teamColor;
+        UnitSceneComponent.ApplyTeamColorTo(node.Root, UnitSceneComponent.ColorOf(teamColor));
+    }
+
+    private static void ApplyVisualEffectColor(Node3D root, NVector4 color)
+    {
+        if (color == NVector4.One) return;
+        foreach (Node child in root.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (child is not MeshInstance3D mesh || mesh.Mesh == null) continue;
+            for (int surface = 0; surface < mesh.Mesh.GetSurfaceCount(); surface++)
+            {
+                Material material = mesh.MaterialOverride
+                    ?? mesh.GetSurfaceOverrideMaterial(surface)
+                    ?? mesh.Mesh.SurfaceGetMaterial(surface);
+                if (material is not ShaderMaterial shader) continue;
+                var copy = (ShaderMaterial)shader.Duplicate();
+                copy.SetShaderParameter("geoset_tint", new Color(color.X, color.Y, color.Z, 1f));
+                copy.SetShaderParameter("layer_alpha", color.W);
+                if (ReferenceEquals(mesh.MaterialOverride, material)) mesh.MaterialOverride = copy;
+                else mesh.SetSurfaceOverrideMaterial(surface, copy);
+            }
+        }
+    }
+
+    private static void ApplyVisualEffectPose(VisualEffectNode node, in VisualEffectRequest request)
+    {
+        node.Root.Scale = Vector3.One * Mathf.Max(0.001f, request.Scale);
+        if (request.WorldPosition) node.Root.Position = request.Position;
+
+        string sequence = SelectEffectSequence(node, request);
+        if (sequence == null) return;
+        Animation animation = node.Player.GetAnimation(sequence);
+        float age = Mathf.Max(0f, request.Age);
+        float length = animation == null ? 0f : (float)animation.Length;
+
+        if (request.StandAfterBirth && !request.Death)
+        {
+            string birth = FindEffectSequence(node.Player, "Birth", request.AnimationProperties);
+            if (birth != null && string.Equals(sequence, birth, StringComparison.Ordinal)
+                && length > 0f && age >= length)
+            {
+                string stand = FindEffectSequence(node.Player, "Stand", request.AnimationProperties);
+                if (stand != null)
+                {
+                    sequence = stand;
+                    animation = node.Player.GetAnimation(sequence);
+                    length = animation == null ? 0f : (float)animation.Length;
+                    age -= Mathf.Max(1f, length);
+                }
+            }
+        }
+
+        if (node.Sequence != sequence || node.Player.CurrentAnimation != sequence)
+        {
+            node.Sequence = sequence;
+            node.Player.Play(sequence);
+            node.Player.Pause();
+        }
+
+        bool loop = animation != null && animation.LoopMode != Animation.LoopModeEnum.None;
+        float time = length <= 0f ? 0f : loop ? age % length : Mathf.Min(length, age);
+        node.Player.Seek(time, true);
+
+        if (request.Special == null || request.Special.Destroyed) return;
+        if (request.Special.LifeSpan > 0f || loop || length <= 0f) return;
+        if (age >= length) request.Special.Expire();
+    }
+
+    private static string SelectEffectSequence(VisualEffectNode node, in VisualEffectRequest request)
+    {
+        string key = (request.Death ? "death|" : "live|")
+            + (request.PrimaryAnimation ?? "") + "|" + (request.AnimationProperties ?? "");
+        if (node.SequenceKey == key && node.Sequence != null
+            && node.Player.HasAnimation(node.Sequence)) return node.Sequence;
+        node.SequenceKey = key;
+
+        string found = request.Death
+            ? FindEffectSequence(node.Player, "Death", request.AnimationProperties) : null;
+        if (found == null && !string.IsNullOrEmpty(request.PrimaryAnimation))
+            found = FindEffectSequence(node.Player, request.PrimaryAnimation, request.AnimationProperties);
+        found ??= FindEffectSequence(node.Player, "Birth", request.AnimationProperties);
+        found ??= FindEffectSequence(node.Player, "Stand", request.AnimationProperties);
+        if (found == null)
+        {
+            string[] names = node.Player.GetAnimationList();
+            found = names.Length > 0 ? names[0] : null;
+        }
+        node.Sequence = found;
+        return found;
+    }
+
+    private static string FindEffectSequence(AnimationPlayer player, string primary, string properties)
+    {
+        if (player == null || string.IsNullOrEmpty(primary)) return null;
+        string[] requested = SplitSequenceTokens(primary + " " + properties);
+        if (requested.Length == 0) return null;
+
+        string best = null;
+        int bestMatches = -1;
+        int bestExtra = int.MaxValue;
+        foreach (string name in player.GetAnimationList())
+        {
+            string[] tokens = SplitSequenceTokens(name);
+            if (tokens.Length == 0) continue;
+            if (!string.Equals(tokens[0], requested[0], StringComparison.OrdinalIgnoreCase)) continue;
+            int matches = 0;
+            for (int index = 1; index < requested.Length; index++)
+            {
+                for (int candidate = 1; candidate < tokens.Length; candidate++)
+                {
+                    if (!string.Equals(tokens[candidate], requested[index],
+                        StringComparison.OrdinalIgnoreCase)) continue;
+                    matches++;
+                    break;
+                }
+            }
+            int extra = tokens.Length - matches;
+            if (matches < bestMatches || (matches == bestMatches && extra >= bestExtra)) continue;
+            best = name;
+            bestMatches = matches;
+            bestExtra = extra;
+        }
+        return best;
+    }
+
+    private static string[] SplitSequenceTokens(string value)
+        => string.IsNullOrWhiteSpace(value)
+            ? Array.Empty<string>()
+            : value.Split(new[] { ' ', '\t', ',', '\r', '\n' },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private void RemoveUnseenVisualEffects()
+    {
+        _staleVisualEffects.Clear();
+        foreach (KeyValuePair<VisualEffectKey, VisualEffectNode> pair in _visualEffects)
+        {
+            if (pair.Value != null && pair.Value.LastSeenFrame == _visualEffectFrame) continue;
+            _staleVisualEffects.Add(pair.Key);
+        }
+        foreach (VisualEffectKey key in _staleVisualEffects)
+        {
+            FreeVisualEffectNode(_visualEffects[key]);
+            _visualEffects.Remove(key);
+        }
+        _staleVisualEffects.Clear();
     }
 }

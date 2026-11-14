@@ -401,15 +401,52 @@ public abstract class Ability
 
     public virtual bool HasPersistentTargetArts => false;
 
-    public virtual IReadOnlyList<string> EffectArts => Array.Empty<string>();
+    public virtual IReadOnlyList<string> EffectArts => Arts.Effect;
 
-    public virtual IReadOnlyList<string> SpecialArts => Array.Empty<string>();
+    public virtual IReadOnlyList<string> SpecialArts => Arts.Special;
 
-    public virtual IReadOnlyList<string> AreaEffectArts => Array.Empty<string>();
+    public virtual IReadOnlyList<string> AreaEffectArts => Arts.AreaEffect;
 
-    public virtual IReadOnlyList<string> CasterArts => Array.Empty<string>();
+    public virtual IReadOnlyList<string> CasterArts => Arts.Caster;
 
-    public virtual IReadOnlyList<string> TargetArts => Array.Empty<string>();
+    public virtual IReadOnlyList<string> TargetArts => Arts.Target;
+
+    sealed class AbilityArts
+    {
+        public int Level = int.MinValue;
+        public IRuntimeObjectData Data;
+        public IReadOnlyList<string> Caster = Array.Empty<string>();
+        public IReadOnlyList<string> Target = Array.Empty<string>();
+        public IReadOnlyList<string> Special = Array.Empty<string>();
+        public IReadOnlyList<string> Effect = Array.Empty<string>();
+        public IReadOnlyList<string> AreaEffect = Array.Empty<string>();
+        public IReadOnlyList<string> CasterAttachments = Array.Empty<string>();
+        public IReadOnlyList<string> TargetAttachments = Array.Empty<string>();
+        public IReadOnlyList<string> SpecialAttachments = Array.Empty<string>();
+        public IReadOnlyList<string> EffectAttachments = Array.Empty<string>();
+    }
+
+    readonly AbilityArts _arts = new();
+
+    AbilityArts Arts
+    {
+        get
+        {
+            if (_arts.Level == Level && ReferenceEquals(_arts.Data, ObjectData)) return _arts;
+            _arts.Level = Level;
+            _arts.Data = ObjectData;
+            _arts.Caster = AbilityArt.Arts(ObjectData, Id, Level, "CasterArt", "acat");
+            _arts.Target = AbilityArt.Arts(ObjectData, Id, Level, "TargetArt", "atat");
+            _arts.Special = AbilityArt.Arts(ObjectData, Id, Level, "SpecialArt", "asat");
+            _arts.Effect = AbilityArt.Arts(ObjectData, Id, Level, "EffectArt", "aeat");
+            _arts.AreaEffect = AbilityArt.Arts(ObjectData, Id, Level, "AreaEffectArt", "aaea");
+            _arts.CasterAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Casterattach", "acap");
+            _arts.TargetAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Targetattach", "ata0");
+            _arts.SpecialAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Specialattach", "aspt");
+            _arts.EffectAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Effectattach", "aeap");
+            return _arts;
+        }
+    }
 
     /// <summary>物编 BuffID1..4（客户端 BuffRawcodes）。</summary>
     public IReadOnlyList<string> BuffRawcodes
@@ -534,7 +571,97 @@ public abstract class Ability
 
     protected virtual bool EffectEventBeforePayment => true;
 
-    protected virtual float ObjectDataArtLifeSpan => 0f;
+    protected virtual float ObjectDataArtLifeSpan => 1f;
+
+    public virtual void SpawnArts(Unit target, Vec2 point)
+    {
+        if (Owner?.World == null) return;
+        Vec2 effectPoint = target?.Pos
+            ?? (TargetMode == AbilityTargetMode.None ? Owner.Pos : point);
+        SpawnAttachedArts(CasterArts, Owner, CasterAttachments);
+        if (SpawnTargetArtsOnCast)
+        {
+            if (target != null) SpawnAttachedArts(TargetArts, target, TargetAttachments);
+            else SpawnPointArts(TargetArts, effectPoint);
+        }
+        if (SpawnSpecialArtsOnCast)
+        {
+            if (target == null && TargetMode is AbilityTargetMode.Point or AbilityTargetMode.UnitOrPoint)
+                SpawnPointArts(SpecialArts, effectPoint);
+            else SpawnSpecialArts(target);
+        }
+        IReadOnlyList<string> duplicateTargetArts = target != null
+            && ContainsOrigin(TargetAttachments) ? TargetArts : null;
+        if (target != null) SpawnAttachedArts(EffectArts, target, EffectAttachments);
+        else SpawnPointArts(EffectArts, effectPoint, duplicateTargetArts);
+        SpawnPointArts(AreaEffectArts, effectPoint);
+    }
+
+    void SpawnAttachedArts(IReadOnlyList<string> arts, Unit target,
+        IReadOnlyList<string> attachments)
+    {
+        if (target == null || arts == null) return;
+        foreach (string art in arts) SpawnAttachedArt(art, target, attachments, ObjectDataArtLifeSpan);
+    }
+
+    protected void SpawnAttachedArt(string art, Unit target,
+        IReadOnlyList<string> attachments, float lifeSpan)
+    {
+        World world = Owner?.World;
+        if (world == null || target == null || string.IsNullOrWhiteSpace(art)) return;
+        if (attachments == null || attachments.Count == 0)
+        {
+            world.AddSpecialEffectTarget(art, target, "origin", lifeSpan);
+            return;
+        }
+        foreach (string attachment in attachments)
+            world.AddSpecialEffectTarget(art, target, attachment, lifeSpan);
+    }
+
+    void SpawnSpecialArts(Unit target)
+    {
+        foreach (string art in SpecialArts)
+        {
+            Unit visualTarget = ResolveSpecialArtTarget(art, target);
+            SpawnAttachedArt(art, visualTarget, SpecialAttachments, ObjectDataArtLifeSpan);
+        }
+    }
+
+    protected virtual Unit ResolveSpecialArtTarget(string art, Unit target)
+        => art != null && art.Contains("BlinkCaster", StringComparison.OrdinalIgnoreCase)
+            ? Owner
+            : target ?? Owner;
+
+    void SpawnPointArts(IReadOnlyList<string> arts, Vec2 point,
+        IReadOnlyList<string> exclude = null)
+    {
+        World world = Owner?.World;
+        if (world == null || arts == null) return;
+        foreach (string art in arts)
+        {
+            if (exclude != null && ContainsArt(exclude, art)) continue;
+            world.AddSpecialEffect(art, point, lifeSpan: ObjectDataArtLifeSpan);
+        }
+    }
+
+    static bool ContainsOrigin(IReadOnlyList<string> attachments)
+    {
+        if (attachments == null) return false;
+        foreach (string attachment in attachments)
+        {
+            if (string.Equals(attachment, "origin", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    static bool ContainsArt(IReadOnlyList<string> arts, string art)
+    {
+        foreach (string candidate in arts)
+        {
+            if (string.Equals(candidate, art, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
 
     public virtual Unit ResolveCastApproachTarget(Unit target, Vec2 point) => target;
 
@@ -589,22 +716,88 @@ public abstract class Ability
     public  object SourceItem { get; set; }
     public  bool GrantedByItem => default;
     public  string DisplayName => default;
-    public virtual  bool IsPersistentTargetArtVisible(int artIndex,int attachmentIndex) => default;
+    public virtual  bool IsPersistentTargetArtVisible(int artIndex,int attachmentIndex) => true;
     public  IReadOnlyList<string> LightningEffects { get; set; }
     public virtual  bool HasPersistentCasterArts => default;
-    public  IReadOnlyList<string> CasterAttachments { get; set; }
-    public  IReadOnlyList<string> TargetAttachments { get; set; }
-    public  IReadOnlyList<string> EffectAttachments { get; set; }
-    public  IReadOnlyList<string> SpecialAttachments { get; set; }
-    public  bool HasPersistentSpecialArts { get; set; }
+
+    IReadOnlyList<string> _casterAttachments;
+    IReadOnlyList<string> _targetAttachments;
+    IReadOnlyList<string> _effectAttachments;
+    IReadOnlyList<string> _specialAttachments;
+
+    public  IReadOnlyList<string> CasterAttachments
+    {
+        get => _casterAttachments ?? Arts.CasterAttachments;
+        set => _casterAttachments = value;
+    }
+
+    public  IReadOnlyList<string> TargetAttachments
+    {
+        get => _targetAttachments ?? Arts.TargetAttachments;
+        set => _targetAttachments = value;
+    }
+
+    public  IReadOnlyList<string> EffectAttachments
+    {
+        get => _effectAttachments ?? Arts.EffectAttachments;
+        set => _effectAttachments = value;
+    }
+
+    public  IReadOnlyList<string> SpecialAttachments
+    {
+        get => _specialAttachments ?? Arts.SpecialAttachments;
+        set => _specialAttachments = value;
+    }
+
+    bool? _hasPersistentSpecialArts;
+
+    public  bool HasPersistentSpecialArts
+    {
+        get
+        {
+            if (_hasPersistentSpecialArts is { } forced) return forced;
+            if (Type == null || !Type.ItemAbility) return false;
+            if (Arts.Special.Count == 0) return false;
+            return Arts.SpecialAttachments.Count > 0
+                && !string.Equals(Arts.SpecialAttachments[0], "origin", StringComparison.OrdinalIgnoreCase);
+        }
+        set => _hasPersistentSpecialArts = value;
+    }
     public  float MissileArc { get; set; }
     public  bool MissileHoming { get; set; }
     public virtual  string CastAnimationPrimaryTag => default;
     public virtual  IReadOnlyList<string> CastAnimationSecondaryTags => default;
-    public  string CasterAttachment { get; set; }
-    public  string TargetAttachment { get; set; }
-    public  string EffectAttachment { get; set; }
-    public  string SpecialAttachment { get; set; }
+    string _casterAttachment;
+    string _targetAttachment;
+    string _effectAttachment;
+    string _specialAttachment;
+
+    public  string CasterAttachment
+    {
+        get => _casterAttachment ?? FirstOf(CasterAttachments);
+        set => _casterAttachment = value;
+    }
+
+    public  string TargetAttachment
+    {
+        get => _targetAttachment ?? FirstOf(TargetAttachments);
+        set => _targetAttachment = value;
+    }
+
+    public  string EffectAttachment
+    {
+        get => _effectAttachment ?? FirstOf(EffectAttachments);
+        set => _effectAttachment = value;
+    }
+
+    public  string SpecialAttachment
+    {
+        get => _specialAttachment ?? FirstOf(SpecialAttachments);
+        set => _specialAttachment = value;
+    }
+
+    static string FirstOf(IReadOnlyList<string> attachments)
+        => attachments is { Count: > 0 } ? attachments[0] : "origin";
     public virtual  bool PausesConstruction => default;
     public  Type Prereq => default;
     public  bool HasDispelSourceLevel => default;
@@ -646,9 +839,6 @@ public abstract class Ability
     public  void PlayInstantItemEffect(Unit target, Vec2 point) { }
     public virtual  void OnChannel(Unit target, Vec2 point) { }
     public virtual  void OnEffectDestructable(object target, Vec2 point) { }
-    protected  void SpawnAttachedArt(string art,Unit target,
-        IReadOnlyList<string> attachments,float lifeSpan) { }
-    protected virtual  Unit ResolveSpecialArtTarget(string art, Unit target) => default;
     public  void CompleteCastRecovery() { }
     public virtual  void OnCancelFromQueue() { }
     public virtual  bool ChargeMana() => default;
