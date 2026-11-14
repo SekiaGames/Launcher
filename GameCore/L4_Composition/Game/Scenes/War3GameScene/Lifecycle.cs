@@ -333,7 +333,8 @@ public sealed partial class War3GameScene : Node3D
         _selection = new PlayerSelectionController(_world, () => ViewPlayer,
             OnSelectionChanged, _selected);
         _selection.SelectedAck = (unit, wasSelected) => PlaySelectionVoice(unit, wasSelected);
-        _commandProcessor = new PlayerCommandProcessor(_world, _selection, () => true, _ => { });
+        _commandProcessor = new PlayerCommandProcessor(_world, _selection,
+            () => FormationMovementEnabled, _ => { });
         _commandProcessor.OrderAck = attack =>
         {
             if (PrimarySelection == null) return;
@@ -548,7 +549,12 @@ _newHud.AboutDialogClosed = () => _userSettings.Save();
         minimap.OnSignalPing = PingMinimap;
         minimap.AltHeld = () => Input.IsKeyPressed(Key.Alt);
         minimap.FilterChanged = (allyState, showCreeps, allyEnabled, creepEnabled, formationEnabled) =>
+        {
             MinimapFilter = (allyState, showCreeps, allyEnabled, creepEnabled, formationEnabled);
+            FormationMovementEnabled = formationEnabled;
+        };
+        minimap.SetFilterState(MinimapFilter.AllyState, MinimapFilter.ShowCreeps,
+            MinimapFilter.AllyEnabled, MinimapFilter.CreepEnabled, FormationMovementEnabled);
         minimap.Update(_mapUiBounds, Array.Empty<MinimapUnitView>(), ViewPlayer, ViewPlayer,
             FogTexture(), System.Numerics.Vector2.One, _minimapPings, _minimapIcons, 0f);
     }

@@ -81,9 +81,9 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
         _copTexture = Resolve("MinimapCopTexture", @"UI\MiniMap\MinimapIconCircleOfPower.blp");
         _itemTexture = Resolve("MinimapItemTexture", @"UI\MiniMap\minimap-item.blp");
         _creepTexture = Resolve("MinimapCreepCampTexture",
-            @"UI\Minimap\MinimapIcon\MinimapIconCreepLoc.blp");
+            @"UI\MiniMap\MinimapIconCreepLoc.blp");
         _toughCreepTexture = Resolve("MinimapToughCreepCampTexture",
-            @"UI\Minimap\MinimapIcon\MinimapIconCreepLoc2.blp");
+            @"UI\MiniMap\MinimapIconCreepLoc2.blp");
         _startLocTexture = Resolve("MinimapStartLocationTexture",
             @"UI\MiniMap\MiniMapIcon\MinimapIconStartLoc.blp");
 
@@ -502,7 +502,8 @@ internal sealed class MinimapFrame : UiContainer, IClickable, IDraggable
         if (string.IsNullOrWhiteSpace(fallbackPath)) return null;
         if (_skin == null || string.IsNullOrWhiteSpace(skinKey))
             return _textures.Resolve(fallbackPath);
-        return _textures.Resolve(_skin.Get(skinKey, fallbackPath));
+        return _textures.Resolve(_skin.Get(skinKey, fallbackPath))
+            ?? _textures.Resolve(fallbackPath);
     }
 
     bool IClickable.Enabled => Enabled;

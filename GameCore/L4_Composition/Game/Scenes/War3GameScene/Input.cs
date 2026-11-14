@@ -130,6 +130,16 @@ public sealed partial class War3GameScene
         if (primary != null) _camera?.Focus(primary.Position);
     }
 
+    internal void ToggleFormationMovement()
+    {
+        FormationMovementEnabled = !FormationMovementEnabled;
+        _newHud?.Minimap.SetFilterState(MinimapFilter.AllyState, MinimapFilter.ShowCreeps,
+            MinimapFilter.AllyEnabled, MinimapFilter.CreepEnabled, FormationMovementEnabled);
+    }
+
+    internal bool TryMinimapAltShortcut(char key)
+        => _newHud?.Minimap.HandleAltShortcut(key) == true;
+
     /// <summary>玩家自己的操作改了选择/目标：作废待定的指令与施法（客户端 CancelPending）。</summary>
     public void CancelPending()
     {

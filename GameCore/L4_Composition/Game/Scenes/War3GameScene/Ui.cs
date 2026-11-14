@@ -194,13 +194,16 @@ public sealed partial class War3GameScene
 
     private readonly List<MinimapUnitView> _minimapUnits = new();
     private readonly MinimapVisibilityTracker _minimapVisibility = new();
+    private readonly MinimapCampTracker _minimapCamps = new();
     private MinimapBlightTexture _minimapBlight;
     private readonly List<MinimapPingView> _minimapPings = new();
     private readonly List<MinimapSpecialIconView> _minimapIcons = new();
     private int _nextMinimapPingId = 1;
 
     public (int AllyState, bool ShowCreeps, bool AllyEnabled, bool CreepEnabled, bool FormationEnabled)
-        MinimapFilter { get; private set; } = (0, true, true, true, false);
+        MinimapFilter { get; private set; } = (0, true, true, true, true);
+
+    public bool FormationMovementEnabled { get; private set; } = true;
 
     private void PingMinimap(System.Numerics.Vector2 world)
     {
@@ -226,6 +229,9 @@ public sealed partial class War3GameScene
         _minimapUnits.AddRange(_minimapVisibility.Update(_fog,
             minimapSource, ViewPlayer,
             player => player == ViewPlayer || AreAllied(player, ViewPlayer)));
+        _minimapIcons.Clear();
+        _minimapIcons.AddRange(_minimapCamps.Update(minimapSource, _fog, ViewPlayer,
+            _map.Info?.MaskedAreasPartiallyVisible ?? false, _newHud.Minimap.MiscData));
 
         _newHud.Minimap.CameraRect = VisibleWorldRect();
         RefreshMinimapBlight();
@@ -271,7 +277,8 @@ public sealed partial class War3GameScene
                 if (!unit.Alive || unit.Hidden || unit.IsCargoed) continue;
 
                 MinimapUnitView snapshot = MinimapUnitView.From(unit,
-                    friendly || fog == null ? MinimapFogLevel.Visible : MinimapFogLevel.Fogged, friendly);
+                    friendly || fog == null ? MinimapFogLevel.Visible : MinimapFogLevel.Fogged,
+                    friendly, localPlayerId);
                 _visible.Add(snapshot);
                 if (unit.IsBuilding && !friendly) _memory[id] = snapshot;
             }
@@ -295,6 +302,81 @@ public sealed partial class War3GameScene
 
         static Vector3 RememberedWorld(MinimapUnitView view) =>
             new(-view.X, 0f, view.Y);
+    }
+
+    internal sealed class MinimapCampTracker
+    {
+        private const float CreepCampRadius = 600f;
+
+        sealed class Camp
+        {
+            public Vector3 Center;
+            public readonly Dictionary<int, Unit> Members = new();
+            public int Strength;
+            public readonly HashSet<int> ClearedObservers = new();
+        }
+
+        readonly List<Camp> _camps = new();
+        readonly HashSet<int> _members = new();
+        readonly List<Unit> _newMembers = new();
+        readonly List<MinimapSpecialIconView> _result = new();
+
+        internal IReadOnlyList<MinimapSpecialIconView> Update(IReadOnlyList<Unit> units,
+            FogOfWar fog, int observer, bool maskedAreasPartiallyVisible, War3MiscData misc)
+        {
+            _result.Clear();
+            _newMembers.Clear();
+            if (units != null)
+            {
+                for (int i = 0; i < units.Count; i++)
+                {
+                    Unit unit = units[i];
+                    if (unit == null || !unit.Alive || unit.IsBuilding
+                        || unit.Player != MeleeRules.PlayerNeutralHostile) continue;
+                    if (!_members.Contains(unit.SimulationId)) _newMembers.Add(unit);
+                }
+            }
+            _newMembers.Sort((a, b) => a.SimulationId.CompareTo(b.SimulationId));
+            foreach (Unit unit in _newMembers)
+            {
+                if (!_members.Add(unit.SimulationId)) continue;
+                Camp camp = null;
+                foreach (Camp candidate in _camps)
+                {
+                    if ((candidate.Center - unit.Home).Length() <= CreepCampRadius)
+                    {
+                        camp = candidate;
+                        break;
+                    }
+                }
+                if (camp == null)
+                {
+                    camp = new Camp { Center = unit.Home };
+                    _camps.Add(camp);
+                }
+                camp.Members[unit.SimulationId] = unit;
+                camp.Strength += unit.Abilities.Get<Hero>()?.HeroLevel ?? unit.TypeLevel;
+                camp.ClearedObservers.Clear();
+            }
+            _newMembers.Clear();
+
+            if (!maskedAreasPartiallyVisible) return _result;
+            foreach (Camp camp in _camps)
+            {
+                bool visible = fog == null || fog.IsVisible(camp.Center);
+                bool populated = false;
+                foreach (Unit member in camp.Members.Values)
+                {
+                    if (member.Alive) { populated = true; break; }
+                }
+                if (visible && !populated) camp.ClearedObservers.Add(observer);
+                if (visible || camp.ClearedObservers.Contains(observer)) continue;
+                misc.ResolveCamp(camp.Strength, out NVector4 color, out float scale);
+                _result.Add(new MinimapSpecialIconView(-camp.Center.X, camp.Center.Z, null,
+                    color, 8f * scale, MinimapIconKind.CreepCamp, camp.Strength));
+            }
+            return _result;
+        }
     }
 
     private NVector4 VisibleWorldRect()

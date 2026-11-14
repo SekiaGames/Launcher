@@ -76,14 +76,20 @@ internal sealed class PlayerCommandProcessor
 
         Vector3 ground = ToWorld(destination);
         Vector3 centroid = Centroid(movers);
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
+        bool formation = _formationMovementEnabled();
+        Dictionary<Unit, Vector3> slots = formation
+            ? GroupFormation.Layout(movers, ground, ground - centroid) : null;
         foreach (Unit unit in movers)
         {
-            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
+            Vector3 spot = slots != null && slots.TryGetValue(unit, out Vector3 value) ? value : ground;
             _world.IssueOrder(unit, UnitOrder.Move(spot), queued);
         }
-        ApplyGroupSpeedCap(movers, slots, ground);
-        if (!queued) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        if (formation)
+        {
+            ApplyGroupSpeedCap(movers, slots, ground);
+            if (!queued) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        }
+        else ClearGroupSpeedCap(movers);
         if (silent) return;
         _commandIssued?.Invoke(destination);
         OrderAck?.Invoke(false);
@@ -97,14 +103,20 @@ internal sealed class PlayerCommandProcessor
 
         Vector3 ground = ToWorld(destination);
         Vector3 centroid = Centroid(movers);
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
+        bool formation = _formationMovementEnabled();
+        Dictionary<Unit, Vector3> slots = formation
+            ? GroupFormation.Layout(movers, ground, ground - centroid) : null;
         foreach (Unit unit in movers)
         {
-            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
+            Vector3 spot = slots != null && slots.TryGetValue(unit, out Vector3 value) ? value : ground;
             _world.IssueOrder(unit, UnitOrder.AttackMove(spot), queued);
         }
-        ApplyGroupSpeedCap(movers, slots, ground);
-        if (!queued) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        if (formation)
+        {
+            ApplyGroupSpeedCap(movers, slots, ground);
+            if (!queued) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        }
+        else ClearGroupSpeedCap(movers);
         _commandIssued?.Invoke(destination);
         OrderAck?.Invoke(true);
     }
@@ -116,14 +128,20 @@ internal sealed class PlayerCommandProcessor
 
         Vector3 ground = ToWorld(destination);
         Vector3 centroid = Centroid(movers);
-        Dictionary<Unit, Vector3> slots = GroupFormation.Layout(movers, ground, ground - centroid);
+        bool formation = _formationMovementEnabled();
+        Dictionary<Unit, Vector3> slots = formation
+            ? GroupFormation.Layout(movers, ground, ground - centroid) : null;
         foreach (Unit unit in movers)
         {
-            Vector3 spot = slots.TryGetValue(unit, out Vector3 value) ? value : ground;
+            Vector3 spot = slots != null && slots.TryGetValue(unit, out Vector3 value) ? value : ground;
             _world.IssueOrder(unit, UnitOrder.Patrol(spot), queued);
         }
-        ApplyGroupSpeedCap(movers, slots, ground);
-        if (!queued) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        if (formation)
+        {
+            ApplyGroupSpeedCap(movers, slots, ground);
+            if (!queued) _world.ApplyGroupMovePath(movers, centroid, ground, slots);
+        }
+        else ClearGroupSpeedCap(movers);
         _commandIssued?.Invoke(destination);
         OrderAck?.Invoke(false);
     }
@@ -207,6 +225,15 @@ internal sealed class PlayerCommandProcessor
         Vector3 sum = Vector3.Zero;
         foreach (Unit unit in units) sum += unit.Position;
         return sum / Mathf.Max(1, units.Count);
+    }
+
+    private static void ClearGroupSpeedCap(List<Unit> movers)
+    {
+        foreach (Unit unit in movers)
+        {
+            unit.GroupSpeedCap = 0f;
+            unit.GroupMoveGoal = default;
+        }
     }
 
     private static void ApplyGroupSpeedCap(List<Unit> movers, Dictionary<Unit, Vector3> slots,

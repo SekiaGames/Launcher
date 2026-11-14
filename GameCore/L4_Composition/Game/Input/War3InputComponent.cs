@@ -56,6 +56,13 @@ public sealed partial class War3GameScene
 
             if (_scene._log != null && _scene._log.InputActive) return;
 
+            if (keyEvent.AltPressed && TryMinimapAltShortcut(keyEvent.Keycode)) return;
+            if (keyEvent.AltPressed && keyEvent.Keycode == Key.F)
+            {
+                _scene.ToggleFormationMovement();
+                return;
+            }
+
             if (keyEvent.Keycode == Key.Backspace)
             {
                 _scene.CycleTownCenters();
@@ -110,6 +117,18 @@ public sealed partial class War3GameScene
                 _scene._worldInteraction?.HandleGroupKey(group,
                     keyEvent.CtrlPressed, keyEvent.ShiftPressed);
             }
+        }
+
+        private bool TryMinimapAltShortcut(Key keycode)
+        {
+            char key = keycode switch
+            {
+                Key.G => 'G',
+                Key.T => 'T',
+                Key.A => 'A',
+                _ => '\0',
+            };
+            return key != '\0' && _scene.TryMinimapAltShortcut(key);
         }
 
         private void HandleMouseButton(InputEventMouseButton button)

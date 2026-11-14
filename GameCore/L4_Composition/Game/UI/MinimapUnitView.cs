@@ -34,23 +34,53 @@ internal readonly record struct MinimapUnitView(
 {
     public MinimapUnitView WithFog(MinimapFogLevel level) => this with { Fog = level };
 
-    public static MinimapUnitView From(Unit unit, MinimapFogLevel fog, bool? allied = null)
+    public static MinimapUnitView From(Unit unit, MinimapFogLevel fog, bool? allied = null,
+        int observerPlayerId = -1)
     {
-        return new MinimapUnitView(0, -unit.Position.X, unit.Position.Z, unit.Player, unit.Player,
-            unit.IsHero, unit.IsBuilding, Classify(unit), 0f, fog, unit.Player, null, allied);
+        return new MinimapUnitView(unit.SimulationId, -unit.Position.X, unit.Position.Z,
+            unit.Player, unit.Player, unit.IsHero, unit.IsBuilding,
+            Classify(unit, observerPlayerId), 0f, fog, unit.Player, null, allied);
     }
 
-    internal static MinimapIconKind Classify(Unit unit)
+    internal static MinimapIconKind Classify(Unit unit, int observerPlayerId = -1)
     {
         if (unit?.Type == null) return MinimapIconKind.Unit;
+        string mineCode = MineAbilityCode(unit);
+        if (mineCode != null)
+        {
+            // 客户端 GoldMineIdentity：闹鬼/缠绕只对拥有者显示，其他观察者看普通金矿。
+            if (observerPlayerId < 0 || unit.Player == observerPlayerId)
+            {
+                if (mineCode.Equals("Abgm", StringComparison.OrdinalIgnoreCase))
+                    return MinimapIconKind.HauntedResource;
+                if (mineCode.Equals("Aegm", StringComparison.OrdinalIgnoreCase))
+                    return MinimapIconKind.EntangledResource;
+            }
+            return MinimapIconKind.Resource;
+        }
         string id = unit.Type.Id ?? "";
-        if (id.Equals("ugol", StringComparison.OrdinalIgnoreCase)) return MinimapIconKind.HauntedResource;
-        if (id.Equals("egol", StringComparison.OrdinalIgnoreCase)) return MinimapIconKind.EntangledResource;
-        if (id.Equals("ngol", StringComparison.OrdinalIgnoreCase)) return MinimapIconKind.Resource;
         if (id.Equals("ncop", StringComparison.OrdinalIgnoreCase)
             || id.Equals("ncp2", StringComparison.OrdinalIgnoreCase)
             || id.Equals("ncp3", StringComparison.OrdinalIgnoreCase)) return MinimapIconKind.Cop;
-        return unit.IsHero ? MinimapIconKind.Hero : MinimapIconKind.Unit;
+        if (unit.Type.MinimapIcon != 0) return MinimapIconKind.Neutral;
+        return unit.IsHero && !unit.Type.HideHeroMinimap
+            ? MinimapIconKind.Hero : MinimapIconKind.Unit;
+    }
+
+    private static string MineAbilityCode(Unit unit)
+    {
+        foreach (Ability ability in unit.Abilities.Items)
+        {
+            string code = ability.Type?.Code;
+            if (string.IsNullOrEmpty(code)) code = ability.Id;
+            if (code.Equals("Agld", StringComparison.OrdinalIgnoreCase)
+                || code.Equals("Abgm", StringComparison.OrdinalIgnoreCase)
+                || code.Equals("Aegm", StringComparison.OrdinalIgnoreCase))
+            {
+                return code;
+            }
+        }
+        return null;
     }
 }
 

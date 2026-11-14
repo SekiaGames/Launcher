@@ -43,6 +43,10 @@ public sealed class UnitType
     public int FormationRank;
     /// <summary>UnitBalance.collision，真实碰撞/推挤半径（不是 footprint）。</summary>
     public float CollisionRadius = 16f;
+    /// <summary>UnitUI.nbmmIcon：非 0 时小地图用中立建筑图标。</summary>
+    public int MinimapIcon;
+    /// <summary>UnitUI.hideHeroMinimap：英雄在小地图上按普通单位点显示。</summary>
+    public bool HideHeroMinimap;
     /// <summary>UnitData.movetp=fly/hover，空中单位不吃地面路径阻挡。</summary>
     public bool Flying;
     public float FlyHeight;
@@ -333,6 +337,8 @@ public static class UnitFactory
             ShadowOffsetY = Number(ui.Get(uiRow, "shadowY"), 0f),
             HideInHeroBar = Number(ui.Get(uiRow, "hideHeroBar"), 0f) > 0.5f,
             HideHeroDeathMsg = Number(ui.Get(uiRow, "hideHeroDeathMsg"), 0f) > 0.5f,
+            MinimapIcon = (int)Number(ui.Get(uiRow, "nbmmIcon"), 0f),
+            HideHeroMinimap = Number(ui.Get(uiRow, "hideHeroMinimap"), 0f) > 0.5f,
         };
         ApplyGroundSplat(type, ui.Get(uiRow, "uberSplat"));
 
