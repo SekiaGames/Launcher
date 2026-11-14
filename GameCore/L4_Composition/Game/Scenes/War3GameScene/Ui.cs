@@ -347,6 +347,7 @@ public sealed partial class War3GameScene
         _hud?.SetClock(ClockText());
         UpdateQueueLabel();
         UpdateUnitSummary();
+        UpdateGroundItemDetail();
     }
 
     private string PlayerInfoText()
@@ -725,6 +726,74 @@ public sealed partial class War3GameScene
             });
             sellSlots--;
         }
+    }
+
+    /// <summary>
+    /// 物品拖放结算（客户端 HandleInventoryDragReleased）：
+    /// 栏内换格 → 友方英雄转交 → 友方商店卖出 → 否则落到指针下的地面。
+    /// </summary>
+    private void HandleInventoryDragReleased(int fromSlot, int toSlot, System.Numerics.Vector2 uiPosition)
+    {
+        Unit source = PrimarySelection;
+        if (source == null || !source.Alive || !CanControl(source) || _world == null) return;
+        if (fromSlot < 0 || fromSlot >= source.Inventory.Length) return;
+        Item item = source.Inventory[fromSlot];
+        if (item?.Type == null) return;
+
+        if (toSlot >= 0)
+        {
+            if (_world.MoveInventorySlot(source, fromSlot, toSlot))
+            {
+                _hud?.SetHint($"{item.Type.Name} 换到第 {toSlot + 1} 格");
+                RefreshHud();
+                UpdateCommandCard();
+            }
+            else _hud?.SetHint($"{item.Type.Name} 换不了：那一格的东西不能丢");
+            return;
+        }
+
+        Vector2 screen = _newHud != null ? _newHud.UiToScreen(uiPosition) : Vector2.Zero;
+        Unit allyHero = PickUnit(screen, unit => unit.Alive && unit.IsHero
+            && AreAllied(unit.Player, source.Player));
+        if (allyHero != null && !ReferenceEquals(allyHero, source)
+            && _world.GiveItem(source, fromSlot, allyHero))
+        {
+            _hud?.SetHint($"{source.Type.Name} 把 {item.Type.Name} 交给了 {allyHero.Type.Name}");
+            RefreshHud();
+            UpdateCommandCard();
+            return;
+        }
+
+        // 商店不要求同盟：命令卡上的"卖"本来也是按 IsShop 选店（中立商店同样收）。
+        Unit shop = PickUnit(screen, unit => unit.Alive && unit.IsShop);
+        if (shop != null && item.Type.Droppable)
+        {
+            SellItemToShop(shop, source, fromSlot);
+            return;
+        }
+
+        if (!item.Type.Droppable)
+        {
+            _hud?.SetHint("该物品无法丢弃");
+            return;
+        }
+
+        if (TryGroundPoint(screen, out Vector3 ground)
+            && _world.DropItemFromSlotAt(source, fromSlot, ground))
+        {
+            _hud?.SetHint($"{source.Type.Name} 丢下了 {item.Type.Name}");
+        }
+        else if (_world.DropItemFromSlot(source, fromSlot))
+        {
+            _hud?.SetHint($"{source.Type.Name} 丢下了 {item.Type.Name}");
+        }
+        else
+        {
+            _hud?.SetHint("该物品无法丢弃");
+            return;
+        }
+        RefreshHud();
+        UpdateCommandCard();
     }
 
     private void SellItemToShop(Unit shop, Unit seller, int slot)

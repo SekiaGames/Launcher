@@ -510,6 +510,7 @@ public sealed partial class War3GameScene
                 Id = item.Type.Id,
                 Name = item.Type.Name,
                 Cost = cost,
+                Kind = OpenWC3.UI.UiCommandKind.UseItem,
                 Hotkey = (slot + 1).ToString(),
                 Tooltip = ItemTooltip(item, plan),
                 Icon = TechTree.Icon(item.Type.IconArt),

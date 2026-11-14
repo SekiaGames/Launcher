@@ -169,6 +169,42 @@ public sealed partial class World
         return true;
     }
 
+    /// <summary>格子之间换位（客户端 MoveItemSlot）：目标格里的东西不能丢就不许换。</summary>
+    public bool MoveInventorySlot(Unit unit, int fromSlot, int toSlot)
+    {
+        if (unit == null || fromSlot < 0 || toSlot < 0) return false;
+        if (fromSlot >= Unit.InventorySize || toSlot >= Unit.InventorySize) return false;
+        if (fromSlot == toSlot) return true;
+
+        Item moving = unit.Inventory[fromSlot];
+        if (moving == null) return false;
+        Item displaced = unit.Inventory[toSlot];
+        if (displaced != null && displaced.Type != null && !displaced.Type.Droppable) return false;
+
+        unit.Inventory[fromSlot] = displaced;
+        unit.Inventory[toSlot] = moving;
+        moving.Slot = toSlot;
+        if (displaced != null) displaced.Slot = fromSlot;
+        return true;
+    }
+
+    /// <summary>丢到指定地面点（客户端 DropInventorySlotAt）；不可丢弃的物品返回 false。</summary>
+    public bool DropItemFromSlotAt(Unit unit, int slot, Vector3 position)
+    {
+        if (unit == null) return false;
+        Item item = unit.Inventory != null && slot >= 0 && slot < unit.Inventory.Length
+            ? unit.Inventory[slot] : null;
+        if (item?.Type == null || !item.Type.Droppable) return false;
+
+        item = unit.RemoveSlot(slot);
+        if (item == null) return false;
+
+        RemoveItemBonus(unit, item);
+        DropItem(item, position);
+        if (item.Node == null) ItemSpawned?.Invoke(item);
+        return true;
+    }
+
     /// <summary>落地一件物品；场景层负责先建好 Item.Node 再交给这里。</summary>
     public void DropItem(Item item, Vector3 position)
     {

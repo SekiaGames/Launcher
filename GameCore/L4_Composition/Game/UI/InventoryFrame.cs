@@ -12,12 +12,11 @@ internal sealed class InventoryFrame : UiContainer
     const float StepX = 51.2f, StepY = 48.832f;
 
     readonly ButtonFrame[] _buttons = new ButtonFrame[Slots];
+    readonly TextureFrame _dragIcon;
     readonly StringFrame[] _charges = new StringFrame[Slots];
     readonly StringFrame _label;
     readonly Func<string, ITexture> _iconResolver;
     CommandEntry[] _entries = new CommandEntry[Slots];
-
-    public Action<int> SlotClicked;
 
     public InventoryFrame(IUiTextureResolver textures) : base("Inventory")
     {
@@ -29,6 +28,8 @@ internal sealed class InventoryFrame : UiContainer
             Color = new Vector4(252f / 255f, 222f / 255f, 58f / 255f, 1f),
         };
         AddChild(_label);
+        _dragIcon = new TextureFrame("InventoryDragIcon") { Visible = false };
+        AddChild(_dragIcon);
         for (int i = 0; i < Slots; i++)
         {
             int index = i;
@@ -36,7 +37,6 @@ internal sealed class InventoryFrame : UiContainer
             {
                 IconColor = Vector4.One,
             };
-            button.Clicked += _ => SlotClicked?.Invoke(index);
             var charges = new StringFrame($"InventoryCharges{i}")
             {
                 FontSize = 12f,
@@ -62,8 +62,13 @@ internal sealed class InventoryFrame : UiContainer
             any |= show;
             _buttons[i].Visible = show;
             _charges[i].Visible = show && entry.Charges > 0;
-            if (!show) continue;
+            if (!show)
+            {
+                _buttons[i].Command = null;
+                continue;
+            }
             _buttons[i].Icon = entry.Icon != null ? new GodotUiTexture(entry.Icon) : _iconResolver(entry.Id);
+            _buttons[i].Command = new UiCommand(UiCommandKind.UseItem, entry.Id, i);
             _buttons[i].Disabled = !entry.Enabled;
             _buttons[i].TooltipTitle = entry.Name;
             _buttons[i].TooltipBody = string.IsNullOrWhiteSpace(entry.Cost)
@@ -74,6 +79,40 @@ internal sealed class InventoryFrame : UiContainer
         }
         Visible = any;
     }
+
+    /// <summary>指针落在第几格；-1 表示栏外。</summary>
+    public int HitSlot(Vector2 point)
+    {
+        for (int i = 0; i < Slots; i++)
+        {
+            if (_entries[i] != null && _buttons[i].RenderBounds.Contains(point.X, point.Y)) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>拖起某一格：栏内任何物品都能拖（不可丢弃只限制"丢到地面"）。</summary>
+    public bool BeginDrag(int slot, Vector2 point)
+    {
+        if (slot < 0 || slot >= Slots || _entries[slot] == null) return false;
+        if (_buttons[slot].Icon == null) return false;
+        _dragIcon.Texture = _buttons[slot].Icon;
+        _dragIcon.Visible = true;
+        MoveDrag(point);
+        return true;
+    }
+
+    /// <summary>格子中心（拖起时浮层从这里出现）。</summary>
+    public Vector2 SlotCenter(int slot)
+    {
+        if (slot < 0 || slot >= Slots) return Vector2.Zero;
+        UiRect bounds = _buttons[slot].RenderBounds;
+        return new Vector2(bounds.X + bounds.Width * 0.5f, bounds.Y + bounds.Height * 0.5f);
+    }
+
+    public void MoveDrag(Vector2 point) => _dragIcon.RenderBounds =
+        new UiRect(point.X - CellSize * 0.5f, point.Y - CellSize * 0.5f, CellSize, CellSize);
+
+    public void EndDrag() => _dragIcon.Visible = false;
 
     public void Layout(float viewportWidth, float viewportHeight)
     {

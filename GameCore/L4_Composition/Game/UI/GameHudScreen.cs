@@ -23,6 +23,7 @@ public sealed partial class GameHudScreen : Control
     private TopBarFrame _topBar;
     private CommandCardBuilder _card;
     private UnitInfoPanelFrame _infoPanel;
+    private ItemDetailFrame _itemDetail;
     private MinimapFrame _minimap;
     private HeroBarFrame _heroBar;
     private PortraitFrame _portrait;
@@ -38,6 +39,8 @@ public sealed partial class GameHudScreen : Control
     private GodotUiTexture _timeOfDayTexture;
     private Unit _selectedUnit;
     public Action<Unit> SelectionClicked;
+    public Action<int> ItemDragStarted;
+    public Action<int, int, NVector2> ItemDragReleased;
     public Action<Unit> IdlePeonClicked;
     public Action<Unit> PortraitFollowStarted;
     public Action PortraitFollowStopped;
@@ -73,12 +76,31 @@ public sealed partial class GameHudScreen : Control
         _router.CommandClicked += OnCommandClicked;
         _router.CommandRightClicked += OnCommandRightClicked;
         _router.CommandLongPressed += (frame, command, button) =>
+        {
+            if (command.Kind == UiCommandKind.UseItem)
+            {
+                if (_inventory.BeginDrag(command.Slot, _inventory.SlotCenter(command.Slot)))
+                    ItemDragStarted?.Invoke(command.Slot);
+                return;
+            }
             DispatchCommand(command, 3);
+        };
+        _router.CommandDragMoved += (frame, command, position) =>
+        {
+            if (command.Kind == UiCommandKind.UseItem) _inventory.MoveDrag(position);
+        };
+        _router.CommandDragReleased += (frame, command, position) =>
+        {
+            if (command.Kind != UiCommandKind.UseItem) return;
+            _inventory.EndDrag();
+            ItemDragReleased?.Invoke(command.Slot, _inventory.HitSlot(position), position);
+        };
         _console = new ConsoleSkinFrame(resolver, skin);
         _topBar = new TopBarFrame(resolver, skin);
         _topBar.SetChromeVisible(true);
         _card = new CommandCardBuilder(resolver);
         _infoPanel = new UnitInfoPanelFrame(resolver, skin);
+        _itemDetail = new ItemDetailFrame(resolver.Resolve);
         _minimap = new MinimapFrame(resolver, skin, new War3MiscData());
         _heroBar = new HeroBarFrame(resolver);
         _portrait = new PortraitFrame();
@@ -87,7 +109,6 @@ public sealed partial class GameHudScreen : Control
         _inventory = new InventoryFrame(resolver);
         _queue = new QueueIconRowFrame(resolver, skin);
         _tooltip = new TooltipFrame();
-        _inventory.SlotClicked = index => InvokeEntry(_inventoryEntries[index]);
         _portraitViewport = new PortraitViewport(this);
         _portraitTexture = new GodotUiTexture(_portraitViewport.Texture);
         _timeOfDayViewport = new TimeOfDayViewport(this, skin.Get("TimeOfDayIndicator",
@@ -99,6 +120,7 @@ public sealed partial class GameHudScreen : Control
         _idlePeon.OnIdlePeonClick = unit => IdlePeonClicked?.Invoke(unit);
         _root.AddChild(_console);
         _root.AddChild(_infoPanel);
+        _root.AddChild(_itemDetail);
         _root.AddChild(_card.Root);
         _root.AddChild(_topBar);
         _root.AddChild(_minimap);
@@ -151,6 +173,13 @@ public sealed partial class GameHudScreen : Control
     public void SetUnitInfo(UnitInfoView? view)
     {
         _infoPanel.Update(view);
+        QueueRedraw();
+    }
+
+    /// <summary>选中地面物品时的详情面板；传 null 收起。</summary>
+    public void SetGroundItem(ItemType type, int charges)
+    {
+        _itemDetail.Update(type, charges);
         QueueRedraw();
     }
 
@@ -263,7 +292,40 @@ public sealed partial class GameHudScreen : Control
     }
 
     private void OnCommandClicked(UiFrame frame, UiCommand command, int button)
-        => DispatchCommand(command, button == 1 ? 2 : 1);
+    {
+        if (command.Kind == UiCommandKind.UseItem)
+        {
+            if (button == 1) DispatchItem(command.Slot, right: true);
+            else DispatchItem(command.Slot, right: false);
+            return;
+        }
+        DispatchCommand(command, button == 1 ? 2 : 1);
+    }
+
+    private void DispatchItem(int slot, bool right)
+    {
+        CommandEntry entry = slot >= 0 && slot < _inventoryEntries.Length ? _inventoryEntries[slot] : null;
+        if (entry == null) return;
+        if (!right)
+        {
+            InvokeEntry(entry);
+            return;
+        }
+        if (Listener != null)
+        {
+            Listener.OnUiCommand(new UiCommand(entry.Kind, entry.Payload, slot, entry, NativeEventKind: 2));
+            return;
+        }
+        entry.RightAction?.Invoke();
+    }
+
+    /// <summary>UI 设计单位 → 窗口像素（拖放落点要拿去射线拾取）。</summary>
+    public Vector2 UiToScreen(NVector2 point)
+    {
+        Vector2 size = Size;
+        if (size.X <= 0f || size.Y <= 0f) size = GetViewportRect().Size;
+        return new Vector2(point.X * size.X / DesignWidth, point.Y * size.Y / DesignHeight);
+    }
 
     private void OnCommandRightClicked(UiFrame frame, UiCommand command)
         => DispatchCommand(command, 2);
@@ -413,6 +475,7 @@ public sealed partial class GameHudScreen : Control
         _root.UpdateViewport(DesignWidth, DesignHeight);
         _console.Layout(DesignWidth, DesignHeight);
         _infoPanel.Layout(DesignWidth, DesignHeight);
+        _itemDetail.Layout(DesignWidth, DesignHeight);
         _card.Layout(DesignWidth, DesignHeight);
         _topBar.Layout(DesignWidth, DesignHeight);
         _minimap.Layout(DesignWidth, DesignHeight);

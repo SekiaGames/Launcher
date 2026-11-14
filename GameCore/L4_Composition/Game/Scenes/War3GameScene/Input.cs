@@ -37,12 +37,42 @@ public sealed partial class War3GameScene
 
     private void RefreshSelection()
     {
+        // 单位选择与"选中的地面物品"互斥：只要选了单位就收起物品详情。
+        if (_selected.Count > 0) _selectedGroundItem = null;
         Unit primary = PrimarySelection;
         if (primary != null && !_selected.Contains(primary))
             primary = _selected.Count > 0 ? _selected[0] : null;
         IReadOnlyList<Unit> cargo = UI.SelectionGroupFrame.DisplayedCargo(primary, _selected,
             primary != null && CanControl(primary));
         _hud?.SetSelection(_selected, primary, cargo);
+    }
+
+    /// <summary>地面物品被点中：清掉单位选择，右下角改显示物品详情（客户端 SelectGroundItem）。</summary>
+    internal void SelectGroundItem(Item item)
+    {
+        if (item == null || !item.OnGround) return;
+        _selection?.Clear();
+        _selectedGroundItem = item;
+        RefreshHud();
+    }
+
+    internal void ClearGroundItemSelection()
+    {
+        if (_selectedGroundItem == null) return;
+        _selectedGroundItem = null;
+        RefreshHud();
+    }
+
+    private void UpdateGroundItemDetail()
+    {
+        Item item = _selectedGroundItem;
+        if (item != null && (!item.OnGround || item.Node == null)) _selectedGroundItem = item = null;
+        if (item == null || _selected.Count > 0)
+        {
+            _newHud?.SetGroundItem(null, 0);
+            return;
+        }
+        _newHud?.SetGroundItem(item.Type, World.ChargesLeft(item));
     }
 
     internal bool CanControl(Unit unit, bool advanced = false)

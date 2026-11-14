@@ -8,11 +8,6 @@ public sealed partial class War3GameScene
 {
     internal sealed class War3PickingComponent
     {
-        private const float TreePickRadius = 45f;
-        private const float TreePickHeight = 90f;
-        private const float GroundItemPickRadius = 40f;
-        private const float GroundItemPickHeight = 40f;
-
         private readonly War3GameScene _scene;
 
         internal War3PickingComponent(War3GameScene scene) => _scene = scene;
@@ -21,72 +16,101 @@ public sealed partial class War3GameScene
             bool includeCorpses = false)
             => PickUnit(screenPosition, unit => MatchesOwner(unit, player, anyPlayer, includeCorpses));
 
+        /// <summary>射线打模型：包围盒排队，最近的几个再逐三角面确认（客户端 IntersectRayPicking）。</summary>
         internal Unit PickUnit(Vector2 screenPosition, Func<Unit, bool> predicate)
         {
             Camera3D camera = _scene._camera.Camera;
-            Unit best = null;
-            float bestDistance = 55f;
+            Vector3 origin = camera.ProjectRayOrigin(screenPosition);
+            Vector3 direction = camera.ProjectRayNormal(screenPosition);
 
+            _candidates.Clear();
             foreach (Unit unit in Units())
             {
                 if (unit.IsCargoed || unit.Hidden) continue;
                 if (predicate != null && !predicate(unit)) continue;
                 if (!IsVisible(unit)) continue;
-
-                Vector3 point = unit.Position + new Vector3(0f,
-                    unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
-                if (camera.IsPositionBehind(point)) continue;
-
-                Vector2 screen = camera.UnprojectPosition(point);
-                float distance = screen.DistanceTo(screenPosition);
-                if (distance >= bestDistance) continue;
-                bestDistance = distance;
-                best = unit;
+                if (!PickGeometry.TryRayBounds(unit.View?.Root, origin, direction, out float entry)) continue;
+                _candidates.Add(new PickCandidate(unit, entry));
             }
-            return best;
+            return Resolve(origin, direction);
         }
+
+        private Unit Resolve(Vector3 origin, Vector3 direction)
+        {
+            if (_candidates.Count == 0) return null;
+            _candidates.Sort((left, right) => left.Entry.CompareTo(right.Entry));
+            int probe = Mathf.Min(_candidates.Count, MeshPickDepth);
+            for (int index = 0; index < probe; index++)
+            {
+                PickCandidate candidate = _candidates[index];
+                if (!PickGeometry.TryRayHit(candidate.Unit?.View?.Root, origin, direction, out _)) continue;
+                return candidate.Unit;
+            }
+            // 网格数据缺失（材质球、粒子壳这类）时退回包围盒命中，别让点选凭空失灵。
+            return _candidates[0].Unit;
+        }
+
+        private readonly struct PickCandidate
+        {
+            public readonly Unit Unit;
+            public readonly float Entry;
+
+            public PickCandidate(Unit unit, float entry)
+            {
+                Unit = unit;
+                Entry = entry;
+            }
+        }
+
+        private const int MeshPickDepth = 3;
+        private readonly List<PickCandidate> _candidates = new();
+        private readonly List<(TreeState Tree, float Entry)> _treeCandidates = new();
 
         internal TreeState PickTree(Vector2 screenPosition, Func<TreeState, bool> predicate = null)
         {
             Camera3D camera = _scene._camera.Camera;
-            TreeState best = null;
-            float bestDistance = TreePickRadius;
+            Vector3 origin = camera.ProjectRayOrigin(screenPosition);
+            Vector3 direction = camera.ProjectRayNormal(screenPosition);
 
+            _treeCandidates.Clear();
             foreach (TreeState tree in _scene._trees ?? new List<TreeState>())
             {
                 if (tree == null || !tree.Alive) continue;
                 if (predicate != null && !predicate(tree)) continue;
                 if (!IsVisible(tree.Position)) continue;
-
-                Vector3 point = tree.Position + new Vector3(0f, TreePickHeight, 0f);
-                if (camera.IsPositionBehind(point)) continue;
-
-                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
-                if (distance >= bestDistance) continue;
-                bestDistance = distance;
-                best = tree;
+                if (!PickGeometry.TryRayBounds(tree.Node, origin, direction, out float entry)) continue;
+                _treeCandidates.Add((tree, entry));
             }
-            return best;
+            if (_treeCandidates.Count == 0) return null;
+            _treeCandidates.Sort((left, right) => left.Entry.CompareTo(right.Entry));
+
+            int probe = Mathf.Min(_treeCandidates.Count, MeshPickDepth);
+            for (int index = 0; index < probe; index++)
+            {
+                TreeState tree = _treeCandidates[index].Tree;
+                if (!PickGeometry.TryRayHit(tree.Node, origin, direction, out _)) continue;
+                return tree;
+            }
+            return _treeCandidates[0].Tree;
         }
 
         internal bool PickGroundItem(Vector2 screenPosition, Func<Item, bool> predicate, out Item item)
         {
             item = null;
             Camera3D camera = _scene._camera.Camera;
-            float bestDistance = GroundItemPickRadius;
+            Vector3 origin = camera.ProjectRayOrigin(screenPosition);
+            Vector3 direction = camera.ProjectRayNormal(screenPosition);
 
+            float bestDistance = float.MaxValue;
             foreach (Item candidate in _scene._world?.GroundItems ?? (IReadOnlyList<Item>)Array.Empty<Item>())
             {
                 if (candidate == null || !candidate.OnGround) continue;
                 if (predicate != null && !predicate(candidate)) continue;
                 if (!IsVisible(candidate.Position)) continue;
-
-                Vector3 point = candidate.Position + new Vector3(0f, GroundItemPickHeight, 0f);
-                if (camera.IsPositionBehind(point)) continue;
-
-                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
-                if (distance >= bestDistance) continue;
-                bestDistance = distance;
+                if (!PickGeometry.TryRayBounds(candidate.Node, origin, direction, out _)) continue;
+                if (!PickGeometry.TryRayHit(candidate.Node, origin, direction, out float hit)) continue;
+                if (hit >= bestDistance) continue;
+                bestDistance = hit;
                 item = candidate;
             }
             return item != null;

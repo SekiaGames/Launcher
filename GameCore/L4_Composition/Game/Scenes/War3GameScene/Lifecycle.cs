@@ -47,6 +47,7 @@ public sealed partial class War3GameScene : Node3D
     private PathGrid _pathGrid;
     private List<TreeState> _trees = new();
     private string _placingId;
+    private Item _selectedGroundItem;
 
     /// <summary>暂停只停模拟层与玩家镜头输入，脚本/界面照常存在。</summary>
     public bool Paused;
@@ -430,6 +431,7 @@ public sealed partial class War3GameScene : Node3D
         _newHud.IdlePeonClicked = SelectIdleWorkerUnit;
         _newHud.PortraitFollowStarted = BeginPortraitFollow;
         _newHud.PortraitFollowStopped = EndPortraitFollow;
+        _newHud.ItemDragReleased = HandleInventoryDragReleased;
         ConfigureNewMinimap(_map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);

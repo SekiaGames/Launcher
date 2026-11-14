@@ -62,6 +62,7 @@ public sealed partial class LauncherApp : Node
     private bool _rallyProbe;
     private bool _subgroupProbe;
     private bool _orderProbe;
+    private bool _itemProbe;
     private readonly List<string> _spawnItems = new();
     private bool _aggro;
     private bool _noAi;
@@ -312,6 +313,10 @@ public sealed partial class LauncherApp : Node
             {
                 _orderProbe = true;
             }
+            else if (argument == "--item-probe")
+            {
+                _itemProbe = true;
+            }
             else if (argument.StartsWith("--spawn-item="))
             {
                 foreach (string item in argument["--spawn-item=".Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -560,6 +565,7 @@ public sealed partial class LauncherApp : Node
             if (_rallyProbe) game.RunRallyProbe();
             if (_subgroupProbe) game.RunSubgroupProbe();
             if (_orderProbe) game.RunOrderProbe();
+            if (_itemProbe) game.RunItemProbe();
             if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);
             if (_pathProbe)
             {

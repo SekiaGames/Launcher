@@ -83,6 +83,22 @@ public sealed partial class War3GameScene
             Unit picked = _scene.PickUnit(position, _scene.ViewPlayer);
             if (picked == null)
             {
+                // 点到地面物品：主位英雄装得下就派它去捡，否则只把详情摊出来。
+                if (!additive && _scene._picking.PickGroundItem(position, null, out Item item))
+                {
+                    Unit primary = _scene.PrimarySelection;
+                    if (primary != null && primary.Alive && primary.CanCarryItems
+                        && primary.HasFreeSlot && primary.CanMove)
+                    {
+                        _scene._commandProcessor.Move(
+                            new Vec2(item.Position.X, item.Position.Z), false,
+                            silent: true, explicitMovers: new[] { primary });
+                        _scene._hud?.SetHint($"拾取 {item.Type.Name}");
+                    }
+                    else _scene.SelectGroundItem(item);
+                    _scene.CancelPending();
+                    return;
+                }
                 if (!additive) _scene._selection?.Clear();
                 _scene.CancelPending();
                 return;

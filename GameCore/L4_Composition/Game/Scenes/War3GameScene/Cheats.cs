@@ -1249,6 +1249,146 @@ public sealed partial class War3GameScene
         return false;
     }
 
+    /// <summary>--item-probe：几何拾取、地面物品详情、物品栏拖拽（换格/转交/卖出/丢地）。</summary>
+    public async void RunItemProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        if (hall == null)
+        {
+            GD.Print("[ITEM] 找不到主基地，跳过");
+            return;
+        }
+
+        Unit hero = Spawn("Hpal", ViewPlayer, hall.Position.X + 300f, hall.Position.Z + 180f, 0f, 0f, 1f);
+        Unit escort = Spawn("Hpal", ViewPlayer, hall.Position.X + 380f, hall.Position.Z + 180f, 0f, 0f, 1f);
+        if (hero == null)
+        {
+            GD.Print("[ITEM] 英雄模型缺失，跳过");
+            return;
+        }
+        _world.Units.Add(hero);
+        _allUnits.Add(hero);
+        if (escort != null)
+        {
+            _world.Units.Add(escort);
+            _allUnits.Add(escort);
+        }
+
+        // 1. 几何拾取：模型顶端与身体各点一下，再看身体旁边 140px 的空地。
+        float height = hero.View != null ? hero.View.Height : 100f;
+        Vector2 head = ScreenOf(hero.Position + new Vector3(0f, height * 0.95f, 0f));
+        Vector2 body = ScreenOf(hero.Position + new Vector3(0f, height * 0.45f, 0f));
+        Vector2 beside = body + new Vector2(140f, 0f);
+        GD.Print($"[ITEM] 拾取 头顶={Label(_picking.PickUnit(head, unit => unit.Alive))} "
+            + $"身体={Label(_picking.PickUnit(body, unit => unit.Alive))} "
+            + $"旁边={Label(_picking.PickUnit(beside, unit => unit.Alive))} 模型高 {height:0}");
+
+        var pickWatch = System.Diagnostics.Stopwatch.StartNew();
+        for (int repeat = 0; repeat < 200; repeat++) _picking.PickUnit(body, unit => unit.Alive);
+        pickWatch.Stop();
+        GD.Print($"[ITEM] 拾取 200 次 {pickWatch.Elapsed.TotalMilliseconds:0}ms"
+            + $"（单次 {pickWatch.Elapsed.TotalMilliseconds / 200:0.00}ms）");
+
+        // 2. 地面物品详情：换成农民再点物品，只开详情不去捡。
+        var groundSpot = new Vector3(hero.Position.X - 180f, 0f, hero.Position.Z + 220f);
+        groundSpot.Y = MapWorldBuilder.HeightAt(_map.Terrain, groundSpot.X, groundSpot.Z);
+        Item groundItem = SpawnItem("phea", groundSpot);
+        if (groundItem != null)
+        {
+            Unit peasant = Spawn("hpea", ViewPlayer, hero.Position.X + 160f,
+                hero.Position.Z - 120f, 0f, 0f, 1f);
+            if (peasant != null)
+            {
+                _world.Units.Add(peasant);
+                _allUnits.Add(peasant);
+            }
+            Vector2 itemScreen = ScreenOf(groundItem.Position + new Vector3(0f, 16f, 0f));
+            _selection.Clear();
+            if (peasant != null) _selection.SelectRect(new[] { peasant }, false);
+            _worldInteraction.PointerDown(itemScreen, MouseButton.Left);
+            _worldInteraction.PointerUp(itemScreen, MouseButton.Left);
+            GD.Print($"[ITEM] 地面物品详情 命中={_picking.PickGroundItem(itemScreen, null, out _)} "
+                + $"单位拾取={Label(_picking.PickUnit(itemScreen, unit => unit.Alive))} "
+                + $"选中={(_selectedGroundItem != null ? _selectedGroundItem.Type.Name : "无")}");
+        }
+
+        // 3. 拖拽：换格 → 转交给友方英雄 → 丢到地面。
+        Item potion = new() { Type = ItemCatalog.Get("phea"), Position = hero.Position };
+        Item ring = new() { Type = ItemCatalog.Get("ratc"), Position = hero.Position };
+        Item claw = new() { Type = ItemCatalog.Get("ankh"), Position = hero.Position };
+        if (potion.Type != null && hero.AddItem(potion)) _world.ApplyItemBonus(hero, potion);
+        if (ring.Type != null && hero.AddItem(ring)) _world.ApplyItemBonus(hero, ring);
+        if (claw.Type != null && hero.AddItem(claw)) _world.ApplyItemBonus(hero, claw);
+
+        _selection.SelectRect(new[] { hero }, false);
+        GD.Print($"[ITEM] 背包 0={SlotName(hero, 0)} 1={SlotName(hero, 1)} 2={SlotName(hero, 2)}");
+
+        HandleInventoryDragReleased(0, 3, System.Numerics.Vector2.Zero);
+        GD.Print($"[ITEM] 换格后 0={SlotName(hero, 0)} 3={SlotName(hero, 3)}");
+
+        if (escort != null)
+        {
+            Vector2 escortScreen = ScreenOf(escort.Position + new Vector3(0f, 50f, 0f));
+            HandleInventoryDragReleased(3, -1, UiOf(escortScreen));
+            GD.Print($"[ITEM] 转交后 自己的 3={SlotName(hero, 3)} 对方的 0={SlotName(escort, 0)}");
+        }
+
+        if (TryEmptyGroundScreen(hall.Position, 260f, out Vector2 emptyScreen))
+        {
+            int before = _world.GroundItems.Count;
+            HandleInventoryDragReleased(1, -1, UiOf(emptyScreen));
+            GD.Print($"[ITEM] 丢地后 背包 1={SlotName(hero, 1)} 地面 {before}→{_world.GroundItems.Count}");
+        }
+
+        // 4. 卖出：把镜头挪到最近的商店，再把物品拖到店上。
+        Unit shop = null;
+        float shopDistance = float.MaxValue;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || !unit.IsShop) continue;
+            float distance = unit.DistanceTo(hall);
+            if (distance >= shopDistance) continue;
+            shopDistance = distance;
+            shop = unit;
+        }
+        if (shop != null)
+        {
+            _camera.Focus(shop.Position);
+            await ToSignal(GetTree().CreateTimer(0.8f), "timeout");
+            if (TryScreenOf(shop.Position + new Vector3(0f, 40f, 0f), out Vector2 shopScreen))
+            {
+                int goldBefore = Slot(ViewPlayer).Gold;
+                HandleInventoryDragReleased(2, -1, UiOf(shopScreen));
+                GD.Print($"[ITEM] 卖出 {shop.Type.Name} 后 背包 2={SlotName(hero, 2)} "
+                    + $"金币+{Slot(ViewPlayer).Gold - goldBefore}");
+            }
+            else GD.Print($"[ITEM] 商店 {shop.Type.Name} 移到镜头里也没投影出来");
+        }
+        else GD.Print("[ITEM] 地图上没有商店，卖出这条跳过");
+
+        // 收尾：把一件地面物品选中，出图时能看到右下角的详情面板。
+        foreach (Item item in _world.GroundItems)
+        {
+            if (item == null || !item.OnGround) continue;
+            _selection.Clear();
+            SelectGroundItem(item);
+            GD.Print($"[ITEM] 收尾展示详情 {item.Type.Name} 说明={War3Text.Describe(item.Type.Ubertip)}");
+            break;
+        }
+    }
+
+    private static string SlotName(Unit unit, int slot)
+        => unit?.Inventory != null && slot >= 0 && slot < unit.Inventory.Length
+            ? unit.Inventory[slot]?.Type?.Name ?? "空"
+            : "越界";
+
+    private System.Numerics.Vector2 UiOf(Vector2 screen)
+    {
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        return new System.Numerics.Vector2(screen.X * GameHudScreen.DesignWidth / Mathf.Max(1f, size.X),
+            screen.Y * GameHudScreen.DesignHeight / Mathf.Max(1f, size.Y));
+    }
+
     private static string Label(Unit unit) => unit == null ? "无" : unit.Type?.Name ?? "?";
 
     private string DescribeSelection()
