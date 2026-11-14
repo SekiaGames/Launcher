@@ -60,3 +60,43 @@ public static class DynamicLightUniforms
 
     static Color ToColor(Vector4 value) => new(value.X, value.Y, value.Z, value.W);
 }
+
+public static class ModelLightRig
+{
+    public static void Apply(Node3D model, SceneLight light)
+    {
+        if (!model.IsInsideTree())
+        {
+            model.Ready += () => Apply(model, light);
+            return;
+        }
+        Callable next = Callable.From(() => Write(model, light));
+        model.GetTree().Connect(SceneTree.SignalName.ProcessFrame, next,
+            (uint)GodotObject.ConnectFlags.OneShot);
+    }
+
+    static void Write(Node3D model, SceneLight light)
+    {
+        if (!GodotObject.IsInstanceValid(model) || !model.IsInsideTree()) return;
+        var lights = new DynamicLightCollector();
+        foreach (Node child in model.FindChildren("*", "Node3D", true, false))
+        {
+            if (child.HasMeta("war3_light_type")) lights.Add(DynamicLight.FromNode((Node3D)child));
+        }
+
+        Texture2D data = DynamicLightUniforms.Build(lights);
+        foreach (Node child in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            var mesh = (MeshInstance3D)child;
+            for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
+            {
+                if (mesh.GetSurfaceOverrideMaterial(surface) is not ShaderMaterial material) continue;
+                material.SetShaderParameter("war3_light_data", data);
+                material.SetShaderParameter("war3_light_count", lights.Count);
+                material.SetShaderParameter("war3_scene_direction", light.Direction);
+                material.SetShaderParameter("war3_scene_color", light.DiffuseColor * light.DiffuseIntensity);
+                material.SetShaderParameter("war3_scene_ambient", light.AmbientColor * light.AmbientIntensity);
+            }
+        }
+    }
+}

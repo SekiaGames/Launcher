@@ -7,9 +7,8 @@ public sealed class GlueModelLayer
     public const string SkirmishBackground =
         "res://extract/UI/Glues/MainMenu/MainMenu3d_exp/MainMenu3d_exp.tscn";
 
-    static readonly Vector3 SceneDirection = new(1f, 0f, 0f);
-    static readonly Vector3 SceneColor = new(0.62f, 0.62f, 0.62f);
-    static readonly Vector3 SceneAmbient = new(0.22f, 0.22f, 0.22f);
+    static readonly SceneLight GlueLight = new(
+        new Vector3(1f, 0f, 0f), Vector3.One, 0.62f, Vector3.One, 0.22f);
 
     readonly SubViewport _viewport;
     readonly Camera3D _camera;
@@ -30,32 +29,7 @@ public sealed class GlueModelLayer
         _camera = model.GetNodeOrNull<Camera3D>("camera0");
         _target = model.GetNodeOrNull<Node3D>("camera0_target");
         if (_camera != null) _camera.Current = true;
-        ApplyLights(model);
-    }
-
-    static void ApplyLights(Node3D model)
-    {
-        var lights = new DynamicLightCollector();
-        foreach (Node child in model.FindChildren("*", "Node3D", true, false))
-        {
-            if (child.HasMeta("war3_light_type")) lights.Add(DynamicLight.FromNode((Node3D)child));
-        }
-
-        Texture2D data = DynamicLightUniforms.Build(lights);
-        foreach (Node child in model.FindChildren("*", "MeshInstance3D", true, false))
-        {
-            var mesh = (MeshInstance3D)child;
-            for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
-            {
-                if (mesh.GetSurfaceOverrideMaterial(surface) is not ShaderMaterial material) continue;
-                material.SetShaderParameter("war3_lighting_enabled", true);
-                material.SetShaderParameter("war3_light_data", data);
-                material.SetShaderParameter("war3_light_count", lights.Count);
-                material.SetShaderParameter("war3_scene_direction", SceneDirection);
-                material.SetShaderParameter("war3_scene_color", SceneColor);
-                material.SetShaderParameter("war3_scene_ambient", SceneAmbient);
-            }
-        }
+        ModelLightRig.Apply(model, GlueLight);
     }
 
     public Texture2D Texture => _viewport.GetTexture();

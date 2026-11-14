@@ -48,6 +48,7 @@ public sealed class UnitSceneComponent
 
         view.ApplyTeamColor(teamColor);
         MapWorldBuilder.ApplyUnitTextureFilter(root);
+        ModelLightRig.Apply(root, SceneLight.Fallback);
 
         view.Height = MeasureHeight(root, isBuilding);
         view._progressRadius = Mathf.Max(40f, footprintRadius);
