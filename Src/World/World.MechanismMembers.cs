@@ -7,6 +7,53 @@ namespace OpenWC3;
 
 public sealed partial class World
 {
+    /// <summary>手上工地完工后接上 Shift 连造排队的那一批。</summary>
+    public void AdvanceBuildQueue(Unit worker)
+    {
+        if (worker == null || worker.BuildSite != null) return;
+        while (worker.BuildQueue.Count > 0)
+        {
+            Unit next = worker.BuildQueue[0];
+            worker.BuildQueue.RemoveAt(0);
+            if (next == null || !next.Alive || !next.IsUnderConstruction) continue;
+            ApplyBuild(worker, next);
+            return;
+        }
+    }
+
+    /// <summary>右键点主城交付：携带的资源送到指定建筑，这一趟送完清掉标记，接着回矿/树。</summary>
+    private void StepReturnResources(Unit unit)
+    {
+        Unit hall = unit.ReturnHall;
+        if (hall == null || !hall.Alive || (unit.Carry <= 0 && unit.CarryLumber <= 0))
+        {
+            unit.ReturnHall = null;
+            return;
+        }
+
+        if (unit.Carry > 0 && unit.GoldMine != null) return;
+        if (unit.CarryLumber > 0 && unit.Tree != null) return;
+
+        float reach = hall.Type != null
+            ? hall.Type.FootprintRadius + Mathf.Max(8f, unit.Radius) + 8f
+            : 160f;
+        if (!Advance(unit, hall.Position, reach)) return;
+
+        if (unit.Carry > 0)
+        {
+            GoldDeposited?.Invoke(unit.Player, unit.Carry);
+            unit.Carry = 0;
+        }
+        if (unit.CarryLumber > 0)
+        {
+            LumberDeposited?.Invoke(unit.Player, unit.CarryLumber);
+            unit.CarryLumber = 0;
+        }
+        unit.WorkTimer = 0f;
+        unit.ReturnHall = null;
+        unit.HomeHall = hall;
+    }
+
     private void StepChop(Unit unit)
     {
         TreeState tree = unit.Tree;

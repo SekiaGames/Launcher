@@ -102,6 +102,8 @@ public sealed partial class World
         unit.BuildSite = null;
         unit.RepairTarget = null;
         unit.Repairing = false;
+        unit.ReturnHall = null;
+        unit.FollowTarget = null;
         unit.HoldingPosition = false;
         unit.Patrolling = false;
         unit.AttackMoving = false;

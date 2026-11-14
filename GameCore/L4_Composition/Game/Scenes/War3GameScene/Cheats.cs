@@ -953,6 +953,304 @@ public sealed partial class War3GameScene
         _worldInteraction.PointerUp(to, MouseButton.Left);
     }
 
+    /// <summary>--order-probe：逐条核对右键语境指令的分支，以及"干不了这批活的单位继续走"的补全。</summary>
+    public async void RunOrderProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        if (hall == null)
+        {
+            GD.Print("[ORD] 找不到主基地，跳过");
+            return;
+        }
+
+        Unit mine = null;
+        float mineDistance = float.MaxValue;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Gold <= 0) continue;
+            float distance = unit.DistanceTo(hall);
+            if (distance >= mineDistance) continue;
+            mineDistance = distance;
+            mine = unit;
+        }
+
+        TreeState tree = null;
+        float treeDistance = float.MaxValue;
+        foreach (TreeState candidate in _trees)
+        {
+            if (candidate == null || !candidate.Alive) continue;
+            float distance = new Vector2(candidate.Position.X - hall.Position.X,
+                candidate.Position.Z - hall.Position.Z).Length();
+            if (distance >= treeDistance) continue;
+            treeDistance = distance;
+            tree = candidate;
+        }
+
+        var spawned = new List<Unit>();
+        string[] ids = { "hpea", "hpea", "hfoo", "hfoo" };
+        for (int index = 0; index < ids.Length; index++)
+        {
+            float angle = index * 0.9f;
+            Unit unit = Spawn(ids[index], ViewPlayer,
+                hall.Position.X + Mathf.Cos(angle) * 320f,
+                hall.Position.Z + Mathf.Sin(angle) * 320f, 0f, 0f, 1f);
+            if (unit == null) continue;
+            _world.Units.Add(unit);
+            spawned.Add(unit);
+        }
+        if (spawned.Count < 4)
+        {
+            GD.Print($"[ORD] 只造出 {spawned.Count} 个单位，跳过");
+            return;
+        }
+
+        Unit workerA = spawned[0];
+        Unit workerB = spawned[1];
+        Unit footA = spawned[2];
+        Unit footB = spawned[3];
+
+        // 1. 修理：农民接活，步兵继续走向目标（原来全体发呆）。
+        hall.Hp = hall.MaxHp * 0.5f;
+        _selection.SelectRect(spawned, false);
+        Vector2 hallScreen = ScreenOf(hall.Position + new Vector3(0f, 60f, 0f));
+        _worldInteraction.OrderAt(hallScreen, false);
+        GD.Print($"[ORD] 修理 农民={Label(workerA.RepairTarget)}/{Label(workerB.RepairTarget)} "
+            + $"步兵移动={(footA.MoveTarget.HasValue ? "有" : "无")}/{(footB.MoveTarget.HasValue ? "有" : "无")}");
+
+        // 2. 交资源：携带中的农民点主城，送到指定建筑。
+        workerA.Carry = 10;
+        workerA.GoldMine = null;
+        workerA.Tree = null;
+        _selection.SelectRect(new[] { workerA }, false);
+        _worldInteraction.OrderAt(hallScreen, false);
+        GD.Print($"[ORD] 交资源 ReturnHall={Label(workerA.ReturnHall)} 携带={workerA.Carry}");
+
+        // 3. 采金：挑屏幕上看得见的那座矿。
+        mine = null;
+        mineDistance = float.MaxValue;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Gold <= 0) continue;
+            if (!TryScreenOf(unit.Position + new Vector3(0f, 60f, 0f), out _)) continue;
+            float distance = unit.DistanceTo(hall);
+            if (distance >= mineDistance) continue;
+            mineDistance = distance;
+            mine = unit;
+        }
+        if (mine != null)
+        {
+            Vector2 mineScreen = ScreenOf(mine.Position + new Vector3(0f, 60f, 0f));
+            Unit pickedMine = _picking.PickUnit(mineScreen, unit => unit.Alive);
+            GD.Print($"[ORD] 采金拾取={Label(pickedMine)} 阵营 {pickedMine?.Player} "
+                + $"点内={mineScreen.DistanceTo(_camera.Camera.UnprojectPosition(mine.Position + new Vector3(0f, 60f, 0f))):0}px");
+            _selection.SelectRect(new[] { workerA }, false);
+            _worldInteraction.OrderAt(mineScreen, false);
+            GD.Print($"[ORD] 采金 GoldMine={Label(workerA.GoldMine)}（目标 {mine.Type.Name} 储量 {mine.Gold}）");
+        }
+        else GD.Print("[ORD] 采金 屏幕上没有金矿，跳过");
+
+        // 4. 伐木：挑屏幕上看得见的树。
+        tree = null;
+        treeDistance = float.MaxValue;
+        foreach (TreeState candidate in _trees)
+        {
+            if (candidate == null || !candidate.Alive) continue;
+            if (!TryScreenOf(candidate.Position + new Vector3(0f, 90f, 0f), out _)) continue;
+            float distance = new Vector2(candidate.Position.X - hall.Position.X,
+                candidate.Position.Z - hall.Position.Z).Length();
+            if (distance >= treeDistance) continue;
+            treeDistance = distance;
+            tree = candidate;
+        }
+        if (tree != null)
+        {
+            Vector2 treeScreen = ScreenOf(tree.Position + new Vector3(0f, 90f, 0f));
+            TreeState pickedTree = _picking.PickTree(treeScreen);
+            GD.Print($"[ORD] 伐木拾取={(pickedTree != null ? "有" : "无")} 树高屏幕 {treeScreen}");
+            _selection.SelectRect(new[] { workerA }, false);
+            _worldInteraction.OrderAt(treeScreen, false);
+            GD.Print($"[ORD] 伐木 Tree={(workerA.Tree != null ? "已指派" : "无")} 树 HP {tree.Hp:0}");
+        }
+        else GD.Print("[ORD] 伐木 屏幕上没有树，跳过");
+
+        // 5. 混选集结点：主城吃集结点，步兵继续走向那一点。
+        hall.RallyPoint = null;
+        footA.MoveTarget = null;
+        if (TryEmptyGroundScreen(hall.Position, 320f, out Vector2 groundScreen))
+        {
+            _selection.SelectRect(new[] { hall, footA }, false);
+            _worldInteraction.OrderAt(groundScreen, false);
+            GD.Print($"[ORD] 集结点={(hall.RallyPoint.HasValue || hall.RallyTarget != null || hall.RallyTree != null ? "已设" : "未设")} "
+                + $"步兵移动={(footA.MoveTarget.HasValue ? "有" : "无")} 屏幕({groundScreen.X:0},{groundScreen.Y:0})");
+        }
+        else GD.Print("[ORD] 集结点 屏幕内找不到空地，跳过");
+
+        // 6. 攻击：敌人是第 2 号玩家，能打的去打，农民照样走向目标。
+        Unit enemy = null;
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit == null || !unit.Alive || unit.Player == ViewPlayer) continue;
+            if (!AreAllied(unit.Player, ViewPlayer) && TryScreenOf(unit.Position, out _))
+            {
+                enemy = unit;
+                break;
+            }
+        }
+        if (enemy == null)
+        {
+            enemy = Spawn("hfoo", 2, footA.Position.X + 200f, footA.Position.Z + 120f, 0f, 0f, 1f);
+            if (enemy != null)
+            {
+                _world.Units.Add(enemy);
+                _allUnits.Add(enemy);
+            }
+        }
+        if (enemy != null && TryScreenOf(enemy.Position + new Vector3(0f, 60f, 0f), out Vector2 enemyScreen))
+        {
+            footA.Target = null;
+            workerA.MoveTarget = null;
+            _selection.SelectRect(new[] { footA }, false);
+            _worldInteraction.OrderAt(enemyScreen, false);
+            GD.Print($"[ORD] 攻击 步兵目标={Label(footA.Target)} 目标={enemy.Type.Name} "
+                + $"（修理那条已证过补全：农民接活、步兵继续走）");
+        }
+        else GD.Print("[ORD] 攻击 屏幕上没有敌人，跳过");
+
+        // 7. 跟随友军。
+        footB.FollowTarget = null;
+        _selection.SelectRect(new[] { footB }, false);
+        _worldInteraction.OrderAt(ScreenOf(workerB.Position + new Vector3(0f, 60f, 0f)), false);
+        GD.Print($"[ORD] 跟随 步兵跟随={Label(footB.FollowTarget)}（目标农民）");
+
+        // 8. 建造：首座立即，第二座按住 Shift 进工人队列并保持放置模式。
+        _selection.SelectRect(new[] { workerB }, false);
+        if (TryPlacementScreen("hhou", null, out Vector2 firstScreen))
+        {
+            BeginPlacement("hhou");
+            TryPlace(firstScreen, false);
+            Unit firstSite = workerB.BuildSite;
+            GD.Print($"[ORD] 首座 农场={(firstSite != null ? "已开工" : "失败")} 放置模式={_placingId ?? "无"}");
+            if (firstSite != null && TryPlacementScreen("hhou", firstSite.Position, out Vector2 secondScreen))
+            {
+                BeginPlacement("hhou");
+                TryPlace(secondScreen, true);
+                GD.Print($"[ORD] Shift 连造 队列={workerB.BuildQueue.Count} 放置模式={_placingId ?? "无"} "
+                    + $"队列目标={(workerB.BuildQueue.Count > 0 ? "农场" : "无")}");
+            }
+            CancelPlacement();
+        }
+        else GD.Print("[ORD] 建造 屏幕内找不到合法落点，跳过");
+
+        // 9. 继续建造：另一批农民右键在建工地，接的是"继续建造"而不是走过去站着。
+        if (workerB.BuildSite != null
+            && TryScreenOf(workerB.BuildSite.Position + new Vector3(0f, 40f, 0f), out Vector2 siteScreen))
+        {
+            workerA.Tree = null;
+            workerA.GoldMine = null;
+            _selection.SelectRect(new[] { workerA }, false);
+            _worldInteraction.OrderAt(siteScreen, false);
+            GD.Print($"[ORD] 继续建造 接单={(ReferenceEquals(workerA.BuildSite, workerB.BuildSite) ? "同一工地" : "无")}");
+        }
+
+        // 10. 交资源要真的到账：携带 10 金右键主城，跑一趟之后国库进账、手上清空。
+        workerA.Tree = null;
+        workerA.GoldMine = null;
+        workerA.Carry = 10;
+        int goldBefore = Slot(ViewPlayer).Gold;
+        _selection.SelectRect(new[] { workerA }, false);
+        _worldInteraction.OrderAt(hallScreen, false);
+        await ToSignal(GetTree().CreateTimer(6.0f), "timeout");
+        GD.Print($"[ORD] 交资源到账 携带={workerA.Carry} 国库+{Slot(ViewPlayer).Gold - goldBefore}");
+    }
+
+    private Vector2 ScreenOf(Vector3 point)
+    {
+        Camera3D camera = _camera.Camera;
+        if (camera.IsPositionBehind(point)) return Vector2.Zero;
+        return camera.UnprojectPosition(point);
+    }
+
+    private bool TryScreenOf(Vector3 point, out Vector2 screen)
+    {
+        screen = ScreenOf(point);
+        if (screen == Vector2.Zero) return false;
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        return screen.X >= 0f && screen.Y >= 0f && screen.X <= size.X && screen.Y <= size.Y;
+    }
+
+    private bool TryEmptyGroundScreen(Vector3 origin, float clearance, out Vector2 screen)
+    {
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        for (float y = 0.58f; y <= 0.9f; y += 0.05f)
+        {
+            for (float x = 0.18f; x <= 0.82f; x += 0.05f)
+            {
+                var candidate = new Vector2(size.X * x, size.Y * y);
+                if (!TryGroundPoint(candidate, out Vector3 point)) continue;
+                bool clear = true;
+                foreach (Unit unit in _allUnits)
+                {
+                    if (unit == null || !unit.Alive) continue;
+                    if (new Vector2(unit.Position.X - point.X,
+                            unit.Position.Z - point.Z).Length() < clearance + unit.Radius)
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+                if (!clear) continue;
+                screen = candidate;
+                return true;
+            }
+        }
+        screen = Vector2.Zero;
+        return false;
+    }
+
+    private bool TryPlacementScreen(string buildingId, Vector3? awayFrom, out Vector2 screen)
+    {
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        UnitType type = UnitFactory.Get(buildingId);
+        if (type == null)
+        {
+            screen = Vector2.Zero;
+            return false;
+        }
+        float footprint = Mathf.Max(32f, type.FootprintRadius);
+        for (float y = 0.62f; y <= 0.88f; y += 0.04f)
+        {
+            for (float x = 0.2f; x <= 0.8f; x += 0.04f)
+            {
+                var candidate = new Vector2(size.X * x, size.Y * y);
+                if (!TryGroundPoint(candidate, out Vector3 point)) continue;
+                var snapped = new Vector3(Mathf.Round(point.X / 32f) * 32f, point.Y,
+                    Mathf.Round(point.Z / 32f) * 32f);
+                snapped.Y = MapWorldBuilder.HeightAt(_map.Terrain, snapped.X, snapped.Z);
+                if (_pathGrid != null && !_pathGrid.IsAreaFree(snapped, footprint)) continue;
+
+                bool blocked = false;
+                foreach (Unit other in _allUnits)
+                {
+                    if (other == null || !other.Alive || !other.IsBuilding) continue;
+                    float distance = new Vector2(other.Position.X - snapped.X,
+                        other.Position.Z - snapped.Z).Length();
+                    if (distance >= (footprint + other.Type.FootprintRadius) * 0.92f) continue;
+                    blocked = true;
+                    break;
+                }
+                if (blocked) continue;
+                if (awayFrom.HasValue && new Vector2(awayFrom.Value.X - snapped.X,
+                        awayFrom.Value.Z - snapped.Z).Length() < footprint * 2.4f) continue;
+                screen = candidate;
+                return true;
+            }
+        }
+        screen = Vector2.Zero;
+        return false;
+    }
+
+    private static string Label(Unit unit) => unit == null ? "无" : unit.Type?.Name ?? "?";
+
     private string DescribeSelection()
     {
         var order = new List<string>();

@@ -211,10 +211,26 @@ public sealed partial class World
             return;
         }
 
+        if (unit.BuildQueue.Count > 0)
+        {
+            AdvanceBuildQueue(unit);
+            if (unit.BuildSite != null)
+            {
+                StepBuild(unit);
+                return;
+            }
+        }
+
         if (unit.RepairTarget != null)
         {
             StepRepair(unit);
             return;
+        }
+
+        if (unit.ReturnHall != null)
+        {
+            StepReturnResources(unit);
+            if (unit.ReturnHall != null) return;
         }
 
         if (unit.Tree != null)
@@ -276,6 +292,35 @@ public sealed partial class World
             }
             Advance(unit, unit.Target.Position, unit.AttackReach + unit.Target.Radius);
             return;
+        }
+
+        // 跟随：贴住目标就站着，目标走开再跟上去。
+        if (unit.FollowTarget != null && unit.Target == null)
+        {
+            Unit followed = unit.FollowTarget;
+            if (!followed.Alive || followed.Removed)
+            {
+                unit.FollowTarget = null;
+            }
+            else if (unit.DistanceTo(followed) > followed.Radius + unit.Radius + 8f)
+            {
+                Vector3? previous = unit.MoveTarget;
+                if (previous.HasValue
+                    && new Vector2(previous.Value.X - followed.Position.X,
+                        previous.Value.Z - followed.Position.Z).Length() > 64f)
+                {
+                    unit.Path = null;
+                    unit.PathIndex = 0;
+                    unit.RepathTimer = 0f;
+                }
+                unit.MoveTarget = followed.Position;
+                unit.GroupSpeedCap = 0f;
+            }
+            else
+            {
+                unit.MoveTarget = null;
+                unit.View?.Play("Stand");
+            }
         }
 
         if (unit.MoveTarget.HasValue)

@@ -128,12 +128,23 @@ internal sealed class PlayerCommandProcessor
         OrderAck?.Invoke(false);
     }
 
-    internal int Attack(Unit target, bool queued)
+    /// <summary>
+    /// 攻击者判据（单一出处）：智能右键要知道"谁真的被派去打了"，好让剩下的单位继续执行移动语义。
+    /// </summary>
+    internal Unit[] EligibleAttackers(Unit target, bool allowFriendly = false)
     {
-        if (target == null) return 0;
-        List<Unit> attackers = _selection.LiveControlled()
-            .Where(unit => unit.CanAttack && !ReferenceEquals(unit, target)).ToList();
-        if (attackers.Count == 0) return 0;
+        if (target == null) return Array.Empty<Unit>();
+        return _selection.LiveControlled()
+            .Where(unit => unit.CanAttack
+                && !ReferenceEquals(unit, target)
+                && (allowFriendly || _world.AreEnemies(unit, target)))
+            .ToArray();
+    }
+
+    internal int Attack(Unit target, bool queued, bool allowFriendly = false)
+    {
+        Unit[] attackers = EligibleAttackers(target, allowFriendly);
+        if (attackers.Length == 0) return 0;
         foreach (Unit attacker in attackers)
         {
             _world.IssueOrder(attacker, UnitOrder.Attack(target), queued);
@@ -141,7 +152,46 @@ internal sealed class PlayerCommandProcessor
         }
         _commandIssued?.Invoke(new Vec2(target.Position.X, target.Position.Z));
         OrderAck?.Invoke(true);
-        return attackers.Count;
+        return attackers.Length;
+    }
+
+    /// <summary>跟随：右键友军单位时走向它并持续跟住，不强制攻击。</summary>
+    internal int Follow(Unit target, bool queued)
+    {
+        if (target == null) return 0;
+        Unit[] movers = _selection.MovableControlled()
+            .Where(unit => !ReferenceEquals(unit, target)).ToArray();
+        if (movers.Length == 0) return 0;
+        foreach (Unit unit in movers)
+        {
+            _world.IssueOrder(unit, UnitOrder.Move(target.Position), queued);
+            unit.FollowTarget = target;
+            unit.GroupSpeedCap = 0f;
+        }
+        _commandIssued?.Invoke(new Vec2(target.Position.X, target.Position.Z));
+        OrderAck?.Invoke(false);
+        return movers.Length;
+    }
+
+    /// <summary>载具装卸：选中的单位上别人，或者把点到的人装进自己（客户端 TransportSmart）。</summary>
+    internal int TransportSmart(Unit target, bool queued)
+    {
+        if (target == null || _world == null) return 0;
+        int loaded = 0;
+        foreach (Unit unit in _selection.LiveControlled())
+        {
+            if (ReferenceEquals(unit, target)) continue;
+            if (target.CargoCapacity > 0 && _world.Cargo.LoadCargo(target, unit))
+            {
+                loaded++;
+                continue;
+            }
+            if (unit.CargoCapacity > 0 && _world.Cargo.LoadCargo(unit, target)) loaded++;
+        }
+        if (loaded == 0) return 0;
+        _commandIssued?.Invoke(new Vec2(target.Position.X, target.Position.Z));
+        OrderAck?.Invoke(false);
+        return loaded;
     }
 
     internal void NotifyExternalOrder(Vec2 point, bool attack)

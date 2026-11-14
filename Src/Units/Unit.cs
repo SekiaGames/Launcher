@@ -43,6 +43,12 @@ public sealed partial class Unit
 
     public Unit GoldMine;
     public Unit HomeHall;
+    /// <summary>右键点友军单位后的跟随目标：只要它活着，移动目标就每帧贴着它走。</summary>
+    public Unit FollowTarget;
+    /// <summary>正在往哪座建筑送携带的资源（右键点主城交付时指定）。</summary>
+    public Unit ReturnHall;
+    /// <summary>Shift 连造排在这一批后面的工地，手上的 <see cref="BuildSite"/> 完工后自动接上。</summary>
+    public readonly List<Unit> BuildQueue = new();
     public TreeState Tree;
     /// <summary>建筑的集结点：三选一，点/单位/树。新训练出来的单位出生后往这里去。</summary>
     public Vector3? RallyPoint;

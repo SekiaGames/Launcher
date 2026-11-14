@@ -928,15 +928,20 @@ public sealed partial class War3GameScene
         _placementFootprintMesh.SurfaceAddVertex(new Vector3(x, y, z));
     }
 
-    private void TryPlace(Vector2 screenPosition)
+    private void TryPlace(Vector2 screenPosition, bool queue)
     {
         if (!TryGroundPoint(screenPosition, out Vector3 ground))
         {
             _hud?.SetHint("地面位置无效");
             return;
         }
-        Unit placed = PlaceBuildingAt(Slot(ViewPlayer), _placingId, ground, true);
+        string buildingId = _placingId;
+        Unit placed = PlaceBuildingAt(Slot(ViewPlayer), buildingId, ground, true, queue);
         if (placed != null || _placingId == null) ClearPlacementPreview();
+
+        // Shift 连造：落一座后保持同一建筑的放置命令与幽灵预览，接着点下一处。
+        if (placed == null || !queue) return;
+        BeginPlacement(buildingId);
     }
 
     private void UpdateQueueLabel()

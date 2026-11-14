@@ -52,7 +52,8 @@ public sealed partial class War3GameScene
 
             if (_scene._placingId != null)
             {
-                if (position.DistanceTo(_dragStart) < 8f) _scene.TryPlace(position);
+                if (position.DistanceTo(_dragStart) < 8f)
+                    _scene.TryPlace(position, Input.IsKeyPressed(Key.Shift));
                 return;
             }
 
@@ -189,190 +190,254 @@ public sealed partial class War3GameScene
             else _scene.IssueMoveOrders(worldPoint, queue);
         }
 
+        /// <summary>
+        /// 右键语境指令：每一支只吃掉干得了这活的单位，剩下的继续执行右键本义（客户端 IssueContextCommandAt）。
+        /// </summary>
         internal void OrderAt(Vector2 screenPosition, bool queue)
         {
             if (_scene._selected.Count == 0) return;
+            if (_scene._selection.LiveControlled().Length == 0) return;
 
-            bool allBuildings = true;
-            foreach (Unit unit in _scene._selected)
+            var handled = new HashSet<Unit>();
+
+            // 1. 集结点：逐单位按 CanSetRally 过滤，混选里的其余单位继续往下走。
+            if (_scene.TryIssueRallyAt(screenPosition, out List<Unit> rallyTaken))
             {
-                if (!unit.IsBuilding)
+                foreach (Unit producer in rallyTaken) handled.Add(producer);
+            }
+
+            // 目标只拾取一次：换个判据重新拾取会打到单位身后那座建筑上。
+            Unit target = _scene.PickUnit(screenPosition, unit => unit.Alive);
+
+            // 2. 交资源 / 继续建造 / 修理：目标得是自己能控制的建筑。
+            Unit receiver = target != null && target.IsBuilding && _scene.CanControl(target)
+                ? target : null;
+            if (receiver != null)
+            {
+                Unit[] returned = IssueReturnResources(receiver);
+                if (returned.Length > 0)
                 {
-                    allBuildings = false;
-                    break;
-                }
-            }
-            if (allBuildings)
-            {
-                OrderRallyAt(screenPosition);
-                return;
-            }
-
-            foreach (Unit unit in _scene._selected)
-            {
-                if (!unit.Alive || unit.IsBuilding) continue;
-                _scene.PlayVoice(unit, "Yes");
-                break;
-            }
-
-            Unit damagedAlly = _scene.PickUnit(screenPosition, _scene.ViewPlayer, anyPlayer: true);
-            if (damagedAlly != null && damagedAlly.Alive && damagedAlly.IsBuilding
-                && _scene.AreAllied(damagedAlly.Player, _scene.ViewPlayer)
-                && damagedAlly.Hp < damagedAlly.MaxHp)
-            {
-                int repairers = 0;
-                foreach (Unit unit in _scene._selected)
-                {
-                    if (!unit.IsWorker || unit.IsBuilding) continue;
-                    if (unit.FindAbility("Ahrp") == null && unit.FindAbility("Arep") == null
-                        && unit.FindAbility("Aren") == null && unit.FindAbility("Arst") == null) continue;
-
-                    _scene._world.ClearOrders(unit);
-                    unit.RepairTarget = damagedAlly;
-                    unit.Repairing = false;
-                    unit.RepairGoldDebt = 0f;
-                    unit.BuildSite = null;
-                    unit.Tree = null;
-                    unit.GoldMine = null;
-                    repairers++;
-                }
-                _scene._hud?.SetHint(repairers > 0
-                    ? $"修理：{repairers} 个工人 → {damagedAlly.Type.Name}（{damagedAlly.Hp:0}/{damagedAlly.MaxHp:0}）"
-                    : "只有农民 / 苦工能修理建筑");
-                return;
-            }
-
-            Unit enemy = null;
-            Camera3D camera = _scene._camera.Camera;
-            float bestDistance = 55f;
-            foreach (Unit unit in _scene._allUnits)
-            {
-                if (!unit.Alive || _scene.AreAllied(unit.Player, _scene.ViewPlayer)) continue;
-                if (IsNeutralShop(unit)) continue;
-                if (_scene._fog != null && _scene._fog.Enabled
-                    && !_scene._fog.IsVisible(unit.Position)) continue;
-
-                Vector3 point = unit.Position + new Vector3(0f,
-                    unit.View != null ? unit.View.Height * 0.5f : 60f, 0f);
-                if (camera.IsPositionBehind(point)) continue;
-                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    enemy = unit;
-                }
-            }
-
-            if (enemy != null)
-            {
-                if (enemy.Gold > 0)
-                {
-                    int gatherers = 0;
-                    foreach (Unit unit in _scene._selected)
-                    {
-                        if (!unit.IsWorker) continue;
-                        _scene._world.SetGather(unit, enemy);
-                        gatherers++;
-                    }
-                    _scene._hud?.SetHint(gatherers > 0
-                        ? $"采金：{gatherers} 个农民 → {enemy.Type.Name}（剩余 {enemy.Gold}）"
-                        : "金矿只能由农民采集");
+                    _scene._commandProcessor.NotifyExternalOrder(
+                        new Vec2(receiver.Position.X, receiver.Position.Z), false);
+                    _scene._hud?.SetHint($"交付资源：{returned.Length} 个工人 → {receiver.Type.Name}");
+                    AddHandled(handled, returned);
+                    MoveUnhandled(handled, receiver, queue);
                     return;
                 }
 
-                foreach (Unit unit in _scene._selected)
+                bool constructing = receiver.IsUnderConstruction;
+                Unit[] workers = constructing
+                    ? IssueResumeConstruction(receiver)
+                    : IssueRepairBuilding(receiver);
+                if (workers.Length > 0)
                 {
-                    if (!unit.Type.CanAttack) continue;
-                    _scene._world.ClearOrders(unit);
-                    _scene._world.IssueOrder(unit, UnitOrder.Attack(enemy), queue);
-                }
-                _scene._hud?.SetHint(queue ? $"追加攻击 {enemy.Type.Name}" : $"攻击 {enemy.Type.Name}");
-                return;
-            }
-
-            TreeState tree = PickTree(screenPosition);
-            if (tree != null)
-            {
-                int choppers = 0;
-                foreach (Unit unit in _scene._selected)
-                {
-                    if (!unit.IsWorker) continue;
-                    _scene._world.SetChop(unit, tree);
-                    choppers++;
-                }
-                if (choppers > 0)
-                {
-                    _scene._hud?.SetHint($"伐木：{choppers} 个农民 → 树（{tree.Hp:0} HP）");
+                    _scene._hud?.SetHint(constructing
+                        ? $"继续建造：{workers.Length} 个工人 → {receiver.Type.Name}"
+                        : $"修理：{workers.Length} 个工人 → {receiver.Type.Name}（{receiver.Hp:0}/{receiver.MaxHp:0}）");
+                    AddHandled(handled, workers);
+                    MoveUnhandled(handled, receiver, queue);
                     return;
                 }
             }
 
-            if (!_scene.TryGroundPoint(screenPosition, out Vector3 ground)) return;
-            _scene.IssueMoveOrders(ground, queue);
-        }
-
-        private void OrderRallyAt(Vector2 screenPosition)
-        {
-            Camera3D camera = _scene._camera.Camera;
-            Unit picked = null;
-            float bestDistance = 55f;
-            foreach (Unit unit in _scene._allUnits)
+            // 3. 采金：只有能吃金矿的工人接单。
+            if (target != null && target.Gold > 0)
             {
-                if (!unit.Alive || unit.View == null) continue;
-                if (unit.IsBuilding && _scene._selected.Contains(unit)) continue;
-                Vector3 point = unit.Position + new Vector3(0f, unit.View.Height * 0.5f, 0f);
-                if (camera.IsPositionBehind(point)) continue;
-                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
-                if (distance < bestDistance)
+                Unit[] sent = IssueGatherGold(target);
+                if (sent.Length > 0)
                 {
-                    bestDistance = distance;
-                    picked = unit;
+                    _scene._commandProcessor.NotifyExternalOrder(
+                        new Vec2(target.Position.X, target.Position.Z), false);
+                    _scene._hud?.SetHint($"采金：{sent.Length} 个工人 → {target.Type.Name}（剩余 {target.Gold}）");
+                    AddHandled(handled, sent);
+                    MoveUnhandled(handled, target, queue);
+                    return;
                 }
             }
 
-            if (picked != null)
+            // 4. 载具装卸 / 攻击 / 跟随：目标是一个单位。
+            if (target != null)
             {
-                foreach (Unit building in _scene._selected) _scene._world.SetRally(building, picked);
-                string label = picked.Gold > 0
-                    ? $"集结点：采金 {picked.Type.Name}"
-                    : _scene.AreAllied(picked.Player, _scene.ViewPlayer)
-                        ? $"集结点：跟随 {picked.Type.Name}"
-                        : $"集结点：攻击 {picked.Type.Name}";
-                _scene._hud?.SetHint(label);
+                int loaded = _scene._commandProcessor.TransportSmart(target, queue);
+                if (loaded > 0)
+                {
+                    _scene._hud?.SetHint($"装卸：{loaded} 个单位 ⇄ {target.Type.Name}");
+                    return;
+                }
+
+                Unit[] eligible = _scene._commandProcessor.EligibleAttackers(target);
+                if (eligible.Length > 0)
+                {
+                    int attackers = _scene._commandProcessor.Attack(target, queue);
+                    _scene._hud?.SetHint(queue
+                        ? $"追加攻击 {target.Type.Name}"
+                        : $"攻击 {target.Type.Name}（{attackers} 个单位）");
+                    AddHandled(handled, eligible);
+                    MoveUnhandled(handled, target, queue);
+                    return;
+                }
+
+                int followers = _scene._commandProcessor.Follow(target, queue);
+                if (followers > 0)
+                {
+                    _scene._hud?.SetHint(queue
+                        ? $"追加跟随 {target.Type.Name}"
+                        : $"跟随 {target.Type.Name}（{followers} 个单位）");
+                    AddHandled(handled, _scene._selection.LiveControlled());
+                }
                 return;
             }
 
-            TreeState tree = PickTree(screenPosition);
+            // 5. 伐木。
+            TreeState tree = _scene._picking.PickTree(screenPosition);
             if (tree != null)
             {
-                foreach (Unit building in _scene._selected) _scene._world.SetRally(building, tree);
-                _scene._hud?.SetHint($"集结点：伐木（{tree.Hp:0} HP）");
-                return;
-            }
-
-            if (!_scene.TryGroundPoint(screenPosition, out Vector3 ground)) return;
-            foreach (Unit building in _scene._selected) _scene._world.SetRally(building, ground);
-            _scene._hud?.SetHint($"集结点：({ground.X:0}, {ground.Z:0})");
-        }
-
-        private TreeState PickTree(Vector2 screenPosition)
-        {
-            Camera3D camera = _scene._camera.Camera;
-            TreeState best = null;
-            float bestDistance = 45f;
-            foreach (TreeState tree in _scene._trees)
-            {
-                if (!tree.Alive) continue;
-                Vector3 point = tree.Position + new Vector3(0f, 90f, 0f);
-                if (camera.IsPositionBehind(point)) continue;
-                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
-                if (distance < bestDistance)
+                Unit[] choppers = IssueChopLumber(tree);
+                if (choppers.Length > 0)
                 {
-                    bestDistance = distance;
-                    best = tree;
+                    _scene._commandProcessor.NotifyExternalOrder(
+                        new Vec2(tree.Position.X, tree.Position.Z), false);
+                    _scene._hud?.SetHint($"伐木：{choppers.Length} 个工人 → {tree.Id}（{tree.Hp:0} HP）");
+                    AddHandled(handled, choppers);
+                    MoveUnhandled(handled, null, tree.Position, queue);
+                    return;
                 }
             }
-            return best;
+
+            // 6. 地面物品：由主位单位走过去捡（拾取本身靠走近触发）。
+            if (_scene._picking.PickGroundItem(screenPosition, null, out Item item))
+            {
+                Unit picker = _scene.PrimarySelection;
+                if (picker != null && picker.Alive && picker.CanMove)
+                {
+                    _scene._commandProcessor.Move(new Vec2(item.Position.X, item.Position.Z),
+                        queue, silent: true, explicitMovers: new[] { picker });
+                    _scene._hud?.SetHint($"拾取 {item.Type.Name}");
+                    return;
+                }
+            }
+
+            // 7. 地面：没有任何能走的单位时保持静默，不打空指令。
+            if (!_scene.TryGroundPoint(screenPosition, out Vector3 ground)) return;
+            List<Unit> movers = UnhandledMovers(handled, null);
+            if (movers.Count == 0) return;
+            _scene._commandProcessor.Move(new Vec2(ground.X, ground.Z), queue,
+                explicitMovers: movers.ToArray());
+            _scene._hud?.SetHint(queue
+                ? $"追加移动 {movers.Count} 个单位"
+                : $"移动到 ({ground.X:0}, {ground.Z:0})，{movers.Count} 个单位按阵型展开");
+        }
+
+        private static void AddHandled(HashSet<Unit> handled, IEnumerable<Unit> units)
+        {
+            foreach (Unit unit in units)
+            {
+                if (unit != null) handled.Add(unit);
+            }
+        }
+
+        /// <summary>剩下的单位继续走向目标（客户端 MoveUnhandled）：不发确认音，反馈归触发它的那条指令。</summary>
+        private void MoveUnhandled(ICollection<Unit> handled, Unit targetObject, bool queue)
+            => MoveUnhandled(handled, targetObject,
+                targetObject != null ? targetObject.Position : Vector3.Zero, queue);
+
+        private void MoveUnhandled(ICollection<Unit> handled, Unit targetObject, Vector3 point, bool queue)
+        {
+            List<Unit> rest = UnhandledMovers(handled, targetObject);
+            if (rest.Count == 0) return;
+            _scene._commandProcessor.Move(new Vec2(point.X, point.Z), queue,
+                silent: true, explicitMovers: rest.ToArray());
+        }
+
+        private List<Unit> UnhandledMovers(ICollection<Unit> handled, Unit targetObject)
+        {
+            var rest = new List<Unit>();
+            foreach (Unit unit in _scene._selection.LiveControlled())
+            {
+                if (handled != null && handled.Contains(unit)) continue;
+                if (targetObject != null && ReferenceEquals(unit, targetObject)) continue;
+                if (!unit.CanMove) continue;
+                rest.Add(unit);
+            }
+            return rest;
+        }
+
+        /// <summary>派出的工人逐个下发"交付资源"，返回真正接活的那些。</summary>
+        private Unit[] IssueReturnResources(Unit receiver)
+        {
+            var sent = new List<Unit>();
+            foreach (Unit worker in _scene._selection.LiveControlled())
+            {
+                if (_scene._world.SetReturnResources(worker, receiver)) sent.Add(worker);
+            }
+            return sent.ToArray();
+        }
+
+        /// <summary>派出的工人逐个下发"继续建造"，返回真正接活的那些。</summary>
+        private Unit[] IssueResumeConstruction(Unit site)
+        {
+            var sent = new List<Unit>();
+            foreach (Unit worker in _scene._selection.LiveControlled())
+            {
+                if (ReferenceEquals(worker, site)) continue;
+                if (!worker.Alive || !worker.CanMove) continue;
+                if (worker.Player != site.Player) continue;
+                if (!CanResumeConstruction(worker, site)) continue;
+                _scene._world.SetBuild(worker, site);
+                sent.Add(worker);
+            }
+            return sent.ToArray();
+        }
+
+        private static bool CanResumeConstruction(Unit worker, Unit site)
+        {
+            UnitType type = worker.Type;
+            if (type == null || site.Type == null) return false;
+            if (Array.IndexOf(type.Builds, site.Type.Id) >= 0) return true;
+            return type.IsWorkerType && World.FindRepairAbility(worker) != null;
+        }
+
+        /// <summary>派出的工人逐个下发"修理建筑"，返回真正接活的那些。</summary>
+        private Unit[] IssueRepairBuilding(Unit structure)
+        {
+            if (structure.Hp >= structure.MaxHp) return Array.Empty<Unit>();
+            var sent = new List<Unit>();
+            foreach (Unit worker in _scene._selection.LiveControlled())
+            {
+                if (ReferenceEquals(worker, structure)) continue;
+                if (!worker.Alive || !worker.CanMove) continue;
+                if (worker.Type == null || !worker.Type.IsWorkerType) continue;
+                if (World.FindRepairAbility(worker) == null) continue;
+                _scene._world.SetRepair(worker, structure);
+                sent.Add(worker);
+            }
+            return sent.ToArray();
+        }
+
+        /// <summary>派出的工人逐个下发"采金"，返回真正接活的那些。</summary>
+        private Unit[] IssueGatherGold(Unit mine)
+        {
+            var sent = new List<Unit>();
+            foreach (Unit worker in _scene._selection.LiveControlled())
+            {
+                if (!worker.Alive || worker.Type == null || !worker.Type.CanGatherGold) continue;
+                _scene._world.SetGather(worker, mine);
+                sent.Add(worker);
+            }
+            return sent.ToArray();
+        }
+
+        /// <summary>派出的工人逐个下发"伐木"，返回真正接活的那些。</summary>
+        private Unit[] IssueChopLumber(TreeState tree)
+        {
+            var sent = new List<Unit>();
+            foreach (Unit worker in _scene._selection.LiveControlled())
+            {
+                if (!worker.Alive || worker.Type == null || !worker.Type.CanGatherLumber) continue;
+                _scene._world.SetChop(worker, tree);
+                sent.Add(worker);
+            }
+            return sent.ToArray();
         }
 
         private static Rect2 BoxRect(Vector2 a, Vector2 b)
@@ -381,7 +446,5 @@ public sealed partial class War3GameScene
             float y = Mathf.Min(a.Y, b.Y);
             return new Rect2(x, y, Mathf.Abs(a.X - b.X), Mathf.Abs(a.Y - b.Y));
         }
-
-        private static bool IsNeutralShop(Unit unit) => War3GameScene.IsNeutralShop(unit);
     }
 }

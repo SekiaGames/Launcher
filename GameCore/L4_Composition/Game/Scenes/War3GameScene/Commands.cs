@@ -115,7 +115,7 @@ public sealed partial class War3GameScene
     public void IssueAttackOrders(Unit target, bool queue)
     {
         if (_commandProcessor == null || target == null || !target.Alive) return;
-        int attackers = _commandProcessor.Attack(target, queue);
+        int attackers = _commandProcessor.Attack(target, queue, allowFriendly: true);
         _hud?.SetHint(attackers == 0 ? "选中的单位不能攻击"
             : queue ? $"追加攻击 {target.Type.Name}"
             : $"攻击 {target.Type.Name}（{attackers} 个单位）");

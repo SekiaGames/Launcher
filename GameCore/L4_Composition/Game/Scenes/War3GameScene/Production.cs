@@ -26,7 +26,8 @@ public sealed partial class War3GameScene
 
     private readonly List<BuildingOrder> _orders = new();
 
-    private Unit PlaceBuildingAt(PlayerSlot slot, string buildingId, Vector3 ground, bool report)
+    private Unit PlaceBuildingAt(PlayerSlot slot, string buildingId, Vector3 ground, bool report,
+        bool queue = false)
     {
         UnitType type = UnitFactory.Get(buildingId);
         if (type == null) { _placingId = null; ClearPlacementPreview(); return null; }
@@ -119,7 +120,7 @@ public sealed partial class War3GameScene
             if (worker.IsWorker && worker.Player == slot.Id) selectedWorkers++;
         }
         if (selectedWorkers > 1) wanted = Mathf.Min(selectedWorkers, 3);
-        AssignBuilders(site, slot, wanted);
+        AssignBuilders(site, slot, wanted, queue);
 
         _placingId = null;
         ClearPlacementPreview();
@@ -172,14 +173,14 @@ public sealed partial class War3GameScene
         return true;
     }
 
-    private void AssignBuilders(Unit site, PlayerSlot slot, int wanted)
+    private void AssignBuilders(Unit site, PlayerSlot slot, int wanted, bool queue)
     {
         int assigned = 0;
         foreach (Unit worker in _selected)
         {
             if (assigned >= wanted) break;
             if (!worker.IsWorker || worker.Player != slot.Id || !worker.Alive) continue;
-            _world.SetBuild(worker, site);
+            _world.SetBuild(worker, site, queue);
             assigned++;
         }
 
@@ -189,7 +190,9 @@ public sealed partial class War3GameScene
         foreach (Unit unit in _allUnits)
         {
             if (!unit.Alive || unit.Player != slot.Id || !unit.IsWorker) continue;
-            if (unit.BuildSite != null || _selected.Contains(unit)) continue;
+            if (_selected.Contains(unit)) continue;
+            if (!queue && unit.BuildSite != null) continue;
+            if (unit.BuildQueue.Contains(site)) continue;
             candidates.Add(unit);
         }
         candidates.Sort((a, b) => a.DistanceTo(site).CompareTo(b.DistanceTo(site)));
@@ -197,7 +200,7 @@ public sealed partial class War3GameScene
         foreach (Unit worker in candidates)
         {
             if (assigned >= wanted) break;
-            _world.SetBuild(worker, site);
+            _world.SetBuild(worker, site, queue);
             assigned++;
         }
 

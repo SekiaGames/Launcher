@@ -70,7 +70,7 @@ public sealed partial class World
         }
     }
 
-    private static RuntimeRepairAbility FindRepairAbility(Unit worker)
+    public static RuntimeRepairAbility FindRepairAbility(Unit worker)
     {
         foreach (Ability ability in worker.Abilities)
         {

@@ -7,9 +7,20 @@ namespace OpenWC3;
 
 public sealed partial class World
 {
-    public void SetBuild(Unit worker, Unit site)
+    public void SetBuild(Unit worker, Unit site, bool queue = false)
     {
         if (worker == null || site == null) return;
+        if (queue && worker.BuildSite != null && !ReferenceEquals(worker.BuildSite, site))
+        {
+            if (!worker.BuildQueue.Contains(site)) worker.BuildQueue.Add(site);
+            return;
+        }
+        ApplyBuild(worker, site);
+        worker.BuildQueue.Clear();
+    }
+
+    private void ApplyBuild(Unit worker, Unit site)
+    {
         InterruptChannel(worker);
         worker.BuildSite = site;
         worker.BuildingNow = false;
@@ -17,12 +28,59 @@ public sealed partial class World
         worker.Repairing = false;
         worker.Tree = null;
         worker.GoldMine = null;
+        worker.ReturnHall = null;
+        worker.FollowTarget = null;
         worker.Target = null;
         worker.MoveTarget = null;
         worker.Path = null;
         worker.PathIndex = 0;
         worker.WorkTimer = 0f;
         ClearQueuedOrders(worker);
+    }
+
+    public void SetRepair(Unit worker, Unit target)
+    {
+        if (worker == null || target == null) return;
+        InterruptChannel(worker);
+        worker.RepairTarget = target;
+        worker.Repairing = false;
+        worker.RepairGoldDebt = 0f;
+        worker.BuildSite = null;
+        worker.BuildingNow = false;
+        worker.Tree = null;
+        worker.GoldMine = null;
+        worker.ReturnHall = null;
+        worker.FollowTarget = null;
+        worker.Target = null;
+        worker.MoveTarget = null;
+        worker.Path = null;
+        worker.PathIndex = 0;
+        worker.WorkTimer = 0f;
+        ClearQueuedOrders(worker);
+        worker.BuildQueue.Clear();
+    }
+
+    /// <summary>携带资源时右键点主城：把这一趟送到指定建筑，送完继续回原来的矿/树。</summary>
+    public bool SetReturnResources(Unit worker, Unit hall)
+    {
+        if (worker == null || hall == null || !worker.Alive) return false;
+        if (worker.Carry <= 0 && worker.CarryLumber <= 0) return false;
+
+        worker.FollowTarget = null;
+        worker.ReturnHall = hall;
+        worker.HomeHall = hall;
+        worker.BuildSite = null;
+        worker.BuildingNow = false;
+        worker.RepairTarget = null;
+        worker.Repairing = false;
+        if (worker.GoldMine == null && worker.Tree == null)
+        {
+            worker.Target = null;
+            worker.MoveTarget = hall.Position;
+            worker.Path = null;
+            worker.PathIndex = 0;
+        }
+        return true;
     }
 
     public void SetChop(Unit worker, TreeState tree)
@@ -33,6 +91,8 @@ public sealed partial class World
         worker.GoldMine = null;
         worker.RepairTarget = null;
         worker.Repairing = false;
+        worker.ReturnHall = null;
+        worker.FollowTarget = null;
         worker.Target = null;
         worker.MoveTarget = null;
         worker.HomeHall = null;
@@ -50,6 +110,8 @@ public sealed partial class World
         worker.Tree = null;
         worker.RepairTarget = null;
         worker.Repairing = false;
+        worker.ReturnHall = null;
+        worker.FollowTarget = null;
         worker.HomeHall = null;
         worker.Carry = 0;
         worker.WorkTimer = 0f;
@@ -72,6 +134,8 @@ public sealed partial class World
         unit.BuildingNow = false;
         unit.RepairTarget = null;
         unit.Repairing = false;
+        unit.ReturnHall = null;
+        unit.FollowTarget = null;
         unit.Path = null;
         unit.PathIndex = 0;
         ClearQueuedOrders(unit);

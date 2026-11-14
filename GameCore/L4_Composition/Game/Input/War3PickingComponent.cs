@@ -8,6 +8,11 @@ public sealed partial class War3GameScene
 {
     internal sealed class War3PickingComponent
     {
+        private const float TreePickRadius = 45f;
+        private const float TreePickHeight = 90f;
+        private const float GroundItemPickRadius = 40f;
+        private const float GroundItemPickHeight = 40f;
+
         private readonly War3GameScene _scene;
 
         internal War3PickingComponent(War3GameScene scene) => _scene = scene;
@@ -41,6 +46,52 @@ public sealed partial class War3GameScene
             return best;
         }
 
+        internal TreeState PickTree(Vector2 screenPosition, Func<TreeState, bool> predicate = null)
+        {
+            Camera3D camera = _scene._camera.Camera;
+            TreeState best = null;
+            float bestDistance = TreePickRadius;
+
+            foreach (TreeState tree in _scene._trees ?? new List<TreeState>())
+            {
+                if (tree == null || !tree.Alive) continue;
+                if (predicate != null && !predicate(tree)) continue;
+                if (!IsVisible(tree.Position)) continue;
+
+                Vector3 point = tree.Position + new Vector3(0f, TreePickHeight, 0f);
+                if (camera.IsPositionBehind(point)) continue;
+
+                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = tree;
+            }
+            return best;
+        }
+
+        internal bool PickGroundItem(Vector2 screenPosition, Func<Item, bool> predicate, out Item item)
+        {
+            item = null;
+            Camera3D camera = _scene._camera.Camera;
+            float bestDistance = GroundItemPickRadius;
+
+            foreach (Item candidate in _scene._world?.GroundItems ?? (IReadOnlyList<Item>)Array.Empty<Item>())
+            {
+                if (candidate == null || !candidate.OnGround) continue;
+                if (predicate != null && !predicate(candidate)) continue;
+                if (!IsVisible(candidate.Position)) continue;
+
+                Vector3 point = candidate.Position + new Vector3(0f, GroundItemPickHeight, 0f);
+                if (camera.IsPositionBehind(point)) continue;
+
+                float distance = camera.UnprojectPosition(point).DistanceTo(screenPosition);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                item = candidate;
+            }
+            return item != null;
+        }
+
         internal List<Unit> UnitsInScreenRect(Vector2 min, Vector2 max, Func<Unit, bool> predicate)
         {
             var result = new List<Unit>();
@@ -68,9 +119,11 @@ public sealed partial class War3GameScene
         {
             if (unit.Player == _scene.ViewPlayer
                 || _scene.AreAllied(unit.Player, _scene.ViewPlayer)) return true;
-            return _scene._fog == null || !_scene._fog.Enabled
-                || _scene._fog.IsVisible(unit.Position);
+            return IsVisible(unit.Position);
         }
+
+        private bool IsVisible(Vector3 position)
+            => _scene._fog == null || !_scene._fog.Enabled || _scene._fog.IsVisible(position);
 
         private bool MatchesOwner(Unit unit, int player, bool anyPlayer, bool includeCorpses)
         {

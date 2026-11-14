@@ -89,4 +89,7 @@ public sealed partial class War3GameScene
     private Unit PickUnit(Vector2 screenPosition, int player, bool anyPlayer = false,
         bool includeCorpses = false)
         => _picking?.PickUnit(screenPosition, player, anyPlayer, includeCorpses);
+
+    private Unit PickUnit(Vector2 screenPosition, Func<Unit, bool> predicate)
+        => _picking?.PickUnit(screenPosition, predicate);
 }
