@@ -14,6 +14,7 @@ public sealed class Item
     public Unit Owner;
     public int Slot = -1;
     public Node3D Node;
+    public float ShadowSize = 48f;
     /// <summary>已经加到持有者身上的加成，丢弃时按这份扣除。</summary>
     public ItemBonus Bonus;
 

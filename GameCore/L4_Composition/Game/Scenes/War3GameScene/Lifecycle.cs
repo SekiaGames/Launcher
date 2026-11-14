@@ -683,6 +683,7 @@ public sealed partial class War3GameScene : Node3D
 
         TickFog((float)delta);
         TickGroundDecals((float)delta);
+        TickDepartingItems((float)delta);
         UpdateMinimap((float)delta);
         _terrainBuilder?.TickBlight((float)delta, _allUnits, _fog);
         TickVictoryCheck((float)delta);

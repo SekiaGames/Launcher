@@ -291,12 +291,59 @@ public sealed partial class War3GameScene
         node.Name = $"item_{item.Type.Id}_{_itemSerial++}";
         AddChild(node);
         item.Node = node;
+        float extent = MeasureItemExtent(node);
+        item.ShadowSize = (extent > 0f ? Mathf.Max(8f, extent) : 48f)
+            * Mathf.Max(0.25f, item.Type.Scale);
+    }
+
+    private static float MeasureItemExtent(Node3D node)
+    {
+        bool found = false;
+        Vector3 min = Vector3.Zero;
+        Vector3 max = Vector3.Zero;
+        Collect(node, Transform3D.Identity, ref found, ref min, ref max);
+        return found ? Mathf.Max(max.X - min.X, max.Z - min.Z) : 0f;
+
+        static void Collect(Node current, Transform3D transform,
+            ref bool found, ref Vector3 min, ref Vector3 max)
+        {
+            foreach (Node child in current.GetChildren())
+            {
+                if (child is not Node3D child3D) continue;
+                Transform3D childTransform = transform * child3D.Transform;
+                if (child3D is MeshInstance3D mesh && mesh.Mesh != null)
+                {
+                    Aabb aabb = mesh.GetAabb();
+                    for (int corner = 0; corner < 8; corner++)
+                    {
+                        var offset = new Vector3(
+                            (corner & 1) != 0 ? aabb.Size.X : 0f,
+                            (corner & 2) != 0 ? aabb.Size.Y : 0f,
+                            (corner & 4) != 0 ? aabb.Size.Z : 0f);
+                        Vector3 point = childTransform * (aabb.Position + offset);
+                        if (!found)
+                        {
+                            min = point;
+                            max = point;
+                            found = true;
+                        }
+                        else
+                        {
+                            min = new Vector3(Mathf.Min(min.X, point.X), Mathf.Min(min.Y, point.Y), Mathf.Min(min.Z, point.Z));
+                            max = new Vector3(Mathf.Max(max.X, point.X), Mathf.Max(max.Y, point.Y), Mathf.Max(max.Z, point.Z));
+                        }
+                    }
+                }
+                Collect(child3D, childTransform, ref found, ref min, ref max);
+            }
+        }
     }
 
     private void OnItemSpawned(Item item) => CreateItemNode(item);
 
     private void OnItemPickedUp(Unit unit, Item item)
     {
+        BeginGroundItemDeparture(item);
         if (_loadingStage != LoadingStage.Complete) return;
         PlayPowerupSound(item);
         PlayUiSound("ItemGet");

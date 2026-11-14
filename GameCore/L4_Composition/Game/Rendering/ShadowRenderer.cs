@@ -17,6 +17,7 @@ public sealed class ShadowRenderer
     private sealed class Batch
     {
         public string TexturePath;
+        public Texture2D Texture;
         public int BlendMode;
         public readonly List<Vector3> Positions = new();
         public readonly List<Vector2> Uvs = new();
@@ -61,35 +62,44 @@ public sealed class ShadowRenderer
         Color? color = null, float groundOffset = GroundSplatOffset, int blendMode = 0)
     {
         if (quads == null || quads.Count == 0) return;
+        Texture2D texture = Texture(texturePath);
+        if (texture == null) return;
+        Draw(quads, texture, texturePath, opacity, color, groundOffset, blendMode);
+    }
+
+    public void Draw(IReadOnlyList<Quad> quads, Texture2D texture, string key, float opacity,
+        Color? color = null, float groundOffset = GroundSplatOffset, int blendMode = 0)
+    {
+        if (quads == null || quads.Count == 0 || texture == null) return;
+        Vector2 size = texture.GetSize();
+        if (size.X <= 0f || size.Y <= 0f) return;
         Color tint = color ?? new Color(1f, 1f, 1f, 1f);
         tint.A *= opacity;
         for (int i = 0; i < quads.Count; i++)
-            Append(quads[i], texturePath, tint, groundOffset, blendMode);
+            Append(quads[i], texture, key, tint, groundOffset, blendMode);
     }
 
     public void DrawColored(IReadOnlyList<ColoredQuad> quads, string texturePath,
         float groundOffset = GroundSplatOffset, int blendMode = 0)
     {
         if (quads == null || quads.Count == 0) return;
-        for (int i = 0; i < quads.Count; i++)
-            Append(quads[i].Rectangle, texturePath, quads[i].Color, groundOffset, blendMode);
-    }
-
-    private void Append(Quad quad, string texturePath, Color color, float groundOffset, int blendMode)
-    {
-        if (string.IsNullOrWhiteSpace(texturePath)) return;
         Texture2D texture = Texture(texturePath);
         if (texture == null) return;
-        Vector2 size = texture.GetSize();
-        if (size.X <= 0f || size.Y <= 0f) return;
+        for (int i = 0; i < quads.Count; i++)
+            Append(quads[i].Rectangle, texture, texturePath, quads[i].Color, groundOffset, blendMode);
+    }
 
+    private void Append(Quad quad, Texture2D texture, string texturePath, Color color,
+        float groundOffset, int blendMode)
+    {
         string key = texturePath + "|" + blendMode;
         if (!_batchesByKey.TryGetValue(key, out Batch batch))
         {
-            batch = new Batch { TexturePath = texturePath, BlendMode = blendMode };
+            batch = new Batch { TexturePath = texturePath, Texture = texture, BlendMode = blendMode };
             _batchesByKey.Add(key, batch);
             _batches.Add(batch);
         }
+        Vector2 size = texture.GetSize();
         BuildQuadVertices(batch, quad, new Vector2(1f / size.X, 1f / size.Y), color, groundOffset);
         DrawnQuadCount++;
     }
@@ -165,7 +175,7 @@ public sealed class ShadowRenderer
         foreach (Batch batch in _batches)
         {
             if (batch.Positions.Count == 0) continue;
-            ShaderMaterial material = Material(batch.TexturePath, batch.BlendMode);
+            ShaderMaterial material = Material(batch);
             if (material == null) continue;
             _node.SetSurfaceOverrideMaterial(surface++, material);
         }
@@ -232,15 +242,15 @@ public sealed class ShadowRenderer
         return resPath;
     }
 
-    private ShaderMaterial Material(string path, int blendMode)
+    private ShaderMaterial Material(Batch batch)
     {
-        string key = path + "|" + blendMode;
+        string key = batch.TexturePath + "|" + batch.BlendMode;
         if (_materials.TryGetValue(key, out ShaderMaterial cached)) return cached;
-        Shader shader = ShaderFor(blendMode);
+        Shader shader = ShaderFor(batch.BlendMode);
         if (shader == null) return null;
         var material = new ShaderMaterial { Shader = shader };
-        if (blendMode == 3) material.SetShaderParameter("mul_factor", 2f);
-        material.SetShaderParameter("decal_texture", Texture(path));
+        if (batch.BlendMode == 3) material.SetShaderParameter("mul_factor", 2f);
+        material.SetShaderParameter("decal_texture", batch.Texture);
         _materials[key] = material;
         return material;
     }

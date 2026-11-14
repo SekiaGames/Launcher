@@ -441,6 +441,20 @@ public sealed partial class War3GameScene
     private readonly Dictionary<string, int> _foundationBlend = new();
     private ShadowRenderer _groundDecals;
     private readonly War3SplatSystem _groundSplats = new();
+    private const string GroundItemShadowArt = @"ReplaceableTextures\Shadows\Shadow.blp";
+    private const float GroundItemDepartSeconds = 0.35f;
+    private readonly List<ShadowRenderer.Quad> _groundItemShadowQuads = new();
+    private readonly List<ShadowRenderer.Quad> _groundItemGlowQuads = new();
+    private readonly List<DepartingItemVisual> _departingItems = new();
+    private Texture2D _groundItemGlowTexture;
+    private bool _groundItemGlowResolved;
+
+    private sealed class DepartingItemVisual
+    {
+        public Node3D Node;
+        public float Age;
+        public float Scale = 1f;
+    }
 
     private void TickGroundDecals(float delta)
     {
@@ -450,6 +464,7 @@ public sealed partial class War3GameScene
         AdvanceFoundations(delta);
         foreach (Unit unit in _allUnits) ObserveFoundation(unit);
         DrawBuildingFoundations();
+        DrawGroundItemDecals();
         TickSplatEvents(delta);
         _groundSplats.Draw(_groundDecals);
         _groundDecals.Flush();
@@ -459,6 +474,119 @@ public sealed partial class War3GameScene
             _foundationLogCount = drawn;
             GD.Print($"[DECAL] 地面贴花 {drawn} 块（底座 {_buildingFoundations.Count} 条，事件 {_groundSplats.Count} 个）");
         }
+    }
+
+    private void DrawGroundItemDecals()
+    {
+        _groundItemShadowQuads.Clear();
+        _groundItemGlowQuads.Clear();
+        IReadOnlyList<Item> items = _world?.GroundItems;
+        if (items == null) return;
+        for (int index = 0; index < items.Count; index++)
+        {
+            Item item = items[index];
+            if (item?.Type == null || item.Node == null) continue;
+            if (_fog != null && _fog.Enabled && !_fog.IsVisible(item.Position)) continue;
+
+            float half = Mathf.Max(8f, item.ShadowSize) * 0.5f;
+            float mapX = 0f - item.Position.X;
+            float mapY = item.Position.Z;
+            var quad = new ShadowRenderer.Quad(mapX - half, mapY - half, mapX + half, mapY + half);
+            if (item.Type.PowerUp) _groundItemGlowQuads.Add(quad);
+            else _groundItemShadowQuads.Add(quad);
+        }
+
+        _groundDecals.Draw(_groundItemShadowQuads, GroundItemShadowArt, 0.45f,
+            null, ShadowRenderer.UnitShadowOffset);
+        if (_groundItemGlowQuads.Count == 0) return;
+
+        Texture2D glow = GroundItemGlowTexture();
+        if (glow != null)
+        {
+            _groundDecals.Draw(_groundItemGlowQuads, glow, "item_glow", 0.75f,
+                null, ShadowRenderer.UnitShadowOffset);
+        }
+    }
+
+    private Texture2D GroundItemGlowTexture()
+    {
+        if (_groundItemGlowResolved) return _groundItemGlowTexture;
+        _groundItemGlowResolved = true;
+        Texture2D shadow = Assets.LoadTexture(Assets.Res("ReplaceableTextures/Shadows/Shadow.png"));
+        if (shadow == null) return null;
+        Image image = shadow.GetImage();
+        if (image == null) return null;
+        if (image.IsCompressed()) image.Decompress();
+        image.Convert(Image.Format.Rgba8);
+        for (int y = 0; y < image.GetHeight(); y++)
+        {
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                Color pixel = image.GetPixel(x, y);
+                image.SetPixel(x, y, new Color(1f, 0.72f, 0.15f, pixel.A));
+            }
+        }
+        _groundItemGlowTexture = ImageTexture.CreateFromImage(image);
+        return _groundItemGlowTexture;
+    }
+
+    private void BeginGroundItemDeparture(Item item)
+    {
+        if (item?.Type == null || item.Node == null || !IsInstanceValid(item.Node)) return;
+        Node3D node = item.Node;
+        item.Node = null;
+        node.Visible = true;
+        PlayItemDepartureAnimation(node);
+        _departingItems.Add(new DepartingItemVisual
+        {
+            Node = node,
+            Scale = item.Type.Scale,
+        });
+    }
+
+    private void TickDepartingItems(float delta)
+    {
+        for (int index = _departingItems.Count - 1; index >= 0; index--)
+        {
+            DepartingItemVisual visual = _departingItems[index];
+            if (visual.Node == null || !IsInstanceValid(visual.Node))
+            {
+                _departingItems.RemoveAt(index);
+                continue;
+            }
+
+            visual.Age += delta;
+            float scale = Mathf.Clamp(1f - visual.Age / GroundItemDepartSeconds, 0f, 1f);
+            visual.Node.Scale = Vector3.One * (visual.Scale * scale);
+            if (visual.Age < GroundItemDepartSeconds) continue;
+            visual.Node.QueueFree();
+            _departingItems.RemoveAt(index);
+        }
+    }
+
+    private static void PlayItemDepartureAnimation(Node3D node)
+    {
+        if (node.FindChild("AnimationTree", true, false) is AnimationTree tree) tree.Active = false;
+        if (node.FindChild("AnimationPlayer", true, false) is not AnimationPlayer player) return;
+        string sequence = FindItemSequence(player, "Death", "Die", "Death Sequence");
+        if (sequence != null) player.Play(sequence);
+    }
+
+    private static string FindItemSequence(AnimationPlayer player, params string[] wanted)
+    {
+        string[] animations = player.GetAnimationList();
+        foreach (string name in wanted)
+        {
+            foreach (string animation in animations)
+            {
+                if (string.Equals(animation, name, StringComparison.OrdinalIgnoreCase)) return animation;
+            }
+            foreach (string animation in animations)
+            {
+                if (animation.StartsWith(name + " ", StringComparison.OrdinalIgnoreCase)) return animation;
+            }
+        }
+        return null;
     }
 
     private void TickSplatEvents(float delta)
