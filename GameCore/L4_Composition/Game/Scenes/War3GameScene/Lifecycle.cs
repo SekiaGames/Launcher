@@ -176,7 +176,7 @@ public sealed partial class War3GameScene : Node3D
         _terrainShadows = new TerrainShadowMap(map.Terrain, _terrainBuilder.TerrainMaterial,
             _terrainBuilder.TreeShadows);
 
-        _weather = new WeatherSystem(this, map.Info?.Environment, CameraTargetHeightAt);
+        _weather = new WeatherSystem(this, map.Info?.Environment, CameraTargetHeightAt, fog);
 
         _skybox = SkyboxRenderer.TryCreate(this, map.Info);
         _skyDome = SkyDomeRenderer.TryCreate(this, map.Info);

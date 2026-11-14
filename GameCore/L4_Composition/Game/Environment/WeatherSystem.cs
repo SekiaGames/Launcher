@@ -8,13 +8,15 @@ public sealed class WeatherSystem
 {
     private readonly Node _parent;
     private readonly Func<float, float, float> _terrainHeight;
+    private readonly War3FogConfig _fog;
     private readonly List<WeatherRenderer> _renderers = new();
 
     public WeatherSystem(Node parent, W3iEnvironment environment,
-        Func<float, float, float> terrainHeight)
+        Func<float, float, float> terrainHeight, War3FogConfig fog)
     {
         _parent = parent;
         _terrainHeight = terrainHeight;
+        _fog = fog;
         string global = environment?.GlobalWeather?.Trim('\0', ' ');
         if (!string.IsNullOrEmpty(global))
         {
@@ -26,7 +28,7 @@ public sealed class WeatherSystem
 
     public WeatherRenderer AddGlobal(string effectId)
     {
-        WeatherRenderer renderer = WeatherRenderer.TryCreate(_parent, effectId, _terrainHeight);
+        WeatherRenderer renderer = WeatherRenderer.TryCreate(_parent, effectId, _terrainHeight, _fog);
         if (renderer == null) return null;
         _renderers.Add(renderer);
         GD.Print($"[WEATHER] {effectId} 全局天气已加载");
@@ -37,7 +39,7 @@ public sealed class WeatherSystem
         bool enabled = false)
     {
         WeatherRenderer renderer = WeatherRenderer.TryCreate(_parent, effectId, _terrainHeight,
-            boundsMin, boundsMax, areaSpecified: true);
+            _fog, boundsMin, boundsMax, areaSpecified: true);
         if (renderer == null) return null;
         renderer.SetEnabled(enabled);
         _renderers.Add(renderer);

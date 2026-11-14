@@ -28,7 +28,7 @@ public sealed class WeatherRenderer
     internal WeatherDefinition Definition => _definition;
 
     WeatherRenderer(Node parent, WeatherDefinition definition, WeatherType weather,
-        Func<float, float, float> terrainHeight, bool hasArea,
+        Func<float, float, float> terrainHeight, War3FogConfig fog, bool hasArea,
         Vector3 boundsMin, Vector3 boundsMax)
     {
         _definition = definition;
@@ -50,20 +50,12 @@ public sealed class WeatherRenderer
             return;
         }
 
-        StandardMaterial3D material = BuildMaterial(definition, texture);
-        float maxScale = Mathf.Max(1e-4f, Mathf.Max(definition.ScaleStart,
-            Mathf.Max(definition.ScaleMid, definition.ScaleEnd)));
+        ShaderMaterial material = BuildWeatherMaterial(definition, texture, fog);
         var mesh = new QuadMesh
         {
-            Size = new Vector2(maxScale * 2f, maxScale * 2f),
+            Size = new Vector2(2f, 2f),
             Material = material,
         };
-        Curve scale = BuildScaleCurve(definition, maxScale);
-        Gradient colors = BuildColorRamp(definition);
-        float frames = Math.Max(1, definition.TextureColumns * definition.TextureRows);
-        float uvRange = definition.UvEnd - definition.UvStart;
-        float animSpeed = frames > 1f ? Math.Abs(uvRange) / (frames - 1f) : 0f;
-        float animOffset = frames > 1f ? definition.UvStart / (frames - 1f) : 0f;
         Vector3 direction = ToWorldDirection(definition.Direction);
         if (definition.Velocity < 0f) direction = -direction;
         if (direction.LengthSquared() < 1e-6f) direction = Vector3.Down;
@@ -95,14 +87,6 @@ public sealed class WeatherRenderer
                     WeatherDefinition.CellSize * 0.5f),
                 VisibilityAabb = new Aabb(new Vector3(-20000f, -20000f, -20000f),
                     new Vector3(40000f, 40000f, 40000f)),
-                ScaleAmountMin = 1f,
-                ScaleAmountMax = 1f,
-                ScaleAmountCurve = scale,
-                ColorRamp = colors,
-                AnimSpeedMin = animSpeed,
-                AnimSpeedMax = animSpeed,
-                AnimOffsetMin = animOffset,
-                AnimOffsetMax = animOffset,
             };
             _root.AddChild(emitter);
             _emitters.Add(emitter);
@@ -117,11 +101,12 @@ public sealed class WeatherRenderer
             + $"alphaMode={definition.AlphaMode} fog={definition.UseFog} "
             + $"uv={definition.UvStart:0.#}/{definition.UvMid:0.#}/{definition.UvEnd:0.#} "
             + $"grid={definition.TextureColumns}x{definition.TextureRows} "
-            + $"anim={animSpeed:0.###} ambient={definition.AmbientLabel ?? "-"}");
+            + $"材质={(definition.AlphaMode == 1 ? "weather_add" : "weather")} "
+            + $"ambient={definition.AmbientLabel ?? "-"}");
     }
 
     public static WeatherRenderer TryCreate(Node parent, string effectId,
-        Func<float, float, float> terrainHeight, Vector3 boundsMin = default,
+        Func<float, float, float> terrainHeight, War3FogConfig fog, Vector3 boundsMin = default,
         Vector3 boundsMax = default, bool areaSpecified = false)
     {
         WeatherType type = WeatherTypeParser.FromRawcode(effectId?.Trim());
@@ -134,7 +119,7 @@ public sealed class WeatherRenderer
         }
         bool hasArea = areaSpecified
             || (boundsMax.X > boundsMin.X && boundsMax.Z > boundsMin.Z);
-        return new WeatherRenderer(parent, definition, type, terrainHeight,
+        return new WeatherRenderer(parent, definition, type, terrainHeight, fog,
             hasArea, boundsMin, boundsMax);
     }
 
@@ -241,56 +226,34 @@ public sealed class WeatherRenderer
         _root.QueueFree();
     }
 
-    static StandardMaterial3D BuildMaterial(WeatherDefinition definition, Texture2D texture)
+    static ShaderMaterial BuildWeatherMaterial(WeatherDefinition definition,
+        Texture2D texture, War3FogConfig fog)
     {
-        var material = new StandardMaterial3D
+        var material = new ShaderMaterial
         {
-            AlbedoTexture = texture,
-            AlbedoColor = Colors.White,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
-            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-            VertexColorUseAsAlbedo = true,
-            DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
-            DisableFog = !definition.UseFog,
-            ParticlesAnimHFrames = definition.TextureColumns,
-            ParticlesAnimVFrames = definition.TextureRows,
-            ParticlesAnimLoop = false,
+            Shader = GD.Load<Shader>(definition.AlphaMode == 1
+                ? "res://assets/shaders/weather_add.gdshader"
+                : "res://assets/shaders/weather.gdshader")
         };
-        if (definition.AlphaMode == 1) material.BlendMode = BaseMaterial3D.BlendModeEnum.Add;
+        if (texture != null) material.SetShaderParameter("weather_texture", texture);
+        material.SetShaderParameter("weather_color_start", ToVector3(definition.ColorStart));
+        material.SetShaderParameter("weather_color_mid", ToVector3(definition.ColorMid));
+        material.SetShaderParameter("weather_color_end", ToVector3(definition.ColorEnd));
+        material.SetShaderParameter("weather_alpha",
+            new Vector3(definition.AlphaStart, definition.AlphaMid, definition.AlphaEnd));
+        material.SetShaderParameter("weather_scale",
+            new Vector3(definition.ScaleStart, definition.ScaleMid, definition.ScaleEnd));
+        material.SetShaderParameter("weather_uv_frames",
+            new Vector3(definition.UvStart, definition.UvMid, definition.UvEnd));
+        material.SetShaderParameter("weather_grid",
+            new Vector2(definition.TextureColumns, definition.TextureRows));
+        material.SetShaderParameter("weather_mid_time", definition.MidTime);
+        material.SetShaderParameter("fog_color", new Vector4(fog.Tint.R, fog.Tint.G, fog.Tint.B, 1f));
+        material.SetShaderParameter("fog_params", definition.UseFog ? fog.Params : Vector4.Zero);
         return material;
     }
 
-    static Curve BuildScaleCurve(WeatherDefinition definition, float maxScale)
-    {
-        var curve = new Curve();
-        curve.AddPoint(new Vector2(0f, definition.ScaleStart / maxScale), 0f, 0f,
-            Curve.TangentMode.Linear, Curve.TangentMode.Linear);
-        curve.AddPoint(new Vector2(definition.MidTime, definition.ScaleMid / maxScale), 0f, 0f,
-            Curve.TangentMode.Linear, Curve.TangentMode.Linear);
-        curve.AddPoint(new Vector2(1f, definition.ScaleEnd / maxScale), 0f, 0f,
-            Curve.TangentMode.Linear, Curve.TangentMode.Linear);
-        return curve;
-    }
-
-    static Gradient BuildColorRamp(WeatherDefinition definition)
-    {
-        return new Gradient
-        {
-            Offsets = new[] { 0f, definition.MidTime, 1f },
-            Colors = new[]
-            {
-                ToColor(definition.ColorStart, definition.AlphaStart),
-                ToColor(definition.ColorMid, definition.AlphaMid),
-                ToColor(definition.ColorEnd, definition.AlphaEnd),
-            },
-        };
-    }
-
-    static Color ToColor(NVector3 color, float alpha)
-        => new(Mathf.Clamp(color.X, 0f, 1f), Mathf.Clamp(color.Y, 0f, 1f),
-            Mathf.Clamp(color.Z, 0f, 1f), Mathf.Clamp(alpha, 0f, 1f));
+    static Vector3 ToVector3(NVector3 value) => new(value.X, value.Y, value.Z);
 
     static Vector3 ToWorldDirection(NVector3 direction)
         => new(direction.X, direction.Z, -direction.Y);
