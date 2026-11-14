@@ -294,6 +294,7 @@ public static class SceneLightRig
         material.SetShaderParameter("war3_scene_direction", light.Direction);
         material.SetShaderParameter("war3_scene_color", light.DiffuseColor * light.DiffuseIntensity);
         material.SetShaderParameter("war3_scene_ambient", light.AmbientColor * light.AmbientIntensity);
+        SceneFog.Write(material);
     }
 
     static bool IsModelMaterial(ShaderMaterial material) =>

@@ -269,6 +269,7 @@ public sealed partial class War3GameScene : Node3D
     {
         _terrainBuilder = new MapWorldBuilder();
         War3FogConfig fog = War3FogConfig.FromEnvironment(map.Info?.Environment);
+        SceneFog.Set(fog);
         GD.Print($"[FOG] 地图距离雾 {fog.Describe()}");
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads,
             War3WaterConfig.MapBaseColor(map.Info), fog);
