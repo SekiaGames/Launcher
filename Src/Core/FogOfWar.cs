@@ -52,6 +52,23 @@ public sealed partial class FogOfWar : Node3D
 
     public float LastVisibleRatio { get; private set; }
 
+    public override void _EnterTree()
+    {
+        SceneTree tree = GetTree();
+        if (tree != null) tree.NodeAdded += OnNodeAdded;
+    }
+
+    public override void _ExitTree()
+    {
+        SceneTree tree = GetTree();
+        if (tree != null) tree.NodeAdded -= OnNodeAdded;
+    }
+
+    private static void OnNodeAdded(Node node)
+    {
+        if (node is MeshInstance3D mesh) SceneLightRig.ForEachMaterial(mesh, SceneFog.RegisterFogReceiver);
+    }
+
     public void Build(TerrainData terrain)
     {
         _terrain = terrain;
@@ -74,6 +91,7 @@ public sealed partial class FogOfWar : Node3D
 
         if (!_enabled) Array.Fill(_visual, VisibleValue);
         Upload();
+        SceneLightRig.ForEachMaterial(GetParent(), SceneFog.RegisterFogReceiver);
         Name = "FogOfWar";
     }
 

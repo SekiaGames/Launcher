@@ -270,21 +270,35 @@ public static class SceneLightRig
             return;
         }
 
+        ForEachMaterial(root, material => Write(material, IsModelMaterial(material) ? units : terrain));
+    }
+
+    public static void ForEachMaterial(Node root, Action<ShaderMaterial> action)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
         foreach (Node child in root.FindChildren("*", "MeshInstance3D", true, false))
         {
-            var mesh = (MeshInstance3D)child;
-            if (mesh.MaterialOverride is ShaderMaterial overrideMaterial)
+            ForEachMaterial((MeshInstance3D)child, action);
+        }
+    }
+
+    public static void ForEachMaterial(MeshInstance3D mesh, Action<ShaderMaterial> action)
+    {
+        if (mesh.MaterialOverride is ShaderMaterial overrideMaterial)
+        {
+            action(overrideMaterial);
+            return;
+        }
+
+        for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
+        {
+            if (mesh.GetSurfaceOverrideMaterial(surface) is ShaderMaterial material)
             {
-                Write(overrideMaterial, IsModelMaterial(overrideMaterial) ? units : terrain);
-                continue;
-            }
-            for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
-            {
-                if (mesh.GetSurfaceOverrideMaterial(surface) is not ShaderMaterial material)
-                {
-                    continue;
-                }
-                Write(material, IsModelMaterial(material) ? units : terrain);
+                action(material);
             }
         }
     }
