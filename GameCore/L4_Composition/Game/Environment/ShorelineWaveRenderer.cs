@@ -23,8 +23,10 @@ public sealed class ShorelineWaveRenderer
         _root = new Node3D { Name = "ShorelineWaves" };
         parent.AddChild(_root);
         var scenes = new Dictionary<string, PackedScene>(StringComparer.OrdinalIgnoreCase);
+        var rareAnimations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var models = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int missing = 0;
+        int rareWaves = 0;
 
         for (int row = 0; row < terrain.Height - 1; row++)
         {
@@ -96,6 +98,10 @@ public sealed class ShorelineWaveRenderer
                 ModelLibrary.ApplyMissingMaterials(node, ModelLibrary.Find(relative));
                 _root.AddChild(node, forceReadableName: false, Node.InternalMode.Disabled);
                 InstanceCount++;
+                if (IsRareStand(seed) && TryPlayRareWave(node, relative, seed, rareAnimations))
+                {
+                    rareWaves++;
+                }
             }
         }
 
@@ -105,7 +111,67 @@ public sealed class ShorelineWaveRenderer
             _root = null;
             return;
         }
-        GD.Print($"[WATER] 岸线浪 {InstanceCount} 个（{models.Count} 种模型，缺失 {missing}）");
+        GD.Print($"[WATER] 岸线浪 {InstanceCount} 个（{models.Count} 种模型，缺失 {missing}，偶发大浪 {rareWaves}）");
+    }
+
+    static bool IsRareStand(uint seed)
+    {
+        return Random01(Hash(seed + 17u)) < 0.07f;
+    }
+
+    static float Random01(uint value)
+    {
+        return (value & 0x00ffffffu) / 16777216f;
+    }
+
+    static bool TryPlayRareWave(Node3D node, string model, uint seed, Dictionary<string, string> cache)
+    {
+        AnimationPlayer player = node.GetNodeOrNull<AnimationPlayer>("AnimationPlayer");
+        if (player == null) return false;
+
+        if (!cache.TryGetValue(model, out string animation))
+        {
+            animation = RareWaveAnimation(player);
+            cache[model] = animation;
+        }
+        if (string.IsNullOrEmpty(animation) || !player.HasAnimation(animation)) return false;
+
+        AnimationTree tree = node.GetNodeOrNull<AnimationTree>("AnimationTree");
+        if (tree != null) tree.Active = false;
+        player.Autoplay = "";
+        player.Play(animation);
+        Animation clip = player.GetAnimation(animation);
+        if (clip != null && clip.Length > 0f)
+        {
+            player.Seek(Random01(Hash(seed + 0x51ed270bu)) * clip.Length, true);
+        }
+        return true;
+    }
+
+    static string RareWaveAnimation(AnimationPlayer player)
+    {
+        foreach (string name in player.GetAnimationList())
+        {
+            Animation animation = player.GetAnimation(name);
+            if (animation == null) continue;
+            for (int track = 0; track < animation.GetTrackCount(); track++)
+            {
+                if (animation.TrackGetType(track) != Animation.TrackType.Value) continue;
+                if (!animation.TrackGetPath(track).ToString().EndsWith(":visible", StringComparison.Ordinal)) continue;
+                if (TrackShowsAnyKey(animation, track)) return name;
+            }
+        }
+        return null;
+    }
+
+    static bool TrackShowsAnyKey(Animation animation, int track)
+    {
+        int keys = animation.TrackGetKeyCount(track);
+        for (int key = 0; key < keys; key++)
+        {
+            if (animation.TrackGetKeyValue(track, key).AsBool()) return true;
+        }
+        return false;
     }
 
     static bool DepthReachesWaves(W3eTerrain terrain, War3WaterConfig water,
