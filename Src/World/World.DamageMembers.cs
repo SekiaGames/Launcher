@@ -451,6 +451,7 @@ public sealed partial class World
         corpse.IsCorpse = false;
         corpse.CorpseRemaining = 0f;
         corpse.AwaitingRevive = false;
+        corpse.DeathPresentationGone = true;
         if (corpse.View != null) corpse.View.Root.Visible = false;
     }
 

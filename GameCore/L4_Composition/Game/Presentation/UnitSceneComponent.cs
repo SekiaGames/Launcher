@@ -79,6 +79,7 @@ public sealed class UnitSceneComponent
     {
         Color tint = IllusionPresentation.GetColor(unit, observerPlayerId, allied,
             UnitStateColor.Get(unit));
+        tint.A *= unit.PresentationAlpha;
         if (Mathf.IsEqualApprox(tint.R, _appliedTint.R) && Mathf.IsEqualApprox(tint.G, _appliedTint.G)
             && Mathf.IsEqualApprox(tint.B, _appliedTint.B) && Mathf.IsEqualApprox(tint.A, _appliedTint.A))
         {
@@ -655,10 +656,17 @@ public sealed class UnitSceneComponent
     public void SetBuildProgress(float progress)
     {
         UpdateProgressRing(progress);
-        if (Player == null) return;
+        Seek(ConstructionBirth(), progress);
+    }
 
-        string found = PickAnimation("Birth");
-        if (found == null) return;
+    public void SetUpgradeProgress(float progress)
+    {
+        Seek(UpgradeBirth(), progress);
+    }
+
+    private void Seek(string found, float fraction)
+    {
+        if (Player == null || string.IsNullOrEmpty(found)) return;
 
         if (CurrentAnimation != found)
         {
@@ -669,8 +677,41 @@ public sealed class UnitSceneComponent
         Animation animation = Player.GetAnimation(found);
         if (animation == null) return;
 
-        Player.Seek((double)(Mathf.Clamp(progress, 0f, 1f) * (float)animation.Length), true);
+        Player.SpeedScale = 1f;
+        Player.Seek((double)(Mathf.Clamp(fraction, 0f, 1f) * (float)animation.Length), true);
         Player.Pause();
+    }
+
+    private string _constructionBirth;
+    private bool _constructionBirthResolved;
+
+    private string ConstructionBirth()
+    {
+        if (_constructionBirthResolved) return _constructionBirth;
+        _constructionBirthResolved = true;
+        _constructionBirth = PickAnimation("Birth");
+        return _constructionBirth;
+    }
+
+    private string UpgradeBirth()
+    {
+        string found = SelectSequence("Birth", Array.Empty<string>(), out _);
+        return found ?? ConstructionBirth();
+    }
+
+    public void PlayTimed(string kind, float seconds)
+    {
+        if (Player == null) return;
+        Play(kind);
+        if (CurrentAnimation == null) return;
+
+        Animation animation = Player.GetAnimation(CurrentAnimation);
+        if (animation == null) return;
+
+        animation.LoopMode = Animation.LoopModeEnum.None;
+        float length = (float)animation.Length;
+        float rate = seconds > 0.01f && length > 0.01f ? length / seconds : 1f;
+        Player.SpeedScale = Mathf.Max(0.0001f, rate);
     }
 
     public void SetSelected(bool selected) => Selected = selected;

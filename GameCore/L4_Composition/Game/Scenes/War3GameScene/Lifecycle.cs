@@ -678,6 +678,7 @@ public sealed partial class War3GameScene : Node3D
         TickVictoryCheck((float)delta);
         RefreshHeroBar();
         RefreshConstruction();
+        UpdateUnitAnimation();
         _battleOverlay?.Frame(_allUnits, StatusBarVisible, StatusBarEnemy);
         _selectionCircles?.Frame(_allUnits, StatusBarHeightAt, StatusBarEnemy, StatusBarVisible);
         _unitShadows?.Frame(_allUnits, StatusBarHeightAt, StatusBarVisible);

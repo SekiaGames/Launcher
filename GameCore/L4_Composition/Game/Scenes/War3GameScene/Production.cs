@@ -329,6 +329,7 @@ public sealed partial class War3GameScene
 
         slot.Gold -= target.GoldCost;
         slot.Lumber -= target.LumberCost;
+        building.Upgrading = true;
         float seconds = Mathf.Max(1f, target.BuildSeconds * TimeScaleHint);
         _orders.Add(new BuildingOrder
         {
@@ -361,6 +362,7 @@ public sealed partial class War3GameScene
             BuildingOrder order = _orders[index];
             if (order.Building == null || !order.Building.Alive)
             {
+                if (order.Building != null) order.Building.Upgrading = false;
                 _orders.RemoveAt(index);
                 index--;
                 continue;
@@ -401,6 +403,7 @@ public sealed partial class War3GameScene
                 ApplyResearch(order);
                 break;
             case OrderKind.Upgrade:
+                order.Building.Upgrading = false;
                 ReplaceBuilding(order.Building, order.Id);
                 break;
         }
@@ -895,11 +898,25 @@ public sealed partial class War3GameScene
         BuildingOrder cancelled = _orders[found];
         _orders.RemoveAt(found);
         RefundOrder(cancelled);
+        if (cancelled.Kind == OrderKind.Upgrade && !HasOrderFor(building))
+        {
+            building.Upgrading = false;
+            building.View?.Play("Stand");
+        }
         _hud?.SetHint($"取消 {DescribeBuildingOrder(cancelled)}，已退款");
         RefreshHud();
         UpdateCommandCard();
         UpdateQueueLabel();
         return true;
+    }
+
+    private bool HasOrderFor(Unit building)
+    {
+        for (int index = 0; index < _orders.Count; index++)
+        {
+            if (ReferenceEquals(_orders[index].Building, building)) return true;
+        }
+        return false;
     }
 
     private void RefundOrder(BuildingOrder order)

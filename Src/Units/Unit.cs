@@ -105,6 +105,7 @@ public sealed partial class Unit
     public readonly State State = new();
 
     public bool IsUnderConstruction;
+    public bool Upgrading;
     public float BuildRemaining;
     public float BuildTotal;
     public Unit BuildSite;

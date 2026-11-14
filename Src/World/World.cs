@@ -354,6 +354,8 @@ public sealed partial class World
         }
 
         bool engaged = unit.Target != null && unit.Target.Alive;
+        if (unit.IsBuilding && unit.Upgrading && !engaged) return;
+        if (unit.IsBuilding && !engaged && StepCargoWork(unit)) return;
         unit.View?.Play(engaged ? "Stand Ready" : "Stand");
     }
 

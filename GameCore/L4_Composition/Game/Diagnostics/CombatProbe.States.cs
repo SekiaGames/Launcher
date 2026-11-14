@@ -522,10 +522,27 @@ public static partial class CombatProbe
         building.EnterDeath();
         Verify("单位阵亡留尸", 1f, soldier.IsCorpse ? 1f : 0f, 0f);
         Verify("建筑阵亡不留尸", 0f, building.IsCorpse ? 1f : 0f, 0f);
-        Verify("会衰减的尸体有倒计时", 1f,
-            soldier.CorpseRemaining > 0f && soldier.CorpseRemaining <= Unit.CorpseSeconds ? 1f : 0f, 0f);
+        Verify("死亡动作时长取自物编", footman.DeathAnimTime,
+            soldier.DeathAnimTime, 0.01f);
+        Verify("尸体倒计时含三段", 1f,
+            Mathf.Abs(soldier.CorpseRemaining - soldier.DecayLife) < 0.01f ? 1f : 0f, 0f);
+
+        soldier.DeathAnimTime = 0.2f;
+        soldier.DecayTime = 0.2f;
+        soldier.BoneDecayTime = 0.2f;
+        soldier.CorpseRemaining = soldier.DecayLife;
+        Verify("死亡动作期间未进骸骨", 0f, soldier.IsBone ? 1f : 0f, 0f);
+        soldier.TickCorpse(0.25f);
+        Verify("Decay Flesh 期间不是骸骨", 0f, soldier.IsBone ? 1f : 0f, 0f);
+        soldier.TickCorpse(0.2f);
+        Verify("腐化两段后转骸骨", 1f, soldier.IsBone ? 1f : 0f, 0f);
+        Verify("骸骨阶段模型仍在", 0f, soldier.DeathPresentationGone ? 1f : 0f, 0f);
+        soldier.TickCorpse(0.2f);
+        Verify("骸骨到期消失", 1f, soldier.DeathPresentationGone ? 1f : 0f, 0f);
+
         GD.Print($"[自检] 尸体 步兵 deathType={footman.DeathType} 衰减={footman.CorpseDecays}"
-            + $" 倒计时={soldier.CorpseRemaining:0}s；建筑 deathType={hall.DeathType} 不留尸");
+            + $" death={footman.DeathAnimTime:0.##}s/flesh={soldier.DecayTime:0.##}s"
+            + $"/bone={soldier.BoneDecayTime:0.##}s；建筑 deathType={hall.DeathType} 不留尸");
     }
 
     /// <summary>物品：英雄走近自动拾取、非英雄不捡、地上清单同步。</summary>

@@ -7,6 +7,35 @@ namespace OpenWC3;
 
 public sealed partial class World
 {
+    private static readonly string[] CargoWorkVariants =
+    {
+        "Stand Work First", "Stand Work Second", "Stand Work Third",
+        "Stand Work Fourth", "Stand Work Fifth",
+    };
+    private const int CargoWorkVariantLimit = 5;
+
+    private bool StepCargoWork(Unit mine)
+    {
+        if (mine.Type?.Id == null || !mine.Type.Id.Equals("egol", StringComparison.OrdinalIgnoreCase)) return false;
+        int occupants = EntangledMineOccupants(mine);
+        if (occupants <= 0) return false;
+        mine.View?.Play(CargoWorkVariants[Math.Min(occupants, CargoWorkVariantLimit) - 1]);
+        return true;
+    }
+
+    public int EntangledMineOccupants(Unit mine)
+    {
+        int count = 0;
+        for (int index = 0; index < Units.Count; index++)
+        {
+            Unit worker = Units[index];
+            if (worker == null || !worker.Alive || worker.IsBuilding) continue;
+            if (!ReferenceEquals(worker.GoldMine, mine)) continue;
+            count++;
+        }
+        return count;
+    }
+
     /// <summary>手上工地完工后接上 Shift 连造排队的那一批。</summary>
     public void AdvanceBuildQueue(Unit worker)
     {

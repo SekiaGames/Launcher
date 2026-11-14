@@ -554,7 +554,8 @@ public sealed class Death
         _unit.Alive = false;
         _unit.IsCorpse = true;
         _unit.Hp = 0f;
-        _unit.CorpseRemaining = Unit.CorpseSeconds;
+        _unit.DeathElapsed = _unit.DeathAnimTime;
+        _unit.CorpseRemaining = _unit.DecayLife;
     }
 }
 

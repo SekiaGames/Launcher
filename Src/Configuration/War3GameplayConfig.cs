@@ -24,6 +24,18 @@ public sealed class War3GameplayConfig
 
     public readonly float DefenseArmor = MiscRules.Value("Misc.DefenseArmor", 0.06f);
 
+    public readonly float DecayTime = MiscDataValue("Misc.DecayTime", 2f);
+    public readonly float StructureDecayTime = MiscDataValue("Misc.StructureDecayTime", 30f);
+    public readonly float BoneDecayTime = MiscDataValue("Misc.BoneDecayTime", 88f);
+    public readonly float DissipateTime = MiscDataValue("Misc.DissipateTime", 3f);
+
+    private static float MiscDataValue(string key, float fallback)
+    {
+        if (!GeneratedTexts.TryGet("UnitsMiscData", key, out string text)) return fallback;
+        return float.TryParse(text?.Trim(), System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out float value) ? value : fallback;
+    }
+
     public readonly int HeroMaxReviveCostGold = (int)MiscRules.Value("Misc.HeroMaxReviveCostGold", 700f);
     public readonly float HeroMaxReviveTime = MiscRules.Value("Misc.HeroMaxReviveTime", 150f);
     public readonly float HeroReviveLifeFactor = MiscRules.Value("Misc.HeroReviveLifeFactor", 1f);

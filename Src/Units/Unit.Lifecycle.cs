@@ -7,11 +7,21 @@ namespace OpenWC3;
 /// </summary>
 public sealed partial class Unit
 {
-    /// <summary>尸体停留时长（对标 Misc 的 88 秒衰减，建筑不留尸体）。</summary>
-    public const float CorpseSeconds = 88f;
-
     public bool IsCorpse;
     public float CorpseRemaining;
+
+    public float DeathAnimTime = 0.5f;
+    public float DecayTime = 2f;
+    public float BoneDecayTime = 88f;
+    public float DissipateTime = 3f;
+
+    public float DeathElapsed;
+    public bool IsBone;
+    public bool DeathPresentationGone;
+
+    public float PresentationAlpha => IsHero && !Alive && DeathElapsed >= DeathAnimTime
+        ? Mathf.Clamp((DissipateTime - (DeathElapsed - DeathAnimTime)) / 2.5f, 0f, 1f)
+        : 1f;
     /// <summary>尸体被绞肉车装进货舱时指向携带者：非空时尸体不衰减、模型隐藏、位置跟随携带者。</summary>
     public Unit CorpseCarrier;
 
@@ -53,21 +63,52 @@ public sealed partial class Unit
         ReviveAltar = null;
         AwaitingRevive = IsHero;
         IsCorpse = !IsBuilding && !IsIllusion;
-        CorpseRemaining = !IsCorpse ? 0f : Type.CorpseDecays ? CorpseSeconds : float.PositiveInfinity;
+        ConfigDeathTiming();
+        CorpseRemaining = IsCorpse ? DecayLife : 0f;
         View?.Play("Death");
         View?.SetSelected(false);
     }
 
-    /// <summary>尸体到期后从画面上消失，但对象保留（英雄还要靠它复活，等级与经验不能丢）。</summary>
+    private void ConfigDeathTiming()
+    {
+        War3GameplayConfig config = War3GameplayConfig.Default;
+        DeathAnimTime = Type != null && Type.DeathAnimTime > 0f ? Type.DeathAnimTime : 0f;
+        DecayTime = Type == null || Type.CorpseDecays ? config.DecayTime : 0f;
+        BoneDecayTime = Type == null || Type.CorpseDecays ? config.BoneDecayTime : 0f;
+        DissipateTime = config.DissipateTime;
+        DeathElapsed = 0f;
+        IsBone = false;
+        DeathPresentationGone = false;
+    }
+
+    public float DecayLife => DeathAnimTime + DecayTime + BoneDecayTime;
+
     public void TickCorpse(float delta)
     {
-        if (!IsCorpse) return;
+        if (DeathPresentationGone) return;
         if (CorpseCarrier != null) return;
+        if (CorpseDecaySuspended) return;
 
-        CorpseRemaining -= delta;
-        if (CorpseRemaining > 0f) return;
+        DeathElapsed += delta;
+
+        if (IsHero)
+        {
+            if (DeathElapsed < DeathAnimTime + DissipateTime) return;
+            DeathPresentationGone = true;
+            IsCorpse = false;
+            if (View != null) View.Root.Visible = false;
+            return;
+        }
+
+        float boneAt = DeathAnimTime + DecayTime;
+        if (!IsBone && DeathElapsed >= boneAt) IsBone = true;
+
+        float total = DecayLife;
+        CorpseRemaining = Mathf.Max(0f, total - DeathElapsed);
+        if (DeathElapsed < total) return;
 
         IsCorpse = false;
+        DeathPresentationGone = true;
         if (View != null) View.Root.Visible = false;
     }
 
@@ -81,6 +122,7 @@ public sealed partial class Unit
         AwaitingRevive = false;
         ReviveRemaining = 0f;
         ReviveAltar = null;
+        ResetDeathPresentation();
         Hp = Mathf.Max(1f, MaxHp * Mathf.Clamp(lifeFactor, 0.01f, 1f));
         Position = position;
         Home = position;
@@ -105,9 +147,19 @@ public sealed partial class Unit
         Path = null;
         State.Clear();
         IsCorpse = true;
-        CorpseRemaining = 2f;
+        ConfigDeathTiming();
+        DecayTime = 0f;
+        BoneDecayTime = 2f;
+        CorpseRemaining = DecayLife;
         View?.SetSelected(false);
         View?.Play("Death");
+    }
+
+    public void ResetDeathPresentation()
+    {
+        DeathElapsed = 0f;
+        IsBone = false;
+        DeathPresentationGone = false;
     }
 
     /// <summary>按 HeroReviveLifeFactor 与 HeroReviveManaStart/Factor 恢复上场。</summary>
@@ -119,6 +171,7 @@ public sealed partial class Unit
         AwaitingRevive = false;
         ReviveRemaining = 0f;
         ReviveAltar = null;
+        ResetDeathPresentation();
         Hp = MaxHp * War3GameplayConfig.Default.HeroReviveLifeFactor;
         Mana = Mathf.Max(Mana, MaxMana * War3GameplayConfig.Default.HeroReviveManaStart);
         Position = position;
