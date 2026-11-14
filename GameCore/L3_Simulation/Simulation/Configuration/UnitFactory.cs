@@ -120,8 +120,8 @@ public sealed class UnitType
     /// <summary>UnitBalance.mana0：出生法力。</summary>
     public float ManaStart;
     public float SightDay = 1400f;
-    /// <summary>转身角速度（弧度/秒）。UnitData.turnRate 是原版字段，这里按每 tick 0.1 的量纲折算。</summary>
-    public float TurnSpeed = 3.6f;
+    /// <summary>转身角速度（弧度/秒），UnitData.turnRate 按客户端 0.03 秒事件周期换算。</summary>
+    public float TurnSpeed = 20f;
     public float SightNight = 800f;
     /// <summary>UnitBalance.regenHP，生命恢复（点/秒）；regenType=none 的单位不回血。</summary>
     public float RegenHp;
@@ -355,7 +355,7 @@ public static class UnitFactory
             {
                 SlkTable unitData = War3SlkReader.UnitData();
                 float turnRate = Number(unitData.Get(turnRow, "turnRate"), 0f);
-                if (turnRate > 0f) type.TurnSpeed = Mathf.Clamp(turnRate * 6f, 1.5f, 14f);
+                if (turnRate > 0f) type.TurnSpeed = turnRate / 0.03f;
                 type.FormationRank = Mathf.Clamp((int)Number(unitData.Get(turnRow, "formation"), 0f), 0, 15);
             }
             type.SightNight = Number(balance.Get(balanceRow, "nsight"), 800f);

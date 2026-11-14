@@ -152,7 +152,7 @@ public sealed partial class World
         if (unit.IsBuilding || unit.View == null) return;
 
         float diff = Mathf.Wrap(unit.TargetFacing - unit.Facing, -Mathf.Pi, Mathf.Pi);
-        float maxStep = Mathf.Max(1.5f, unit.Type.TurnSpeed) * FrameSeconds;
+        float maxStep = unit.Type.TurnSpeed * FrameSeconds;
         if (Mathf.Abs(diff) <= maxStep) unit.Facing = unit.TargetFacing;
         else unit.Facing += Mathf.Sign(diff) * maxStep;
     }
