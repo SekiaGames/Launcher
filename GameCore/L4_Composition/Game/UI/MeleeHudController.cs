@@ -95,6 +95,8 @@ public sealed class MeleeHudController : IUiCommandListener
 
     public void ClickCommandSlot(int slot) => _host.ClickCommandSlot(slot);
 
+    public CommandEntry CommandAtHotkey(char hotkey) => _host.CommandAtHotkey(hotkey);
+
     public string DescribeCommandSlots() => _host.DescribeCommandSlots();
 
     public void SetSelectionBox(Rect2 rect, bool visible) => _host.SetSelectionBox(rect, visible);

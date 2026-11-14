@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 
 using OpenWC3.Game.UI;
+using OpenWC3.UI;
 namespace OpenWC3.Game;
 
 /// <summary>
@@ -246,6 +247,7 @@ public sealed partial class War3GameScene
             if (ability == null || !ability.Learned) continue;
 
             int slot = AbilitySlot(ability);
+            if (slot < 0) continue;
 
             if (ability.IsPassive && ability.SupportsAutoCast)
             {
@@ -290,7 +292,8 @@ public sealed partial class War3GameScene
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
                 Icon = TechTree.Icon(ability.IconArt),
-                Enabled = ability.Ready && (toggledOn || hero.Mana >= ability.ManaCost),
+                Enabled = ability.Ready && !ability.IsDisabled && hero.State.CanCast
+                    && (toggledOn || hero.Mana >= ability.ManaCost),
                 Action = () => BeginCast(hero, ability),
                 RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(hero, ability) : null,
                 CooldownRemaining = ability.CooldownRemaining,
@@ -312,6 +315,7 @@ public sealed partial class War3GameScene
         {
             if (!ability.Learned || ability.IsAura) continue;
             int slot = AbilitySlot(ability);
+            if (slot < 0) continue;
             if (ability.IsPassive)
             {
                 if (ability.SupportsAutoCast) AddArrowCommand(commands, unit, ability, slot);
@@ -337,7 +341,8 @@ public sealed partial class War3GameScene
                 Hotkey = ability.Hotkey,
                 Tooltip = AbilityTooltip(ability, ability.Level) + AutoCastHint(ability),
                 Icon = TechTree.Icon(ability.IconArt),
-                Enabled = ability.Ready && (toggledOn || unit.Mana >= ability.ManaCost),
+                Enabled = ability.Ready && !ability.IsDisabled && unit.State.CanCast
+                    && (toggledOn || unit.Mana >= ability.ManaCost),
                 Action = () => BeginCast(unit, ability),
                 RightAction = ability.SupportsAutoCast ? () => ToggleAutoCast(unit, ability) : null,
                 CooldownRemaining = ability.CooldownRemaining,
@@ -407,14 +412,25 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>选中单位的热键：小键盘 1~6 用物品（仅英雄），字母键按物编热键施法（英雄与德鲁伊这类单位都算）。</summary>
+    /// <summary>选中单位的热键：小键盘 1~6 用物品；字母键按命令卡当前可见按钮的 Hotkey 分发。</summary>
     public bool TrySelectionHotkey(Key keycode)
     {
         if (_selected.Count == 0) return false;
         Unit picked = _selected.Count == 1 ? PrimarySelection : null;
 
-        if (picked != null && TrySelectionItemOrAbilityHotkey(picked, keycode)) return true;
-        return PrimarySelection != null && TryStandardCommandHotkey(PrimarySelection, keycode);
+        if (picked != null && TrySelectionItemHotkey(picked, keycode)) return true;
+
+        char pressed = KeyToLetter(keycode);
+        if (pressed == '\0') return false;
+        CommandEntry entry = _hud?.CommandAtHotkey(pressed);
+        if (entry?.Action == null) return false;
+        if (entry.Kind is UiCommandKind.Move or UiCommandKind.Stop or UiCommandKind.Hold
+            or UiCommandKind.AttackMove or UiCommandKind.Patrol)
+        {
+            _panBlockedKey = keycode;
+        }
+        entry.Action();
+        return true;
     }
 
     /// <summary>小键盘 1~6 对应英雄物品六格（原版物品热键就在小键盘上）。</summary>
@@ -435,29 +451,14 @@ public sealed partial class War3GameScene
         return slot >= 0 && _hud.ActivateItemSlot(slot);
     }
 
-    private bool TrySelectionItemOrAbilityHotkey(Unit picked, Key keycode)
+    private bool TrySelectionItemHotkey(Unit picked, Key keycode)
     {
         int slot = (int)(keycode - Key.Kp1);
-        if (slot is >= 0 and < Unit.InventorySize && picked.IsHero)
-        {
-            Item item = picked.Inventory[slot];
-            if (item?.Type == null) return false;
-            ActivateItem(picked, item, slot);
-            return true;
-        }
-
-        foreach (Ability ability in picked.Abilities)
-        {
-            if (!ability.Learned || ability.IsPassive) continue;
-            if (string.IsNullOrEmpty(ability.Hotkey)) continue;
-            char pressed = KeyToLetter(keycode);
-            if (pressed == '\0') continue;
-            if (char.ToUpperInvariant(ability.Hotkey[0]) != pressed) continue;
-            BeginCast(picked, ability);
-            return true;
-        }
-
-        return false;
+        if (slot is < 0 or >= Unit.InventorySize || !picked.IsHero) return false;
+        Item item = picked.Inventory[slot];
+        if (item?.Type == null) return false;
+        ActivateItem(picked, item, slot);
+        return true;
     }
 
     private static char KeyToLetter(Key keycode)

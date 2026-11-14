@@ -267,6 +267,22 @@ public sealed partial class GameHudScreen : Control
     /// <summary>调试用：等价于左键点某一格命令卡（走真实点击链路）。</summary>
     public void ClickCommandSlot(int slot) => InvokeEntry(SlotEntry(slot));
 
+    public CommandEntry CommandAtHotkey(char hotkey)
+    {
+        for (int column = 0; column < 4; column++)
+            for (int row = 0; row < 3; row++)
+            {
+                int slot = row * 4 + column;
+                CommandEntry entry = _slotEntries[slot];
+                if (entry == null || !entry.Enabled) continue;
+                string key = string.IsNullOrWhiteSpace(entry.Hotkey)
+                    ? CommandCardBuilder.FallbackHotkey(slot) : entry.Hotkey;
+                if (key.Length != 1 || char.ToUpperInvariant(key[0]) != hotkey) continue;
+                return entry;
+            }
+        return null;
+    }
+
     /// <summary>命令卡当前 12 格的占用情况（调试用：格号:名字）。</summary>
     public string DescribeCommandSlots()
     {

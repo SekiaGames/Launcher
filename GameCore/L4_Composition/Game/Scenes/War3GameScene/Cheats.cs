@@ -596,6 +596,60 @@ public sealed partial class War3GameScene
             + $" 条目={BuildCommandEntries().Count} {_hud?.DescribeCommandSlots()}");
 
         _selection?.SelectClicked(hero, false);
+        ProbeCommandHotkeys(hero);
+    }
+
+    private void ProbeCommandHotkeys(Unit hero)
+    {
+        PlayerSlot slot = Slot(ViewPlayer);
+        if (slot != null)
+        {
+            slot.Gold = 9999;
+            slot.Lumber = 9999;
+        }
+        foreach (string id in new[] { "hbla", "hlum", "hkee", "hcas", "hfrm", "hfrm", "hfrm", "hfrm" })
+        {
+            Unit support = Spawn(id, ViewPlayer, hero.Position.X, hero.Position.Z + 260f, 0f, 0f, 1f);
+            if (support != null) _world.Units.Add(support);
+        }
+
+        _selection?.SelectClicked(hero, false);
+        UpdateCommandCard();
+        LogCommandHotkey("英雄", 'T');
+        LogCommandHotkey("英雄", 'D');
+        LogCommandHotkey("英雄", 'V');
+
+        Unit barracks = Spawn("hbar", ViewPlayer, hero.Position.X + 320f, hero.Position.Z, 0f, 0f, 1f);
+        if (barracks != null)
+        {
+            _world.Units.Add(barracks);
+            _selection?.SelectClicked(barracks, false);
+            UpdateCommandCard();
+            GD.Print($"[CARD] 兵营卡 {_hud?.DescribeCommandSlots()}");
+            LogCommandHotkey("兵营", 'F');
+            LogCommandHotkey("兵营", 'R');
+            LogCommandHotkey("兵营", 'K');
+            LogCommandHotkey("兵营", 'S');
+        }
+
+        Unit smith = Spawn("hbla", ViewPlayer, hero.Position.X + 480f, hero.Position.Z, 0f, 0f, 1f);
+        if (smith != null)
+        {
+            _world.Units.Add(smith);
+            _selection?.SelectClicked(smith, false);
+            UpdateCommandCard();
+            GD.Print($"[CARD] 铁匠铺卡 {_hud?.DescribeCommandSlots()}");
+            LogCommandHotkey("铁匠铺", 'S');
+            LogCommandHotkey("铁匠铺", 'G');
+            LogCommandHotkey("铁匠铺", 'P');
+            LogCommandHotkey("铁匠铺", 'A');
+        }
+    }
+
+    private void LogCommandHotkey(string label, char hotkey)
+    {
+        CommandEntry entry = _hud?.CommandAtHotkey(hotkey);
+        GD.Print($"[CARD] {label}热键 {hotkey} → {entry?.Id ?? "无"}（{entry?.Name ?? "-"}）");
     }
 
     private void ProbeHeroGuardEntry(Unit hero)

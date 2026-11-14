@@ -250,39 +250,6 @@ public sealed partial class War3GameScene
         return false;
     }
 
-    private bool TryStandardCommandHotkey(Unit unit, Key keycode)
-    {
-        char pressed = KeyToLetter(keycode);
-        if (pressed == '\0') return false;
-        if (unit == null || !unit.Alive || unit.IsBuilding) return false;
-
-        switch (pressed)
-        {
-            case 'M':
-                _panBlockedKey = keycode;
-                BeginMoveCommand();
-                return true;
-            case 'S':
-                _panBlockedKey = keycode;
-                IssueStopOrders();
-                return true;
-            case 'H':
-                _panBlockedKey = keycode;
-                IssueHoldOrders();
-                return true;
-            case 'A':
-                _panBlockedKey = keycode;
-                BeginAttackCommand();
-                return true;
-            case 'P':
-                _panBlockedKey = keycode;
-                BeginPatrolCommand();
-                return true;
-            default:
-                return false;
-        }
-    }
-
     private void ReleaseCommandKey(Key keycode)
     {
         if (_panBlockedKey != Key.None && keycode == _panBlockedKey) _panBlockedKey = Key.None;

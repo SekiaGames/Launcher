@@ -74,6 +74,8 @@ public sealed class UpgradeType
     public float SummonLevelBase;
     public float SummonLevelMod;
     public string IconPath;
+    public string Buttonpos = "";
+    public string[] Hotkeys = Array.Empty<string>();
     public string[] Requires = Array.Empty<string>();
     public string[] LevelNames = Array.Empty<string>();
 
@@ -108,6 +110,12 @@ public sealed class UpgradeType
     {
         if (LevelNames.Length == 0) return Name ?? Id;
         return LevelNames[Mathf.Clamp(level - 1, 0, LevelNames.Length - 1)];
+    }
+
+    public string HotkeyFor(int level)
+    {
+        if (Hotkeys.Length == 0) return "";
+        return Hotkeys[Mathf.Clamp(level - 1, 0, Hotkeys.Length - 1)].Trim();
     }
 }
 
@@ -317,6 +325,7 @@ public static class TechTree
                 string names = Get(text, "Name");
                 upgrade.Name = Clean(names).Split(',')[0].Trim();
                 upgrade.LevelNames = Clean(names).Split(',', StringSplitOptions.TrimEntries);
+                upgrade.Hotkeys = Clean(Get(text, "Hotkey")).Split(',', StringSplitOptions.TrimEntries);
                 upgrade.Description = StripColor(Get(text, "Ubertip"));
             }
             if (string.IsNullOrEmpty(upgrade.Name)) upgrade.Name = id;
@@ -325,6 +334,7 @@ public static class TechTree
             {
                 string art = Get(fields, "Art").Split(',')[0].Trim();
                 upgrade.IconPath = PathResolve.IconPng(art);
+                upgrade.Buttonpos = Get(fields, "Buttonpos");
                 upgrade.Requires = SplitList(Get(fields, "Requires"), fields, "Requires");
             }
 

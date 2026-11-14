@@ -36,6 +36,14 @@ public sealed partial class CommandCardBuilder
             "Buttonpos", "ubpx", "ubpy", out slot, "ButtonposX", "ButtonposY");
     }
 
+    internal static bool TryGetUpgradeConfiguredSlot(UpgradeType data, out int slot)
+    {
+        slot = -1;
+        if (data == null) return false;
+        return NativeCommandPosition.TryRead(_ => data.Buttonpos,
+            "Buttonpos", "gbpx", "gbpy", out slot, "ButtonposX", "ButtonposY");
+    }
+
     /// <summary>学习页 / 建造页的第 12 格：BTNCancel + Esc，点了退回上一页。</summary>
     internal static CommandEntry BackEntry(Action back) => new()
     {

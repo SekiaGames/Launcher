@@ -15,6 +15,9 @@ public sealed partial class CommandCardBuilder
         "Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V",
     };
 
+    internal static string FallbackHotkey(int slot)
+        => slot >= 0 && slot < Hotkeys.Length ? Hotkeys[slot] : "";
+
     private readonly UiContainer _card;
     private readonly ButtonFrame[] _buttons = new ButtonFrame[Slots];
     private readonly IUiTextureResolver _textures;
@@ -137,7 +140,7 @@ public sealed partial class CommandCardBuilder
                 : _textures.Resolve(NativeCommandButtonBinding.DisabledArt(command.Icon,
                     @"ReplaceableTextures\CommandButtonsDisabled\"));
             button.ActiveHighlight = _activeHighlight;
-            button.Hotkey = string.IsNullOrEmpty(command.Hotkey) ? Hotkeys[i] : command.Hotkey;
+            button.Hotkey = string.IsNullOrEmpty(command.Hotkey) ? FallbackHotkey(i) : command.Hotkey;
             button.Disabled = command.Disabled;
             button.Cooldown = command.Cooldown;
             button.OverlayText = command.Overlay;
