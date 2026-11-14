@@ -83,6 +83,10 @@ public sealed class MeleeHudController : IUiCommandListener
 
     public bool BuildMenuOpen => _host.BuildMenuOpen;
 
+    public bool SpellBookOpen => _host.SpellBookOpen;
+
+    public RuntimeSpellBookAbility CurrentSpellBook => _host.CurrentSpellBook;
+
     public void OpenLearnMenu(Unit selected) => _host.OpenLearnMenu(selected);
 
     public void CloseLearnMenu() => _host.CloseLearnMenu();
@@ -90,6 +94,10 @@ public sealed class MeleeHudController : IUiCommandListener
     public void OpenBuildMenu(Unit selected) => _host.OpenBuildMenu(selected);
 
     public void CloseBuildMenu() => _host.CloseBuildMenu();
+
+    public void OpenSpellBook(Unit selected, RuntimeSpellBookAbility book) => _host.OpenSpellBook(selected, book);
+
+    public void BackFromSpellBook() => _host.BackFromSpellBook();
 
     public void BackMenu() => _host.BackMenu();
 

@@ -181,6 +181,12 @@ public sealed partial class War3GameScene
             _hud?.SetHint($"{item.Type.Name} 冷却中（{Mathf.CeilToInt(item.CooldownRemaining)}s）");
             return;
         }
+        if (FindSpellBook(hero, item) is { } book)
+        {
+            _newHud?.OpenSpellBook(hero, book);
+            UpdateCommandCard();
+            return;
+        }
         if (plan.TargetMode == ItemTargetMode.None)
         {
             UseItemNow(hero, item, slot, null, hero.Position);
@@ -306,6 +312,73 @@ public sealed partial class War3GameScene
     private static int AbilitySlot(Ability ability)
         => CommandCardBuilder.TryGetConfiguredSlot(ability, research: false, out int slot) ? slot : -1;
 
+    /// <summary>物品装着的法术书（客户端 InventorySpellBook）。</summary>
+    private static RuntimeSpellBookAbility FindSpellBook(Unit hero, Item item)
+    {
+        if (hero == null || item == null) return null;
+        foreach (Ability ability in hero.Abilities)
+        {
+            if (ability is RuntimeSpellBookAbility book && ReferenceEquals(book.SourceItem, item))
+                return book;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 法术书页（客户端 CollectAbilityCommands 的 spellBook 分支）：
+    /// 只收这本书的子技能，子技能序号当格号（0..10），第 12 格返回。
+    /// </summary>
+    private List<CommandEntry> CollectSpellBookMenu(Unit hero, RuntimeSpellBookAbility book)
+    {
+        var commands = new List<CommandEntry> { CommandCardBuilder.BackEntry(BackMenu) };
+        if (hero == null || book == null) return commands;
+
+        IReadOnlyList<Ability> children = book.Children;
+        for (int index = 0; index < children.Count && index < CommandCardBuilder.SlotCount - 1; index++)
+        {
+            Ability ability = children[index];
+            if (ability?.Type == null) continue;
+
+            int slot = index;
+            if (ability.IsPassive && ability.SupportsAutoCast)
+            {
+                AddArrowCommand(commands, hero, ability, slot);
+                continue;
+            }
+
+            bool toggledOn = ability.IsToggle && ability.ToggledOn;
+            bool autoOn = ability.SupportsAutoCast && ability.AutoCastEnabled && hero.AutoCast;
+            string cost = toggledOn
+                ? "开启"
+                : autoOn
+                    ? "自动"
+                    : ability.Ready
+                        ? $"{ability.ManaCost:0} 法力"
+                        : $"{Mathf.CeilToInt(ability.CooldownRemaining)}s";
+
+            commands.Add(new CommandEntry
+            {
+                Id = ability.Id,
+                Name = ability.Name,
+                Cost = ability.IsPassive ? "被动" : cost,
+                SlotIndex = slot,
+                Hotkey = ability.Hotkey,
+                Tooltip = AbilityTooltip(ability, ability.Level)
+                    + (ability.IsPassive ? "" : AutoCastHint(ability)),
+                Icon = TechTree.Icon(ability.IconArt),
+                Enabled = !ability.IsPassive && ability.Ready
+                    && (toggledOn || hero.Mana >= ability.ManaCost),
+                Action = ability.IsPassive ? null : () => BeginCast(hero, ability),
+                RightAction = !ability.IsPassive && ability.SupportsAutoCast
+                    ? () => ToggleAutoCast(hero, ability)
+                    : null,
+                CooldownRemaining = ability.CooldownRemaining,
+                CooldownTotal = ability.Type.CooldownAt(Mathf.Max(1, ability.Level)),
+            });
+        }
+        return commands;
+    }
+
     /// <summary>
     /// 非英雄单位的技能格（德鲁伊熊/乌鸦形态这类）：等级固定、没有技能点，点一下就是施放。
     /// </summary>
@@ -314,6 +387,7 @@ public sealed partial class War3GameScene
         foreach (Ability ability in unit.Abilities)
         {
             if (!ability.Learned || ability.IsAura) continue;
+            if (!string.IsNullOrWhiteSpace(ability.ContainerRawcode)) continue;
             int slot = AbilitySlot(ability);
             if (slot < 0) continue;
             if (ability.IsPassive)

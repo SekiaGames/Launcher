@@ -309,6 +309,7 @@ public static class RuntimeAbilityFactory
         ["AIcf"] = () => new CloakOfFlames(),      // 献祭斗篷（物品，持续炎伤）
         // —— 物品栏（单位获得格子的标记码） ——
         ["AInv"] = () => new InventoryPassive(),
+        ["Aspb"] = () => new RuntimeSpellBookAbility(),   // 法术书（物品把子技能收进命令卡页面）
         ["Aien"] = () => new InventoryPassive(),
         ["Aihn"] = () => new InventoryPassive(),
         ["Aion"] = () => new InventoryPassive(),

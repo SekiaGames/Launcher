@@ -440,6 +440,10 @@ _root.AddChild(_aboutDialog);
 
     public bool BuildMenuOpen => _card.BuildMenuOpen;
 
+    public bool SpellBookOpen => _card.SpellBookOpen;
+
+    public RuntimeSpellBookAbility CurrentSpellBook => _card.CurrentSpellBook;
+
     public void OpenLearnMenu(Unit selected) => _card.OpenLearnMenu(selected);
 
     public void CloseLearnMenu() => _card.CloseLearnMenu();
@@ -447,6 +451,10 @@ _root.AddChild(_aboutDialog);
     public void OpenBuildMenu(Unit selected) => _card.OpenBuildMenu(selected);
 
     public void CloseBuildMenu() => _card.CloseBuildMenu();
+
+    public void OpenSpellBook(Unit selected, RuntimeSpellBookAbility book) => _card.OpenSpellBook(selected, book);
+
+    public void BackFromSpellBook() => _card.BackFromSpellBook();
 
     public void BackMenu() => _card.BackMenu();
 

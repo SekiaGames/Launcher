@@ -173,6 +173,12 @@ public sealed partial class World
 
         caster.Mana = Mathf.Max(0f, caster.Mana - cost);
         ability.CooldownRemaining = ability.Cooldown;
+        for (int index = 0; index < caster.Abilities.Count; index++)
+        {
+            Ability ownerAbility = caster.Abilities[index];
+            if (ownerAbility == null || ReferenceEquals(ownerAbility, ability)) continue;
+            ownerAbility.OnOwnerAbilityCast(ability);
+        }
         ability.SpawnArts(target, flat);
         AbilityCast?.Invoke(caster, ability, target);
         return true;
@@ -660,6 +666,12 @@ public sealed partial class World
         {
             if (raw.Length < 4) continue;
             string code = raw[..4];
+            if (string.Equals(code, "Aspb", StringComparison.OrdinalIgnoreCase))
+            {
+                if (RuntimeSpellBookAbility.AttachToItem(unit, item, AbilityCatalog.Get(code)) != null)
+                    item.GrantedAbilities.Add(code);
+                continue;
+            }
             if (System.Array.IndexOf(ItemAbilityCodes, code) < 0) continue;
             if (unit.GiveAbility(code, 1) == null) continue;
             item.GrantedAbilities.Add(code);
@@ -689,6 +701,7 @@ public sealed partial class World
             for (int index = unit.Abilities.Count - 1; index >= 0; index--)
             {
                 if (!string.Equals(unit.Abilities[index].Id, code, StringComparison.OrdinalIgnoreCase)) continue;
+                if (unit.Abilities[index] is RuntimeSpellBookAbility book) book.OnRemove();
                 unit.Abilities.RemoveAt(index);
             }
         }

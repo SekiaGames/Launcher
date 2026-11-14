@@ -442,6 +442,15 @@ public sealed partial class War3GameScene
         // 物品格跟着主位英雄走（客户端 InventoryFrame 也是独立于命令卡翻页的）
         if (primary.IsHero && CanControl(primary)) AddInventoryCommands(primary);
 
+        if (_newHud is { SpellBookOpen: true })
+        {
+            RuntimeSpellBookAbility book = _newHud.CurrentSpellBook;
+            if (book != null && ReferenceEquals(book.Owner, primary) && primary.Alive
+                && primary.Abilities.Contains(book))
+                return CollectSpellBookMenu(primary, book);
+            _newHud.BackFromSpellBook();
+        }
+
         if (_newHud is { LearnMenuOpen: true })
             return CommandCardBuilder.CollectLearnMenu(primary, LearnAbility, BackMenu);
 

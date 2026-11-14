@@ -23,13 +23,13 @@ public sealed partial class CommandCardBuilder
     private readonly IUiTextureResolver _textures;
     private ITexture _activeHighlight;
 
-    /// <summary>命令卡的翻页栈（客户端 NativeCommandMenu&lt;MenuPage&gt; 的同口径）：学习页 / 建造页。</summary>
+    /// <summary>命令卡的翻页栈（客户端 NativeCommandMenu&lt;MenuPage&gt; 的同口径）：学习页 / 建造页 / 法术书页。</summary>
     private readonly System.Collections.Generic.List<MenuPage> _menus = new();
     private Unit _menuUnit;
 
-    private enum MenuKind { Learn, Build }
+    private enum MenuKind { Learn, Build, Book }
 
-    private sealed record MenuPage(MenuKind Kind);
+    private sealed record MenuPage(MenuKind Kind, RuntimeSpellBookAbility Book = null);
 
     private MenuPage CurrentMenu => _menus.Count > 0 ? _menus[^1] : null;
 
@@ -37,6 +37,10 @@ public sealed partial class CommandCardBuilder
     public bool LearnMenuOpen => CurrentMenu?.Kind == MenuKind.Learn;
 
     public bool BuildMenuOpen => CurrentMenu?.Kind == MenuKind.Build;
+
+    public bool SpellBookOpen => CurrentMenu?.Kind == MenuKind.Book;
+
+    public RuntimeSpellBookAbility CurrentSpellBook => CurrentMenu?.Book;
 
     public UiContainer Root => _card;
 
@@ -99,17 +103,42 @@ public sealed partial class CommandCardBuilder
         if (BuildMenuOpen) _menus.RemoveAt(_menus.Count - 1);
     }
 
+    /// <summary>打开法术书页（客户端 OpenSpellBook）：书必须挂在当前选中的主人身上。</summary>
+    public void OpenSpellBook(Unit selected, RuntimeSpellBookAbility book)
+    {
+        if (selected == null || book == null) return;
+        if (!ReferenceEquals(book.Owner, selected) || !selected.Abilities.Contains(book)) return;
+        UpdateMenuSelection(selected);
+        _menus.Clear();
+        _menus.Add(new MenuPage(MenuKind.Book, book));
+    }
+
+    public void BackFromSpellBook()
+    {
+        if (SpellBookOpen) _menus.RemoveAt(_menus.Count - 1);
+    }
+
     public void BackMenu()
     {
         if (_menus.Count > 0) _menus.RemoveAt(_menus.Count - 1);
     }
 
-    /// <summary>换选中单位 = 收掉翻页（客户端 CommandCardBuilder.UpdateMenuSelection）。</summary>
+    /// <summary>换选中单位 = 收掉翻页；法术书的主人死亡或书被移除时自动退回（客户端 UpdateMenuSelection）。</summary>
     public void UpdateMenuSelection(Unit selected)
     {
-        if (ReferenceEquals(_menuUnit, selected)) return;
-        _menus.Clear();
-        _menuUnit = selected;
+        if (!ReferenceEquals(_menuUnit, selected))
+        {
+            _menus.Clear();
+            _menuUnit = selected;
+        }
+
+        while (CurrentMenu?.Kind == MenuKind.Book)
+        {
+            RuntimeSpellBookAbility book = CurrentMenu.Book;
+            if (book != null && selected != null && selected.Alive
+                && ReferenceEquals(book.Owner, selected) && selected.Abilities.Contains(book)) break;
+            _menus.RemoveAt(_menus.Count - 1);
+        }
     }
 
     public void Build(CommandCardView view, Unit selected = null)

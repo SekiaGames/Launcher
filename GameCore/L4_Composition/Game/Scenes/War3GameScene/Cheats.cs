@@ -597,6 +597,7 @@ public sealed partial class War3GameScene
 
         _selection?.SelectClicked(hero, false);
         ProbeCommandHotkeys(hero);
+        ProbeSpellBookPage(hero);
     }
 
     private void ProbeCommandHotkeys(Unit hero)
@@ -650,6 +651,61 @@ public sealed partial class War3GameScene
     {
         CommandEntry entry = _hud?.CommandAtHotkey(hotkey);
         GD.Print($"[CARD] {label}热键 {hotkey} → {entry?.Id ?? "无"}（{entry?.Name ?? "-"}）");
+    }
+
+    /// <summary>法术书页：拾起 sbok → 点物品 → 子技能按序号进 0..10、第 12 格返回 → 返回关页。</summary>
+    private void ProbeSpellBookPage(Unit hero)
+    {
+        if (hero == null || !ItemCatalog.Exists("sbok")) return;
+
+        for (int slot = Unit.InventorySize - 1; slot >= 0; slot--)
+        {
+            if (hero.Inventory[slot] == null) continue;
+            _world.DropItemFromSlot(hero, slot);
+            break;
+        }
+
+        var spot = new Vector3(hero.Position.X + 32f, hero.Position.Y, hero.Position.Z + 32f);
+        Item bookItem = SpawnItem("sbok", spot);
+        if (bookItem == null)
+        {
+            GD.Print("[CARD] 法术书物品模型缺失，跳过");
+            return;
+        }
+        _world.IssuePickupItem(hero, bookItem);
+        _world.Advance();
+
+        int bookSlot = -1;
+        for (int slot = 0; slot < Unit.InventorySize; slot++)
+            if (ReferenceEquals(hero.Inventory[slot], bookItem)) bookSlot = slot;
+        if (bookSlot < 0)
+        {
+            GD.Print("[CARD] 法术书没有进背包，跳过");
+            return;
+        }
+
+        ActivateItem(hero, bookItem, bookSlot);
+        int children = 0;
+        foreach (Ability ability in hero.Abilities)
+            if (ability is RuntimeSpellBookAbility book) children = book.Children.Count;
+        GD.Print($"[CARD] 法术书 背包格={bookSlot} 子技能={children} 页面={_newHud?.SpellBookOpen}"
+            + $" {_hud?.DescribeCommandSlots()}");
+
+        float manaBefore = hero.Mana;
+        _hud?.ClickCommandSlot(2);
+        GD.Print($"[CARD] 法术书点咆哮 法力 {manaBefore:0}->{hero.Mana:0} 页面={_newHud?.SpellBookOpen}");
+
+        _hud?.ClickCommandSlot(11);
+        GD.Print($"[CARD] 法术书返回后 页面={_newHud?.SpellBookOpen} {_hud?.DescribeCommandSlots()}");
+
+        ActivateItem(hero, bookItem, bookSlot);
+        _world.DropItemFromSlot(hero, bookSlot);
+        UpdateCommandCard();
+        int books = 0;
+        foreach (Ability ability in hero.Abilities)
+            if (ability is RuntimeSpellBookAbility) books++;
+        GD.Print($"[CARD] 法术书离手后 页面={_newHud?.SpellBookOpen} 书={books}"
+            + $" {_hud?.DescribeCommandSlots()}");
     }
 
     private void ProbeHeroGuardEntry(Unit hero)
