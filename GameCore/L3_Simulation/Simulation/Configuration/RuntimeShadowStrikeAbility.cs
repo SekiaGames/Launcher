@@ -25,7 +25,9 @@ public sealed class RuntimeShadowStrikeAbility : Ability
     {
         if (world == null || Owner == null || target == null || !target.Alive) return false;
 
+        float lifeBefore = target.Hp;
         world.DealDamage(World.MakeAbilityDamage(Owner, target, Data('E'), AttackType.Spells, DamageType.Magic));
+        FloatingText.ShowShadowStrike(target, lifeBefore - target.Hp, initial: true);
         if (!target.Alive) return true;
 
         float slowSeconds = Data('D') > 0f ? Data('D') : 3f;
@@ -41,6 +43,7 @@ public sealed class RuntimeShadowStrikeAbility : Ability
             DamageSource = Owner,
             AmountPerTick = Data('A'),
             Interval = interval,
+            DamageType = DamageType.ShadowStrike,
         });
         return true;
     }

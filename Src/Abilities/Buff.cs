@@ -368,6 +368,8 @@ public sealed class PeriodicDamageBuff : Buff
         {
             _accumulator -= Interval;
             world.DealDamage(World.MakeAbilityDamage(DamageSource, Owner, AmountPerTick, AttackType, DamageType));
+            // 暗影突袭的持续伤害自带绿色"N"反馈（客户端 RuntimeShadowStrikeBuff）。
+            if (DamageType == DamageType.ShadowStrike) FloatingText.ShowShadowStrike(Owner, AmountPerTick, false);
         }
         return alive && Owner.Alive;
     }

@@ -34,6 +34,8 @@ public sealed partial class GameHudScreen : Control
     private InventoryFrame _inventory;
     private QueueIconRowFrame _queue;
     private TooltipFrame _tooltip;
+    private TextTagFrame _textTag;
+    private IReadOnlyList<TextTagFrame.TagView> _worldText;
     private readonly CommandEntry[] _inventoryEntries = new CommandEntry[6];
     private GodotUiTexture _portraitTexture;
     private GodotUiTexture _timeOfDayTexture;
@@ -109,6 +111,7 @@ public sealed partial class GameHudScreen : Control
         _inventory = new InventoryFrame(resolver);
         _queue = new QueueIconRowFrame(resolver, skin);
         _tooltip = new TooltipFrame();
+        _textTag = new TextTagFrame();
         _portraitViewport = new PortraitViewport(this);
         _portraitTexture = new GodotUiTexture(_portraitViewport.Texture);
         _timeOfDayViewport = new TimeOfDayViewport(this, skin.Get("TimeOfDayIndicator",
@@ -173,6 +176,16 @@ public sealed partial class GameHudScreen : Control
     public void SetUnitInfo(UnitInfoView? view)
     {
         _infoPanel.Update(view);
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// 世界层飘字（客户端 MeleeHudController.RenderWorldText）：只领取本帧的投影结果，
+    /// 真正的绘制在 <see cref="_Draw"/> 里、所有 HUD 之前完成——数字盖在任何 UI 上都是错的。
+    /// </summary>
+    internal void RenderWorldText(IReadOnlyList<TextTagFrame.TagView> tags)
+    {
+        _worldText = tags;
         QueueRedraw();
     }
 
@@ -488,6 +501,8 @@ public sealed partial class GameHudScreen : Control
         _tooltip.Layout(DesignWidth, DesignHeight);
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
+        _textTag.Update(_worldText, DesignWidth, DesignHeight);
+        if (_textTag.Visible) _textTag.Render(_device);
         if (_selectionBox is { } box)
             _device.DrawTexturedQuad(box, _device.WhiteTexture,
                 new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 0.16f));

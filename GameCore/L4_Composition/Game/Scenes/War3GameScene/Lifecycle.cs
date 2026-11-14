@@ -312,6 +312,7 @@ public sealed partial class War3GameScene : Node3D
         _trees = _terrainBuilder.Trees;
         _world = new World(map.Terrain, _pathGrid, _trees);
         _world.ShowDamageNumbers = ShowDamageNumbers;
+        _world.ObserverPlayer = ViewPlayer;
         _world.FogVisible = (x, z) => _fog == null || !_fog.Enabled
             || _fog.IsVisible(new Vector3(x, 0f, z));
         _selection = new PlayerSelectionController(_world, () => ViewPlayer,
@@ -659,7 +660,7 @@ public sealed partial class War3GameScene : Node3D
         _terrainShadows?.Update(SunShadowStrength(_todHours));
         TickProjectiles((float)delta);
         RenderVisualEffects((float)delta);
-        TickFloatingLabels((float)delta);
+        UpdateWorldText();
         TickLightningBeams((float)delta);
         _weather?.FrameSeconds(_camera.Target);
         _skyBackground?.FrameSeconds(_camera?.Camera, _todHours);

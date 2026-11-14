@@ -376,7 +376,7 @@ public sealed partial class War3GameScene
 
         slot.Gold += gold;
         RefreshHud();
-        if (victim != null && player == ViewPlayer) ShowResourceFloat(victim, gold, false, true);
+        if (victim != null && player == ViewPlayer) FloatingText.ShowBounty(victim, gold);
         if (_bountyLogBudget > 0)
         {
             _bountyLogBudget--;
@@ -391,7 +391,7 @@ public sealed partial class War3GameScene
         if (Slot(player) == null) return;
         Slot(player).Lumber += amount;
         RefreshHud();
-        if (player == ViewPlayer) ShowResourceFloat(FindHall(player), amount, true, false);
+        if (player == ViewPlayer) FloatingText.ShowResource(FindHall(player), amount, lumber: true);
     }
 
     private void OnGoldDeposited(int player, int amount)
@@ -400,7 +400,7 @@ public sealed partial class War3GameScene
         int credited = War3GameplayConfig.Default.GoldAfterUpkeep(amount, FoodUsed(player));
         Slot(player).Gold += credited;
         RefreshHud();
-        if (player == ViewPlayer) ShowResourceFloat(FindHall(player), credited, false, false);
+        if (player == ViewPlayer) FloatingText.ShowResource(FindHall(player), credited, lumber: false);
     }
 
     private void UpdateCommandCard() => _hud?.RefreshCommands();

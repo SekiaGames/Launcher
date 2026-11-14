@@ -1,141 +1,91 @@
 using Godot;
-using System;
 using System.Collections.Generic;
+using OpenWC3.Game.UI;
+using OpenWC3.UI;
 
 namespace OpenWC3.Game;
 
 public sealed partial class War3GameScene
 {
-    private sealed class FloatingLabel
-    {
-        public Label3D Node;
-        public float Remaining;
-        public float Total;
-        public Vector3 Origin;
-    }
+    private readonly List<TextTagFrame.TagView> _textTagViews = new();
 
-    private readonly List<FloatingLabel> _floatingLabels = new();
-    private const int MaxFloatingLabels = 72;
+    // 视口外剔除余量(px)：覆盖阴影偏移与锚点/估算宽度误差，避免边缘误裁。
+    private const float FloatTextCullMargin = 48f;
 
     /// <summary>普通伤害数字（客户端默认关；暴击始终显示）。</summary>
     public bool ShowDamageNumbers;
 
-    private static readonly Color CriticalColor = new(1f, 0.32f, 0.22f);
-    private static readonly Color OrdinaryDamageColor = new(1f, 1f, 1f, 0.92f);
-    private static readonly Color GoldColor = new(1f, 0.86f, 0f);
-    private static readonly Color LumberColor = new(0f, 0.78f, 0.31f);
-    private static readonly Color BountyColor = new(1f, 0.86f, 0f);
-    private static readonly Color ManaBurnColor = new(0.32f, 0.32f, 1f);
-    private static readonly Color MissColor = new(0.82f, 0.82f, 0.82f, 0.95f);
-
     private void OnDamageApplied(DamageData info)
     {
-        if (info?.Target == null || info.Amount < 1f || info.Reflected) return;
-        if (!IsAudible(info.Target.Position)) return;
+        if (info?.Target == null || info.Cancelled) return;
 
-        if (info.IsCritical && info.IsAttack)
+        // 暴击出在攻击者头上，用的是减伤前的数值（客户端 WeaponSystem 4b0460 取的是 retained pre-reduction）。
+        if (info.IsCritical) FloatingText.ShowCriticalStrike(info.Source ?? info.Target, info.Raw);
+
+        if (!ShowDamageNumbers || info.DamageType == DamageType.Magic || info.Amount <= 0f) return;
+        FloatingText.ShowOrdinaryDamage(info.Target, info.Amount);
+    }
+
+    private void ShowMissFloat(Unit attacker) => FloatingText.ShowMiss(attacker);
+
+    private void ShowManaBurnFloat(Unit target, float drained) => FloatingText.ShowManaBurn(target, drained);
+
+    /// <summary>
+    /// 世界层飘字投影（客户端 Ui.BuildTextTagViews）：每帧把模拟层的飘字投影成屏幕空间文字，
+    /// 交给 HUD 在所有界面之前绘制。字号按帧缓冲高度换算，拉远镜头不跟着缩小。
+    /// </summary>
+    private void UpdateWorldText()
+    {
+        Camera3D camera = _camera?.Camera;
+        if (camera == null || _world == null || _newHud == null)
         {
-            ShowUnitFloat(info.Target, $"{(int)info.Amount}!", CriticalColor, 30f, 1.6f);
+            _newHud?.RenderWorldText(null);
             return;
         }
 
-        if (!ShowDamageNumbers || !info.IsAttack) return;
-        ShowUnitFloat(info.Target, $"{(int)info.Amount}", OrdinaryDamageColor, 19f, 0.95f);
-    }
+        Vector2 viewport = GetViewport().GetVisibleRect().Size;
+        if (viewport.X <= 0f || viewport.Y <= 0f) return;
+        float scaleX = viewport.X / GameHudScreen.DesignWidth;
+        float scaleY = viewport.Y / GameHudScreen.DesignHeight;
 
-    private void ShowMissFloat(Unit attacker)
-    {
-        if (attacker == null || !attacker.Alive || !IsAudible(attacker.Position)) return;
-        ShowUnitFloat(attacker, "Miss", MissColor, 20f, 0.9f);
-    }
-
-    private void ShowManaBurnFloat(Unit target, float drained)
-    {
-        if (target == null || drained <= 0f || !IsAudible(target.Position)) return;
-        ShowUnitFloat(target, $"-{(int)drained}", ManaBurnColor, 24f, 1.4f);
-    }
-
-    private void ShowResourceFloat(Unit anchor, int amount, bool lumber, bool bounty)
-    {
-        if (anchor == null || amount <= 0) return;
-        Color color = bounty ? BountyColor : lumber ? LumberColor : GoldColor;
-        ShowUnitFloat(anchor, $"+{amount}", color, bounty ? 24f : 20f, bounty ? 1.6f : 1.1f);
-    }
-
-    private void ShowUnitFloat(Unit anchor, string text, Color color, float size, float seconds)
-    {
-        if (anchor == null || string.IsNullOrEmpty(text)) return;
-        float height = anchor.View?.Height ?? 90f;
-        ShowFloat(anchor.Position + new Vector3(0f, height + 16f, 0f), text, color, size, seconds);
-    }
-
-    private void ShowFloat(Vector3 worldPoint, string text, Color color, float size, float seconds)
-    {
-        while (_floatingLabels.Count >= MaxFloatingLabels)
+        List<TextTagFrame.TagView> views = _textTagViews;
+        views.Clear();
+        foreach (FloatingText text in _world.Floats)
         {
-            FloatingLabel oldest = _floatingLabels[0];
-            _floatingLabels.RemoveAt(0);
-            oldest.Node?.QueueFree();
-        }
+            if (text == null || string.IsNullOrEmpty(text.Text)) continue;
+            // 普通伤害数字受「伤害数字显示」和迷雾两道门禁；其它反馈位置固定，只做视口剔除。
+            if (text.OrdinaryDamage && (!ShowDamageNumbers || !IsAudible(text.Pos))) continue;
 
-        var label = new Label3D
-        {
-            Text = text,
-            FontSize = 48,
-            PixelSize = Mathf.Max(0.004f, size / 48f),
-            Modulate = color,
-            OutlineSize = 12,
-            OutlineModulate = new Color(0f, 0f, 0f, color.A),
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            NoDepthTest = true,
-            Shaded = false,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            RenderPriority = 12,
-            Position = worldPoint,
-        };
-        AddChild(label);
+            var point = new Vector3(text.Pos.X, text.WorldHeight, text.Pos.Z);
+            if (camera.IsPositionBehind(point)) continue;
+            Vector2 screen = camera.UnprojectPosition(point);
+            float screenX = screen.X / scaleX + text.OffsetX
+                + (text.Style?.Velocity.X ?? 0f) * text.Age * GameHudScreen.DesignWidth / .8f;
+            float screenY = screen.Y / scaleY
+                - text.Age * (text.Style != null
+                    ? text.Style.Velocity.Y * GameHudScreen.DesignHeight / .6f
+                    : 30f);
+            float fontSize = text.Style != null
+                ? TextTagFrame.FontLineHeight(text.Style.Height, (int)viewport.Y, scaleY)
+                : 24f;
 
-        _floatingLabels.Add(new FloatingLabel
-        {
-            Node = label,
-            Remaining = Mathf.Max(0.3f, seconds),
-            Total = Mathf.Max(0.3f, seconds),
-            Origin = worldPoint,
-        });
-    }
+            // 锚点在文字左下角(向上、向右展开)；宽度只用于剔除，估大不影响观感。
+            float estimatedWidth = System.Math.Max(40f, text.Text.Length * fontSize * .75f) + FloatTextCullMargin;
+            if (screenX > GameHudScreen.DesignWidth + FloatTextCullMargin
+                || screenX + estimatedWidth < -FloatTextCullMargin
+                || screenY < -FloatTextCullMargin
+                || screenY - fontSize > GameHudScreen.DesignHeight + FloatTextCullMargin) continue;
 
-    private void TickFloatingLabels(float delta)
-    {
-        if (_floatingLabels.Count == 0) return;
-
-        for (int index = _floatingLabels.Count - 1; index >= 0; index--)
-        {
-            FloatingLabel label = _floatingLabels[index];
-            if (label.Node == null || !GodotObject.IsInstanceValid(label.Node))
+            views.Add(new TextTagFrame.TagView
             {
-                _floatingLabels.RemoveAt(index);
-                continue;
-            }
-
-            label.Remaining -= delta;
-            if (label.Remaining <= 0f)
-            {
-                label.Node.QueueFree();
-                _floatingLabels.RemoveAt(index);
-                continue;
-            }
-
-            float age = label.Total - label.Remaining;
-            label.Node.Position = label.Origin + new Vector3(0f, age * 34f, 0f);
-
-            float fadeFrom = label.Total * 0.55f;
-            Color color = label.Node.Modulate;
-            color.A = age <= fadeFrom ? 1f : Mathf.Clamp(1f - (age - fadeFrom) / Mathf.Max(0.01f, label.Total - fadeFrom), 0f, 1f);
-            label.Node.Modulate = color;
-            Color outline = label.Node.OutlineModulate;
-            outline.A = color.A;
-            label.Node.OutlineModulate = outline;
+                ScreenX = screenX,
+                ScreenY = screenY,
+                Text = text.Text,
+                FontSize = fontSize,
+                Alignment = TextAlignment.Left,
+                Color = new System.Numerics.Vector4(text.Color.R, text.Color.G, text.Color.B, text.Alpha),
+            });
         }
+        _newHud.RenderWorldText(views);
     }
 }

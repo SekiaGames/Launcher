@@ -1389,6 +1389,115 @@ public sealed partial class War3GameScene
             screen.Y * GameHudScreen.DesignHeight / Mathf.Max(1f, size.Y));
     }
 
+    /// <summary>--float-probe：飘字走屏幕空间文字、样式表逐项对齐、镜头远近字号不变。</summary>
+    public async void RunFloatProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        if (hall == null)
+        {
+            GD.Print("[FLT] 找不到主基地，跳过");
+            return;
+        }
+
+        War3GameplayConfig config = War3GameplayConfig.Default;
+        GD.Print($"[FLT] 表 CriticalStrike 色={Describe(config.CriticalStrikeText)} 寿命={config.CriticalStrikeText.Lifetime:0.##} 淡出={config.CriticalStrikeText.FadeStart:0.##}");
+        GD.Print($"[FLT] 表 OrdinaryDamage 色={Describe(config.OrdinaryDamageText)} 寿命={config.OrdinaryDamageText.Lifetime:0.##} 高度={config.OrdinaryDamageText.Height:0.###}");
+        GD.Print($"[FLT] 表 Miss 色={Describe(config.MissText)} 寿命={config.MissText.Lifetime:0.##}");
+        GD.Print($"[FLT] 表 LumberBounty 透明度={config.LumberBountyText.Alpha:0.##} 高度={config.LumberBountyText.Height:0.###}");
+
+        Unit hero = Spawn("Hpal", ViewPlayer, hall.Position.X + 300f, hall.Position.Z + 200f, 0f, 0f, 1f);
+        if (hero == null)
+        {
+            GD.Print("[FLT] 英雄模型缺失，跳过");
+            return;
+        }
+        _world.Units.Add(hero);
+        _allUnits.Add(hero);
+        _selection.SelectRect(new[] { hero }, false);
+        _camera.Focus(hero.Position);
+        await ToSignal(GetTree().CreateTimer(0.6f), "timeout");
+
+        // 1. 九种反馈逐条错开 0.22 秒，出图时能在同一列里分清爽。
+        FloatingText.ShowCriticalStrike(hero, 123f);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowOrdinaryDamage(hero, 45f);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowMiss(hero);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowResource(hero, 25, lumber: false);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowResource(hero, 30, lumber: true);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowBounty(hero, 60);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowBounty(hero, 40, lumber: true);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowManaBurn(hero, 40f);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowShadowStrike(hero, 75f, initial: true);
+        await ToSignal(GetTree().CreateTimer(0.22f), "timeout");
+        FloatingText.ShowShadowStrike(hero, 10f, initial: false);
+        await ToSignal(GetTree().CreateTimer(0.3f), "timeout");
+
+        GD.Print($"[FLT] 出字 {_world.Floats.Count} 条");
+        foreach (FloatingText text in _world.Floats)
+        {
+            GD.Print($"[FLT]   \"{text.Text}\" 色={Describe(text.Color)} 寿命={text.Life:0.##} 透明={text.Alpha:0.##} 高度={text.WorldHeight:0}");
+        }
+
+        // 2. 镜头拉远的字号不变：飘字字号只由帧缓冲高度决定，投影位置才跟镜头走。
+        Vector2 viewport = GetViewport().GetVisibleRect().Size;
+        float scaleY = viewport.Y / GameHudScreen.DesignHeight;
+        float near = TextTagFrame.FontLineHeight(config.CriticalStrikeText.Height, (int)viewport.Y, scaleY);
+        UpdateWorldText();
+        float nearY = FirstTagScreenY();
+        SetCameraDistanceScale(2.4f);
+        await ToSignal(GetTree().CreateTimer(1.2f), "timeout");
+        float far = TextTagFrame.FontLineHeight(config.CriticalStrikeText.Height, (int)viewport.Y, scaleY);
+        UpdateWorldText();
+        float farY = FirstTagScreenY();
+        GD.Print($"[FLT] 字号 近景={near:0.##} 远景={far:0.##}；投影高度 近景={nearY:0} 远景={farY:0}（{viewport.X:0}x{viewport.Y:0}）");
+        SetCameraDistanceScale(1f);
+
+        // 3. 普通伤害数字受「伤害数字显示」门禁：关着不进视图，开着才进来。
+        _world.Floats.Clear();
+        FloatingText.ShowOrdinaryDamage(hero, 33f);
+        ShowDamageNumbers = false;
+        UpdateWorldText();
+        int hidden = CountTagViews("33");
+        ShowDamageNumbers = true;
+        UpdateWorldText();
+        int shown = CountTagViews("33");
+        GD.Print($"[FLT] 普通伤害数字 关={hidden} 开={shown}");
+
+        // 4. 出图前再补几条，确认飘字层一直在刷。
+        for (int round = 0; round < 4; round++)
+        {
+            FloatingText.ShowCriticalStrike(hero, 88f + round);
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            FloatingText.ShowOrdinaryDamage(hero, 20f + round);
+            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+        }
+    }
+
+    private float FirstTagScreenY() => _textTagViews.Count > 0 ? _textTagViews[0].ScreenY : -1f;
+
+    private int CountTagViews(string text)
+    {
+        int count = 0;
+        foreach (TextTagFrame.TagView view in _textTagViews)
+        {
+            if (view.Text == text) count++;
+        }
+        return count;
+    }
+
+    private static string Describe(War3FloatingTextStyle style)
+        => $"{style.Color.R * 255f:0},{style.Color.G * 255f:0},{style.Color.B * 255f:0}/{style.Alpha:0.##}";
+
+    private static string Describe(Color color)
+        => $"{color.R * 255f:0},{color.G * 255f:0},{color.B * 255f:0}";
+
     private static string Label(Unit unit) => unit == null ? "无" : unit.Type?.Name ?? "?";
 
     private string DescribeSelection()

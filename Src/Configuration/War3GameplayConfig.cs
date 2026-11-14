@@ -118,6 +118,28 @@ public sealed class War3GameplayConfig
         return 2f - Mathf.Pow(1f - DefenseArmor, -armor);
     }
 
+    // —— 飘字样式（UI\MiscData + UI\MiscUI）：默认值即经典 TFT，地图可在表里覆盖 ——
+    public readonly War3FloatingTextStyle CriticalStrikeText =
+        War3FloatingTextStyle.Load("CriticalStrikeText", .04f, 5f, 2f, new Color(1f, 0f, 0f));
+    // 普通伤害数字是「伤害数字显示」开关的玩家设置，原版表里没有对应键，只有代码默认值。
+    public readonly War3FloatingTextStyle OrdinaryDamageText =
+        War3FloatingTextStyle.Load("OrdinaryDamageText", .03f, .9f, .4f, new Color(1f, 1f, 1f), 1f, .018f);
+    public readonly War3FloatingTextStyle MissText =
+        War3FloatingTextStyle.Load("MissText", .03f, 3f, 1f, new Color(1f, 0f, 0f));
+    public readonly War3FloatingTextStyle ManaBurnText =
+        War3FloatingTextStyle.Load("ManaBurnText", .04f, 5f, 2f, new Color(82f / 255f, 82f / 255f, 1f));
+    public readonly War3FloatingTextStyle ShadowStrikeText =
+        War3FloatingTextStyle.Load("ShadowStrikeText", .04f, 5f, 2f, new Color(160f / 255f, 1f, 0f));
+    public readonly War3FloatingTextStyle GoldText =
+        War3FloatingTextStyle.Load("GoldText", .03f, 2f, 1f, new Color(1f, 220f / 255f, 0f));
+    public readonly War3FloatingTextStyle LumberText =
+        War3FloatingTextStyle.Load("LumberText", .03f, 2f, 1f, new Color(0f, 200f / 255f, 80f / 255f));
+    public readonly War3FloatingTextStyle BountyText =
+        War3FloatingTextStyle.Load("BountyText", .03f, 3f, 2f, new Color(1f, 220f / 255f, 0f));
+    // 原版档案里没有木材赏金的键，缺省即"零字号零透明度"——也就是不显示。
+    public readonly War3FloatingTextStyle LumberBountyText =
+        War3FloatingTextStyle.Load("LumberBountyText", 0f, 0f, 0f, new Color(0f, 0f, 0f), 0f, 0f);
+
     public float EtherealBonus(AttackType attack)
     {
         int index = (int)attack;

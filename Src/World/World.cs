@@ -80,6 +80,10 @@ public sealed partial class World
     public Func<int, int, bool> PlayerControlQuery { get; set; }
     /// <summary>普攻飘字开关（客户端默认关，只有暴击常驻）。</summary>
     public bool ShowDamageNumbers;
+    /// <summary>观察者玩家：飘字/隐身这类"看得到吗"的判定按这个玩家算。</summary>
+    public int ObserverPlayer;
+    /// <summary>世界飘字队列（客户端 World.Floats）：模拟层按 TickSeconds 老化，渲染层只管投影。</summary>
+    public readonly List<FloatingText> Floats = new();
     /// <summary>ApplyAttackModifiers 刚刚判定出致命一击，FireWeapon 据此打标。</summary>
     public bool LastAttackWasCritical;
     private const float GatherRange = 190f;
@@ -176,6 +180,17 @@ public sealed partial class World
         TickHeroRevive(FrameSeconds);
         TickReincarnation();
         TickPhoenixEgg();
+        TickFloats();
+    }
+
+    private void TickFloats()
+    {
+        for (int index = Floats.Count - 1; index >= 0; index--)
+        {
+            FloatingText text = Floats[index];
+            text.Age += TickSeconds;
+            if (text.Age >= text.Life) Floats.RemoveAt(index);
+        }
     }
 
     private void Step(Unit unit)
