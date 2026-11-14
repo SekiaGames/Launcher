@@ -699,6 +699,8 @@ public sealed partial class War3GameScene : Node3D
             shaped.View.SyncPlacement(shaped, (float)delta, StatusBarHeightAt);
             shaped.View.SyncAppearance(shaped, ViewPlayer, AreAllied);
             shaped.View.SyncLookAt(shaped);
+            shaped.View.ResolveRibbons();
+            shaped.View.TickRibbons((float)delta);
         }
         _cursor?.Tick(frame);
 

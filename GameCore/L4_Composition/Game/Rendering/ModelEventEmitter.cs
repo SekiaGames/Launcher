@@ -129,7 +129,7 @@ public sealed class ModelEventEmitter
                         continue;
                     }
                     War3ModelEventData data = War3EventObjectData.Resolve(track.Name);
-                    if (!data.IsGroundSplat)
+                    if (data.Kind == War3ModelEventKind.Unknown)
                     {
                         continue;
                     }

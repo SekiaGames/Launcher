@@ -461,8 +461,24 @@ public sealed partial class War3GameScene
         {
             UnitSceneComponent view = unit?.View;
             if (view == null || view.Root == null || !IsInstanceValid(view.Root)) continue;
-            view.ResolveModelEvents()?.Tick(_groundSplats.Add, view.Root.Visible);
+            view.ResolveModelEvents()?.Tick(HandleModelEvent, view.Root.Visible);
         }
+    }
+
+    private void HandleModelEvent(War3ModelEventData data, Vector3 position)
+    {
+        if (data.IsGroundSplat)
+        {
+            _groundSplats.Add(data, position);
+            return;
+        }
+        if (!data.IsSpawn || string.IsNullOrWhiteSpace(data.Resource) || _world == null) return;
+        float ground = _map?.Terrain != null
+            ? MapWorldBuilder.HeightAt(_map.Terrain, position.X, position.Z) : 0f;
+        _world.AddSpecialEffect(data.Resource, new Vec2(position.X, position.Z),
+            lifeSpan: data.LifeSpan > 0f ? data.LifeSpan : 5f,
+            scale: data.Scale > 0f ? data.Scale : 1f,
+            height: position.Y - ground);
     }
 
     private int _foundationLogCount = -1;
@@ -717,12 +733,15 @@ public sealed partial class War3GameScene
         public bool Failed;
         public ModelEventEmitter Events;
         public bool EventsResolved;
+        public MdxRibbonRenderer Ribbons;
+        public bool RibbonsResolved;
     }
 
     private readonly Dictionary<VisualEffectKey, VisualEffectNode> _visualEffects = new();
     private readonly List<VisualEffectKey> _staleVisualEffects = new();
     private readonly HashSet<string> _missingEffectModels = new(StringComparer.OrdinalIgnoreCase);
     private int _visualEffectFrame;
+    private float _visualEffectDelta;
 
     public int ActiveEffectCount => _visualEffects.Count;
 
@@ -730,7 +749,8 @@ public sealed partial class War3GameScene
     {
         if (_worldRoot == null) return;
         _visualEffectFrame++;
-        CollectWorldEffects();
+        _visualEffectDelta = delta;
+        CollectWorldEffects(delta);
         CollectUnitEffectVisuals();
         RemoveUnseenVisualEffects();
         ReportVisualEffects(delta);
@@ -750,7 +770,7 @@ public sealed partial class War3GameScene
         GD.Print($"[FX] 在场特效 {_visualEffects.Count}");
     }
 
-    private void CollectWorldEffects()
+    private void CollectWorldEffects(float delta)
     {
         if (_world == null) return;
         IReadOnlyList<Effect> effects = _world.Effects;
@@ -768,7 +788,7 @@ public sealed partial class War3GameScene
                 : target?.TeamColorIndex ?? 0;
             float ground = _map?.Terrain != null
                 ? MapWorldBuilder.HeightAt(_map.Terrain, effect.Pos.X, effect.Pos.Y) : 0f;
-            DrawVisualEffect(new VisualEffectRequest(
+            DrawVisualEffect(delta, new VisualEffectRequest(
                 new VisualEffectKey(0, effect, 0, 0), modelPath, target, effect.VisualAttachmentPoint,
                 new Vector3(effect.Pos.X, ground + effect.VisualHeight, effect.Pos.Y),
                 target == null, effect.VisualScale, effect.VisualAgeSeconds,
@@ -813,7 +833,7 @@ public sealed partial class War3GameScene
         string attachment = buff.VisualAttachmentPoint;
         if (AlreadyDrawnForUnit(modelPath, attachment)) return;
         _unitBuffVisuals.Add((modelPath, attachment));
-        DrawVisualEffect(new VisualEffectRequest(
+        DrawVisualEffect(_visualEffectDelta, new VisualEffectRequest(
             new VisualEffectKey(1, buff, 0, 0), modelPath, unit, attachment,
             Vector3.Zero, false, 1f, buff.VisualAgeSeconds, false, NVector4.One,
             unit.TeamColorIndex, false, null, null, null));
@@ -867,7 +887,7 @@ public sealed partial class War3GameScene
                             && !ability.IsPersistentTargetArtVisible(artIndex, attachmentIndex)) continue;
                         string art = arts[artIndex];
                         if (string.IsNullOrWhiteSpace(art)) continue;
-                        DrawVisualEffect(new VisualEffectRequest(
+                        DrawVisualEffect(_visualEffectDelta, new VisualEffectRequest(
                             new VisualEffectKey(2 + kind, ability, artIndex, attachmentIndex),
                             art, unit, attachments[attachmentIndex], Vector3.Zero, false, 1f,
                             time, false, NVector4.One, unit.TeamColorIndex, false, null, null, null));
@@ -877,7 +897,7 @@ public sealed partial class War3GameScene
         }
     }
 
-    private void DrawVisualEffect(in VisualEffectRequest request)
+    private void DrawVisualEffect(float delta, in VisualEffectRequest request)
     {
         if (!_visualEffects.TryGetValue(request.Key, out VisualEffectNode node)
             || !IsReusable(node, request))
@@ -888,10 +908,10 @@ public sealed partial class War3GameScene
         }
         node.LastSeenFrame = _visualEffectFrame;
         if (node.Player != null) ApplyVisualEffectPose(node, request);
-        TickVisualEffectEvents(node);
+        TickVisualEffectEvents(node, delta);
     }
 
-    private void TickVisualEffectEvents(VisualEffectNode node)
+    private void TickVisualEffectEvents(VisualEffectNode node, float delta)
     {
         if (node?.Root == null || !IsInstanceValid(node.Root)) return;
         if (!node.EventsResolved)
@@ -899,7 +919,13 @@ public sealed partial class War3GameScene
             node.EventsResolved = true;
             node.Events = ModelEventEmitter.Create(node.Root);
         }
-        node.Events?.Tick(_groundSplats.Add, node.Root.IsVisibleInTree());
+        node.Events?.Tick(HandleModelEvent, node.Root.IsVisibleInTree());
+        if (!node.RibbonsResolved)
+        {
+            node.RibbonsResolved = true;
+            node.Ribbons = MdxRibbonRenderer.Create(node.Root, node.TeamColor);
+        }
+        node.Ribbons?.Tick(delta, node.Root.IsVisibleInTree());
     }
 
     private static bool IsReusable(VisualEffectNode node, in VisualEffectRequest request)

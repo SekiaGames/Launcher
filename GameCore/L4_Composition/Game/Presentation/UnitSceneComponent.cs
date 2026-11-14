@@ -29,6 +29,26 @@ public sealed class UnitSceneComponent
         return ModelEvents;
     }
 
+    public MdxRibbonRenderer Ribbons { get; private set; }
+    private bool _ribbonsResolved;
+
+    public MdxRibbonRenderer ResolveRibbons()
+    {
+        if (!_ribbonsResolved)
+        {
+            _ribbonsResolved = true;
+            Ribbons = MdxRibbonRenderer.Create(Root, Owner?.TeamColorIndex ?? 0);
+            if (HasTint) ApplyModelTint(_appliedTint);
+        }
+        return Ribbons;
+    }
+
+    public void TickRibbons(float delta)
+    {
+        if (FogFrozen) return;
+        Ribbons?.Tick(delta, Root.Visible);
+    }
+
     public MeshInstance3D ProgressNode { get; private set; }
     private ImmediateMesh _progressMesh;
     private float _progressRadius;
@@ -105,6 +125,7 @@ public sealed class UnitSceneComponent
         {
             if (Player != null) Player.Pause();
             StopParticles();
+            Ribbons?.Clear();
             Root.Visible = true;
             return;
         }
@@ -180,7 +201,18 @@ public sealed class UnitSceneComponent
                 }
                 shader.SetShaderParameter("geoset_tint",
                     new Color(baseTint.R * tint.R, baseTint.G * tint.G, baseTint.B * tint.B, 1f));
+                if (shader.Shader?.ResourcePath?.Contains("war3_ribbon", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    shader.SetShaderParameter("ribbon_tint", tint);
+                }
             }
+        }
+
+        foreach (Node node in Root.FindChildren("*", "GPUParticles3D", true, false))
+        {
+            if (node is not GpuParticles3D particles
+                || particles.MaterialOverride is not ShaderMaterial material) continue;
+            material.SetShaderParameter("particle_tint", tint);
         }
     }
 
@@ -340,6 +372,21 @@ public sealed class UnitSceneComponent
                     mesh.SetSurfaceOverrideMaterial(surface, copy);
                 }
             }
+        }
+
+        if (teamColorIndex < 0) return;
+        Texture2D teamTexture = TeamColorTextures.Get(teamColorIndex);
+        foreach (Node node in root.FindChildren("*", "GPUParticles3D", true, false))
+        {
+            if (node is not GpuParticles3D particles
+                || particles.MaterialOverride is not ShaderMaterial particleMaterial) continue;
+            Texture2D texture = particleMaterial.GetShaderParameter("particle_texture").As<Texture2D>();
+            if (texture?.ResourcePath?.Contains("TeamColor/", StringComparison.OrdinalIgnoreCase) != true) continue;
+            if (texture.ResourcePath.EndsWith($"TeamColor{teamColorIndex:00}.png",
+                    StringComparison.OrdinalIgnoreCase)) continue;
+            ShaderMaterial copy = (ShaderMaterial)particleMaterial.Duplicate();
+            copy.SetShaderParameter("particle_texture", teamTexture);
+            particles.MaterialOverride = copy;
         }
     }
 

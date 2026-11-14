@@ -30,6 +30,8 @@ public readonly struct War3ModelEventData
     public int BlendMode { get; init; }
 
     public bool IsGroundSplat => Kind is War3ModelEventKind.Splat or War3ModelEventKind.UberSplat;
+
+    public bool IsSpawn => Kind == War3ModelEventKind.Spawn;
 }
 
 public static class War3EventObjectData
@@ -67,7 +69,32 @@ public static class War3EventObjectData
         {
             "SPL" => ResolveSplat(War3SlkReader.SplatData(), War3ModelEventKind.Splat, id),
             "UBR" => ResolveSplat(War3SlkReader.UberSplatData(), War3ModelEventKind.UberSplat, id),
+            "SPN" => ResolveSpawn(War3SlkReader.SpawnData(), id),
             _ => default,
+        };
+    }
+
+    private static War3ModelEventData ResolveSpawn(SlkTable table, string id)
+    {
+        int row = table.FindRow("Name", id);
+        if (row < 0)
+        {
+            return default;
+        }
+
+        string model = (table.Get(row, "Model") ?? "").Replace('\\', '/');
+        if (model.Length == 0)
+        {
+            return default;
+        }
+
+        return new War3ModelEventData
+        {
+            Kind = War3ModelEventKind.Spawn,
+            Id = id,
+            Resource = model,
+            Scale = 1f,
+            LifeSpan = 5f,
         };
     }
 
