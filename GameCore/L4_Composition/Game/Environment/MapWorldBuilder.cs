@@ -18,7 +18,7 @@ public sealed partial class MapWorldBuilder
 
     public List<TreeState> Trees { get; } = new List<TreeState>();
 
-    public Node3D Build(W3eTerrain terrain, War3MapDoodads doodads)
+    public Node3D Build(W3eTerrain terrain, War3MapDoodads doodads, Color waterBaseColor)
     {
         Terrain = terrain;
         Root = new Node3D
@@ -27,7 +27,7 @@ public sealed partial class MapWorldBuilder
         };
         bool[,] covered = BuildCliffs(terrain);
         BuildTerrain(terrain, covered);
-        BuildWater(terrain);
+        BuildWater(terrain, waterBaseColor);
         new ShorelineWaveRenderer(Root, terrain, War3WaterConfig.Load(terrain.Tileset));
         if (doodads != null)
         {
@@ -41,7 +41,9 @@ public sealed partial class MapWorldBuilder
         if (_waterMaterial != null)
         {
             _waterElapsed += Math.Max(0.0, delta);
-            int num = Mathf.FloorToInt(1f + (float)_waterElapsed * (float)_waterFrameRate) % _waterFrameCount;
+            int num = Mathf.FloorToInt((float)_waterElapsed * (float)_waterFrameRate) + _waterFrameOffset;
+            num %= _waterFrameCount;
+            if (num < 0) num += _waterFrameCount;
             _waterMaterial.SetShaderParameter("frame", (float)num);
         }
     }

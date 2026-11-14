@@ -12,11 +12,13 @@ public sealed partial class MapWorldBuilder
 
     private int _waterFrameRate = 1;
 
+    private int _waterFrameOffset;
+
     private double _waterElapsed;
 
-    private void BuildWater(W3eTerrain terrain)
+    private void BuildWater(W3eTerrain terrain, Color baseColor)
     {
-        War3WaterConfig war3WaterConfig = War3WaterConfig.Load(terrain.Tileset);
+        War3WaterConfig war3WaterConfig = War3WaterConfig.Load(terrain.Tileset, baseColor);
         if (war3WaterConfig == null)
         {
             return;
@@ -29,9 +31,12 @@ public sealed partial class MapWorldBuilder
         {
             shaderMaterial.SetShaderParameter("water_texture", war3WaterConfig.Texture);
         }
+        shaderMaterial.SetShaderParameter("water_lighting", war3WaterConfig.Lighting);
         _waterMaterial = shaderMaterial;
         _waterFrameCount = Mathf.Max(1, war3WaterConfig.FrameCount);
         _waterFrameRate = Mathf.Max(1, war3WaterConfig.FrameRate);
+        _waterFrameOffset = war3WaterConfig.FrameOffset;
+        int cells = Mathf.Max(1, war3WaterConfig.TextureCells);
         const int chunkCells = 8;
         var chunks = new Dictionary<(int X, int Y), SurfaceTool>();
         int width = terrain.Width;
@@ -69,10 +74,14 @@ public sealed partial class MapWorldBuilder
                 CountLevel(levels, corner2);
                 CountLevel(levels, corner3);
                 CountLevel(levels, corner4);
-                Vector2 uv = new Vector2(j, 1 - i);
-                Vector2 uv2 = new Vector2(j + 1, 1 - i);
-                Vector2 uv3 = new Vector2(j, -i);
-                Vector2 uv4 = new Vector2(j + 1, -i);
+                float u0 = (float)(j % cells) / cells;
+                float u1 = (float)(1 + j % cells) / cells;
+                float v0 = 1f - (float)(i % cells) / cells;
+                float v1 = 1f - (float)(1 + i % cells) / cells;
+                Vector2 uv = new Vector2(u0, v0);
+                Vector2 uv2 = new Vector2(u1, v0);
+                Vector2 uv3 = new Vector2(u0, v1);
+                Vector2 uv4 = new Vector2(u1, v1);
                 AddWaterVertex(surfaceTool, position, uv, WaterColor(war3WaterConfig, terrain, j, i));
                 AddWaterVertex(surfaceTool, position4, uv4, WaterColor(war3WaterConfig, terrain, j + 1, i + 1));
                 AddWaterVertex(surfaceTool, position2, uv2, WaterColor(war3WaterConfig, terrain, j + 1, i));
@@ -94,7 +103,11 @@ public sealed partial class MapWorldBuilder
         }
         if (num != 0)
         {
-            GD.Print($"[WATER] 水面格 {num}，分块 {chunks.Count}，水面 y={WaterY:0.0}，帧数 {war3WaterConfig.FrameCount}");
+            GD.Print($"[WATER] 水面格 {num}，分块 {chunks.Count}，水面 y={WaterY:0.0}，帧数 {war3WaterConfig.FrameCount}"
+                + $"，cells={cells}，光照 {(war3WaterConfig.Lighting ? "开" : "关")}"
+                + $"，水色 ({war3WaterConfig.BaseColor.R:0.00},{war3WaterConfig.BaseColor.G:0.00},"
+                + $"{war3WaterConfig.BaseColor.B:0.00},{war3WaterConfig.BaseColor.A:0.00})"
+                + $"，深度 {war3WaterConfig.MinimumDepth:0.000}/{war3WaterConfig.DeepLevel:0.000}/{war3WaterConfig.MaximumDepth:0.000}");
         }
     }
 
@@ -133,12 +146,14 @@ public sealed partial class MapWorldBuilder
         float num = corner.WaterWorld + water.HeightOffset;
         float num2 = CornerWorld(terrain, x, y) / 128f;
         float num3 = Mathf.Clamp(num - num2, 0f, 1f);
-        if (num3 <= 0.5f)
+        if (num3 <= water.DeepLevel)
         {
-            float weight = Mathf.Clamp((num3 - 5f / 64f) / (27f / 64f), 0f, 1f);
+            float weight = Mathf.Clamp((num3 - water.MinimumDepth)
+                / Mathf.Max(0.0001f, water.DeepLevel - water.MinimumDepth), 0f, 1f);
             return water.ShallowMin.Lerp(water.ShallowMax, weight);
         }
-        float weight2 = Mathf.Clamp((num3 - 0.5f) / 0.0625f, 0f, 1f);
+        float weight2 = Mathf.Clamp((num3 - water.DeepLevel)
+            / Mathf.Max(0.0001f, water.MaximumDepth - water.DeepLevel), 0f, 1f);
         return water.DeepMin.Lerp(water.DeepMax, weight2);
     }
 

@@ -21,6 +21,13 @@ public sealed class War3WaterConfig
     public bool ShowRollingWaves { get; private set; } = true;
     public int FrameCount { get; private set; }
     public int FrameRate { get; private set; }
+    public int FrameOffset { get; private set; }
+    public int TextureCells { get; private set; } = 1;
+    public bool Lighting { get; private set; } = true;
+    public float MinimumDepth { get; private set; } = 10f / 128f;
+    public float DeepLevel { get; private set; } = 64f / 128f;
+    public float MaximumDepth { get; private set; } = 72f / 128f;
+    public Color BaseColor { get; private set; } = new Color(1f, 1f, 1f, 1f);
     public Color ShallowMin { get; private set; } = new Color(1f, 1f, 1f, 1f);
     public Color ShallowMax { get; private set; } = new Color(1f, 1f, 1f, 1f);
     public Color DeepMin { get; private set; } = new Color(1f, 1f, 1f, 1f);
@@ -34,7 +41,22 @@ public sealed class War3WaterConfig
         return row < 0 ? 0f : table.GetFloat(row, "height");
     }
 
+    public static Color MapBaseColor(W3iEnvironment environment)
+    {
+        byte[] bgra = environment?.WaterVertexColorBgra;
+        if (bgra == null || bgra.Length < 4)
+        {
+            return new Color(1f, 1f, 1f, 1f);
+        }
+        return new Color(bgra[2] / 255f, bgra[1] / 255f, bgra[0] / 255f, bgra[3] / 255f);
+    }
+
     public static War3WaterConfig Load(char tileset)
+    {
+        return Load(tileset, new Color(1f, 1f, 1f, 1f));
+    }
+
+    public static War3WaterConfig Load(char tileset, Color baseColor)
     {
         SlkTable table = War3SlkReader.Water();
         string rowId = tileset + "Sha";
@@ -58,10 +80,17 @@ public sealed class War3WaterConfig
             InsideCornerVariations = Mathf.Max(1, table.GetInt(row, "shoreICVar", 1)),
             FrameCount = Mathf.Max(0, table.GetInt(row, "numTex")),
             FrameRate = Mathf.Max(1, table.GetInt(row, "texRate")),
-            ShallowMin = ReadColor(table, row, "Smin"),
-            ShallowMax = ReadColor(table, row, "Smax"),
-            DeepMin = ReadColor(table, row, "Dmin"),
-            DeepMax = ReadColor(table, row, "Dmax"),
+            FrameOffset = table.GetInt(row, "texOffset"),
+            TextureCells = Mathf.Max(1, table.GetInt(row, "cells", 1)),
+            Lighting = table.GetInt(row, "lighting", 1) != 0,
+            MinimumDepth = ReadMiscFloat("Water.MinDepth", 10f) / 128f,
+            DeepLevel = ReadMiscFloat("Water.DeepLevel", 64f) / 128f,
+            MaximumDepth = ReadMiscFloat("Water.MaxDepth", 72f) / 128f,
+            BaseColor = baseColor,
+            ShallowMin = ReadColor(table, row, "Smin") * baseColor,
+            ShallowMax = ReadColor(table, row, "Smax") * baseColor,
+            DeepMin = ReadColor(table, row, "Dmin") * baseColor,
+            DeepMax = ReadColor(table, row, "Dmax") * baseColor,
         };
 
         water.Texture = BuildTexture(table.Get(row, "texFile"), water.FrameCount);
