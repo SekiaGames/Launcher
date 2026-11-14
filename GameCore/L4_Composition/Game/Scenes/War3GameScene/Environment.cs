@@ -12,6 +12,38 @@ public sealed partial class War3GameScene
     /// </summary>
     private SceneLighting _sceneLighting;
     private float _sceneLightingHour = -1f;
+    private float _terrainLightTimer = 0.1f;
+
+    private void TickTerrainLights(float delta)
+    {
+        if (_terrainBuilder?.TerrainMaterial == null) return;
+        _terrainLightTimer += delta;
+        if (_terrainLightTimer < 0.1f) return;
+        _terrainLightTimer = 0f;
+
+        var lights = new DynamicLightCollector();
+        Camera3D camera = _camera?.Camera;
+        foreach (Node3D node in _terrainBuilder.DoodadLightNodes)
+        {
+            if (lights.IsFull) break;
+            if (!GodotObject.IsInstanceValid(node) || !node.IsVisibleInTree()) continue;
+            if (camera != null && !camera.IsPositionInFrustum(node.GlobalPosition)) continue;
+            lights.Add(DynamicLight.FromNode(node));
+        }
+        foreach (Unit unit in _allUnits)
+        {
+            if (lights.IsFull) break;
+            UnitSceneComponent view = unit?.View;
+            if (view == null || view.FogFrozen || !view.Root.Visible) continue;
+            foreach (Node3D node in view.LightNodes)
+            {
+                if (lights.IsFull) break;
+                if (camera != null && !camera.IsPositionInFrustum(node.GlobalPosition)) continue;
+                lights.Add(DynamicLight.FromNode(node));
+            }
+        }
+        _terrainBuilder.ApplyDynamicLights(lights);
+    }
 
     private readonly ScoutingMemory<UnitSceneComponent> _buildingScouting = new();
     private readonly Dictionary<int, UnitSceneComponent> _retiredBuildingViews = new();

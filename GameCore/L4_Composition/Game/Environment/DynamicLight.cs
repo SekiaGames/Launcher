@@ -58,6 +58,12 @@ public static class DynamicLightUniforms
         return ImageTexture.CreateFromImage(image);
     }
 
+    public static void Apply(ShaderMaterial material, DynamicLightCollector lights)
+    {
+        material.SetShaderParameter("war3_light_data", Build(lights));
+        material.SetShaderParameter("war3_light_count", Math.Clamp(lights.Count, 0, DynamicLight.MaxLights));
+    }
+
     static Color ToColor(Vector4 value) => new(value.X, value.Y, value.Z, value.W);
 }
 

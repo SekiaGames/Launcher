@@ -20,6 +20,8 @@ public sealed class UnitSceneComponent
     public ModelEventEmitter ModelEvents { get; private set; }
     private bool _modelEventsResolved;
 
+    public IReadOnlyList<Node3D> LightNodes { get; private set; } = Array.Empty<Node3D>();
+
     public ModelEventEmitter ResolveModelEvents()
     {
         if (!_modelEventsResolved)
@@ -71,11 +73,22 @@ public sealed class UnitSceneComponent
         view.ApplyTeamColor(teamColorIndex);
         MapWorldBuilder.ApplyUnitTextureFilter(root);
         ModelLightRig.Apply(root, light);
+        view.LightNodes = CollectLightNodes(root);
 
         view.Height = MeasureHeight(root, isBuilding);
         view._progressRadius = Mathf.Max(40f, footprintRadius);
         if (isBuilding) view.BuildProgressRing();
         return view;
+    }
+
+    public static List<Node3D> CollectLightNodes(Node3D root)
+    {
+        var nodes = new List<Node3D>();
+        foreach (Node child in root.FindChildren("*", "Node3D", true, false))
+        {
+            if (child.HasMeta("war3_light_type")) nodes.Add((Node3D)child);
+        }
+        return nodes;
     }
 
     public static void EnsureFallbackMaterials(Node3D root)

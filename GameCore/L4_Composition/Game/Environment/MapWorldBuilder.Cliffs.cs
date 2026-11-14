@@ -10,6 +10,8 @@ public sealed partial class MapWorldBuilder
 
     private bool[,] _cliffTransitions;
 
+    public ShaderMaterial CliffMaterial { get; private set; }
+
     private static List<string> UsedCliffIds(TerrainData terrain)
     {
         List<string> list = new List<string>();
@@ -52,6 +54,7 @@ public sealed partial class MapWorldBuilder
         {
             shaderMaterial.SetShaderParameter("cliff_texture", cliffTextureSet.Texture);
         }
+        CliffMaterial = shaderMaterial;
         SurfaceTool surfaceTool = new SurfaceTool();
         surfaceTool.Begin(Mesh.PrimitiveType.Triangles);
         surfaceTool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbaFloat);

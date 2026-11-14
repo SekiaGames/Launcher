@@ -12,6 +12,10 @@ public sealed partial class MapWorldBuilder
 
     public IReadOnlyList<TreeShadow> TreeShadows => _treeShadows;
 
+    private readonly List<Node3D> _doodadLightNodes = new();
+
+    public IReadOnlyList<Node3D> DoodadLightNodes => _doodadLightNodes;
+
     private void BuildDoodads(TerrainData terrain, War3MapDoodads doodads)
     {
         Node3D node3D = new Node3D
@@ -50,6 +54,7 @@ public sealed partial class MapWorldBuilder
             ApplyUnitTextureFilter(node3D2);
             AnimationPlayer animator = TreeState.ResolveAnimator(node3D2);
             node3D.AddChild(node3D2, forceReadableName: false, Node.InternalMode.Disabled);
+            _doodadLightNodes.AddRange(UnitSceneComponent.CollectLightNodes(node3D2));
             DoodadDefinition doodadDefinition = DoodadMeshLibrary.Describe(entry.Id);
             TreeState tree = null;
             if (doodadDefinition != null && doodadDefinition.IsTree)

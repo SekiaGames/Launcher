@@ -702,6 +702,7 @@ public sealed partial class War3GameScene : Node3D
             shaped.View.ResolveRibbons();
             shaped.View.TickRibbons((float)delta);
         }
+        TickTerrainLights((float)delta);
         _cursor?.Tick(frame);
 
         _hudTimer += (float)delta;

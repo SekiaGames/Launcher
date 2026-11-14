@@ -43,6 +43,12 @@ public sealed partial class MapWorldBuilder
         return Root;
     }
 
+    public void ApplyDynamicLights(DynamicLightCollector lights)
+    {
+        if (TerrainMaterial != null) DynamicLightUniforms.Apply(TerrainMaterial, lights);
+        if (CliffMaterial != null) DynamicLightUniforms.Apply(CliffMaterial, lights);
+    }
+
     public void TickWater(double delta)
     {
         if (_waterMaterial != null)
