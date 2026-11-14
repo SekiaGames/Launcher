@@ -630,6 +630,24 @@ public static class RuntimeAbilityFactory
     public static string ReadString(IRuntimeObjectData data, string field, int level, string fallback = "")
         => data?.GetString(field, Math.Max(1, level), 0, fallback) ?? fallback;
 
+    /// <summary>物编 EfctID（客户端 RuntimeAbilityFactory.ReadEffectRawcode 同口径）。</summary>
+    public static string ReadEffectRawcode(IRuntimeObjectData data, int level)
+    {
+        foreach (string field in EffectRawcodeFields)
+        {
+            string value = ReadString(data, field, level);
+            if (string.IsNullOrWhiteSpace(value) || value == "-") continue;
+            return value.Length >= 4 ? value[..4] : value;
+        }
+        return "";
+    }
+
+    /// <summary>EfctID → 模型路径。物编没有美术列，走 <see cref="War3EffectArtResolver"/>。</summary>
+    public static string ResolveEffectArt(string effectRawcode)
+        => War3EffectArtResolver.Art(effectRawcode);
+
+    static readonly string[] EffectRawcodeFields = { "EfctID", "EffectID", "aeff" };
+
     public static TargetFlags ParseTargets(string rules)
     {
         TargetFlags flags = TargetFlags.None;

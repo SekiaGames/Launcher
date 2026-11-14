@@ -618,6 +618,51 @@ public sealed partial class LauncherApp : Node
             }
         }
         GD.Print($"[FX] 文本表 {ids} 条，美术引用 {arts}，可加载 {resolved}，缺 {missing}");
+        ProbeEffectRawcodes();
+    }
+
+    private static void ProbeEffectRawcodes()
+    {
+        var table = War3SlkReader.Get("UnitsAbilityData");
+        if (table == null)
+        {
+            GD.Print("[FX] 缺 UnitsAbilityData，EfctID 无法统计");
+            return;
+        }
+        int references = 0;
+        int resolved = 0;
+        int unloadable = 0;
+        var missingIds = new SortedSet<string>(StringComparer.Ordinal);
+        var loaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (int row in table.DataRows)
+        {
+            string id = (table.Get(row, "alias") ?? "").Trim();
+            if (id.Length == 0) continue;
+            for (int level = 1; level <= 4; level++)
+            {
+                string raw = (table.Get(row, "EfctID" + level) ?? "").Trim();
+                if (raw.Length == 0 || raw == "_") continue;
+                references++;
+                string art = War3EffectArtResolver.Art(raw);
+                if (art.Length == 0)
+                {
+                    missingIds.Add(raw);
+                    continue;
+                }
+                resolved++;
+                if (!loaded.Add(art)) continue;
+                string scene = PathResolve.ModelScene(art);
+                if (scene != null)
+                {
+                    GD.Print($"[FX] EfctID {raw,-6} {id,-6} → {scene.Replace("res://extract/", "")}");
+                    continue;
+                }
+                unloadable++;
+                GD.Print($"[FX] EfctID {raw,-6} {id,-6} 缺 {art}");
+            }
+        }
+        GD.Print($"[FX] EfctID 引用 {references}，解析到美术 {resolved}，模型缺失 {unloadable}，"
+            + $"无美术登记的 ID {missingIds.Count}: {string.Join(",", missingIds)}");
     }
 
     private static void DumpUnits(string gmapPath)

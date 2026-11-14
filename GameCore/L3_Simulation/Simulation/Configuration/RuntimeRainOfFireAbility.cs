@@ -45,8 +45,7 @@ public sealed class RuntimeRainOfFireAbility(War3ObjectData objects) : Ability
                 |StringSplitOptions.TrimEntries);
         BurnBuffRawcode=buffs.FirstOrDefault()??"";
         if(BurnBuffRawcode.Length>4)BurnBuffRawcode=BurnBuffRawcode[..4];
-        EffectRawcode=RuntimeAbilityFactory.ReadString(ObjectData,"EfctID",level);
-        if(EffectRawcode.Length>4)EffectRawcode=EffectRawcode[..4];
+        EffectRawcode=RuntimeAbilityFactory.ReadEffectRawcode(ObjectData,level);
         _allowedTargets=RuntimeAbilityFactory.ParseTargets(
             RuntimeAbilityFactory.ReadTargetRules(ObjectData,level));
         if((_allowedTargets&TargetRules.Relations)==0)
@@ -198,17 +197,7 @@ public sealed class RuntimeRainOfFireAbility(War3ObjectData objects) : Ability
     }
 
     string ResolveEffectArt()
-    {
-        BuffTypeData effect=objects?.GetBuff(EffectRawcode);
-        if(effect==null)return "";
-        foreach(string field in new[]{"EffectArt","Effectart","BuffArt","Buffart"})
-        {
-            string value=effect.GetString(field,"");
-            if(!string.IsNullOrWhiteSpace(value)&&value!="_")
-                return value.SplitConfig(',', StringSplitOptions.TrimEntries)[0];
-        }
-        return "";
-    }
+        => RuntimeAbilityFactory.ResolveEffectArt(EffectRawcode);
 }
 
 public sealed class RuntimeRainOfFireBuff(float damagePerSecond) : Buff

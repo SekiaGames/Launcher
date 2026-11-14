@@ -44,6 +44,16 @@ public static partial class CombatProbe
         Verify("火焰雨施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("火焰雨进入引导", 1f, world.ChannelCount, 0f);
 
+        string rainArt = RuntimeAbilityFactory.ResolveEffectArt(
+            RuntimeAbilityFactory.ReadEffectRawcode(rain.ObjectData, rain.Level));
+        bool artSpawned = false;
+        foreach (Effect effect in world.Effects)
+        {
+            if (string.Equals(effect.VisualModelPath, rainArt, StringComparison.OrdinalIgnoreCase)) artSpawned = true;
+        }
+        Verify("火焰雨落地美术取 EfctID XErf", 1f, artSpawned ? 1f : 0f, 0f);
+        GD.Print($"[自检] 火焰雨落地美术 {rainArt}");
+
         float before = footman.Hp;
         for (int tick = 0; tick < 22; tick++) world.Advance();
         float firstWave = before - footman.Hp;

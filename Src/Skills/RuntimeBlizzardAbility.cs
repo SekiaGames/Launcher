@@ -1,6 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
+using OpenWC3.Game;
 namespace OpenWC3;
 
 /// <summary>
@@ -15,8 +16,29 @@ public sealed class RuntimeBlizzardAbility : Ability
 
     public int Waves => Mathf.Max(1, Mathf.RoundToInt(Data('A')));
 
-    const string ShardArt = @"Abilities\Spells\Human\Blizzard\BlizzardTarget.mdl";
+    const string FallbackShardArt = @"Abilities\Spells\Human\Blizzard\BlizzardTarget.mdl";
     const float ShardLifeSpan = 2f;
+
+    int _shardArtLevel = int.MinValue;
+    IRuntimeObjectData _shardArtData;
+    string _shardArt = FallbackShardArt;
+
+    /// <summary>冰片美术：物编 AHbz 没有 Effectart 列，唯一来源是 EfctID(XHbz) 指向的特效。</summary>
+    public string ShardArt
+    {
+        get
+        {
+            if (_shardArtLevel == Level && ReferenceEquals(_shardArtData, ObjectData)) return _shardArt;
+            _shardArtLevel = Level;
+            _shardArtData = ObjectData;
+            string resolved = RuntimeAbilityFactory.ResolveEffectArt(
+                RuntimeAbilityFactory.ReadEffectRawcode(ObjectData, Level));
+            _shardArt = string.IsNullOrWhiteSpace(resolved) ? FallbackShardArt : resolved;
+            return _shardArt;
+        }
+    }
+
+    public override IReadOnlyList<string> RuntimePreloadArts => new[] { ShardArt };
 
     public int ShardCount => Mathf.Clamp(Mathf.RoundToInt(Data('C')), 1, 32);
     public float WaveDamage => Data('B');

@@ -42,6 +42,10 @@ public static partial class CombatProbe
         storm.Level = 1;
         mage.Mana = mage.MaxMana;
 
+        bool shardArtFromData = storm.ShardArt.EndsWith(@"\BlizzardTarget.mdl", StringComparison.OrdinalIgnoreCase);
+        Verify("暴风雪冰片美术来自 EfctID XHbz", 1f, shardArtFromData ? 1f : 0f, 0f);
+        GD.Print($"[自检] 暴风雪冰片美术 {storm.ShardArt}");
+
         var point = new Vector3(120f, 0f, 0f);
         bool cast = world.TryCast(mage, storm, null, point);
         Verify("暴风雪施放成功", 1f, cast ? 1f : 0f, 0f);
