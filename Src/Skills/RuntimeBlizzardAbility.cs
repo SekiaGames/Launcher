@@ -18,7 +18,6 @@ public sealed class RuntimeBlizzardAbility : Ability
     const string ShardArt = @"Abilities\Spells\Human\Blizzard\BlizzardTarget.mdl";
     const float ShardLifeSpan = 2f;
 
-    /// <summary>DataC 是每波冰片数量（客户端 ShardCount，1..32）。</summary>
     public int ShardCount => Mathf.Clamp(Mathf.RoundToInt(Data('C')), 1, 32);
     public float WaveDamage => Data('B');
     /// <summary>物编 Cast 列是每波间隔（客户端 RuntimeAbilityFactory.cs:540 读 "Cast"）；原实现误用 DataD。</summary>
