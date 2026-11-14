@@ -131,10 +131,10 @@ public sealed class War3UiSkin
 
     private static Color? ReadTeamColor(string path)
     {
-        byte[] bytes = Assets.ReadBytes(Assets.Res(path.Replace('\\', '/')));
-        if (bytes == null || bytes.Length == 0) return null;
-        var image = new Image();
-        if (image.LoadPngFromBuffer(bytes) != Error.Ok) return null;
+        Texture2D texture = ResourceLoader.Load<Texture2D>(Assets.Res(path.Replace('\\', '/')));
+        Image image = texture?.GetImage();
+        if (image == null) return null;
+        if (image.IsCompressed()) image.Decompress();
         return image.GetPixel(0, 0);
     }
 
