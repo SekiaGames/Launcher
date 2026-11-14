@@ -10,7 +10,7 @@ internal sealed class AboutDialogFrame : UiContainer
     internal static class Style
     {
         public const float PanelWidth = 780f;
-        public const float PanelHeight = 560f;
+        public const float PanelHeight = 600f;
         public const float ButtonWidth = 230f;
         public const float ButtonHeight = 44f;
         public const float TitleFontSize = 27f;
@@ -50,6 +50,9 @@ internal sealed class AboutDialogFrame : UiContainer
     readonly StringFrame _renderScaleLabel;
     readonly CheckBoxFrame[] _renderScaleToggles;
     readonly StringFrame[] _renderScaleOptionLabels;
+    readonly StringFrame _fontScaleLabel;
+    readonly StringFrame _fontScaleValue;
+    readonly SliderFrame _fontScaleSlider;
     readonly BackdropFrame _closePlate;
     readonly ButtonFrame _closeButton;
     readonly StringFrame _closeLabel;
@@ -62,6 +65,7 @@ internal sealed class AboutDialogFrame : UiContainer
     readonly Action<float> _soundVolumeChanged;
     readonly Action<int> _frameRateChanged;
     readonly Action<float> _renderScaleChanged;
+    readonly Action<float> _fontScaleChanged;
     int _frameRateLimit;
     float _renderScale;
 
@@ -70,10 +74,11 @@ internal sealed class AboutDialogFrame : UiContainer
 
     public AboutDialogFrame(IUiTextureResolver textures, War3UiSkin skin,
         float cameraDistance, float panSensitivity, float musicVolume, float soundVolume,
-        int frameRateLimit, float renderScale,
+        int frameRateLimit, float renderScale, float fontScale,
         Action<float> cameraDistanceChanged, Action<float> panSensitivityChanged,
         Action<float> musicVolumeChanged, Action<float> soundVolumeChanged,
-        Action<int> frameRateLimitChanged, Action<float> renderScaleChanged)
+        Action<int> frameRateLimitChanged, Action<float> renderScaleChanged,
+        Action<float> fontScaleChanged)
         : base("AboutDialog")
     {
         _cameraDistanceChanged = cameraDistanceChanged;
@@ -82,6 +87,7 @@ internal sealed class AboutDialogFrame : UiContainer
         _soundVolumeChanged = soundVolumeChanged;
         _frameRateChanged = frameRateLimitChanged;
         _renderScaleChanged = renderScaleChanged;
+        _fontScaleChanged = fontScaleChanged;
         _frameRateLimit = GameUserSettings.NormalizeFrameRate(frameRateLimit);
         _renderScale = GameUserSettings.NormalizeRenderScale(renderScale);
 
@@ -207,6 +213,15 @@ internal sealed class AboutDialogFrame : UiContainer
                 RenderScaleLabels[index], Style.BodyFontSize, Style.BodyColor);
         }
 
+        _fontScaleLabel = Text("FontScaleLabel", "UI字体大小",
+            Style.BodyFontSize, Style.BodyColor);
+        _fontScaleValue = Text("FontScaleValue", "",
+            Style.BodyFontSize, Style.NoticeColor);
+        _fontScaleSlider = CreateSlider("FontScaleSlider",
+            OpenWC3.UI.UiFontScale.Min, OpenWC3.UI.UiFontScale.Max,
+            GameUserSettings.NormalizeUiFontScale(fontScale),
+            sliderBackground, sliderBorder, sliderDisabledBorder, sliderThumb, sliderDisabledThumb);
+
         _closePlate = CreateButtonPlate("AboutClosePlate", buttonBackground, buttonBorder);
         _closeButton = new ButtonFrame("AboutCloseButton")
         {
@@ -252,13 +267,20 @@ internal sealed class AboutDialogFrame : UiContainer
             UpdateValues();
             _soundVolumeChanged?.Invoke(value);
         };
+        _fontScaleSlider.ValueChanged += value =>
+        {
+            UpdateValues();
+            _fontScaleChanged?.Invoke(value);
+        };
         UpdateValues();
 
         foreach (StringFrame label in new[]
-                 { _cameraDistanceLabel, _panSensitivityLabel, _musicVolumeLabel, _soundVolumeLabel })
+                 { _cameraDistanceLabel, _panSensitivityLabel, _musicVolumeLabel, _soundVolumeLabel,
+                   _fontScaleLabel })
             label.Alignment = TextAlignment.Left;
         foreach (StringFrame value in new[]
-                 { _cameraDistanceValue, _panSensitivityValue, _musicVolumeValue, _soundVolumeValue })
+                 { _cameraDistanceValue, _panSensitivityValue, _musicVolumeValue, _soundVolumeValue,
+                   _fontScaleValue })
             value.Alignment = TextAlignment.Right;
         _frameRateLabel.Alignment = TextAlignment.Left;
         _renderScaleLabel.Alignment = TextAlignment.Left;
@@ -286,6 +308,9 @@ internal sealed class AboutDialogFrame : UiContainer
         AddChild(_renderScaleLabel);
         foreach (CheckBoxFrame toggle in _renderScaleToggles) AddChild(toggle);
         foreach (StringFrame label in _renderScaleOptionLabels) AddChild(label);
+        AddChild(_fontScaleLabel);
+        AddChild(_fontScaleValue);
+        AddChild(_fontScaleSlider);
         AddChild(_closePlate);
         AddChild(_closeButton);
         AddChild(_closeLabel);
@@ -355,6 +380,7 @@ internal sealed class AboutDialogFrame : UiContainer
         _panSensitivityValue.Text = $"{_panSensitivitySlider.Value:0.00}x";
         _musicVolumeValue.Text = $"{_musicVolumeSlider.Value * 100f:0}%";
         _soundVolumeValue.Text = $"{_soundVolumeSlider.Value * 100f:0}%";
+        _fontScaleValue.Text = $"{_fontScaleSlider.Value:0.00}x";
     }
 
     public void Toggle()
@@ -425,8 +451,12 @@ internal sealed class AboutDialogFrame : UiContainer
                 MathF.Max(40f, renderScaleCell - 28f), 32f);
         }
 
+        _fontScaleLabel.RenderBounds = new UiRect(leftX, y + 452f, colW - valueW, 32f);
+        _fontScaleValue.RenderBounds = new UiRect(leftX + colW - valueW, y + 452f, valueW, 32f);
+        _fontScaleSlider.RenderBounds = new UiRect(leftX, y + 488f, colW, 34f);
+
         float buttonWidth = MathF.Min(Style.ButtonWidth, (width - 100f) * .5f);
-        var close = new UiRect(x + width * .5f + 10f, y + 470f, buttonWidth, Style.ButtonHeight);
+        var close = new UiRect(x + width * .5f + 10f, y + 530f, buttonWidth, Style.ButtonHeight);
         var exit = new UiRect(x + width * .5f - 10f - buttonWidth, close.Y,
             buttonWidth, Style.ButtonHeight);
         _closePlate.RenderBounds = _closeButton.RenderBounds = _closeLabel.RenderBounds = close;

@@ -18,6 +18,7 @@ public sealed class GameUserSettings
     public float SoundVolume { get; private set; } = 1f;
     public int FrameRateLimit { get; private set; }
     public float RenderScale { get; private set; } = 1f;
+    public float UiFontScale { get; private set; } = OpenWC3.UI.UiFontScale.Default;
 
     public static GameUserSettings Load()
     {
@@ -41,6 +42,8 @@ public sealed class GameUserSettings
                 settings.FrameRateLimit = NormalizeFrameRate((int)value);
             else if (pair[0].Equals("renderScale", StringComparison.OrdinalIgnoreCase))
                 settings.RenderScale = NormalizeRenderScale(value);
+            else if (pair[0].Equals("uiFontScale", StringComparison.OrdinalIgnoreCase))
+                settings.UiFontScale = NormalizeUiFontScale(value);
         }
         return settings;
     }
@@ -51,6 +54,7 @@ public sealed class GameUserSettings
     public void SetSoundVolume(float value) => SoundVolume = Math.Clamp(value, 0f, 1f);
     public void SetFrameRateLimit(int value) => FrameRateLimit = NormalizeFrameRate(value);
     public void SetRenderScale(float value) => RenderScale = NormalizeRenderScale(value);
+    public void SetUiFontScale(float value) => UiFontScale = NormalizeUiFontScale(value);
 
     public void Save()
     {
@@ -68,6 +72,8 @@ public sealed class GameUserSettings
             + "frameRateLimit=" + FrameRateLimit.ToString(CultureInfo.InvariantCulture)
             + Environment.NewLine
             + "renderScale=" + RenderScale.ToString("0.###", CultureInfo.InvariantCulture)
+            + Environment.NewLine
+            + "uiFontScale=" + UiFontScale.ToString("0.###", CultureInfo.InvariantCulture)
             + Environment.NewLine;
         File.WriteAllText(path, text);
     }
@@ -90,6 +96,10 @@ public sealed class GameUserSettings
         }
         return nearest;
     }
+
+    public static float NormalizeUiFontScale(float value)
+        => Math.Clamp(float.IsFinite(value) ? value : OpenWC3.UI.UiFontScale.Default,
+            OpenWC3.UI.UiFontScale.Min, OpenWC3.UI.UiFontScale.Max);
 
     static float ClampScale(float value)
         => Math.Clamp(float.IsFinite(value) ? value : 1f, MinScale, MaxScale);

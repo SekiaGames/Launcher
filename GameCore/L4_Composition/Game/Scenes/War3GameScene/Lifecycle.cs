@@ -422,6 +422,7 @@ public sealed partial class War3GameScene : Node3D
         CameraPanSensitivity = War3Camera.ClampScale(_userSettings.PanSensitivity);
         ApplyFrameRateLimit(_userSettings.FrameRateLimit);
         ApplyRenderScale(_userSettings.RenderScale);
+        OpenWC3.UI.UiFontScale.Set(_userSettings.UiFontScale);
 
         _camera = new War3Camera(this, CameraTargetHeightAt, map);
         _camera.SetPlayerDistanceScale(CameraDistanceScale);
@@ -479,6 +480,11 @@ _loopingSounds = new War3LoopingSoundService(_audio,
         _newHud.PortraitFollowStopped = EndPortraitFollow;
         _newHud.ItemDragReleased = HandleInventoryDragReleased;
 _newHud.AboutDialogClosed = () => _userSettings.Save();
+        _newHud.UiFontScaleChanged = value =>
+        {
+            _userSettings.SetUiFontScale(value);
+            OpenWC3.UI.UiFontScale.Set(value);
+        };
         _newHud.AboutDialogExitRequested = Back;
         _newHud.ControlGroupClicked = RecallControlGroup;
         ConfigureNewMinimap(_map);

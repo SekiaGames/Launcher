@@ -45,8 +45,7 @@ public sealed partial class War3GameScene
 
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
         if (viewport.X <= 0f || viewport.Y <= 0f) return;
-        float scaleX = viewport.X / GameHudScreen.DesignWidth;
-        float scaleY = viewport.Y / GameHudScreen.DesignHeight;
+        float scaleY = viewport.Y / War3UiViewport.BaseHeight;
 
         List<TextTagFrame.TagView> views = _textTagViews;
         views.Clear();
@@ -59,11 +58,12 @@ public sealed partial class War3GameScene
             var point = new Vector3(text.Pos.X, text.WorldHeight, text.Pos.Z);
             if (camera.IsPositionBehind(point)) continue;
             Vector2 screen = camera.UnprojectPosition(point);
-            float screenX = screen.X / scaleX + text.OffsetX
-                + (text.Style?.Velocity.X ?? 0f) * text.Age * GameHudScreen.DesignWidth / .8f;
-            float screenY = screen.Y / scaleY
+            System.Numerics.Vector2 ui = _newHud.ScreenToUi(screen);
+            float screenX = ui.X + text.OffsetX
+                + (text.Style?.Velocity.X ?? 0f) * text.Age * War3UiViewport.BaseWidth / .8f;
+            float screenY = ui.Y
                 - text.Age * (text.Style != null
-                    ? text.Style.Velocity.Y * GameHudScreen.DesignHeight / .6f
+                    ? text.Style.Velocity.Y * War3UiViewport.BaseHeight / .6f
                     : 30f);
             float fontSize = text.Style != null
                 ? TextTagFrame.FontLineHeight(text.Style.Height, (int)viewport.Y, scaleY)
@@ -71,10 +71,10 @@ public sealed partial class War3GameScene
 
             // 锚点在文字左下角(向上、向右展开)；宽度只用于剔除，估大不影响观感。
             float estimatedWidth = System.Math.Max(40f, text.Text.Length * fontSize * .75f) + FloatTextCullMargin;
-            if (screenX > GameHudScreen.DesignWidth + FloatTextCullMargin
+            if (screenX > War3UiViewport.BaseWidth + FloatTextCullMargin
                 || screenX + estimatedWidth < -FloatTextCullMargin
                 || screenY < -FloatTextCullMargin
-                || screenY - fontSize > GameHudScreen.DesignHeight + FloatTextCullMargin) continue;
+                || screenY - fontSize > War3UiViewport.BaseHeight + FloatTextCullMargin) continue;
 
             views.Add(new TextTagFrame.TagView
             {

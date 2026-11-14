@@ -1600,9 +1600,11 @@ public sealed partial class War3GameScene
 
     private System.Numerics.Vector2 UiOf(Vector2 screen)
     {
+        if (_newHud != null)
+            return _newHud.ScreenToUi(screen);
         Vector2 size = GetViewport().GetVisibleRect().Size;
-        return new System.Numerics.Vector2(screen.X * GameHudScreen.DesignWidth / Mathf.Max(1f, size.X),
-            screen.Y * GameHudScreen.DesignHeight / Mathf.Max(1f, size.Y));
+        return new System.Numerics.Vector2(screen.X * War3UiViewport.BaseWidth / Mathf.Max(1f, size.X),
+            screen.Y * War3UiViewport.BaseHeight / Mathf.Max(1f, size.Y));
     }
 
     /// <summary>--float-probe：飘字走屏幕空间文字、样式表逐项对齐、镜头远近字号不变。</summary>
@@ -1663,7 +1665,7 @@ public sealed partial class War3GameScene
 
         // 2. 镜头拉远的字号不变：飘字字号只由帧缓冲高度决定，投影位置才跟镜头走。
         Vector2 viewport = GetViewport().GetVisibleRect().Size;
-        float scaleY = viewport.Y / GameHudScreen.DesignHeight;
+        float scaleY = viewport.Y / War3UiViewport.BaseHeight;
         float near = TextTagFrame.FontLineHeight(config.CriticalStrikeText.Height, (int)viewport.Y, scaleY);
         UpdateWorldText();
         float nearY = FirstTagScreenY();

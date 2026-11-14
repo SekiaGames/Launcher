@@ -10,11 +10,10 @@ namespace OpenWC3.Game.UI;
 
 public sealed partial class GameHudScreen : Control
 {
-    public const float DesignWidth = 1024f;
-    public const float DesignHeight = 768f;
     private const float TopChromeHeight = 40.96f;
     private const float BottomChromeHeight = 225.28f;
 
+    private readonly War3UiViewport _viewport = new();
     private UiRoot _root;
     private UiEventRouter _router;
     private GodotUiRenderDevice _device;
@@ -58,6 +57,7 @@ public Action MenuClicked;
     public Action<float> SoundVolumeChanged;
     public Action<int> FrameRateLimitChanged;
     public Action<float> RenderScaleChanged;
+    public Action<float> UiFontScaleChanged;
     public Action AboutDialogClosed;
     public Action AboutDialogExitRequested;
     public Action<int, bool> ControlGroupClicked;
@@ -154,13 +154,14 @@ public Action MenuClicked;
         _aboutDialog = new AboutDialogFrame(resolver, skin,
             settings.CameraDistanceScale, settings.PanSensitivity,
             settings.MusicVolume, settings.SoundVolume,
-            settings.FrameRateLimit, settings.RenderScale,
+            settings.FrameRateLimit, settings.RenderScale, settings.UiFontScale,
             value => CameraDistanceChanged?.Invoke(value),
             value => PanSensitivityChanged?.Invoke(value),
             value => MusicVolumeChanged?.Invoke(value),
             value => SoundVolumeChanged?.Invoke(value),
             value => FrameRateLimitChanged?.Invoke(value),
-            value => RenderScaleChanged?.Invoke(value));
+            value => RenderScaleChanged?.Invoke(value),
+            value => UiFontScaleChanged?.Invoke(value));
         _aboutDialog.Closed += () => AboutDialogClosed?.Invoke();
         _aboutDialog.ExitToMenuRequested += () => AboutDialogExitRequested?.Invoke();
         _topBar.MenuButton.Clicked += button =>
@@ -317,14 +318,14 @@ _chat = new ChatFrame(this);
                 || !string.IsNullOrWhiteSpace(button.TooltipBody)))
         {
             _tooltip.ShowEx(frame, button.TooltipTitle, button.TooltipBody, button.TooltipExt,
-                button.TooltipCosts, DesignWidth, DesignHeight);
+                button.TooltipCosts, War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
             return;
         }
         _tooltip.Hide();
     }
 
     private void ShowTip(UiFrame anchor, string title, string body)
-        => _tooltip.Show(anchor, title, body, DesignWidth, DesignHeight);
+        => _tooltip.Show(anchor, title, body, War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
 
     private string UpkeepTip()
     {
@@ -659,9 +660,10 @@ _chat = new ChatFrame(this);
     /// <summary>UI 设计单位 → 窗口像素（拖放落点要拿去射线拾取）。</summary>
     public Vector2 UiToScreen(NVector2 point)
     {
-        Vector2 size = Size;
-        if (size.X <= 0f || size.Y <= 0f) size = GetViewportRect().Size;
-        return new Vector2(point.X * size.X / DesignWidth, point.Y * size.Y / DesignHeight);
+        SyncViewport();
+        Vector2 size = ViewportSize();
+        NVector2 window = _viewport.UiToWindow(point, (int)size.X, (int)size.Y);
+        return new Vector2(window.X, window.Y);
     }
 
     private void OnCommandRightClicked(UiFrame frame, UiCommand command)
@@ -689,11 +691,12 @@ _chat = new ChatFrame(this);
             QueueRedraw();
             return;
         }
-        Vector2 size = GetViewportRect().Size;
-        var lo = new Vector2(rect.Position.X * DesignWidth / Mathf.Max(1f, size.X),
-            rect.Position.Y * DesignHeight / Mathf.Max(1f, size.Y));
-        var hi = new Vector2(rect.End.X * DesignWidth / Mathf.Max(1f, size.X),
-            rect.End.Y * DesignHeight / Mathf.Max(1f, size.Y));
+        SyncViewport();
+        Vector2 size = ViewportSize();
+        int width = Mathf.Max(1, (int)size.X);
+        int height = Mathf.Max(1, (int)size.Y);
+        NVector2 lo = _viewport.WindowToUi(new NVector2(rect.Position.X, rect.Position.Y), width, height);
+        NVector2 hi = _viewport.WindowToUi(new NVector2(rect.End.X, rect.End.Y), width, height);
         _selectionBox = new UiRect(lo.X, lo.Y, hi.X - lo.X, hi.Y - lo.Y);
         QueueRedraw();
     }
@@ -722,8 +725,8 @@ _chat = new ChatFrame(this);
 
     public bool IsPointerOverHud(NVector2 uiPos)
     {
-        if (uiPos.X >= 0f && uiPos.X < DesignWidth
-            && (uiPos.Y <= TopChromeHeight || uiPos.Y >= DesignHeight - BottomChromeHeight))
+        if (uiPos.X >= 0f && uiPos.X < War3UiViewport.BaseWidth
+            && (uiPos.Y <= TopChromeHeight || uiPos.Y >= War3UiViewport.BaseHeight - BottomChromeHeight))
             return true;
         UiFrame hit = _root.HitTest(uiPos);
         return hit != null && !ReferenceEquals(hit, _root);
@@ -775,13 +778,28 @@ _chat = new ChatFrame(this);
         }
     }
 
-    private NVector2 ScreenToUi(Vector2 point)
+    /// <summary>窗口/画布像素 → UI 设计坐标（超宽屏要先扣掉居中 16:9 的横向偏移）。</summary>
+    public NVector2 ScreenToUi(Vector2 point)
+    {
+        SyncViewport();
+        Vector2 size = ViewportSize();
+        return _viewport.WindowToUi(new NVector2(point.X, point.Y),
+            Mathf.Max(1, (int)size.X), Mathf.Max(1, (int)size.Y));
+    }
+
+    private Vector2 ViewportSize()
     {
         Vector2 size = Size;
-        if (size.X <= 0f || size.Y <= 0f) size = GetViewportRect().Size;
-        if (size.X <= 0f || size.Y <= 0f) size = new Vector2(1920f, 1080f);
-        return new NVector2(point.X * DesignWidth / Mathf.Max(1f, size.X),
-            point.Y * DesignHeight / Mathf.Max(1f, size.Y));
+        if (size.X > 0f && size.Y > 0f) return size;
+        size = GetViewportRect().Size;
+        return size.X > 0f && size.Y > 0f ? size : new Vector2(1920f, 1080f);
+    }
+
+    private void SyncViewport()
+    {
+        Vector2 size = GetViewportRect().Size;
+        if (Size != size) Size = size;
+        _viewport.Update((int)size.X, (int)size.Y);
     }
 
     public override void _Process(double delta)
@@ -841,32 +859,30 @@ _chat = new ChatFrame(this);
     {
         if (_root == null || _device == null) return;
 
-        Vector2 viewport = GetViewportRect().Size;
-        if (Size != viewport) Size = viewport;
-        float scaleX = viewport.X / DesignWidth;
-        float scaleY = viewport.Y / DesignHeight;
+        SyncViewport();
 
-        _root.UpdateViewport(DesignWidth, DesignHeight);
-        _console.Layout(DesignWidth, DesignHeight);
-        _infoPanel.Layout(DesignWidth, DesignHeight);
-        _itemDetail.Layout(DesignWidth, DesignHeight);
-        _card.Layout(DesignWidth, DesignHeight);
-        _topBar.Layout(DesignWidth, DesignHeight);
-        _minimap.Layout(DesignWidth, DesignHeight);
-        _heroBar.Layout(DesignWidth, DesignHeight);
-        _portrait.Layout(DesignWidth, DesignHeight);
-        _selectionGroup.Layout(DesignWidth, DesignHeight);
-        _idlePeon.Layout(DesignWidth, DesignHeight);
-        _inventory.Layout(DesignWidth, DesignHeight);
-        _queue.Layout(DesignWidth, DesignHeight);
-        _tooltip.Layout(DesignWidth, DesignHeight);
-_controlGroups.Layout(DesignWidth, DesignHeight);
-        _aboutDialog.Layout(DesignWidth, DesignHeight);
+        _root.UpdateViewport(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _console.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _infoPanel.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _itemDetail.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _card.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _topBar.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _minimap.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _heroBar.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _portrait.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _selectionGroup.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _idlePeon.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _inventory.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _queue.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _tooltip.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+_controlGroups.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
+        _aboutDialog.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
         _commandError.Layout();
 
-        _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
-        _chat.Update(DesignWidth, DesignHeight, _device);
-        _textTag.Update(_worldText, DesignWidth, DesignHeight);
+        _device.Begin(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight,
+            _viewport.ScaleX, _viewport.ScaleY, _viewport.PixelOffsetX);
+        _chat.Update(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight, _device);
+        _textTag.Update(_worldText, War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
         if (_textTag.Visible) _textTag.Render(_device);
         if (_selectionBox is { } box)
             _device.DrawTexturedQuad(box, _device.WhiteTexture,
@@ -876,7 +892,7 @@ _controlGroups.Layout(DesignWidth, DesignHeight);
                 _timeOfDayTexture, System.Numerics.Vector4.One);
         _root.Render(_device);
         if (_selectedUnit != null && _portrait.Visible)
-            _device.DrawTexturedQuad(PortraitFrame.ModelArea(DesignHeight),
+            _device.DrawTexturedQuad(PortraitFrame.ModelArea(War3UiViewport.BaseHeight),
                 _portraitTexture, System.Numerics.Vector4.One);
         _device.End();
     }

@@ -191,10 +191,18 @@ public sealed class ChatFrame : UiContainer
     private void PositionInputRow()
     {
         if (_inputHost is not Control host || host.Size.X <= 0f || host.Size.Y <= 0f) return;
-        _input.Position = new Vector2(ChatLeft * host.Size.X / GameHudScreen.DesignWidth,
-            ChatBottom * host.Size.Y / GameHudScreen.DesignHeight);
-        _input.Size = new Vector2(InputWidth * host.Size.X / GameHudScreen.DesignWidth,
-            InputHeight * host.Size.Y / GameHudScreen.DesignHeight);
+        if (host is GameHudScreen hud)
+        {
+            Vector2 topLeft = hud.UiToScreen(new NVector2(ChatLeft, ChatBottom));
+            Vector2 bottomRight = hud.UiToScreen(new NVector2(ChatLeft + InputWidth, ChatBottom + InputHeight));
+            _input.Position = topLeft;
+            _input.Size = new Vector2(bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+            return;
+        }
+        _input.Position = new Vector2(ChatLeft * host.Size.X / War3UiViewport.BaseWidth,
+            ChatBottom * host.Size.Y / War3UiViewport.BaseHeight);
+        _input.Size = new Vector2(InputWidth * host.Size.X / War3UiViewport.BaseWidth,
+            InputHeight * host.Size.Y / War3UiViewport.BaseHeight);
     }
 
     private void Reflow()
