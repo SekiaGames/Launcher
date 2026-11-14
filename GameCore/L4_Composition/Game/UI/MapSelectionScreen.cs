@@ -454,6 +454,7 @@ public sealed partial class MapSelectionScreen : Control
     public override void _Draw()
     {
         UpdateLayoutRect();
+        _glue.Resize(new Vector2I((int)Size.X, (int)Size.Y));
         DrawTextureRect(_glue.Texture, new Rect2(Vector2.Zero, Size), false);
         float scaleX = Size.X / DesignWidth;
         float scaleY = Size.Y / DesignHeight;

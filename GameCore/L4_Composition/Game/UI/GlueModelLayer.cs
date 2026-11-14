@@ -19,7 +19,7 @@ public sealed class GlueModelLayer
     {
         _viewport = new SubViewport
         {
-            Size = new Vector2I(1280, 720),
+            Size = new Vector2I(1920, 1080),
             OwnWorld3D = true,
             RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
         };
@@ -59,6 +59,12 @@ public sealed class GlueModelLayer
     }
 
     public Texture2D Texture => _viewport.GetTexture();
+
+    public void Resize(Vector2I size)
+    {
+        if (size.X <= 0 || size.Y <= 0 || _viewport.Size == size) return;
+        _viewport.Size = size;
+    }
 
     public void FollowCameraTarget()
     {
