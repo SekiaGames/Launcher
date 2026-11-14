@@ -160,6 +160,7 @@ public sealed partial class CommandCardBuilder
                 button.Command = null;
                 button.OverlayText = null;
                 button.Cooldown = 0f;
+                button.AutoCastHighlight = false;
                 continue;
             }
 
@@ -171,11 +172,12 @@ public sealed partial class CommandCardBuilder
             button.ActiveHighlight = _activeHighlight;
             button.Hotkey = string.IsNullOrEmpty(command.Hotkey) ? FallbackHotkey(i) : command.Hotkey;
             button.Disabled = command.Disabled;
-            button.Cooldown = command.Cooldown;
+            button.Command = new UiCommand(UiCommandKind.Ability, Slot: i);
+            button.SetCooldown(command.Cooldown, selected, button.Command, command.CooldownId);
+            button.AutoCastHighlight = command.AutoCastActive;
             button.OverlayText = command.Overlay;
             button.TooltipTitle = command.Title ?? "";
             button.TooltipBody = command.Body ?? "";
-            button.Command = new UiCommand(UiCommandKind.Ability, Slot: i);
             button.Visible = true;
         }
     }

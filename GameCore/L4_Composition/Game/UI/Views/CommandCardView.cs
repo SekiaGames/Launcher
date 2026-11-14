@@ -11,7 +11,9 @@ public readonly record struct CommandSlotView(
     string Overlay = null,
     string Title = null,
     string Body = null,
-    ITexture IconTexture = null);
+    ITexture IconTexture = null,
+    bool AutoCastActive = false,
+    string CooldownId = null);
 
 public sealed record CommandCardView(IReadOnlyList<CommandSlotView?> Slots)
 {

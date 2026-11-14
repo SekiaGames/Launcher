@@ -20,6 +20,22 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
     private float _scaleX = 1f;
     private float _scaleY = 1f;
     private float _offsetX;
+    private CanvasItem _additiveTarget;
+    private Rid _additiveItem;
+    private bool _additiveReady;
+    private Texture2D _cooldownTexture;
+    private GodotUiTexture _completionUi;
+    private GodotUiTexture _autoCastUi;
+
+    public CanvasItem AdditiveTarget
+    {
+        get => _additiveTarget;
+        set
+        {
+            _additiveTarget = value;
+            _additiveReady = false;
+        }
+    }
 
     public GodotUiRenderDevice(CanvasItem target, Font font = null)
     {
@@ -48,6 +64,10 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
         _scaleY = scaleY <= 0f ? 1f : scaleY;
         _offsetX = pixelOffsetX;
         _clips.Clear();
+        _additiveReady = _additiveTarget != null && GodotObject.IsInstanceValid(_additiveTarget);
+        if (!_additiveReady) return;
+        _additiveItem = _additiveTarget.GetCanvasItem();
+        RenderingServer.CanvasItemClear(_additiveItem);
     }
 
     public void End() => _clips.Clear();
@@ -96,7 +116,18 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
     }
 
     public void DrawTexturedQuadAdd(UiRect rect, ITexture texture, NVector4 color, UiRect uv = default)
-        => DrawTexturedQuad(rect, texture, color, uv);
+    {
+        if (texture is not GodotUiTexture godot || godot.Source == null) return;
+        if (!Clip(ref rect, ref uv)) return;
+        if (!_additiveReady)
+        {
+            _target.DrawTextureRectRegion(godot.Source, ToPixels(rect),
+                SourceRect(godot.Source, uv), ToColor(color));
+            return;
+        }
+        RenderingServer.CanvasItemAddTextureRectRegion(_additiveItem, ToPixels(rect),
+            godot.Source.GetRid(), SourceRect(godot.Source, uv), ToColor(color));
+    }
 
     public void DrawTexturedQuadTiled(UiRect rect, ITexture texture, NVector4 color, UiRect uv, bool transpose = false)
     {
@@ -142,21 +173,141 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
         int segments = Mathf.Max(3, Mathf.CeilToInt(48 * amount));
 
         var points = new Vector2[segments + 2];
+        var colors = new Color[points.Length];
+        Texture2D texture = CooldownMaskTexture;
+        Vector2[] uvs = texture == null ? null : new Vector2[points.Length];
+        Color shade = texture == null
+            ? ToColor(color)
+            : new Color(color.X, color.Y, color.Z, Mathf.Clamp(color.W / CooldownMaskAlpha, 0f, 1f));
+
         points[0] = new Vector2(_offsetX + centerX * _scaleX, centerY * _scaleY);
+        colors[0] = shade;
+        if (uvs != null) uvs[0] = new Vector2(0.5f, 0.5f);
         for (int i = 0; i <= segments; i++)
         {
             float angle = -Mathf.Pi * 0.5f + Mathf.Tau * amount * (i / (float)segments);
-            var point = new NVector2(centerX + Mathf.Cos(angle) * radius, centerY + Mathf.Sin(angle) * radius);
+            float cos = Mathf.Cos(angle);
+            float sin = Mathf.Sin(angle);
+            var point = new NVector2(centerX + cos * radius, centerY + sin * radius);
             points[i + 1] = new Vector2(_offsetX + point.X * _scaleX, point.Y * _scaleY);
+            colors[i + 1] = shade;
+            if (uvs != null) uvs[i + 1] = new Vector2(0.5f + cos * 0.5f, 0.5f + sin * 0.5f);
         }
-        _target.DrawColoredPolygon(points, ToColor(color));
+
+        if (uvs != null) _target.DrawPolygon(points, colors, uvs, texture);
+        else _target.DrawColoredPolygon(points, ToColor(color));
     }
 
-    public bool DrawCooldownCompletion(UiRect rect, float elapsedSeconds) => false;
+    public bool DrawCooldownCompletion(UiRect rect, float elapsedSeconds)
+    {
+        if (elapsedSeconds < 0f || elapsedSeconds >= CooldownCompletionSeconds) return false;
+        ITexture texture = CompletionUiTexture;
+        if (texture == null) return false;
+        float scale = CompletionScale(elapsedSeconds / CooldownCompletionSeconds);
+        float size = Mathf.Max(rect.Width, rect.Height) * scale;
+        float centerX = rect.X + rect.Width * 0.5f;
+        float centerY = rect.Y + rect.Height * 0.5f;
+        DrawTexturedQuadAdd(
+            new UiRect(centerX - size * 0.5f, centerY - size * 0.5f, size, size),
+            texture, new NVector4(0.407843f, 0.603922f, 1f, 1f));
+        return true;
+    }
 
     public bool DrawMinimapCamp(UiRect rect, bool tough, float elapsedSeconds, NVector4 color) => false;
 
-    public bool DrawAutoCast(UiRect rect, object button, float elapsedSeconds) => false;
+    public bool DrawAutoCast(UiRect rect, object button, float elapsedSeconds)
+    {
+        if (button == null || rect.Width <= 0f || rect.Height <= 0f) return false;
+        ITexture texture = AutoCastUiTexture;
+        if (texture == null) return false;
+
+        float phase = Mathf.PosMod(elapsedSeconds / AutoCastCycleSeconds, 1f);
+        float inset = Mathf.Max(1f, Mathf.Min(rect.Width, rect.Height) * 0.07f);
+        float size = Mathf.Min(rect.Width, rect.Height) * 0.34f;
+        for (int index = 0; index < 4; index++)
+        {
+            float u = Mathf.PosMod(phase + index * 0.25f, 1f);
+            Vector2 point = PerimeterPoint(rect, inset, u);
+            float pulse = 0.6f + 0.4f * Mathf.Sin(u * Mathf.Tau * 2f);
+            DrawTexturedQuadAdd(
+                new UiRect(point.X - size * 0.5f, point.Y - size * 0.5f, size, size),
+                texture, new NVector4(1f, 1f, 1f, pulse));
+        }
+        return true;
+    }
+
+    private static Vector2 PerimeterPoint(UiRect rect, float inset, float u)
+    {
+        float left = rect.X + inset;
+        float top = rect.Y + inset;
+        float right = rect.X + rect.Width - inset;
+        float bottom = rect.Y + rect.Height - inset;
+        float width = Mathf.Max(0f, right - left);
+        float height = Mathf.Max(0f, bottom - top);
+        float perimeter = 2f * (width + height);
+        if (perimeter <= 0f) return new Vector2(left, top);
+
+        float distance = Mathf.PosMod(u, 1f) * perimeter;
+        if (distance < height) return new Vector2(right, top + distance);
+        distance -= height;
+        if (distance < width) return new Vector2(right - distance, bottom);
+        distance -= width;
+        if (distance < height) return new Vector2(left, bottom - distance);
+        distance -= height;
+        return new Vector2(left + Mathf.Min(distance, width), top);
+    }
+
+    private const float CooldownMaskAlpha = 0.6f;
+    private const float CooldownCompletionSeconds = 1f;
+    private const float AutoCastCycleSeconds = 1.667f;
+
+    private static readonly float[] CompletionKeyTimes =
+    {
+        0f, 0.08325f, 0.124875f, 0.1665f, 0.208125f, 0.24975f, 0.291375f, 0.333f,
+        0.374625f, 0.41625f, 0.4995f, 0.58275f, 0.624375f, 0.666f, 0.70775f, 0.7495f,
+        0.79125f, 0.812125f, 0.833f, 0.87475f, 0.9165f, 0.95825f, 1f,
+    };
+
+    private static readonly float[] CompletionKeyScales =
+    {
+        1f, 1.358869f, 1.510828f, 1.639706f, 1.741929f, 1.813925f, 1.852119f, 1.85294f,
+        1.846955f, 1.798941f, 1.625156f, 1.428251f, 1.351336f, 1.30489f, 1.370598f, 1.477934f,
+        1.573778f, 1.60079f, 1.60501f, 1.583908f, 1.492432f, 1.344665f, 1.15469f,
+    };
+
+    private static float CompletionScale(float t)
+    {
+        t = Mathf.Clamp(t, 0f, 1f);
+        for (int i = 1; i < CompletionKeyTimes.Length; i++)
+        {
+            if (t > CompletionKeyTimes[i]) continue;
+            float span = Mathf.Max(0.0001f, CompletionKeyTimes[i] - CompletionKeyTimes[i - 1]);
+            float ratio = (t - CompletionKeyTimes[i - 1]) / span;
+            return Mathf.Lerp(CompletionKeyScales[i - 1], CompletionKeyScales[i], ratio);
+        }
+        return CompletionKeyScales[^1];
+    }
+
+    private Texture2D CooldownMaskTexture =>
+        _cooldownTexture ??= LoadUiTexture(@"UI\Feedback\Cooldown\cooldown.blp");
+
+    private ITexture CompletionUiTexture =>
+        _completionUi ??= CreateUiTexture(@"UI\Feedback\Cooldown\star4.blp");
+
+    private ITexture AutoCastUiTexture =>
+        _autoCastUi ??= CreateUiTexture(@"UI\Feedback\Autocast\GlowStar.blp");
+
+    private static GodotUiTexture CreateUiTexture(string path)
+    {
+        Texture2D texture = LoadUiTexture(path);
+        return texture == null ? null : new GodotUiTexture(texture);
+    }
+
+    private static Texture2D LoadUiTexture(string path)
+    {
+        string converted = War3Assets.ConvertedPath(path);
+        return converted == null ? null : Assets.LoadTexture(converted);
+    }
 
     public void DrawText(UiRect rect, string text, float fontSize, NVector4 color, TextAlignment align,
         NVector4? shadowColor = null, NVector2 shadowOffset = default,

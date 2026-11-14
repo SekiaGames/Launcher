@@ -88,6 +88,11 @@ public Action MenuClicked;
         {
             LineSizeResolver = _font.PixelSizeForLine,
         };
+        var additiveLayer = new Control { Name = "AdditiveLayer", MouseFilter = MouseFilterEnum.Ignore };
+        additiveLayer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        additiveLayer.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
+        AddChild(additiveLayer);
+        _device.AdditiveTarget = additiveLayer;
 
         _root = new UiRoot { MouseTransparent = true };
         _router = new UiEventRouter(_root);
@@ -595,7 +600,9 @@ _chat = new ChatFrame(this);
                         ? entry.Tooltip
                         : (entry.Tooltip ?? "")
                             + (string.IsNullOrEmpty(entry.Tooltip) ? "" : "\n") + entry.Cost,
-                    IconTexture: entry.Icon == null ? null : new GodotUiTexture(entry.Icon));
+                    IconTexture: entry.Icon == null ? null : new GodotUiTexture(entry.Icon),
+                    AutoCastActive: entry.Active,
+                    CooldownId: entry.Id);
                 _slotEntries[index] = entry;
             }
         }
