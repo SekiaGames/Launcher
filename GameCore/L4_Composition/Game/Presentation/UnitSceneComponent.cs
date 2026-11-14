@@ -33,7 +33,7 @@ public sealed class UnitSceneComponent
     private float _progressRadius;
     private float _progressDrawn = -1f;
 
-    public static UnitSceneComponent Create(PackedScene scene, Color teamColor, float scale, bool isBuilding, float footprintRadius = 0f, string scenePath = null)
+    public static UnitSceneComponent Create(PackedScene scene, Color teamColor, float scale, bool isBuilding, float footprintRadius, string scenePath, SceneLight light)
     {
         var view = new UnitSceneComponent();
         var root = scene.Instantiate<Node3D>();
@@ -48,7 +48,7 @@ public sealed class UnitSceneComponent
 
         view.ApplyTeamColor(teamColor);
         MapWorldBuilder.ApplyUnitTextureFilter(root);
-        ModelLightRig.Apply(root, SceneLight.Fallback);
+        ModelLightRig.Apply(root, light);
 
         view.Height = MeasureHeight(root, isBuilding);
         view._progressRadius = Mathf.Max(40f, footprintRadius);

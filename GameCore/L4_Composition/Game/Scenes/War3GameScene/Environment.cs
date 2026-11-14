@@ -10,12 +10,21 @@ public sealed partial class War3GameScene
     /// MeleeInitVictoryDefeat 的最小版本：没有建筑即判负，只剩一家存活即结束。
     /// 完整客户端还有「建造/死亡/离开/同盟变化」触发器与 2 秒延迟检查，这里先对齐判定口径。
     /// </summary>
+    private SceneLighting _sceneLighting;
+    private float _sceneLightingHour = -1f;
+
     private void TickClock()
     {
         float scale = 1f / Mathf.Max(0.02f, TimeScaleHint);
         _todHours += World.FrameSeconds * scale * 24f / Mathf.Max(60f, DaySeconds);
         if (_todHours >= 24f) _todHours -= 24f;
         if (_world != null) _world.IsNight = IsNight;
+        if (_sceneLighting != null && Mathf.Abs(_todHours - _sceneLightingHour) >= 0.05f)
+        {
+            _sceneLightingHour = _todHours;
+            _sceneLighting.Update(_todHours);
+            SceneLightRig.Apply(this, _sceneLighting.Terrain, _sceneLighting.Units);
+        }
     }
 
     private bool IsNight => _todHours < 6f || _todHours >= 18f;

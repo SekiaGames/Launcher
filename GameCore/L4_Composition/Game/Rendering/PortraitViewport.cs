@@ -61,7 +61,8 @@ internal sealed class PortraitViewport
         PackedScene scene = Assets.LoadScene(unit.Type.ModelPath);
         if (scene == null) return;
         _view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(unit.Player),
-            unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, unit.Type.ModelPath);
+            unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, unit.Type.ModelPath,
+            SceneLight.Fallback);
         _stage.AddChild(_view.Root);
         _view.Root.Position = Vector3.Zero;
         _view.Root.Rotation = new Vector3(0f, Mathf.Pi, 0f);

@@ -161,6 +161,11 @@ public sealed partial class War3GameScene : Node3D
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads);
         AddChild(worldRoot);
         _worldRoot = worldRoot;
+        _sceneLighting = SceneLighting.Load(SceneLighting.ResolveTileset(
+            map.Info?.Environment?.LightEnvTileset ?? (char)0, map.Terrain.Tileset), _todHours);
+        _sceneLightingHour = _todHours;
+        SceneLightRig.Apply(worldRoot, _sceneLighting.Terrain, _sceneLighting.Terrain);
+        GD.Print($"[INIT] 昼夜光照 {SceneLighting.Describe(_sceneLighting.Terrain)}");
 
         _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather,
             CameraTargetHeightAt);

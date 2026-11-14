@@ -1,17 +1,38 @@
 using System;
 using System.Collections.Generic;
+using Godot;
 
 namespace OpenWC3.Game.Generated;
 
-internal readonly record struct DayNightKey(
-    double Hour,
-    float DirX, float DirY, float DirZ,
-    float SunR, float SunG, float SunB, float SunIntensity,
-    float AmbR, float AmbG, float AmbB, float AmbIntensity);
+internal sealed class DayNightTrack
+{
+    internal int Interpolation;
+    internal float[] Frames;
+    internal float[] Values;
+    internal float[] InTans;
+    internal float[] OutTans;
+    internal int Width => Values.Length / Frames.Length;
+}
+
+internal sealed class DayNightLight
+{
+    internal float Start;
+    internal float End;
+    internal Vector3 Color;
+    internal float Intensity;
+    internal Vector3 AmbientColor;
+    internal float AmbientIntensity;
+    internal DayNightTrack Rotation;
+    internal DayNightTrack ColorTrack;
+    internal DayNightTrack IntensityTrack;
+    internal DayNightTrack AmbientColorTrack;
+    internal DayNightTrack AmbientIntensityTrack;
+    internal DayNightTrack VisibilityTrack;
+}
 
 internal static class DayNight
 {
-    internal static readonly Dictionary<string, (DayNightKey[] Terrain, DayNightKey[] Unit)> Environments = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly Dictionary<string, (DayNightLight Terrain, DayNightLight Unit)> Environments = new(StringComparer.OrdinalIgnoreCase)
     {
         ["DNCAshenVale"] = (Lighting.DNCAshenVale.Terrain, Lighting.DNCAshenVale.Unit),
         ["DNCDalaran"] = (Lighting.DNCDalaran.Terrain, Lighting.DNCDalaran.Unit),
