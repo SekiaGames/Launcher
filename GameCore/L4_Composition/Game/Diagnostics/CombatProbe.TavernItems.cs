@@ -21,6 +21,86 @@ public static partial class CombatProbe
         CheckStampede();
         CheckOrbItems();
         CheckItemPassives();
+        CheckSpellArtLoops();
+    }
+
+    /// <summary>烈焰风暴余烬、云雾雾团、季风雨幕/落雷、哨兵猫头鹰、火山喷发/熔岩弹。</summary>
+    private static void CheckSpellArtLoops()
+    {
+        Verify("烈焰风暴预载美术", 1f, PreloadArtCount("AHfs") > 0 ? 1f : 0f, 0f);
+        Verify("云雾预载美术", 1f, PreloadArtCount("Aclf") > 0 ? 1f : 0f, 0f);
+        Verify("季风预载美术", 2f, PreloadArtCount("ACmo"), 0f);
+        Verify("哨兵预载美术", 1f, PreloadArtCount("Aesn") > 0 ? 1f : 0f, 0f);
+        Verify("火山预载美术", 2f, PreloadArtCount("ANvc"), 0f);
+
+        var fireWorld = new World(null, null);
+        Unit mage = ProbeUnit(fireWorld, "hfoo", 0, Vector3.Zero, "AHfs");
+        bool fireCast = fireWorld.TryCast(mage, mage.FindAbility("AHfs"), null, new Vector3(300f, 0f, 0f));
+        Verify("烈焰风暴喷发模型", 1f, fireCast && VisualCount(fireWorld, "FlameStrike") > 0 ? 1f : 0f, 0f);
+        fireWorld.TickGroundSpells();
+        Verify("烈焰风暴余烬", 10f, VisualCount(fireWorld, "FlameStrikeEmbers"), 0f);
+
+        var fogWorld = new World(null, null);
+        Unit dragon = ProbeUnit(fogWorld, "hfoo", 0, Vector3.Zero, "Aclf");
+        bool fogCast = fogWorld.TryCast(dragon, dragon.FindAbility("Aclf"), null, new Vector3(300f, 0f, 0f));
+        Verify("云雾雾团模型", 1f, fogCast && VisualCount(fogWorld, "CloudOfFog") > 0 ? 1f : 0f, 0f);
+
+        var rainWorld = new World(null, null);
+        Unit warlock = ProbeUnit(rainWorld, "hfoo", 0, Vector3.Zero, "ACmo");
+        Unit soaked = ProbeUnit(rainWorld, "ogru", 1, new Vector3(300f, 0f, 0f));
+        soaked.Hp = soaked.MaxHp = 100000f;
+        bool rainCast = rainWorld.TryCast(warlock, warlock.FindAbility("ACmo"), null, soaked.Position);
+        Verify("季风雨幕模型", 1f, rainCast && VisualCount(rainWorld, "MonsoonRain") > 0 ? 1f : 0f, 0f);
+        for (int tick = 0; tick < 40; tick++) rainWorld.TickChannels();
+        Verify("季风落雷模型", 1f, VisualCount(rainWorld, "MonsoonBoltTarget") > 0 ? 1f : 0f, 0f);
+        rainWorld.CancelChannel(warlock);
+        Verify("季风断引导雨幕离场", 0f, VisualCount(rainWorld, "MonsoonRain"), 0f);
+
+        var owlWorld = new World(null, null);
+        Unit huntress = ProbeUnit(owlWorld, "hfoo", 0, Vector3.Zero, "Aesn");
+        bool owlCast = owlWorld.TryCast(huntress, huntress.FindAbility("Aesn"), null, new Vector3(300f, 0f, 0f));
+        Verify("哨兵猫头鹰模型", 1f, owlCast && VisualCount(owlWorld, "Owl.mdl") > 0 ? 1f : 0f, 0f);
+
+        var volcanoWorld = new World(null, null);
+        Unit fireLord = ProbeUnit(volcanoWorld, "hfoo", 0, Vector3.Zero, "ANvc");
+        bool volcanoCast = volcanoWorld.TryCast(fireLord, fireLord.FindAbility("ANvc"), null, new Vector3(300f, 0f, 0f));
+        Verify("火山喷发模型", 1f, volcanoCast && VisualCount(volcanoWorld, "Volcano") > 0 ? 1f : 0f, 0f);
+        for (int tick = 0; tick < 110; tick++) volcanoWorld.TickChannels();
+        Verify("火山熔岩弹", 1f, MissileCount(volcanoWorld, "VolcanoMissile") > 0 ? 1f : 0f, 0f);
+        volcanoWorld.CancelChannel(fireLord);
+        Verify("火山断引导喷发离场", 0f, VisualCount(volcanoWorld, "Volcano.mdl"), 0f);
+    }
+
+    static int PreloadArtCount(string abilityId)
+    {
+        AbilityType type = AbilityCatalog.Get(abilityId);
+        if (type == null) return 0;
+        Ability ability = RuntimeAbilityFactory.Create(type);
+        if (ability == null) return 0;
+        ability.BindObjectData(type.Id, new AbilityTypeObjectData(type), 1);
+        return ability.RuntimePreloadArts.Count;
+    }
+
+    static int VisualCount(World world, string fragment)
+    {
+        int count = 0;
+        foreach (Effect effect in world.Effects)
+        {
+            if (effect is not SpecialEffect special || special.Destroyed) continue;
+            if (special.VisualModelPath.Contains(fragment, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
+    }
+
+    static int MissileCount(World world, string fragment)
+    {
+        int count = 0;
+        foreach (Effect effect in world.Effects)
+        {
+            if (effect is MissileEffect missile
+                && missile.MissileArt.Contains(fragment, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
     }
 
     private static void CheckShadowMeld()

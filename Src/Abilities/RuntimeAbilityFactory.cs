@@ -84,7 +84,7 @@ public static class RuntimeAbilityFactory
         ["AUfu"] = () => new RuntimeFrostArmorAbility(),    // 霜冻护甲（巫妖，自动施法版）
         // —— 血法师 ——
         ["AHbn"] = () => new RuntimeBanishAbility(),        // 放逐（虚无 + 减速）
-        ["AHfs"] = () => new RuntimeFlameStrikeAbility(),   // 烈焰风暴（满伤阶段 + 余烬阶段）
+        ["AHfs"] = () => WithObjects<RuntimeFlameStrikeAbility>(),   // 烈焰风暴（满伤阶段 + 余烬阶段）
         ["AHdr"] = () => new SiphonMana(),    // 吸魔（引导抽蓝 / 反向输蓝）
         ["AHpx"] = () => new Phoenix(),       // 凤凰（hphx，阵亡变蛋再孵化）
         ["Aphx"] = () => new RuntimePhoenixEggBuff(),    // 凤凰变蛋（被动）
@@ -156,8 +156,8 @@ public static class RuntimeAbilityFactory
         ["Atau"] = () => new RuntimeTauntAbility(),             // 嘲讽（山岭巨人）
         ["Assk"] = () => new RuntimeHardenedSkinAbility(),      // 硬化皮肤（山岭巨人）
         ["Aegr"] = () => new ElunesGrace(),       // 艾露恩恩泽（弓箭手）
-        ["Aesn"] = () => new RuntimeSentinelAbility(),          // 哨兵（女猎手，区域视野）
-        ["Aesr"] = () => new RuntimeSentinelAbility(),
+        ["Aesn"] = () => WithObjects<RuntimeSentinelAbility>(),          // 哨兵（女猎手，区域视野）
+        ["Aesr"] = () => WithObjects<RuntimeSentinelAbility>(),
         ["Amgl"] = () => new RuntimeMoonGlaiveAbility(),        // 月刃（女猎手，弹跳）
         ["Amgr"] = () => new RuntimeMoonGlaiveAbility(),
         ["Alit"] = () => new RuntimeLightningAttackAbility(),   // 闪电攻击（奇美拉）
@@ -194,7 +194,7 @@ public static class RuntimeAbilityFactory
         ["AIrs"] = () => new RuntimeResurrectionAbility(),      // 物品版复活
         ["AIrx"] = () => new RuntimeResurrectionAbility(),
         // —— 酒馆英雄剩余 ——
-        ["ANvc"] = () => new RuntimeVolcanoAbility(),          // 火山（火焰领主，引导 8 波 × 5s）
+        ["ANvc"] = () => WithObjects<RuntimeVolcanoAbility>(),          // 火山（火焰领主，引导 8 波 × 5s）
         ["Acef"] = () => new RuntimeSpiritOfVengeanceAbility(),   // 风暴大地火焰（陈，召三元素）
         ["ANcf"] = () => new RuntimeBreathOfFireAbility(),     // 火焰吐息（陈，直线 + 点燃醉酒目标）
         ["Acdh"] = () => new RuntimeDrunkenHazeAbility(),      // 醉酒云雾（最高 80% 未命中 + 减速）
@@ -292,7 +292,7 @@ public static class RuntimeAbilityFactory
         ["SCc1"] = () => new RuntimeCycloneAbility(),           // 塞纳留斯旋风
         ["Scri"] = () => WithObjects<RuntimeCrippleAbility>(),           // 野怪术士残废
         ["Suhf"] = () => new RuntimeUnholyFrenzyAbility(),      // 野怪术士邪恶狂热
-        ["Aclf"] = () => new CloudOfFog(),        // 云雾（龙鹰，区域未命中）
+        ["Aclf"] = () => WithObjects<RuntimeCloudOfFogAbility>(),        // 云雾（龙鹰，区域未命中）
         ["Adtn"] = () => new RuntimeDetonateAbility(),          // 自爆（小精灵，驱散 + 伤害）
         ["Asds"] = () => new RuntimeKaboomAbility(),      // 自爆（野怪）
         ["Ambt"] = () => new RuntimeMoonWellReplenishAbility(),       // 法力电池（回蓝光环）
@@ -301,7 +301,8 @@ public static class RuntimeAbilityFactory
         ["ANre"] = WithObjects<RuntimeNeutralRegenAbility>,      // 中立恢复（只回蓝）
         ["Aamk"] = () => new RuntimeAttributeModSkillAbility(), // 属性修正（中立英雄）
         ["ACf3"] = () => new FingerOfDeath(),     // 痛苦之指（单体伤害）
-        ["ACmo"] = () => new RuntimeMonsoonAbility(),           // 季风（引导范围伤害 + 减速）
+        ["ACmo"] = () => WithObjects<RuntimeMonsoonAbility>(),           // 季风（引导范围伤害 + 减速）
+        ["ANmo"] = () => WithObjects<RuntimeMonsoonAbility>(),           // 季风（海巫大招，与 ACmo 同一实现）
         ["Amrf"] = () => new RuntimeDestroyerFormAbility(),        // 乌鸦形态（麦迪文）
         ["Amic"] = () => new RuntimeCallToArmsAbility(),         // 敲钟（城镇大厅，农民变民兵）
         ["Ahrp"] = () => new RuntimeRepairAbility(),     // 修理（人族农民）

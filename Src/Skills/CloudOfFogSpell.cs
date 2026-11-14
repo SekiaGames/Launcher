@@ -9,13 +9,19 @@ public sealed class CloudOfFogSpell : IGroundSpell
     public float Radius = 300f;
     public float Remaining = 30f;
     public float MissChance = 0.7f;
+    public SpecialEffect Cloud;
 
     private float _accumulator;
 
     public bool Step(World world, float delta)
     {
         Remaining -= delta;
-        if (Remaining <= 0f || world == null || Caster == null || !Caster.Alive) return false;
+        if (Remaining <= 0f || world == null || Caster == null || !Caster.Alive)
+        {
+            Cloud?.Destroy();
+            Cloud = null;
+            return false;
+        }
 
         _accumulator += delta;
         if (_accumulator < 0.5f) return true;

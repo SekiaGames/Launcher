@@ -16,8 +16,13 @@ public sealed class FlameStrikeBurn : IGroundSpell
     public float HalfInterval;
     public float BuildingFactor;
     public float Timer;
+    /// <summary>余烬特效（XHfs 的 EffectArt）：每 0.33 秒在范围内撒 10 个。</summary>
+    public string EmberArt = "";
+    public int EmbersPerWave = 10;
+    public float EmberInterval = 0.33f;
 
     private float _elapsed;
+    private float _emberTimer;
 
     public bool Step(World world, float delta)
     {
@@ -35,7 +40,29 @@ public sealed class FlameStrikeBurn : IGroundSpell
             DamageWave(world, damage);
             Timer += interval;
         }
+        SpawnEmbers(world, delta);
         return true;
+    }
+
+    private void SpawnEmbers(World world, float delta)
+    {
+        if (world == null || string.IsNullOrWhiteSpace(EmberArt)) return;
+
+        _emberTimer -= Mathf.Max(0f, delta);
+        int guard = 0;
+        while (_emberTimer <= 0f && guard++ < 16)
+        {
+            var center = new Vec2(Point.X, Point.Z);
+            for (int index = 0; index < EmbersPerWave; index++)
+            {
+                float angle = world.Rng.NextSingle() * Mathf.Tau;
+                float distance = world.Rng.NextSingle() * Radius;
+                world.AddSpecialEffect(EmberArt,
+                    center + new Vec2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance,
+                    lifeSpan: 1f);
+            }
+            _emberTimer += EmberInterval;
+        }
     }
 
     private void DamageWave(World world, float damage)

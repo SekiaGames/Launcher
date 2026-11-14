@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 namespace OpenWC3.Game;
 
@@ -10,8 +11,23 @@ namespace OpenWC3.Game;
 /// </summary>
 public sealed class RuntimeFlameStrikeAbility : Ability
 {
+    readonly War3ObjectData _objects;
+    IReadOnlyList<string> _eruptionArts = Array.Empty<string>();
+    string _emberArt = "";
+    IReadOnlyList<string> _preloadArts = Array.Empty<string>();
+
+    public RuntimeFlameStrikeAbility(War3ObjectData objects) => _objects = objects;
+
     public override AbilityTargetMode TargetMode => AbilityTargetMode.Point;
     public override AbilityCastPriority AiCastPriority => AbilityCastPriority.Burst;
+    public override IReadOnlyList<string> RuntimePreloadArts
+    {
+        get
+        {
+            RefreshArtData();
+            return _preloadArts;
+        }
+    }
 
     public float FullDamage => Data('A');
     public float FullInterval => Data('B') > 0f ? Data('B') : 0.33f;
@@ -21,6 +37,23 @@ public sealed class RuntimeFlameStrikeAbility : Ability
     public float TotalDuration => Duration > 0f ? Duration : 9f;
     public float FullDuration => HeroDuration > 0f ? HeroDuration : TotalDuration;
     public float Radius => Area > 0f ? Area : 200f;
+
+    public override void OnLevelUp() => RefreshArtData();
+    public override void OnLevelDown() => RefreshArtData();
+
+    void RefreshArtData()
+    {
+        int level = Mathf.Max(1, Level);
+        War3TypeData abilityData = War3ObjectData.GetAbility(Type?.Id ?? Rawcode)
+            ?? War3ObjectData.GetAbility(Type?.Code ?? "");
+        _eruptionArts = AbilityArt.Arts(abilityData, 1, "Specialart", "asat");
+        string effectId = RuntimeAbilityFactory.ReadEffectRawcode(ObjectData, level);
+        _emberArt = AbilityArt.FirstArt(_objects?.GetBuff(effectId), 1, "Effectart", "");
+
+        var preload = new List<string>(_eruptionArts);
+        if (!string.IsNullOrWhiteSpace(_emberArt)) preload.Add(_emberArt);
+        _preloadArts = preload;
+    }
 
     public override bool CheckTarget(World world, Unit target, Vector3 point)
     {
@@ -33,10 +66,18 @@ public sealed class RuntimeFlameStrikeAbility : Ability
     {
         if (world == null || Owner == null) return false;
 
+        RefreshArtData();
+        Vector3 flattened = Flatten(point);
+        if (_eruptionArts.Count > 0)
+        {
+            string art = _eruptionArts[world.Rng.Next(_eruptionArts.Count)];
+            world.AddSpecialEffect(art, new Vec2(flattened.X, flattened.Z), lifeSpan: TotalDuration);
+        }
+
         world.AddGroundSpell(new FlameStrikeBurn
         {
             Source = Owner,
-            Point = Flatten(point),
+            Point = flattened,
             Radius = Radius,
             TotalDuration = TotalDuration,
             FullDuration = Mathf.Min(FullDuration, TotalDuration),
@@ -46,6 +87,7 @@ public sealed class RuntimeFlameStrikeAbility : Ability
             HalfInterval = HalfInterval,
             BuildingFactor = BuildingFactor,
             Timer = FullInterval,
+            EmberArt = _emberArt,
         });
         return true;
     }
