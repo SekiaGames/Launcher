@@ -604,7 +604,7 @@ public static class RuntimeAbilityFactory
 
     /// <summary>按技能 ID（找不到再按基类码）建实例；都不认识就返回占位实现。</summary>
     /// <summary>客户端技能类要构造参数里的物编对象；Launcher 侧暂用一个全局实例承接。</summary>
-    public static War3ObjectData RuntimeObjects;
+    public static War3ObjectData RuntimeObjects = new();
 
     static Ability WithObjects<T>() where T : Ability
     {
