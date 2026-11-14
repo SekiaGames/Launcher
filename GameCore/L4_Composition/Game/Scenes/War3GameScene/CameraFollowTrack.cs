@@ -18,6 +18,25 @@ public sealed partial class War3GameScene
         _camera?.Focus(new Vector3(worldX, MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ), worldZ));
     }
 
+    public bool SetCinematicModel(string modelPath)
+    {
+        if (string.IsNullOrWhiteSpace(modelPath) || _camera == null) return false;
+        PackedScene scene = Assets.LoadScene(PathResolve.ModelScene(modelPath));
+        if (scene == null)
+        {
+            GD.PushWarning($"[CAMERA] 电影镜头模型缺失 {modelPath}");
+            return false;
+        }
+        Node3D root = scene.Instantiate<Node3D>();
+        if (!_camera.SetCinematicModel(root))
+        {
+            GD.PushWarning($"[CAMERA] {modelPath} 里没有可用的 camera0 轨道");
+            return false;
+        }
+        GD.Print($"[CAMERA] 电影镜头 {modelPath}");
+        return true;
+    }
+
     private void SetCameraBounds()
     {
         // 地形覆盖范围（世界坐标 X 取负）

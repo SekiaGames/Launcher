@@ -21,6 +21,7 @@ public sealed partial class LauncherApp : Node
     private bool _shotTaken;
     private int _cameraPreset = -1;
     private Vector2? _focusMapPoint;
+    private string _cinematicModel;
     private bool _orderTest;
     private bool _simTest;
     private bool _clickTest;
@@ -339,6 +340,10 @@ public sealed partial class LauncherApp : Node
                     _focusMapPoint = new Vector2(mx, my);
                 }
             }
+            else if (argument.StartsWith("--cinematic="))
+            {
+                _cinematicModel = argument["--cinematic=".Length..];
+            }
         }
 
         if (_fdfBindGen != null)
@@ -495,6 +500,7 @@ public sealed partial class LauncherApp : Node
         {
             if (_cameraPreset >= 0) game.SetCameraPreset(_cameraPreset);
             if (_focusMapPoint.HasValue) game.FocusMapPoint(_focusMapPoint.Value.X, _focusMapPoint.Value.Y);
+            if (!string.IsNullOrEmpty(_cinematicModel)) game.SetCinematicModel(_cinematicModel);
             if (_orderTest) game.ScriptedOrderTest();
             if (_clickTest) game.RunClickTest();
             if (_gatherTest) game.ScriptedGatherTest();

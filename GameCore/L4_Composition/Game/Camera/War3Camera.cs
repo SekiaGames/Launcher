@@ -9,6 +9,39 @@ public sealed class War3Camera
 {
     public const float ClassicProjectionAspect = 4f / 3f;
 
+    CinematicModelCamera _modelCamera;
+    Node3D _cinematicRoot;
+
+    public bool SetCinematicModel(Node3D modelRoot)
+    {
+        if (modelRoot == null) return false;
+        var model = new CinematicModelCamera(modelRoot);
+        if (!model.Valid)
+        {
+            modelRoot.Free();
+            GD.PushWarning("[CAMERA] 电影镜头模型缺 camera0 / camera0_target 节点");
+            return false;
+        }
+
+        ReleaseCinematicModel();
+        modelRoot.Visible = false;
+        Camera.GetParent()?.AddChild(modelRoot);
+        _panning = false;
+        ClearTargetController();
+        ClearOrientController();
+        ClearSoftFollowController();
+        _modelCamera = model;
+        _cinematicRoot = modelRoot;
+        return true;
+    }
+
+    private void ReleaseCinematicModel()
+    {
+        _modelCamera = null;
+        if (_cinematicRoot != null && GodotObject.IsInstanceValid(_cinematicRoot)) _cinematicRoot.QueueFree();
+        _cinematicRoot = null;
+    }
+
     sealed class FieldTransition
     {
         public float Start, Target, Duration, Elapsed;
@@ -127,7 +160,7 @@ public sealed class War3Camera
     bool HasScriptedField(int field) => _fieldTransitions.TryGetValue(field, out var transition)
         && !transition.RemoveWhenDone;
 
-    float GameplayProjectionScale => HasScriptedField(0)
+    float GameplayProjectionScale => _modelCamera != null || HasScriptedField(0)
         ? 1f : MathF.Max(1f, _distance / MathF.Max(1f, Presets[CurrentPreset].Distance));
 
     public static void LoadSettings(out Preset[] presets, out Rates rates, out Vector4 margins)
@@ -183,6 +216,7 @@ public sealed class War3Camera
 
     public void SetTarget(float x, float z)
     {
+        ReleaseCinematicModel();
         _panning = false;
         _targetController = null;
         _orientController = null;
@@ -197,6 +231,7 @@ public sealed class War3Camera
 
     public void PanTo(float x, float z, float duration)
     {
+        ReleaseCinematicModel();
         _panning = false;
         _targetController = null;
         _orientController = null;
@@ -216,6 +251,7 @@ public sealed class War3Camera
 
     public void Stop()
     {
+        ReleaseCinematicModel();
         _panning = false;
         foreach ((int field, FieldTransition transition) in _fieldTransitions)
         {
@@ -229,6 +265,7 @@ public sealed class War3Camera
         bool inheritOrientation = false)
     {
         if (unit == null || !unit.Alive) return;
+        ReleaseCinematicModel();
         _panning = false;
         _softFollowController = null;
         _orientController = null;
@@ -248,6 +285,7 @@ public sealed class War3Camera
     public void SetOrientController(Unit unit, float xOffset, float zOffset)
     {
         if (unit == null || !unit.Alive) return;
+        ReleaseCinematicModel();
         _panning = false;
         _targetController = null;
         _inheritOrientation = false;
@@ -334,6 +372,7 @@ public sealed class War3Camera
     public void SetField(int field, float value, float duration)
     {
         if (field is < 0 or > MaxScriptCameraField || !float.IsFinite(value)) return;
+        ReleaseCinematicModel();
         float current = GetField(field);
         _fieldTransitions[field] = new FieldTransition
         {
@@ -367,6 +406,7 @@ public sealed class War3Camera
 
     public void ResetToGameCamera(float duration)
     {
+        ReleaseCinematicModel();
         SetNoise(false, 0f, 0f, false);
         SetNoise(true, 0f, 0f, false);
         ClearTargetController();
@@ -396,6 +436,21 @@ public sealed class War3Camera
 
     public void Update(float deltaTime, bool up, bool down, bool left, bool right)
     {
+        if (_modelCamera != null)
+        {
+            (Vector3 eye, Vector3 look, float modelFov, float near, float far) = _modelCamera.Step(deltaTime);
+            Position = eye;
+            Target = look;
+            _smoothedTarget = look;
+            _rollAngle = 0f;
+            FieldOfView = DegreesToRadians(modelFov) * (FallbackPresets[0].Fov * 0.5f / PlatformGodotFov);
+            NearZ = MathF.Max(0.1f, near);
+            FarZ = MathF.Max(NearZ + 1f, far);
+            _distance = Position.DistanceTo(_smoothedTarget);
+            UpdatePose();
+            return;
+        }
+
         if (_targetController != null && !_targetController.Alive) ClearTargetController();
         if (_orientController != null && !_orientController.Alive) ClearOrientController();
         if (_softFollowController != null && !_softFollowController.Alive)
@@ -635,7 +690,7 @@ public sealed class War3Camera
         Vector3 eye = (_orientController != null ? _orientEye : _smoothedTarget + offset)
             + ToWorldOffset(ShakeOffset) + ToWorldOffset(_sourceNoise.Offset);
         float ground = _terrainHeight(eye.X, eye.Z);
-        if (_orientController == null && float.IsFinite(ground)
+        if (_orientController == null && _modelCamera == null && float.IsFinite(ground)
             && eye.Y < ground + TerrainCollisionClearance)
             eye.Y = ground + TerrainCollisionClearance;
         Position = eye;
