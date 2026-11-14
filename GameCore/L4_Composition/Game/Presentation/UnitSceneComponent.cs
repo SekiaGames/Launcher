@@ -338,7 +338,7 @@ public sealed class UnitSceneComponent
         UnitType type = unit.Type;
         if (type != null && (type.MaxPitchDegrees != 0f || type.MaxRollDegrees != 0f))
         {
-            (pitch, roll) = UnitTerrainTilt.Compute(unit.Position.X, unit.Position.Z, yaw,
+            (pitch, roll) = War3GameScene.ComputeUnitTerrainTilt(unit.Position.X, unit.Position.Z, yaw,
                 type.TerrainTiltRadius, type.MaxPitchDegrees, type.MaxRollDegrees, heightAt);
         }
         Root.Rotation = new Vector3(pitch, yaw, -roll);
