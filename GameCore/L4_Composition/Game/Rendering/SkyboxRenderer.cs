@@ -14,7 +14,7 @@ public sealed class SkyboxRenderer
         _environment = environment;
     }
 
-    public static SkyboxRenderer TryCreate(Node parent, W3iInfo info)
+    public static SkyboxRenderer TryCreate(Node parent, MapInfo info)
     {
         string skyName = SkyNameFor(info != null ? info.Tileset : 'F');
         string relative = $"Environment/Sky/{skyName}/{skyName}.png";

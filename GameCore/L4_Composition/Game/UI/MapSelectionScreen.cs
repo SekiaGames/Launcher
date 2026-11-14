@@ -207,7 +207,7 @@ public sealed partial class MapSelectionScreen : Control
         catch (UnauthorizedAccessException) { return 0; }
     }
 
-    void ApplyMapVersion(W3iInfo info)
+    void ApplyMapVersion(MapInfo info)
     {
         _mapVersion.Text = MapCompatibilityNotice.VersionText(info);
         string warning = MapCompatibilityNotice.Warning(info);
@@ -255,7 +255,7 @@ public sealed partial class MapSelectionScreen : Control
                 return;
             }
             byte[] w3iBytes = package.ReadMapFile("war3map.w3i");
-            W3iInfo info = w3iBytes == null ? null : W3iInfo.Parse(w3iBytes);
+            MapInfo info = w3iBytes == null ? null : MapInfo.Parse(w3iBytes);
             WtsDocument strings = null;
             byte[] wts = package.ReadMapFile("war3map.wts");
             if (wts != null) strings = WtsDocument.Parse(wts);
@@ -263,12 +263,12 @@ public sealed partial class MapSelectionScreen : Control
             if (!string.IsNullOrWhiteSpace(name)) _name.Text = name;
             _players.Text = info == null ? "-" : info.Players.Count.ToString();
             _suggestedPlayers.Text = info == null ? "-"
-                : Fallback(W3iInfo.Resolve(info.PlayersRef, strings), "未知");
+                : Fallback(MapInfo.Resolve(info.PlayersRef, strings), "未知");
             _mapSize.Text = info == null ? "-" : $"{info.PlayableWidth} × {info.PlayableHeight}";
             _tileset.Text = info == null ? "-" : info.Tileset.ToString();
             ApplyMapVersion(info);
             _description.Text = info == null ? "该地图没有提供描述。"
-                : Fallback(W3iInfo.Resolve(info.DescriptionRef, strings), "该地图没有提供描述。");
+                : Fallback(MapInfo.Resolve(info.DescriptionRef, strings), "该地图没有提供描述。");
             foreach (string candidateName in new[] { "war3mapPreview.png", "war3mapMap.png" })
             {
                 byte[] candidate = package.ReadMapFile(candidateName);

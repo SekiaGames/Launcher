@@ -11,7 +11,7 @@ public sealed class CliffGeometry
     public int[] Indices = Array.Empty<int>();
 }
 
-public static class CliffRenderer
+public static class CliffModelLibrary
 {
     private const string TerrainRoot = "Doodads/Terrain/";
 

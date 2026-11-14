@@ -12,7 +12,7 @@ public sealed partial class MapWorldBuilder
 
     public IReadOnlyList<TreeShadow> TreeShadows => _treeShadows;
 
-    private void BuildDoodads(W3eTerrain terrain, War3MapDoodads doodads)
+    private void BuildDoodads(TerrainData terrain, War3MapDoodads doodads)
     {
         Node3D node3D = new Node3D
         {

@@ -42,7 +42,7 @@ public sealed class War3WaterConfig
         return row < 0 ? 0f : table.GetFloat(row, "height");
     }
 
-    public static Color MapBaseColor(W3iInfo info)
+    public static Color MapBaseColor(MapInfo info)
     {
         if (info == null || info.FormatVersion <= 24)
         {

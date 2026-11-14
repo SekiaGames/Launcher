@@ -24,7 +24,7 @@ public sealed class ShadowRenderer
     }
 
     private readonly MeshInstance3D _node;
-    private readonly W3eTerrain _terrain;
+    private readonly TerrainData _terrain;
     private readonly Dictionary<string, Shader> _shaders = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ShaderMaterial> _materials = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Texture2D> _textures = new(StringComparer.OrdinalIgnoreCase);
@@ -37,7 +37,7 @@ public sealed class ShadowRenderer
 
     public int DrawnQuadCount { get; private set; }
 
-    public ShadowRenderer(Node3D parent, W3eTerrain terrain)
+    public ShadowRenderer(Node3D parent, TerrainData terrain)
     {
         _node = new MeshInstance3D { Name = "GroundDecals", CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         parent.AddChild(_node);

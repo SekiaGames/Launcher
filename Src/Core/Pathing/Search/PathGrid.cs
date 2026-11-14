@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using OpenWC3.Game;
+using OpenWC3.War3Formats;
 
 namespace OpenWC3;
 
@@ -28,7 +29,7 @@ public sealed class PathGrid
 
     public bool Ready { get; }
 
-    private PathGrid(W3mPathing pathing, W3eTerrain terrain)
+    private PathGrid(PathingData pathing, TerrainData terrain)
     {
         _width = pathing.Width;
         _height = pathing.Height;
@@ -43,9 +44,9 @@ public sealed class PathGrid
             for (int x = 0; x < _width; x++)
             {
                 int index = y * _width + x;
-                byte cell = pathing.At(x, y);
-                _blocked[index] = (cell & W3mPathing.Unwalkable) != 0;
-                _unflyable[index] = (cell & W3mPathing.Unflyable) != 0;
+                byte cell = pathing.Cells[y * _width + x];
+                _blocked[index] = (cell & (byte)WpmCellFlags.Unwalkable) != 0;
+                _unflyable[index] = (cell & (byte)WpmCellFlags.Unflyable) != 0;
 
                 int terrainX = Mathf.Clamp(x / TerrainCornerCells, 0, terrain.Width - 1);
                 int terrainY = Mathf.Clamp(y / TerrainCornerCells, 0, terrain.Height - 1);
@@ -55,7 +56,7 @@ public sealed class PathGrid
         Ready = true;
     }
 
-    public static PathGrid Build(W3mPathing pathing, W3eTerrain terrain)
+    public static PathGrid Build(PathingData pathing, TerrainData terrain)
     {
         return pathing == null || terrain == null ? null : new PathGrid(pathing, terrain);
     }

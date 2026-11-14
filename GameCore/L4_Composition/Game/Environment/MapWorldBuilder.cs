@@ -10,7 +10,7 @@ public sealed partial class MapWorldBuilder
 
     public const float WaterLevel = 14f;
 
-    public W3eTerrain Terrain { get; private set; }
+    public TerrainData Terrain { get; private set; }
 
     public Node3D Root { get; private set; }
 
@@ -18,7 +18,7 @@ public sealed partial class MapWorldBuilder
 
     public List<TreeState> Trees { get; } = new List<TreeState>();
 
-    public Node3D Build(W3eTerrain terrain, War3MapDoodads doodads, Color waterBaseColor, War3FogConfig fog)
+    public Node3D Build(TerrainData terrain, War3MapDoodads doodads, Color waterBaseColor, War3FogConfig fog)
     {
         Terrain = terrain;
         Root = new Node3D
@@ -50,14 +50,14 @@ public sealed partial class MapWorldBuilder
         }
     }
 
-    public static float HeightAt(W3eTerrain terrain, float worldX, float worldZ)
+    public static float HeightAt(TerrainData terrain, float worldX, float worldZ)
     {
         float x = (0f - worldX) / 128f;
         float y = worldZ / 128f;
         return InterpolatedHeight(terrain, x, y);
     }
 
-    public static float SurfaceHeightAt(W3eTerrain terrain, float worldX, float worldZ)
+    public static float SurfaceHeightAt(TerrainData terrain, float worldX, float worldZ)
     {
         if (terrain == null) return 0f;
         float gridX = (0f - worldX) / CellSize;
@@ -76,17 +76,17 @@ public sealed partial class MapWorldBuilder
             : h00 * (1f - u - v) + h10 * u + h01 * v;
     }
 
-    private static float CornerSurfaceHeight(W3eTerrain terrain, int x, int y)
+    private static float CornerSurfaceHeight(TerrainData terrain, int x, int y)
         => GroundWorld(terrain.Corners[y * terrain.Width + x]) + RampLift(terrain, x, y) * CellSize;
 
     private static readonly Dictionary<char, float> _waterOffsets = new();
 
-    public static float WaterHeightAt(W3eTerrain terrain, float worldX, float worldZ)
+    public static float WaterHeightAt(TerrainData terrain, float worldX, float worldZ)
     {
         if (terrain == null) return 0f;
         int x = Mathf.Clamp(Mathf.FloorToInt((0f - worldX) / 128f), 0, terrain.Width - 1);
         int y = Mathf.Clamp(Mathf.FloorToInt(worldZ / 128f), 0, terrain.Height - 1);
-        W3eTerrain.Corner corner = terrain.Corners[y * terrain.Width + x];
+        TerrainData.Corner corner = terrain.Corners[y * terrain.Width + x];
         if (!corner.HasWater) return HeightAt(terrain, worldX, worldZ);
         return (corner.WaterWorld + WaterOffset(terrain.Tileset)) * 128f;
     }
@@ -120,5 +120,28 @@ public sealed partial class MapWorldBuilder
             num += ApplyUnitTextureFilter(child);
         }
         return num;
+    }
+
+    private static bool TriangleHeightAt(List<Vector3> triangles, int start, float x, float z, out float y)
+    {
+        Vector3 vector = triangles[start];
+        Vector3 vector2 = triangles[start + 1];
+        Vector3 vector3 = triangles[start + 2];
+        float num = (vector2.Z - vector3.Z) * (vector.X - vector3.X) + (vector3.X - vector2.X) * (vector.Z - vector3.Z);
+        if (Mathf.Abs(num) < 0.0001f)
+        {
+            y = 0f;
+            return false;
+        }
+        float num2 = ((vector2.Z - vector3.Z) * (x - vector3.X) + (vector3.X - vector2.X) * (z - vector3.Z)) / num;
+        float num3 = ((vector3.Z - vector.Z) * (x - vector3.X) + (vector.X - vector3.X) * (z - vector3.Z)) / num;
+        float num4 = 1f - num2 - num3;
+        if (num2 < -0.02f || num3 < -0.02f || num4 < -0.02f)
+        {
+            y = 0f;
+            return false;
+        }
+        y = num2 * vector.Y + num3 * vector2.Y + num4 * vector3.Y;
+        return true;
     }
 }

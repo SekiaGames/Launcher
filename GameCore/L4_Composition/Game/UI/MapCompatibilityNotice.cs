@@ -2,7 +2,7 @@ namespace OpenWC3.Game.UI;
 
 internal static class MapCompatibilityNotice
 {
-    public static string VersionText(W3iInfo info)
+    public static string VersionText(MapInfo info)
     {
         if (info == null) return "未知";
         return info.HasGameVersion
@@ -10,7 +10,7 @@ internal static class MapCompatibilityNotice
             : "旧版（未记录版本）";
     }
 
-    public static string Warning(W3iInfo info)
+    public static string Warning(MapInfo info)
     {
         if (info == null) return "";
         if (info.HasGameVersion && info.GameVersionNumber >= 132)

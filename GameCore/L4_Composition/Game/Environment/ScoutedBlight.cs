@@ -18,14 +18,14 @@ public sealed class ScoutedBlight
 
     public int WorldCells { get; private set; }
 
-    public ScoutedBlight(W3eTerrain terrain)
+    public ScoutedBlight(TerrainData terrain)
     {
         _width = Math.Max(1, terrain.Width);
         _height = Math.Max(1, terrain.Height);
         _world = new bool[_width * _height];
         _observed = new bool[_width * _height];
 
-        W3eTerrain.Corner[] corners = terrain.Corners;
+        TerrainData.Corner[] corners = terrain.Corners;
         for (int index = 0; index < _world.Length && index < corners.Length; index++)
         {
             if (!corners[index].Blight) continue;

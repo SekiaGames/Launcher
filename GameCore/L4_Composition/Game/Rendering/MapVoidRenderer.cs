@@ -14,7 +14,7 @@ public sealed class MapVoidRenderer
 
     public MeshInstance3D Node { get; private set; }
 
-    public static MapVoidRenderer TryCreate(Node3D parent, W3eTerrain terrain,
+    public static MapVoidRenderer TryCreate(Node3D parent, TerrainData terrain,
         Func<float, float, float> surfaceHeightAt)
     {
         if (parent == null || terrain == null || surfaceHeightAt == null) return null;

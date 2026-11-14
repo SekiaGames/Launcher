@@ -6,7 +6,7 @@ namespace OpenWC3.Game;
 
 public sealed partial class MapWorldBuilder
 {
-    internal static float GroundUnitsAtCorner(W3eTerrain terrain, int column, int row)
+    internal static float GroundUnitsAtCorner(TerrainData terrain, int column, int row)
         => CornerWorld(terrain, column, row) / 128f;
 }
 
@@ -16,7 +16,7 @@ public sealed class ShorelineWaveRenderer
 
     public int InstanceCount { get; private set; }
 
-    public ShorelineWaveRenderer(Node3D parent, W3eTerrain terrain, War3WaterConfig water)
+    public ShorelineWaveRenderer(Node3D parent, TerrainData terrain, War3WaterConfig water)
     {
         if (parent == null || terrain == null || water == null) return;
         if (string.IsNullOrEmpty(water.ShoreDirectory)) return;
@@ -32,10 +32,10 @@ public sealed class ShorelineWaveRenderer
         {
             for (int column = 0; column < terrain.Width - 1; column++)
             {
-                W3eTerrain.Corner a = terrain.Corners[row * terrain.Width + column];
-                W3eTerrain.Corner b = terrain.Corners[row * terrain.Width + column + 1];
-                W3eTerrain.Corner c = terrain.Corners[(row + 1) * terrain.Width + column + 1];
-                W3eTerrain.Corner d = terrain.Corners[(row + 1) * terrain.Width + column];
+                TerrainData.Corner a = terrain.Corners[row * terrain.Width + column];
+                TerrainData.Corner b = terrain.Corners[row * terrain.Width + column + 1];
+                TerrainData.Corner c = terrain.Corners[(row + 1) * terrain.Width + column + 1];
+                TerrainData.Corner d = terrain.Corners[(row + 1) * terrain.Width + column];
                 if (!a.HasWater && !b.HasWater && !c.HasWater && !d.HasWater) continue;
                 bool cliff = a.LayerHeight != b.LayerHeight || a.LayerHeight != c.LayerHeight
                     || a.LayerHeight != d.LayerHeight;
@@ -174,8 +174,8 @@ public sealed class ShorelineWaveRenderer
         return false;
     }
 
-    static bool DepthReachesWaves(W3eTerrain terrain, War3WaterConfig water,
-        int column, int row, W3eTerrain.Corner corner)
+    static bool DepthReachesWaves(TerrainData terrain, War3WaterConfig water,
+        int column, int row, TerrainData.Corner corner)
     {
         float waterHeight = corner.WaterWorld + water.HeightOffset;
         return corner.HasWater

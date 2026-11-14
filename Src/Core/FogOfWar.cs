@@ -16,7 +16,7 @@ public sealed partial class FogOfWar : Node3D
     private const int CellsPerTexel = 2;
     private const float FogHeight = 320f;
 
-    private W3eTerrain _terrain;
+    private TerrainData _terrain;
     private int _width;
     private int _height;
     private float _step;
@@ -50,7 +50,7 @@ public sealed partial class FogOfWar : Node3D
 
     public float LastVisibleRatio { get; private set; }
 
-    public void Build(W3eTerrain terrain)
+    public void Build(TerrainData terrain)
     {
         _terrain = terrain;
         FogRules.Load();

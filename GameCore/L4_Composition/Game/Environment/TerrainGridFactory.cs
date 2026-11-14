@@ -11,7 +11,7 @@ public sealed partial class MapWorldBuilder
 
     private TerrainTextureSet _groundLayers;
     private List<string> _groundOrder = new List<string>();
-    private W3eTerrain _terrain;
+    private TerrainData _terrain;
     private bool[,] _covered;
     private MeshInstance3D[] _terrainChunks;
     private int _chunkColumns;
@@ -22,7 +22,7 @@ public sealed partial class MapWorldBuilder
 
     public ScoutedBlight Blight { get; private set; }
 
-    private void BuildTerrain(W3eTerrain terrain, bool[,] covered)
+    private void BuildTerrain(TerrainData terrain, bool[,] covered)
     {
         TerrainTextureLoader.SetBlightTileset(terrain.Tileset);
         List<string> list = new List<string>();
@@ -33,8 +33,8 @@ public sealed partial class MapWorldBuilder
         else
         {
             HashSet<string> hashSet = new HashSet<string>();
-            W3eTerrain.Corner[] corners = terrain.Corners;
-            foreach (W3eTerrain.Corner corner in corners)
+            TerrainData.Corner[] corners = terrain.Corners;
+            foreach (TerrainData.Corner corner in corners)
             {
                 int groundTexture = corner.GroundTexture;
                 if (groundTexture >= 0 && groundTexture < terrain.GroundTextures.Count)
@@ -118,7 +118,7 @@ public sealed partial class MapWorldBuilder
                     num++;
                     continue;
                 }
-                W3eTerrain.Corner c2 = _terrain.Corners[j * width + k];
+                TerrainData.Corner c2 = _terrain.Corners[j * width + k];
                 Vector4 layers = TileLayers(TileTextureAt(k, j), TileTextureAt(k + 1, j), TileTextureAt(k, j + 1), TileTextureAt(k + 1, j + 1), c2);
                 float x = (float)k * 128f;
                 float x2 = (float)(k + 1) * 128f;
@@ -226,7 +226,7 @@ public sealed partial class MapWorldBuilder
             + $" 显示 {Blight.BlightedCells} 格，重建 {rebuilt} 块");
     }
 
-    private Vector4 TileLayers(string t00, string t10, string t01, string t11, W3eTerrain.Corner c00)
+    private Vector4 TileLayers(string t00, string t10, string t01, string t11, TerrainData.Corner c00)
     {
         int bl = TextureIndex(_groundOrder, t00);
         int br = TextureIndex(_groundOrder, t10);
@@ -280,7 +280,7 @@ public sealed partial class MapWorldBuilder
         return _groundLayers.BaseLayer[_groundOrder[textureIndex]];
     }
 
-    private float LayerOf(W3eTerrain.Corner corner, int textureIndex)
+    private float LayerOf(TerrainData.Corner corner, int textureIndex)
     {
         if (_groundLayers == null || textureIndex < 0 || textureIndex >= _groundOrder.Count)
         {
@@ -289,7 +289,7 @@ public sealed partial class MapWorldBuilder
         return _groundLayers.LayerOf(_groundOrder[textureIndex], corner.VariationIndex);
     }
 
-    private static string RealTileTexture(W3eTerrain terrain, int x, int y)
+    private static string RealTileTexture(TerrainData terrain, int x, int y)
     {
         int width = terrain.Width;
         int height = terrain.Height;
@@ -312,14 +312,14 @@ public sealed partial class MapWorldBuilder
                 {
                     continue;
                 }
-                W3eTerrain.Corner corner = terrain.Corners[num2 * width + num];
+                TerrainData.Corner corner = terrain.Corners[num2 * width + num];
                 if (num >= width - 1 || num2 >= height - 1 || !IsCliffTile(terrain, num, num2))
                 {
                     continue;
                 }
-                W3eTerrain.Corner corner2 = terrain.Corners[num2 * width + num + 1];
-                W3eTerrain.Corner corner3 = terrain.Corners[(num2 + 1) * width + num];
-                W3eTerrain.Corner corner4 = terrain.Corners[(num2 + 1) * width + num + 1];
+                TerrainData.Corner corner2 = terrain.Corners[num2 * width + num + 1];
+                TerrainData.Corner corner3 = terrain.Corners[(num2 + 1) * width + num];
+                TerrainData.Corner corner4 = terrain.Corners[(num2 + 1) * width + num + 1];
                 if (corner.Ramp && corner3.Ramp && corner2.Ramp && corner4.Ramp)
                 {
                     flag = true;
@@ -350,17 +350,17 @@ public sealed partial class MapWorldBuilder
         return (groundTexture >= 0 && groundTexture < terrain.GroundTextures.Count) ? terrain.GroundTextures[groundTexture] : null;
     }
 
-    private static float GroundWorld(W3eTerrain.Corner corner)
+    private static float GroundWorld(TerrainData.Corner corner)
     {
         return (corner.HeightWorld + (float)corner.LayerHeight - 2f) * 128f;
     }
 
-    private static float CornerWorld(W3eTerrain terrain, int x, int y)
+    private static float CornerWorld(TerrainData terrain, int x, int y)
     {
         return GroundWorld(terrain.Corners[y * terrain.Width + x]) + RampLift(terrain, x, y) * 128f;
     }
 
-    private static float RampLift(W3eTerrain terrain, int x, int y)
+    private static float RampLift(TerrainData terrain, int x, int y)
     {
         int width = terrain.Width;
         int height = terrain.Height;
@@ -392,7 +392,7 @@ public sealed partial class MapWorldBuilder
         st.AddVertex(new Vector3(0f - position.X, position.Y, position.Z));
     }
 
-    private static Vector3 CornerNormal(W3eTerrain terrain, int x, int y)
+    private static Vector3 CornerNormal(TerrainData terrain, int x, int y)
     {
         int width = terrain.Width;
         int height = terrain.Height;
@@ -415,7 +415,7 @@ public sealed partial class MapWorldBuilder
         return (num >= 0) ? num : 0;
     }
 
-    private static float InterpolatedHeight(W3eTerrain terrain, float x, float y)
+    private static float InterpolatedHeight(TerrainData terrain, float x, float y)
     {
         int width = terrain.Width;
         int height = terrain.Height;
@@ -434,7 +434,7 @@ public sealed partial class MapWorldBuilder
         return Mathf.Lerp(Mathf.Lerp(from, to, weight), Mathf.Lerp(from2, to2, weight), weight2);
     }
 
-    private static float GroundSurface(W3eTerrain terrain, int x, int y, float worldX, float worldZ, int baseLayer)
+    private static float GroundSurface(TerrainData terrain, int x, int y, float worldX, float worldZ, int baseLayer)
     {
         float num = Mathf.Clamp((worldX - (float)x * 128f) / 128f, 0f, 1f);
         float num2 = Mathf.Clamp((worldZ - (float)y * 128f) / 128f, 0f, 1f);
@@ -453,7 +453,7 @@ public sealed partial class MapWorldBuilder
         }
     }
 
-    private static char RampChar(W3eTerrain.Corner corner, int baseLayer)
+    private static char RampChar(TerrainData.Corner corner, int baseLayer)
     {
         int num = corner.LayerHeight - baseLayer;
         if (!corner.Ramp)
@@ -475,7 +475,7 @@ public sealed partial class MapWorldBuilder
         return result;
     }
 
-    private static void MarkFullyCoveredTiles(W3eTerrain terrain, List<Vector3> triangles, bool[,] covered)
+    private static void MarkFullyCoveredTiles(TerrainData terrain, List<Vector3> triangles, bool[,] covered)
     {
         if (triangles.Count == 0)
         {

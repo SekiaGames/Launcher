@@ -60,7 +60,7 @@ public sealed class W3iItemTable
     public readonly List<List<W3iItemDrop>> Sets = new();
 }
 
-public sealed class W3iInfo
+public sealed class MapInfo
 {
     public const int MeleeMapFlag = 0x0004;
     public const int MaskedAreasPartiallyVisibleFlag = 0x0010;
@@ -121,9 +121,9 @@ public sealed class W3iInfo
     public bool HasFixedPlayerSettings => (Flags & FixedPlayerSettingsFlag) != 0;
     public bool MaskedAreasPartiallyVisible => (Flags & MaskedAreasPartiallyVisibleFlag) != 0;
 
-    public static W3iInfo CreateMissing()
+    public static MapInfo CreateMissing()
     {
-        return new W3iInfo
+        return new MapInfo
         {
             Missing = true,
             NameRef = "",
@@ -133,7 +133,7 @@ public sealed class W3iInfo
         };
     }
 
-    public static W3iInfo Parse(byte[] data)
+    public static MapInfo Parse(byte[] data)
     {
         if (data == null || data.Length < 16)
         {
@@ -141,7 +141,7 @@ public sealed class W3iInfo
         }
 
         var reader = new W3xBinaryReader(data);
-        var info = new W3iInfo
+        var info = new MapInfo
         {
             RawBytes = data,
             FormatVersion = reader.I32(),
@@ -226,7 +226,7 @@ public sealed class W3iInfo
     }
 
     /// <summary>势力之后是升级/科技可用性，再往后是随机单位表与随机物品表；布局不符就整体放弃，不影响地图打开。</summary>
-    private static void ReadDropTables(W3xBinaryReader reader, W3iInfo info)
+    private static void ReadDropTables(W3xBinaryReader reader, MapInfo info)
     {
         if (reader.Remaining < 4)
         {
@@ -303,7 +303,7 @@ public sealed class W3iInfo
         }
     }
 
-    private static void ReadRandomItemTables(W3xBinaryReader reader, W3iInfo info)
+    private static void ReadRandomItemTables(W3xBinaryReader reader, MapInfo info)
     {
         int tables = reader.Count(4096);
         for (int t = 0; t < tables; t++)
@@ -350,7 +350,7 @@ public sealed class W3iInfo
         };
     }
 
-    private static void ReadMinimap(W3xBinaryReader reader, W3iInfo info)
+    private static void ReadMinimap(W3xBinaryReader reader, MapInfo info)
     {
         if (reader.AtEnd)
         {
@@ -370,7 +370,7 @@ public sealed class W3iInfo
         reader.Position = probe;
     }
 
-    private static void ReadPlayers(W3xBinaryReader reader, W3iInfo info)
+    private static void ReadPlayers(W3xBinaryReader reader, MapInfo info)
     {
         if (reader.Remaining < 4)
         {
@@ -399,7 +399,7 @@ public sealed class W3iInfo
         }
     }
 
-    private static void ReadForces(W3xBinaryReader reader, W3iInfo info)
+    private static void ReadForces(W3xBinaryReader reader, MapInfo info)
     {
         if (reader.Remaining < 4)
         {

@@ -33,7 +33,7 @@ public sealed class TerrainShadowMap
     private Rect2I _dirtyTrees;
     private bool _logged;
 
-    public TerrainShadowMap(W3eTerrain terrain, ShaderMaterial material,
+    public TerrainShadowMap(TerrainData terrain, ShaderMaterial material,
         IReadOnlyList<MapWorldBuilder.TreeShadow> treeShadows)
     {
         _columns = Math.Max(1, (terrain.Width - 1) * 4);

@@ -79,7 +79,7 @@ public sealed partial class World
     private const float GatherRange = 190f;
     private const float WorkSeconds = 2.2f;
 
-    private readonly W3eTerrain _terrain;
+    private readonly TerrainData _terrain;
     private readonly PathGrid _pathGrid;
     private readonly List<TreeState> _trees;
     private readonly Random _random = new(20261111);
@@ -125,7 +125,7 @@ public sealed partial class World
         _research[player + "|" + upgradeId] = Mathf.Max(0, level);
     }
 
-    public World(W3eTerrain terrain, PathGrid pathGrid, List<TreeState> trees = null)
+    public World(TerrainData terrain, PathGrid pathGrid, List<TreeState> trees = null)
     {
         _terrain = terrain;
         _pathGrid = pathGrid;

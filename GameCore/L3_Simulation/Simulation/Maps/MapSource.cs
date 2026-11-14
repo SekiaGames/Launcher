@@ -8,11 +8,11 @@ namespace OpenWC3.Game;
 public sealed class MapSource
 {
     public GmapPackage Package { get; private set; }
-    public W3eTerrain Terrain { get; private set; }
-    public W3iInfo Info { get; private set; }
+    public TerrainData Terrain { get; private set; }
+    public MapInfo Info { get; private set; }
     public War3MapUnits Units { get; private set; }
     public War3MapDoodads Doodads { get; private set; }
-    public W3mPathing Pathing { get; private set; }
+    public PathingData Pathing { get; private set; }
     public List<W3iPlayer> Players { get; } = new();
 
     public string Name => Package?.Name ?? "unknown";
@@ -30,12 +30,12 @@ public sealed class MapSource
             GD.PushError("[MAP] gmap 里没有 war3map.w3e");
             return null;
         }
-        source.Terrain = W3eTerrain.Parse(w3e);
+        source.Terrain = TerrainData.Parse(w3e);
 
         byte[] w3i = package.ReadMapFile("war3map.w3i");
         if (w3i != null)
         {
-            source.Info = W3iInfo.Parse(w3i);
+            source.Info = MapInfo.Parse(w3i);
             source.Players.AddRange(source.Info.Players);
         }
 
@@ -55,13 +55,10 @@ public sealed class MapSource
         byte[] pathing = package.ReadMapFile("war3map.wpm");
         if (pathing != null)
         {
-            try
+            source.Pathing = PathingData.Parse(pathing);
+            if (source.Pathing == null)
             {
-                source.Pathing = W3mPathing.Parse(pathing);
-            }
-            catch (Exception error)
-            {
-                GD.PushWarning($"[MAP] wpm 解析失败: {error.Message}");
+                GD.PushWarning("[MAP] wpm 解析失败");
             }
         }
 

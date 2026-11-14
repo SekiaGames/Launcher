@@ -16,7 +16,7 @@ public sealed class SkyDomeRenderer
         _dome = dome;
     }
 
-    public static SkyDomeRenderer TryCreate(Node parent, W3iInfo info)
+    public static SkyDomeRenderer TryCreate(Node parent, MapInfo info)
     {
         string skyName = SkyboxRenderer.SkyNameFor(info != null ? info.Tileset : 'F');
         string path = PathResolve.ModelScene($@"Environment\Sky\{skyName}\{skyName}");

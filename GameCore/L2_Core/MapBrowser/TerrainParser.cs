@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OpenWC3.Game;
 
-public sealed class W3eTerrain
+public sealed class TerrainData
 {
     public readonly record struct Corner(ushort Height, ushort WaterAndEdge, byte TextureFlags, byte Variation, byte Misc)
     {
@@ -35,10 +35,10 @@ public sealed class W3eTerrain
     public Corner[] Corners { get; private set; }
     public byte[] RawBytes { get; private set; }
 
-    public static W3eTerrain Create(int width, int height, char tileset, IReadOnlyList<string> groundTextures,
+    public static TerrainData Create(int width, int height, char tileset, IReadOnlyList<string> groundTextures,
         IReadOnlyList<string> fixedGroundOrder = null)
     {
-        var terrain = new W3eTerrain
+        var terrain = new TerrainData
         {
             Synthetic = true,
             Version = 11,
@@ -83,14 +83,14 @@ public sealed class W3eTerrain
         return Corners[y * Width + x].HeightWorld;
     }
 
-    public static W3eTerrain Parse(byte[] data)
+    public static TerrainData Parse(byte[] data)
     {
         if (data.Length < 69 || Encoding.ASCII.GetString(data, 0, 4) != "W3E!")
         {
             throw new InvalidDataException("war3map.w3e 头不正确");
         }
 
-        var terrain = new W3eTerrain
+        var terrain = new TerrainData
         {
             RawBytes = data,
             Version = BitConverter.ToInt32(data, 4),

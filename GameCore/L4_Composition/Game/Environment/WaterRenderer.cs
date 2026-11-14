@@ -16,7 +16,7 @@ public sealed partial class MapWorldBuilder
 
     private double _waterElapsed;
 
-    private void BuildWater(W3eTerrain terrain, Color baseColor, War3FogConfig fog)
+    private void BuildWater(TerrainData terrain, Color baseColor, War3FogConfig fog)
     {
         War3WaterConfig war3WaterConfig = War3WaterConfig.Load(terrain.Tileset, baseColor);
         if (war3WaterConfig == null)
@@ -50,10 +50,10 @@ public sealed partial class MapWorldBuilder
         {
             for (int j = 0; j < width - 1; j++)
             {
-                W3eTerrain.Corner corner = terrain.Corners[i * width + j];
-                W3eTerrain.Corner corner2 = terrain.Corners[i * width + j + 1];
-                W3eTerrain.Corner corner3 = terrain.Corners[(i + 1) * width + j];
-                W3eTerrain.Corner corner4 = terrain.Corners[(i + 1) * width + j + 1];
+                TerrainData.Corner corner = terrain.Corners[i * width + j];
+                TerrainData.Corner corner2 = terrain.Corners[i * width + j + 1];
+                TerrainData.Corner corner3 = terrain.Corners[(i + 1) * width + j];
+                TerrainData.Corner corner4 = terrain.Corners[(i + 1) * width + j + 1];
                 if (!corner.HasWater && !corner2.HasWater && !corner3.HasWater && !corner4.HasWater)
                 {
                     continue;
@@ -125,7 +125,7 @@ public sealed partial class MapWorldBuilder
         _waterMaterial.SetShaderParameter("fog_of_war_uvp", uvp);
     }
 
-    private static void CountLevel(Dictionary<int, int> levels, W3eTerrain.Corner corner)
+    private static void CountLevel(Dictionary<int, int> levels, TerrainData.Corner corner)
     {
         if (corner.HasWater)
         {
@@ -149,14 +149,14 @@ public sealed partial class MapWorldBuilder
         return (num2 == 0) ? 14f : (((float)num / 100f + water.HeightOffset) * 128f);
     }
 
-    private static float WaterWorld(W3eTerrain.Corner corner, War3WaterConfig water)
+    private static float WaterWorld(TerrainData.Corner corner, War3WaterConfig water)
     {
         return (corner.WaterWorld + water.HeightOffset) * 128f;
     }
 
-    private static Color WaterColor(War3WaterConfig water, W3eTerrain terrain, int x, int y)
+    private static Color WaterColor(War3WaterConfig water, TerrainData terrain, int x, int y)
     {
-        W3eTerrain.Corner corner = terrain.Corners[y * terrain.Width + x];
+        TerrainData.Corner corner = terrain.Corners[y * terrain.Width + x];
         float num = corner.WaterWorld + water.HeightOffset;
         float num2 = CornerWorld(terrain, x, y) / 128f;
         float num3 = Mathf.Clamp(num - num2, 0f, 1f);
