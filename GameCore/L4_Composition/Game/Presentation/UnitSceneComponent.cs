@@ -183,6 +183,29 @@ public sealed class UnitSceneComponent
         }
     }
 
+    private float _renderFacing;
+    private bool _facingReady;
+
+    private float SyncFacing(Unit unit, float delta)
+    {
+        float target = unit.Facing;
+        if (!_facingReady || delta >= 1f || delta <= 0f)
+        {
+            _renderFacing = target;
+            _facingReady = true;
+            return _renderFacing;
+        }
+
+        float diff = Mathf.Wrap(target - _renderFacing, -Mathf.Pi, Mathf.Pi);
+        float alpha = 1f - Mathf.Exp(-delta / FacingTime);
+        _renderFacing = Mathf.Abs(diff) < 0.001f
+            ? target
+            : Mathf.Wrap(_renderFacing + diff * alpha, -Mathf.Pi, Mathf.Pi);
+        return _renderFacing;
+    }
+
+    private const float FacingTime = 0.04f;
+
     private float _flyTarget;
     public float RenderFlyHeight { get; private set; }
     public float FlyHeightSpeed { get; private set; }
@@ -202,13 +225,13 @@ public sealed class UnitSceneComponent
             ? target
             : RenderFlyHeight + Mathf.Sign(remaining) * step;
 
+        float yaw = SyncFacing(unit, delta);
         float ground = unit.Position.Y;
         float y = ground + RenderFlyHeight;
         if (unit.IsBuilding) y += 12f;
         if (unit.Type != null && unit.Type.Flying) y = Mathf.Max(y, ground + unit.Type.MoveFloor);
         Root.Position = new Vector3(unit.Position.X, y, unit.Position.Z);
 
-        float yaw = Root.Rotation.Y;
         float pitch = 0f;
         float roll = 0f;
         UnitType type = unit.Type;
