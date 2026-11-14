@@ -1122,6 +1122,101 @@ public sealed partial class War3GameScene
             : value.Split(new[] { ' ', '\t', ',', '\r', '\n' },
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+    private readonly HashSet<string> _preloadedScenes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _preloadedUnitTypes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _preloadedAbilities = new(StringComparer.Ordinal);
+
+    private void PreloadPresentationResources()
+    {
+        int unitsBefore = _preloadedUnitTypes.Count;
+        int abilitiesBefore = _preloadedAbilities.Count;
+        int scenesBefore = _preloadedScenes.Count;
+
+        foreach (Unit unit in _allUnits) PreloadUnitType(unit.Type);
+        foreach (Unit unit in _allUnits) PreloadAbilityList(unit.Type);
+
+        var pending = new Queue<UnitType>();
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Unit unit in _allUnits)
+        {
+            if (unit?.Type == null || unit.Player < 0 || unit.Player >= 12) continue;
+            pending.Enqueue(unit.Type);
+        }
+        while (pending.Count > 0)
+        {
+            UnitType type = pending.Dequeue();
+            if (type?.Id == null || !visited.Add(type.Id)) continue;
+            foreach (string child in ProductionChildren(type))
+            {
+                UnitType next = UnitFactory.Get(child);
+                if (next == null) continue;
+                PreloadUnitType(next);
+                PreloadAbilityList(next);
+                pending.Enqueue(next);
+            }
+        }
+
+        GD.Print($"[PRELOAD] 单位类型 {_preloadedUnitTypes.Count - unitsBefore}，"
+            + $"技能 {_preloadedAbilities.Count - abilitiesBefore}，"
+            + $"模型 {_preloadedScenes.Count - scenesBefore}");
+    }
+
+    private static IEnumerable<string> ProductionChildren(UnitType type)
+    {
+        foreach (string child in type.Builds) yield return child;
+        foreach (string child in type.Trains) yield return child;
+        foreach (string child in type.Researches) yield return child;
+        foreach (string child in type.UpgradeTo) yield return child;
+    }
+
+    private void PreloadUnitType(UnitType type)
+    {
+        if (type == null || string.IsNullOrWhiteSpace(type.Id)) return;
+        if (!_preloadedUnitTypes.Add(type.Id)) return;
+        PreloadScene(type.ModelPath);
+        PreloadScene(type.Weapon?.MissileScene);
+        PreloadScene(type.Weapon2?.MissileScene);
+    }
+
+    private void PreloadAbilityList(UnitType type)
+    {
+        foreach (string id in type.Abilities) PreloadAbility(id);
+        foreach (string id in type.HeroAbilList) PreloadAbility(id);
+        foreach (string id in type.SellItems) PreloadAbility(id);
+        foreach (string id in type.SellUnits) PreloadAbility(id);
+    }
+
+    private void PreloadAbility(string abilityId)
+    {
+        if (string.IsNullOrWhiteSpace(abilityId) || !_preloadedAbilities.Add(abilityId)) return;
+        AbilityType type = AbilityCatalog.Get(abilityId);
+        if (type == null) return;
+        Ability ability = RuntimeAbilityFactory.Create(type);
+        if (ability == null) return;
+        ability.BindObjectData(type.Id, new AbilityTypeObjectData(type), 1);
+
+        PreloadScene(PathResolve.ModelScene(ability.MissileArt));
+        PreloadArts(ability.CasterArts);
+        PreloadArts(ability.TargetArts);
+        PreloadArts(ability.SpecialArts);
+        PreloadArts(ability.EffectArts);
+        PreloadArts(ability.AreaEffectArts);
+        PreloadArts(ability.RuntimePreloadArts);
+    }
+
+    private void PreloadArts(IReadOnlyList<string> arts)
+    {
+        if (arts == null) return;
+        for (int i = 0; i < arts.Count; i++) PreloadScene(PathResolve.ModelScene(arts[i]));
+    }
+
+    private void PreloadScene(string scene)
+    {
+        if (string.IsNullOrWhiteSpace(scene)) return;
+        if (!_preloadedScenes.Add(scene)) return;
+        Assets.LoadScene(scene);
+    }
+
     private void RemoveUnseenVisualEffects()
     {
         _staleVisualEffects.Clear();

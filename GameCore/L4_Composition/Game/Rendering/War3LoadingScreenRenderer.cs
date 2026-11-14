@@ -19,6 +19,7 @@ public sealed partial class War3LoadingScreenRenderer : Control
     private static readonly float[] TextSizes = { 26f, 20f, 16f };
 
     private readonly CanvasLayer _layer;
+    private readonly MapSource _map;
     private readonly War3UiViewport _viewport = new();
     private readonly Dictionary<string, ITexture> _background = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _backgroundPaths = new(StringComparer.OrdinalIgnoreCase);
@@ -35,6 +36,8 @@ public sealed partial class War3LoadingScreenRenderer : Control
     private readonly string _title, _subtitle, _body;
     private string _barLabel;
     private string _stage;
+    private readonly string _backgroundModel;
+    private readonly ITexture _thumbnail;
     private const float FadeSeconds = 0.5f;
 
     private float _progress;
@@ -44,9 +47,10 @@ public sealed partial class War3LoadingScreenRenderer : Control
     private float _fade;
     private bool _finished;
 
-    public War3LoadingScreenRenderer(Node parent, MapSource map, int raceId = 0, float seconds = 1.2f)
+    public War3LoadingScreenRenderer(Node parent, MapSource map, int raceId = 0, float seconds = 0f)
     {
         _remaining = Mathf.Max(0f, seconds);
+        _map = map;
 
         SetAnchorsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
@@ -60,8 +64,10 @@ public sealed partial class War3LoadingScreenRenderer : Control
         _subtitle = Strip(map?.Info?.LoadingScreenSubtitle) ?? "";
         _body = Strip(map?.Info?.LoadingScreenText) ?? Strip(map?.Info?.DescriptionRef) ?? "";
 
+        _backgroundModel = ResolveBackgroundModel(map, skin);
+        _thumbnail = MapThumbnailCache.Get(map);
         BuildFrameTree();
-        CollectBackground(race, skin);
+        CollectBackground(race, _backgroundModel);
 
         _device = new GodotUiRenderDevice(this, font.Font)
         {
@@ -78,16 +84,25 @@ public sealed partial class War3LoadingScreenRenderer : Control
 
     private void BuildFrameTree()
     {
+        _root = new UiRoot();
+        if (System.Environment.GetEnvironmentVariable("OPENWC3_FDF_LOADING") == "0")
+        {
+            GD.Print("[LOADING] FDF 已按 OPENWC3_FDF_LOADING=0 停用，走直绘");
+            return;
+        }
+
         var factory = new FdfUiFactory(_textures, FdfSource.Read);
         _loading = LoadingScreenBinding.Load(factory);
-        _root = new UiRoot();
-        if (_loading == null) return;
+        if (_loading == null)
+        {
+            GD.PushWarning("[LOADING] FDF 帧树不可用，改用直绘");
+            return;
+        }
 
         _root.AddChild(_loading.Loading);
         _loading.Loading.SetAllPoints();
         if (_loading.LoadingMeleePanel != null) _loading.LoadingMeleePanel.Visible = false;
         if (_loading.LoadingCustomPanel != null) _loading.LoadingCustomPanel.Visible = true;
-
 
         if (_loading.LoadingBarText != null) _loading.LoadingBarText.IgnoreUiFontScale = true;
         if (_loading.LoadingTitleText != null) _loading.LoadingTitleText.IgnoreUiFontScale = true;
@@ -100,27 +115,96 @@ public sealed partial class War3LoadingScreenRenderer : Control
         if (_loading.LoadingText != null) _loading.LoadingText.Text = _body;
     }
 
-    private void CollectBackground(string race, War3UiSkin skin)
+    private static string ResolveBackgroundModel(MapSource map, War3UiSkin skin)
     {
-        string model = skin.Get("LoadingMeleeBackground",
+        string fallback = skin.Get("LoadingMeleeBackground",
             @"UI\Glues\Loading\Multiplayer\Load-Multiplayer-Human.mdl");
+        if (!string.IsNullOrWhiteSpace(map?.Info?.LoadingScreenModel))
+            return map.Info.LoadingScreenModel;
+        int campaign = map?.Info?.CampaignBackground ?? -1;
+        if (campaign < 0) return fallback;
+
+        string table = Assets.ReadText(Assets.Res(@"UI\WorldEditData.txt"));
+        if (string.IsNullOrEmpty(table)) return fallback;
+        string key = campaign.ToString("00");
+        bool inSection = false;
+        foreach (string raw in table.Split('\n'))
+        {
+            string line = raw.Trim();
+            if (line.StartsWith('['))
+            {
+                inSection = line.Equals("[LoadingScreens]", StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+            if (!inSection || !line.StartsWith(key + "=", StringComparison.OrdinalIgnoreCase)) continue;
+            string[] fields = line[(key.Length + 1)..].Split(',');
+            string path = fields.Length > 3 ? fields[3].Trim().Trim('"') : fallback;
+            return string.IsNullOrWhiteSpace(path) ? fallback : path;
+        }
+        return fallback;
+    }
+
+    private void CollectBackground(string race, string model)
+    {
         string folder = model.Replace('/', '\\');
         int slash = folder.LastIndexOf('\\');
         if (slash > 0) folder = folder[..(slash + 1)];
 
-        foreach (string key in new[] { "TL", "TR", "BL", "BR" })
+        var candidates = new List<(string Key, string Path)>();
+        foreach (string tile in ModelTextures(model))
         {
-            string path = key switch
-            {
-                "TL" => folder + "Loading-TopLeft.png",
-                "TR" => folder + $"Loading-{race}-TopRight.png",
-                "BL" => folder + "Loading-BotLeft.png",
-                _ => folder + $"Loading-{race}-BotRight.png",
-            };
+            string stem = System.IO.Path.GetFileNameWithoutExtension(tile);
+            string key = TileKey(stem);
+            if (key == null || candidates.Exists(entry => entry.Key == key)) continue;
+            candidates.Add((key, tile));
+        }
+        if (candidates.Count < 4)
+        {
+            candidates.Clear();
+            candidates.Add(("TL", folder + "Loading-TopLeft.png"));
+            candidates.Add(("TR", folder + $"Loading-{race}-TopRight.png"));
+            candidates.Add(("BL", folder + "Loading-BotLeft.png"));
+            candidates.Add(("BR", folder + $"Loading-{race}-BotRight.png"));
+        }
+
+        foreach ((string key, string path) in candidates)
+        {
             ITexture texture = _textures.Resolve(path);
             if (texture == null) continue;
             _background[key] = texture;
             _backgroundPaths[key] = path;
+        }
+    }
+
+    private static string TileKey(string stem)
+    {
+        if (stem.EndsWith("TopLeft", StringComparison.OrdinalIgnoreCase) || stem.EndsWith("TL", StringComparison.OrdinalIgnoreCase))
+            return "TL";
+        if (stem.EndsWith("TopRight", StringComparison.OrdinalIgnoreCase) || stem.EndsWith("TR", StringComparison.OrdinalIgnoreCase))
+            return "TR";
+        if (stem.EndsWith("BotLeft", StringComparison.OrdinalIgnoreCase) || stem.EndsWith("BL", StringComparison.OrdinalIgnoreCase))
+            return "BL";
+        if (stem.EndsWith("BotRight", StringComparison.OrdinalIgnoreCase) || stem.EndsWith("BR", StringComparison.OrdinalIgnoreCase))
+            return "BR";
+        return null;
+    }
+
+    private static IEnumerable<string> ModelTextures(string model)
+    {
+        string scene = PathResolve.ModelScene(model);
+        if (scene == null) yield break;
+        string text = Assets.ReadText(scene);
+        if (string.IsNullOrEmpty(text)) yield break;
+        foreach (string line in text.Split('\n'))
+        {
+            int marker = line.IndexOf("type=\"Texture2D\"", StringComparison.Ordinal);
+            if (marker < 0) continue;
+            int path = line.IndexOf("path=\"res://", StringComparison.Ordinal);
+            if (path < 0) continue;
+            int start = path + "path=\"res://".Length;
+            int end = line.IndexOf('"', start);
+            if (end <= start) continue;
+            yield return line[start..end];
         }
     }
 
@@ -139,7 +223,7 @@ public sealed partial class War3LoadingScreenRenderer : Control
         return race switch { 2 => "Orc", 3 => "Undead", 4 => "NightElf", _ => "Human" };
     }
 
-    // 加载完成: 进度直接到 100%, 等最短显示时间后再淡出
+    // 加载完成: 进度直接到 100%, 世界画出来后再淡出
     public bool Finished => _finished;
 
     public void Report(float progress, string stage)
@@ -158,6 +242,13 @@ public sealed partial class War3LoadingScreenRenderer : Control
         QueueRedraw();
     }
 
+    public void Fail(string stage)
+    {
+        _stage = string.IsNullOrWhiteSpace(stage) ? "加载失败" : $"加载失败：{stage}";
+        _progress = 0f;
+        QueueRedraw();
+    }
+
     public override void _Draw()
     {
         if (_root == null || _device == null) return;
@@ -173,8 +264,16 @@ public sealed partial class War3LoadingScreenRenderer : Control
         _root.Position();
 
         UiRect bar = LoadBarRect();
-        LayoutTexts(bar);
         DrawBar(bar);
+        if (_loading == null)
+        {
+            DrawDirectTexts(bar);
+            _device.End();
+            return;
+        }
+
+        DrawThumbnail();
+        LayoutTexts(bar);
         LayoutBarLabel(bar);
         DumpLayout(bar);
 
@@ -182,25 +281,57 @@ public sealed partial class War3LoadingScreenRenderer : Control
         _device.End();
     }
 
+    private void DrawThumbnail()
+    {
+        if (_thumbnail == null || _loading?.MinimapImage == null) return;
+        UiRect rect = _loading.MinimapImage.RenderBounds;
+        if (rect.Width <= 0f || rect.Height <= 0f) return;
+        _device.DrawTexturedQuad(rect, _thumbnail, System.Numerics.Vector4.One);
+    }
+
     private void DrawBackgroundQuads()
     {
         var white = System.Numerics.Vector4.One;
         if (_background.Count >= 4)
         {
-            // 原版背景是 2x3 格的 2 列平面: 上带占 2/3 高, 下带占 1/3
             float half = DesignWidth * 0.5f;
-            float top = DesignHeight * 2f / 3f;
-            float bottom = DesignHeight - top;
-            _device.DrawTexturedQuad(new UiRect(0, 0, half, top), _background["TL"], white);
-            _device.DrawTexturedQuad(new UiRect(half, 0, half, top), _background["TR"], white);
-            _device.DrawTexturedQuad(new UiRect(0, top, half, bottom), _background["BL"], white);
-            _device.DrawTexturedQuad(new UiRect(half, top, half, bottom), _background["BR"], white);
+            float mid = DesignHeight * 0.5f;
+            _device.DrawTexturedQuad(new UiRect(0, 0, half, mid), _background["TL"], white);
+            _device.DrawTexturedQuad(new UiRect(half, 0, half, mid), _background["TR"], white);
+            _device.DrawTexturedQuad(new UiRect(0, mid, half, mid), _background["BL"], white);
+            _device.DrawTexturedQuad(new UiRect(half, mid, half, mid), _background["BR"], white);
         }
         else
         {
             _device.DrawTexturedQuad(new UiRect(0, 0, DesignWidth, DesignHeight),
                 _device.WhiteTexture, new System.Numerics.Vector4(0.015f, 0.025f, 0.035f, 1f));
         }
+
+        _device.DrawTexturedQuad(new UiRect(0, DesignHeight - 92f, DesignWidth, 92f),
+            _device.WhiteTexture, new System.Numerics.Vector4(0f, 0f, 0f, 0.38f));
+    }
+
+    private void DrawDirectTexts(UiRect bar)
+    {
+        float y = Mathf.Max(80f, bar.Y - 240f);
+        float x = DesignWidth - PanelWidth - 32f;
+        float[] sizes = { 28f, 20f, 16f };
+        string[] texts = { _title, _subtitle, _body };
+        for (int i = 0; i < texts.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(texts[i])) continue;
+            string wrapped = Wrap(texts[i], PanelWidth, sizes[i]);
+            float height = TextHeight(wrapped, sizes[i]);
+            _device.DrawText(new UiRect(x, y, PanelWidth, height), wrapped, sizes[i],
+                System.Numerics.Vector4.One, TextAlignment.Left,
+                verticalAlign: TextVerticalAlignment.Top);
+            y += height + 10f;
+        }
+
+        string status = string.IsNullOrWhiteSpace(_stage) ? _barLabel : _stage;
+        if (string.IsNullOrWhiteSpace(status)) return;
+        _device.DrawText(bar, status, 18f, System.Numerics.Vector4.One,
+            TextAlignment.Center, verticalAlign: TextVerticalAlignment.Middle);
     }
 
     private UiRect LoadBarRect()

@@ -110,7 +110,7 @@ public sealed partial class War3GameScene : Node3D
     // 加载完成（加载屏淡出前）触发, 之后的镜头预设与调试入口都挂在这里
     public event Action Loaded;
 
-    private const float LoadHoldSeconds = 1.2f;
+    private const float AbortHoldSeconds = 2.5f;
 
     private async Task RunSetupAsync(string gmapPath)
     {
@@ -121,21 +121,13 @@ public sealed partial class War3GameScene : Node3D
             return;
         }
 
-        _loadingScreen = new War3LoadingScreenRenderer(this, _map, SelectedRace, seconds: LoadHoldSeconds);
+        _loadingScreen = new War3LoadingScreenRenderer(this, _map, SelectedRace);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
-        bool loaded = false;
-        try
+        if (!await SetupSteps(_map))
         {
-            loaded = await SetupSteps(_map);
-        }
-        catch (Exception error)
-        {
-            GD.PushError($"[INIT] 场景初始化失败: {error}");
-        }
-
-        if (!loaded)
-        {
+            _loadingScreen?.Fail(_failedStage);
+            await ToSignal(GetTree().CreateTimer(AbortHoldSeconds), SceneTreeTimer.SignalName.Timeout);
             _loadingScreen?.Finish();
             _back?.Invoke();
             return;
@@ -146,10 +138,100 @@ public sealed partial class War3GameScene : Node3D
         Loaded?.Invoke();
     }
 
-    // 逐帧推进: 每个阶段单独占一帧, 加载屏才有机会把进度画出来
+    private enum LoadingStage
+    {
+        Begin,
+        Terrain,
+        Textures,
+        TerrainPresentation,
+        SceneResources,
+        WorldConfiguration,
+        PlacedUnits,
+        MapAot,
+        MapScript,
+        PresentationPreload,
+        Pathing,
+        Selection,
+        Behaviours,
+        Complete,
+    }
+
+    private LoadingStage _loadingStage;
+    private string _failedStage;
+
+    private static string StageName(LoadingStage stage) => stage switch
+    {
+        LoadingStage.Begin => "初始化",
+        LoadingStage.Terrain => "解析地形与地图配置",
+        LoadingStage.Textures => "载入地形纹理",
+        LoadingStage.TerrainPresentation => "建立地形、水面与光照",
+        LoadingStage.SceneResources => "载入模型与场景资源",
+        LoadingStage.WorldConfiguration => "合并地图物编与界面配置",
+        LoadingStage.PlacedUnits => "创建地图预摆单位",
+        LoadingStage.MapAot => "正在准备地图脚本…",
+        LoadingStage.MapScript => "执行地图脚本与触发器",
+        LoadingStage.PresentationPreload => "预热单位、头像、特效与弹道模型",
+        LoadingStage.Pathing => "构建寻路与碰撞网格",
+        LoadingStage.Selection => "初始化镜头与游戏界面",
+        LoadingStage.Behaviours => "挂载行为组件",
+        _ => "进入游戏",
+    };
+
+    // 阶段之间让出一帧, 该帧的 _Process/_PhysicsProcess 被 LoadingBlocked 挡住
     private async Task<bool> SetupSteps(MapSource map)
     {
-        await Loading(.10f, "解析地形与地图配置");
+        _loadingStage = LoadingStage.Begin;
+        while (_loadingStage != LoadingStage.Complete)
+        {
+            LoadingStage stage = _loadingStage;
+            try
+            {
+                if (!await RunStage(stage, map))
+                {
+                    _failedStage = StageName(stage);
+                    return false;
+                }
+            }
+            catch (Exception error) when (stage >= LoadingStage.SceneResources && stage <= LoadingStage.Selection)
+            {
+                GD.PushWarning($"[INIT] {StageName(stage)} 失败，已跳过: {error}");
+            }
+            catch (Exception error)
+            {
+                GD.PushError($"[INIT] {StageName(stage)} 失败，中止加载: {error}");
+                _failedStage = StageName(stage);
+                return false;
+            }
+
+            _loadingStage++;
+        }
+        return true;
+    }
+
+    private async Task<bool> RunStage(LoadingStage stage, MapSource map)
+    {
+        switch (stage)
+        {
+            case LoadingStage.Terrain: return await LoadTerrain(map);
+            case LoadingStage.Textures: await LoadTextures(map); break;
+            case LoadingStage.TerrainPresentation: await LoadTerrainPresentation(map); break;
+            case LoadingStage.SceneResources: await LoadSceneResources(); break;
+            case LoadingStage.WorldConfiguration: await LoadWorldConfiguration(map); break;
+            case LoadingStage.PlacedUnits: await LoadPlacedUnits(); break;
+            case LoadingStage.MapAot:
+            case LoadingStage.MapScript:
+                await Loading(stage == LoadingStage.MapAot ? .73f : .76f, StageName(stage));
+                break;
+            case LoadingStage.PresentationPreload: await LoadPresentationPreload(); break;
+            case LoadingStage.Pathing: await LoadPathing(map); break;
+            case LoadingStage.Selection: await LoadSelection(); break;
+            case LoadingStage.Behaviours: AttachBehaviours(); break;
+        }
+        return true;
+    }
+
+    private async Task<bool> LoadTerrain(MapSource map)
+    {
         if (!map.LoadTerrainAndObjects())
         {
             return false;
@@ -179,7 +261,12 @@ public sealed partial class War3GameScene : Node3D
             slot.Ai = AiEnabled;
         }
 
-        await Loading(.22f, "载入地形纹理");
+        await Loading(.10f, StageName(LoadingStage.Terrain));
+        return true;
+    }
+
+    private async Task LoadTextures(MapSource map)
+    {
         _terrainBuilder = new MapWorldBuilder();
         War3FogConfig fog = War3FogConfig.FromEnvironment(map.Info?.Environment);
         GD.Print($"[FOG] 地图距离雾 {fog.Describe()}");
@@ -187,35 +274,42 @@ public sealed partial class War3GameScene : Node3D
             War3WaterConfig.MapBaseColor(map.Info), fog);
         AddChild(worldRoot);
         _worldRoot = worldRoot;
-        _sceneLighting = SceneLighting.Load(SceneLighting.ResolveTileset(
-            map.Info?.Environment?.LightEnvTileset ?? (char)0, map.Terrain.Tileset), _todHours);
-        _sceneLightingHour = _todHours;
-        SceneLightRig.Apply(worldRoot, _sceneLighting.Terrain, _sceneLighting.Terrain);
-        GD.Print($"[INIT] 昼夜光照 {SceneLighting.Describe(_sceneLighting.Terrain)}");
         _terrainShadows = new TerrainShadowMap(map.Terrain, _terrainBuilder.TerrainMaterial,
             _terrainBuilder.TreeShadows);
 
         _weather = new WeatherSystem(this, map.Info?.Environment, CameraTargetHeightAt, fog);
 
+        await Loading(.22f, StageName(LoadingStage.Textures));
+    }
+
+    private async Task LoadTerrainPresentation(MapSource map)
+    {
+        _sceneLighting = SceneLighting.Load(SceneLighting.ResolveTileset(
+            map.Info?.Environment?.LightEnvTileset ?? (char)0, map.Terrain.Tileset), _todHours);
+        _sceneLightingHour = _todHours;
+        SceneLightRig.Apply(_worldRoot, _sceneLighting.Terrain, _sceneLighting.Terrain);
+        GD.Print($"[INIT] 昼夜光照 {SceneLighting.Describe(_sceneLighting.Terrain)}");
+
         _skybox = SkyboxRenderer.TryCreate(this, map.Info);
         _skyDome = SkyDomeRenderer.TryCreate(this, map.Info);
 
-        await Loading(.34f, "建立地形、水面与光照");
-        _fog = new FogOfWar { Name = "Fog" };
-        AddChild(_fog);
-        _fog.Enabled = FogEnabled;
-        _fog.Build(map.Terrain);
+        await Loading(.34f, StageName(LoadingStage.TerrainPresentation));
+    }
 
-        await Loading(.45f, "载入模型与场景资源");
-        SpawnUnits();
-        await Loading(.66f, "创建地图预摆单位");
+    private async Task LoadSceneResources()
+    {
+        War3SoundTables.Load();
+        GD.Print($"[INIT] 技能表 {AbilityCatalog.Count} 条");
 
-        await Loading(.80f, "构建寻路与碰撞网格");
+        await Loading(.45f, StageName(LoadingStage.SceneResources));
+    }
+
+    private async Task LoadWorldConfiguration(MapSource map)
+    {
         _pathGrid = PathGrid.Build(map.Pathing, map.Terrain);
         _trees = _terrainBuilder.Trees;
         _world = new World(map.Terrain, _pathGrid, _trees);
         _world.ShowDamageNumbers = ShowDamageNumbers;
-        foreach (Unit unit in _allUnits) _world.Units.Add(unit);
         _world.FogVisible = (x, z) => _fog == null || !_fog.Enabled
             || _fog.IsVisible(new Vector3(x, 0f, z));
         _selection = new PlayerSelectionController(_world, () => ViewPlayer,
@@ -256,7 +350,39 @@ public sealed partial class War3GameScene : Node3D
             return true;
         };
 
-        await Loading(.90f, "预热单位与界面资源");
+        await Loading(.56f, StageName(LoadingStage.WorldConfiguration));
+    }
+
+    private async Task LoadPlacedUnits()
+    {
+        SpawnUnits();
+        foreach (Unit unit in _allUnits) _world.Units.Add(unit);
+
+        await Loading(.66f, StageName(LoadingStage.PlacedUnits));
+    }
+
+    private async Task LoadPresentationPreload()
+    {
+        if (System.Environment.GetEnvironmentVariable("OPENWC3_PRELOAD_MODELS") != "0")
+            PreloadPresentationResources();
+
+        await Loading(.86f, StageName(LoadingStage.PresentationPreload));
+    }
+
+    private async Task LoadPathing(MapSource map)
+    {
+        _fog = new FogOfWar { Name = "Fog" };
+        AddChild(_fog);
+        _fog.Enabled = FogEnabled;
+        _fog.Build(map.Terrain);
+        GD.Print($"[INIT] 寻路 {(map.Pathing == null ? "缺 wpm" : $"{map.Pathing.Width}x{map.Pathing.Height}")}"
+            + $"，网格就绪 {_pathGrid?.Ready == true}，树 {_trees.Count} 棵");
+
+        await Loading(.93f, StageName(LoadingStage.Pathing));
+    }
+
+    private async Task LoadSelection()
+    {
         _camera = new War3Camera(this, CameraTargetHeightAt);
         _cameraComponent = new War3CameraComponent(this);
         _picking = new War3PickingComponent(this);
@@ -265,15 +391,13 @@ public sealed partial class War3GameScene : Node3D
         SetCameraBounds();
         FocusStartPosition();
 
-        War3SoundTables.Load();
         _audio = new War3AudioSystem(this);
         _music = new War3MusicPlayer(this);
 
-        await Loading(.98f, "初始化镜头与游戏界面");
         MiscRules.Log();
         MeleeRules.Log(IsReignOfChaos);
         HeroRules.Log();
-        _minimapBaseTexture = LoadMinimapBaseTexture(map);
+        _minimapBaseTexture = LoadMinimapBaseTexture(_map);
         var overlayLayer = new CanvasLayer { Name = "BattleOverlay", Layer = 20 };
         AddChild(overlayLayer);
         _battleOverlay = new BattleOverlayRenderer
@@ -293,7 +417,7 @@ public sealed partial class War3GameScene : Node3D
         _newHud = new GameHudScreen { Name = "HudScreen" };
         hudLayer.AddChild(_newHud);
         _newHud.Load(HudRaceName(), sample: false);
-        _hud = new MeleeHudController(_newHud, War3Strings.Resolve(map.Name))
+        _hud = new MeleeHudController(_newHud, War3Strings.Resolve(_map.Name))
         {
             CommandSource = BuildCommandEntries,
         };
@@ -305,7 +429,7 @@ public sealed partial class War3GameScene : Node3D
             if (unit != null) _camera?.SetSoftFollowController(unit);
         };
         _newHud.PortraitFollowStopped = () => _camera?.ClearSoftFollowController();
-        ConfigureNewMinimap(map);
+        ConfigureNewMinimap(_map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
@@ -317,15 +441,14 @@ public sealed partial class War3GameScene : Node3D
         UpdateCommandCard();
         LogUnitSummary();
 
+        await Loading(.98f, StageName(LoadingStage.Selection));
+    }
+
+    private void AttachBehaviours()
+    {
         _musicPending = MusicEnabled;
-
-        if (AiEnabled)
-        {
-            foreach (PlayerSlot slot in Slots()) BuildPlan(slot);
-        }
-
-        await Loading(1f, "进入游戏");
-        return true;
+        if (!AiEnabled) return;
+        foreach (PlayerSlot slot in Slots()) BuildPlan(slot);
     }
 
     // 阶段之间让出一帧, 该帧的 _Process/_PhysicsProcess 被 LoadingBlocked 挡住
