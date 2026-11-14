@@ -33,6 +33,7 @@ public sealed class ShadowRenderer
     private readonly ArrayMesh _mesh = new();
     private int _committedSignature;
     private bool _shaderMissingReported;
+    private bool _textureMissingReported;
 
     public int DrawnQuadCount { get; private set; }
 
@@ -199,9 +200,36 @@ public sealed class ShadowRenderer
     private Texture2D Texture(string path)
     {
         if (_textures.TryGetValue(path, out Texture2D cached)) return cached;
-        Texture2D texture = Assets.LoadTexture(Assets.Res(path));
+        Texture2D texture = Assets.LoadTexture(SplatTexturePath(path));
         _textures[path] = texture;
+        if (texture == null && !_textureMissingReported)
+        {
+            _textureMissingReported = true;
+            GD.PushWarning($"[DECAL] 缺贴图 {path}");
+        }
         return texture;
+    }
+
+    private static string SplatTexturePath(string path)
+    {
+        string relative = System.IO.Path.ChangeExtension(path.Replace('\\', '/'), ".png");
+        string resPath = Assets.Res(relative);
+        if (ResourceLoader.Exists(resPath)) return resPath;
+        int slash = resPath.LastIndexOf('/');
+        if (slash < 0) return resPath;
+        string directory = resPath[..slash];
+        string file = resPath[(slash + 1)..];
+        using DirAccess dir = DirAccess.Open(directory);
+        if (dir == null) return resPath;
+        foreach (string candidate in dir.GetFiles())
+        {
+            string name = candidate.EndsWith(".import", StringComparison.OrdinalIgnoreCase)
+                ? candidate[..^".import".Length]
+                : candidate;
+            if (!string.Equals(name, file, StringComparison.OrdinalIgnoreCase)) continue;
+            return directory + "/" + name;
+        }
+        return resPath;
     }
 
     private ShaderMaterial Material(string path, int blendMode)

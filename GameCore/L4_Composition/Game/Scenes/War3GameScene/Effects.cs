@@ -10,6 +10,8 @@ public sealed partial class War3GameScene
     {
         public Node3D Node;
         public float Remaining;
+        public ModelEventEmitter Events;
+        public bool EventsResolved;
     }
 
     private readonly List<SceneEffect> _sceneEffects = new();
@@ -148,11 +150,22 @@ public sealed partial class War3GameScene
             }
 
             effect.Remaining -= delta;
+            TickEffectEvents(effect);
             if (effect.Remaining > 0f) continue;
 
             effect.Node.QueueFree();
             _sceneEffects.RemoveAt(index);
         }
+    }
+
+    private void TickEffectEvents(SceneEffect effect)
+    {
+        if (!effect.EventsResolved)
+        {
+            effect.EventsResolved = true;
+            effect.Events = ModelEventEmitter.Create(effect.Node);
+        }
+        effect.Events?.Tick(_groundSplats.Add);
     }
 
     private static int _effectLogBudget = 12;

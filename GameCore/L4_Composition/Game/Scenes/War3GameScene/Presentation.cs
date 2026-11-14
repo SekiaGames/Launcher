@@ -432,20 +432,35 @@ public sealed partial class War3GameScene
     private readonly Dictionary<string, List<ShadowRenderer.ColoredQuad>> _foundationFading = new();
     private readonly Dictionary<string, int> _foundationBlend = new();
     private ShadowRenderer _groundDecals;
+    private readonly War3SplatSystem _groundSplats = new();
 
-    private void TickBuildingFoundations(float delta)
+    private void TickGroundDecals(float delta)
     {
         if (_worldRoot == null || _map?.Terrain == null) return;
         _groundDecals ??= new ShadowRenderer(_worldRoot, _map.Terrain);
+        _groundDecals.Begin();
         AdvanceFoundations(delta);
         foreach (Unit unit in _allUnits) ObserveFoundation(unit);
         DrawBuildingFoundations();
+        TickSplatEvents(delta);
+        _groundSplats.Draw(_groundDecals);
         _groundDecals.Flush();
         int drawn = _groundDecals.DrawnQuadCount;
         if (drawn != _foundationLogCount)
         {
             _foundationLogCount = drawn;
-            GD.Print($"[DECAL] 建筑底座 {drawn} 块（记录 {_buildingFoundations.Count} 条）");
+            GD.Print($"[DECAL] 地面贴花 {drawn} 块（底座 {_buildingFoundations.Count} 条，事件 {_groundSplats.Count} 个）");
+        }
+    }
+
+    private void TickSplatEvents(float delta)
+    {
+        _groundSplats.Update(delta);
+        foreach (Unit unit in _allUnits)
+        {
+            UnitSceneComponent view = unit?.View;
+            if (view == null || view.Root == null || !IsInstanceValid(view.Root)) continue;
+            view.ResolveModelEvents()?.Tick(_groundSplats.Add, view.Root.Visible);
         }
     }
 
@@ -525,7 +540,6 @@ public sealed partial class War3GameScene
 
     private void DrawBuildingFoundations()
     {
-        _groundDecals.Begin();
         foreach (List<ShadowRenderer.Quad> list in _foundationStatic.Values) list.Clear();
         foreach (List<ShadowRenderer.ColoredQuad> list in _foundationFading.Values) list.Clear();
         _foundationBlend.Clear();

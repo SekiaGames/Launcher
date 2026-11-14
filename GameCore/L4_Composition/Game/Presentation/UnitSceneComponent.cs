@@ -24,6 +24,19 @@ public sealed class UnitSceneComponent
     public bool Selected { get; private set; }
     public string CurrentAnimation { get; private set; }
 
+    public ModelEventEmitter ModelEvents { get; private set; }
+    private bool _modelEventsResolved;
+
+    public ModelEventEmitter ResolveModelEvents()
+    {
+        if (!_modelEventsResolved)
+        {
+            _modelEventsResolved = true;
+            ModelEvents = ModelEventEmitter.Create(Root);
+        }
+        return ModelEvents;
+    }
+
     public MeshInstance3D ProgressNode { get; private set; }
     private ImmediateMesh _progressMesh;
     private float _progressRadius;
