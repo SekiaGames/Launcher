@@ -160,7 +160,7 @@ public sealed partial class War3GameScene : Node3D
         await Loading(.22f, "载入地形纹理");
         _terrainBuilder = new MapWorldBuilder();
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads,
-            War3WaterConfig.MapBaseColor(map.Info?.Environment));
+            War3WaterConfig.MapBaseColor(map.Info));
         AddChild(worldRoot);
         _worldRoot = worldRoot;
         _sceneLighting = SceneLighting.Load(SceneLighting.ResolveTileset(

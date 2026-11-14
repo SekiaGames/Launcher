@@ -41,9 +41,13 @@ public sealed class War3WaterConfig
         return row < 0 ? 0f : table.GetFloat(row, "height");
     }
 
-    public static Color MapBaseColor(W3iEnvironment environment)
+    public static Color MapBaseColor(W3iInfo info)
     {
-        byte[] bgra = environment?.WaterVertexColorBgra;
+        if (info == null || info.FormatVersion <= 24)
+        {
+            return new Color(1f, 1f, 1f, 1f);
+        }
+        byte[] bgra = info.Environment?.WaterVertexColorBgra;
         if (bgra == null || bgra.Length < 4)
         {
             return new Color(1f, 1f, 1f, 1f);
@@ -82,7 +86,7 @@ public sealed class War3WaterConfig
             FrameRate = Mathf.Max(1, table.GetInt(row, "texRate")),
             FrameOffset = table.GetInt(row, "texOffset"),
             TextureCells = Mathf.Max(1, table.GetInt(row, "cells", 1)),
-            Lighting = table.GetInt(row, "lighting", 1) != 0,
+            Lighting = table.GetInt(row, "lighting", 0) != 0,
             MinimumDepth = ReadMiscFloat("Water.MinDepth", 10f) / 128f,
             DeepLevel = ReadMiscFloat("Water.DeepLevel", 64f) / 128f,
             MaximumDepth = ReadMiscFloat("Water.MaxDepth", 72f) / 128f,
