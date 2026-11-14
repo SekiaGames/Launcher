@@ -13,6 +13,9 @@ public sealed partial class War3GameScene
     private SceneLighting _sceneLighting;
     private float _sceneLightingHour = -1f;
 
+    private readonly ScoutingMemory<UnitSceneComponent> _buildingScouting = new();
+    private readonly Dictionary<int, UnitSceneComponent> _retiredBuildingViews = new();
+
     private void TickClock()
     {
         float scale = 1f / Mathf.Max(0.02f, TimeScaleHint);
@@ -64,6 +67,7 @@ public sealed partial class War3GameScene
 
         _fog.Refresh(_allUnits, ViewPlayer, AreAllied, SightOf, _world?.Reveals);
         _terrainBuilder?.BindWaterFogOfWar(_fog.VisibilityTexture, _fog.SampleUv, _fog.Enabled);
+        RefreshBuildingScouting();
         if (!_fog.Enabled) return;
 
         foreach (Unit unit in _allUnits)
@@ -96,5 +100,139 @@ public sealed partial class War3GameScene
 
             unit.View.Root.Visible = false;
         }
+    }
+
+    private void RefreshBuildingScouting()
+    {
+        _buildingScouting.Begin(_fog, _retiredBuildingViews);
+        foreach (KeyValuePair<int, UnitSceneComponent> pair in _retiredBuildingViews)
+        {
+            UnitSceneComponent view = pair.Value;
+            if (view?.Root == null || !GodotObject.IsInstanceValid(view.Root)) continue;
+            view.FogMemorial = false;
+            view.Root.Visible = false;
+        }
+        _retiredBuildingViews.Clear();
+
+        foreach (KeyValuePair<int, ScoutingMemory<UnitSceneComponent>.Entry> pair
+            in _buildingScouting.Entries)
+        {
+            ScoutingMemory<UnitSceneComponent>.Entry entry = pair.Value;
+            var position = new Vector3(entry.X, 0f, entry.Y);
+            if (_fog.IsVisible(position) || !_fog.IsExplored(position)) continue;
+            entry.State.Root.Visible = true;
+        }
+    }
+
+    public int RunFogMemoryProbe()
+    {
+        int failures = 0;
+        void Verify(string label, bool ok)
+        {
+            if (!ok) failures++;
+            GD.Print($"[FOG-MEM] {(ok ? "通过" : "不符")} {label}");
+        }
+
+        int enemy = -1;
+        foreach (int id in _active)
+        {
+            if (id == ViewPlayer || AreAllied(id, ViewPlayer)) continue;
+            enemy = id;
+            break;
+        }
+        if (enemy < 0 || _fog == null || _world == null)
+        {
+            GD.Print("[FOG-MEM] 缺少敌方玩家或迷雾/世界未就绪");
+            return 1;
+        }
+
+        Vector3 spot = FogProbeSpot();
+        Unit seenBuilding = Spawn("hhou", enemy, spot.X, spot.Z, 0f, 0f, 1f);
+        if (seenBuilding == null)
+        {
+            GD.Print("[FOG-MEM] 缺建筑模型 hhou");
+            return 1;
+        }
+
+        _world.AddFogReveal(ViewPlayer, spot, FogOfWar.FogCellSize * 2f, 60f);
+        TickFog(0.25f);
+        Verify("首次看见后记为已看到", seenBuilding.View.FogSeen);
+        Verify("首次看见时不冻结", !seenBuilding.View.FogFrozen && seenBuilding.View.Root.Visible);
+
+        _world.Reveals.Clear();
+        TickFog(0.25f);
+        Verify("离开视野后定格", seenBuilding.View.FogFrozen && seenBuilding.View.Root.Visible);
+
+        _world.KillUnit(seenBuilding);
+        Verify("雾中阵亡保留定格模型",
+            seenBuilding.View.FogMemorial && seenBuilding.View.Root.Visible
+            && seenBuilding.DeathPresentationGone);
+        seenBuilding.TickCorpse(seenBuilding.DecayLife + 1f);
+        Verify("尸体计时不隐藏定格模型", seenBuilding.View.Root.Visible);
+
+        TickFog(0.25f);
+        Verify("雾里持续保留定格模型",
+            seenBuilding.View.FogMemorial && seenBuilding.View.Root.Visible
+            && _buildingScouting.Entries.Count() == 1);
+
+        _world.AddFogReveal(ViewPlayer, spot, FogOfWar.FogCellSize * 2f, 60f);
+        TickFog(0.25f);
+        Verify("重新看见后清掉定格模型",
+            !seenBuilding.View.FogMemorial && !seenBuilding.View.Root.Visible);
+        Verify("记忆表清空", _buildingScouting.Entries.Count() == 0);
+
+        Unit visibleBuilding = Spawn("hhou", enemy, spot.X, spot.Z, 0f, 0f, 1f);
+        if (visibleBuilding == null)
+        {
+            GD.Print("[FOG-MEM] 缺建筑模型 hhou");
+            return 1;
+        }
+        TickFog(0.25f);
+        _world.KillUnit(visibleBuilding);
+        Verify("看得见时阵亡不进记忆",
+            !visibleBuilding.View.FogMemorial && _buildingScouting.Entries.Count() == 0);
+        visibleBuilding.TickCorpse(visibleBuilding.DecayLife + 1f);
+        Verify("看得见时阵亡照常隐藏", !visibleBuilding.View.Root.Visible);
+
+        _world.Reveals.Clear();
+        TickFog(0.25f);
+        Unit unseenBuilding = Spawn("hhou", enemy, spot.X, spot.Z, 0f, 0f, 1f);
+        if (unseenBuilding == null)
+        {
+            GD.Print("[FOG-MEM] 缺建筑模型 hhou");
+            return 1;
+        }
+        _world.KillUnit(unseenBuilding);
+        Verify("没看过的建筑不留记忆",
+            !unseenBuilding.View.FogMemorial && _buildingScouting.Entries.Count() == 0);
+
+        GD.Print(failures == 0 ? "[FOG-MEM] 全部通过" : $"[FOG-MEM] {failures} 项不符");
+        return failures == 0 ? 0 : 1;
+    }
+
+    private Vector3 FogProbeSpot()
+    {
+        Vector3 best = Vector3.Zero;
+        float bestDistance = -1f;
+        for (int gy = 1; gy < _map.Terrain.Height; gy += 8)
+        {
+            for (int gx = 1; gx < _map.Terrain.Width; gx += 8)
+            {
+                Vector3 world = ToWorld(_map.Terrain.OffsetX + gx * FogOfWar.FogCellSize,
+                    _map.Terrain.OffsetY + gy * FogOfWar.FogCellSize);
+                float nearest = float.MaxValue;
+                foreach (Unit unit in _allUnits)
+                {
+                    if (!unit.Alive) continue;
+                    float distance = new Vector2(unit.Position.X - world.X,
+                        unit.Position.Z - world.Z).Length();
+                    if (distance < nearest) nearest = distance;
+                }
+                if (nearest <= bestDistance) continue;
+                bestDistance = nearest;
+                best = world;
+            }
+        }
+        return best;
     }
 }

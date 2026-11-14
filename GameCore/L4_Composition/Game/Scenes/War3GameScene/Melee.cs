@@ -16,6 +16,16 @@ public sealed partial class War3GameScene
 
         DropFromSelection(unit);
         RefreshHud();
+
+        if (unit is { IsBuilding: true, IsIllusion: false, View: { FogFrozen: true, FogSeen: true } })
+            RememberFallenBuilding(unit);
+    }
+
+    private void RememberFallenBuilding(Unit unit)
+    {
+        unit.View.FogMemorial = true;
+        _buildingScouting.Observe(unit.SimulationId, unit.Position.X, unit.Position.Z, unit.View);
+        GD.Print($"[FOG] {unit.Type?.Id} 在雾中被拆，保留最后看到的模型");
     }
 
     private void TickVictoryCheck(float delta)

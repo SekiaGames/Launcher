@@ -10,6 +10,7 @@ public sealed class UnitSceneComponent
     public Unit Owner;
     public bool FogSeen;
     public bool FogFrozen { get; private set; }
+    public bool FogMemorial { get; set; }
 
     public AnimationPlayer Player { get; private set; }
     public float Height { get; private set; } = 100f;

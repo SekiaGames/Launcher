@@ -65,7 +65,10 @@ public sealed partial class Unit
         IsCorpse = !IsBuilding && !IsIllusion;
         ConfigDeathTiming();
         CorpseRemaining = IsCorpse ? DecayLife : 0f;
-        View?.Play("Death");
+        if (IsBuilding && !IsIllusion && View is { FogFrozen: true })
+            DeathPresentationGone = true;
+        else
+            View?.Play("Death");
         View?.SetSelected(false);
     }
 
