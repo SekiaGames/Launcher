@@ -6,14 +6,6 @@ namespace OpenWC3.Game;
 
 public sealed class UnitSceneComponent
 {
-    private static readonly Color[] PlayerColors =
-    {
-        Color.FromHtml("c8322b"), Color.FromHtml("0042ff"), Color.FromHtml("1ce6b9"),
-        Color.FromHtml("540081"), Color.FromHtml("fffc01"), Color.FromHtml("fe8a0e"),
-        Color.FromHtml("20c000"), Color.FromHtml("e55bb0"), Color.FromHtml("959697"),
-        Color.FromHtml("7ebff1"), Color.FromHtml("106246"), Color.FromHtml("4e2a04"),
-    };
-
     public Node3D Root { get; private set; }
     public Unit Owner;
     public bool FogSeen;
@@ -42,7 +34,7 @@ public sealed class UnitSceneComponent
     private float _progressRadius;
     private float _progressDrawn = -1f;
 
-    public static UnitSceneComponent Create(PackedScene scene, Color teamColor, float scale, bool isBuilding, float footprintRadius, string scenePath, SceneLight light)
+    public static UnitSceneComponent Create(PackedScene scene, int teamColorIndex, float scale, bool isBuilding, float footprintRadius, string scenePath, SceneLight light)
     {
         var view = new UnitSceneComponent();
         var root = scene.Instantiate<Node3D>();
@@ -55,7 +47,7 @@ public sealed class UnitSceneComponent
         if (tree != null) tree.Active = false;
         view.Player = root.FindChild("AnimationPlayer", true, false) as AnimationPlayer;
 
-        view.ApplyTeamColor(teamColor);
+        view.ApplyTeamColor(teamColorIndex);
         MapWorldBuilder.ApplyUnitTextureFilter(root);
         ModelLightRig.Apply(root, light);
 
@@ -79,15 +71,26 @@ public sealed class UnitSceneComponent
         }
     }
 
-    public static Color ColorOf(int player)
+    public static Color ColorOf(int player) => War3UiSkin.UnitTeamColor(player);
+
+    public void SetTeamColor(int teamColorIndex) => ApplyTeamColor(teamColorIndex);
+
+    public void SyncAppearance(Unit unit, int observerPlayerId, Func<int, int, bool> allied)
     {
-        return PlayerColors[Mathf.Abs(player) % PlayerColors.Length];
+        Color tint = IllusionPresentation.GetColor(unit, observerPlayerId, allied,
+            UnitStateColor.Get(unit));
+        if (Mathf.IsEqualApprox(tint.R, _appliedTint.R) && Mathf.IsEqualApprox(tint.G, _appliedTint.G)
+            && Mathf.IsEqualApprox(tint.B, _appliedTint.B) && Mathf.IsEqualApprox(tint.A, _appliedTint.A))
+        {
+            return;
+        }
+        _appliedTint = tint;
+        ApplyModelTint(tint);
     }
 
-    /// <summary>换阵营时重刷模型上的队伍色。</summary>
-    public void SetTeamColor(Color color) => ApplyTeamColor(color);
+    private Color _appliedTint = Colors.White;
+    private readonly Dictionary<Material, Color> _baseGeosetTint = new();
 
-    private bool _ghost;
     private readonly List<Node> _frozenEmitters = new();
 
     /// <summary>
@@ -151,22 +154,47 @@ public sealed class UnitSceneComponent
         _frozenEmitters.Clear();
     }
 
-    public void SetGhost(bool ghost)
+    private void ApplyModelTint(Color tint)
     {
-        if (_ghost == ghost) return;
-        _ghost = ghost;
-        float transparency = ghost ? 1f - 127f / 255f : 0f;
-
-        foreach (Node node in Root.FindChildren("*", "GeometryInstance3D", true, false))
+        foreach (Node node in Root.FindChildren("*", "MeshInstance3D", true, false))
         {
-            if (node is GeometryInstance3D geometry) geometry.Transparency = transparency;
+            if (node is not MeshInstance3D mesh || mesh.Mesh == null) continue;
+            float transparency = 1f - tint.A;
+            if (!Mathf.IsEqualApprox(mesh.Transparency, transparency)) mesh.Transparency = transparency;
+
+            for (int surface = 0; surface < mesh.Mesh.GetSurfaceCount(); surface++)
+            {
+                Material material = mesh.MaterialOverride
+                    ?? mesh.GetSurfaceOverrideMaterial(surface)
+                    ?? mesh.Mesh.SurfaceGetMaterial(surface);
+                if (material is not ShaderMaterial shader) continue;
+
+                if (!_baseGeosetTint.TryGetValue(material, out Color baseTint))
+                {
+                    Variant current = shader.GetShaderParameter("geoset_tint");
+                    baseTint = current.VariantType == Variant.Type.Nil
+                        ? Colors.White
+                        : current.AsColor();
+                    _baseGeosetTint[material] = baseTint;
+                }
+                shader.SetShaderParameter("geoset_tint",
+                    new Color(baseTint.R * tint.R, baseTint.G * tint.G, baseTint.B * tint.B, 1f));
+            }
         }
     }
 
-    private void ApplyTeamColor(Color color) => ApplyTeamColorTo(Root, color);
+    private void ApplyTeamColor(int teamColorIndex)
+    {
+        ApplyTeamColorTo(Root, ColorOf(teamColorIndex), teamColorIndex);
+        if (!HasTint) return;
+        _baseGeosetTint.Clear();
+        ApplyModelTint(_appliedTint);
+    }
 
-    /// <summary>把模型里 use_team_color 的材质换成带队伍色的副本（集结点旗帜这类非单位模型也用它）。</summary>
-    public static void ApplyTeamColorTo(Node3D root, Color color)
+    private bool HasTint => !(_appliedTint.R == 1f && _appliedTint.G == 1f
+        && _appliedTint.B == 1f && _appliedTint.A == 1f);
+
+    public static void ApplyTeamColorTo(Node3D root, Color color, int teamColorIndex = -1)
     {
         if (root == null) return;
 
@@ -180,10 +208,13 @@ public sealed class UnitSceneComponent
                     ?? mesh.GetSurfaceOverrideMaterial(surface)
                     ?? mesh.Mesh.SurfaceGetMaterial(surface);
                 if (material is not ShaderMaterial shader) continue;
-                if (!shader.GetShaderParameter("use_team_color").AsBool()) continue;
+                bool team = shader.GetShaderParameter("use_team_color").AsBool();
+                bool glow = teamColorIndex >= 0 && IsTeamGlow(shader);
+                if (!team && !glow) continue;
 
                 ShaderMaterial copy = (ShaderMaterial)shader.Duplicate();
-                copy.SetShaderParameter("team_color", color);
+                if (team) copy.SetShaderParameter("team_color", color);
+                if (glow) copy.SetShaderParameter("base_texture", TeamGlowTexture(teamColorIndex));
 
                 if (mesh.MaterialOverride != null && mesh.MaterialOverride == material)
                 {
@@ -196,6 +227,23 @@ public sealed class UnitSceneComponent
             }
         }
     }
+
+    private static bool IsTeamGlow(ShaderMaterial material)
+    {
+        if (material.Shader?.ResourcePath is not string shaderPath) return false;
+        if (!shaderPath.EndsWith("war3_model_add.gdshader", StringComparison.OrdinalIgnoreCase)) return false;
+        Texture2D texture = material.GetShaderParameter("base_texture").As<Texture2D>();
+        return texture?.ResourcePath?.Contains("TeamGlow/", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static Texture2D TeamGlowTexture(int teamColorIndex)
+    {
+        int index = Mathf.Clamp(teamColorIndex, 0, 15);
+        return _teamGlow[index] ??= Assets.LoadTexture(
+            Assets.Res($"ReplaceableTextures/TeamGlow/TeamGlow{index:00}.png"));
+    }
+
+    private static readonly Texture2D[] _teamGlow = new Texture2D[16];
 
     private static float MeasureHeight(Node3D root, bool isBuilding)
     {

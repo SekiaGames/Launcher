@@ -314,7 +314,7 @@ public sealed partial class War3GameScene
             : MapWorldBuilder.HeightAt(_map.Terrain, worldX, worldZ);
         float scale = type.ModelScale * (entryScale > 0f ? entryScale : 1f);
 
-        UnitSceneComponent view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(player), scale, type.IsBuilding, type.FootprintRadius, type.ModelPath, _sceneLighting?.Units ?? SceneLight.Fallback);
+        UnitSceneComponent view = UnitSceneComponent.Create(scene, player, scale, type.IsBuilding, type.FootprintRadius, type.ModelPath, _sceneLighting?.Units ?? SceneLight.Fallback);
         view.Root.Position = new Vector3(worldX, worldY, worldZ);
         view.Root.Rotation = new Vector3(0f, yaw, 0f);
         view.Root.Name = $"{id}_{_allUnits.Count}";
@@ -417,7 +417,7 @@ public sealed partial class War3GameScene
 
         unit.View.Root.QueueFree();
 
-        UnitSceneComponent view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(unit.Player),
+        UnitSceneComponent view = UnitSceneComponent.Create(scene, unit.Player,
             unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, unit.Type.ModelPath,
             _sceneLighting?.Units ?? SceneLight.Fallback);
         view.Root.Position = position;

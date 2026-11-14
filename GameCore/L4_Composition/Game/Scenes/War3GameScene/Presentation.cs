@@ -991,7 +991,7 @@ public sealed partial class War3GameScene
     {
         if (node.TeamColor == teamColor) return;
         node.TeamColor = teamColor;
-        UnitSceneComponent.ApplyTeamColorTo(node.Root, UnitSceneComponent.ColorOf(teamColor));
+        UnitSceneComponent.ApplyTeamColorTo(node.Root, UnitSceneComponent.ColorOf(teamColor), teamColor);
     }
 
     private static void ApplyVisualEffectColor(Node3D root, NVector4 color)

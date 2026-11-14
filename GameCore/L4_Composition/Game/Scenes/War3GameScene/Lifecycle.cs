@@ -693,6 +693,11 @@ public sealed partial class War3GameScene : Node3D
         _battleOverlay?.Frame(_allUnits, StatusBarVisible, StatusBarEnemy);
         _selectionCircles?.Frame(_allUnits, StatusBarHeightAt, StatusBarEnemy, StatusBarVisible);
         _unitShadows?.Frame(_allUnits, StatusBarHeightAt, StatusBarVisible);
+        for (int index = 0; index < _allUnits.Count; index++)
+        {
+            Unit shaped = _allUnits[index];
+            shaped?.View?.SyncAppearance(shaped, ViewPlayer, AreAllied);
+        }
         _cursor?.Tick(frame);
 
         _hudTimer += (float)delta;

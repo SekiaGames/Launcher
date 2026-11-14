@@ -21,6 +21,6 @@ public sealed partial class Unit
         RallyTarget = null;
         RallyTree = null;
         TargetFacing = Facing;
-        View?.SetTeamColor(UnitSceneComponent.ColorOf(player));
+        View?.SetTeamColor(player);
     }
 }

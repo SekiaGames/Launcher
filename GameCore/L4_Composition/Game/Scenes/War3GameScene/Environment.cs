@@ -85,7 +85,6 @@ public sealed partial class War3GameScene
                 unit.View.FogSeen = true;
                 unit.View.SetFogFrozen(false);
                 unit.View.Root.Visible = true;
-                unit.View.SetGhost(unit.State.Invisible);
                 continue;
             }
 

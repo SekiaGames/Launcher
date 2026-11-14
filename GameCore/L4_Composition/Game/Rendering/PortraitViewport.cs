@@ -60,7 +60,7 @@ internal sealed class PortraitViewport
         if (unit?.Type == null || string.IsNullOrWhiteSpace(unit.Type.ModelPath)) return;
         PackedScene scene = Assets.LoadScene(unit.Type.ModelPath);
         if (scene == null) return;
-        _view = UnitSceneComponent.Create(scene, UnitSceneComponent.ColorOf(unit.Player),
+        _view = UnitSceneComponent.Create(scene, unit.Player,
             unit.Type.ModelScale, unit.Type.IsBuilding, unit.Type.FootprintRadius, unit.Type.ModelPath,
             SceneLight.Fallback);
         _stage.AddChild(_view.Root);

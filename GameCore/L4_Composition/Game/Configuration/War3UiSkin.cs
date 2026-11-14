@@ -18,6 +18,25 @@ public sealed class War3UiSkin
         ? null
         : _teamColors[Math.Abs(index % _teamColors.Length)];
 
+    private static Color[] _unitTeamColors;
+
+    public static Color UnitTeamColor(int index)
+    {
+        _unitTeamColors ??= LoadUnitTeamColors();
+        return _unitTeamColors[Math.Clamp(index, 0, _unitTeamColors.Length - 1)];
+    }
+
+    private static Color[] LoadUnitTeamColors()
+    {
+        var colors = new Color[16];
+        for (int i = 0; i < colors.Length; i++)
+        {
+            colors[i] = ReadTeamColor($@"ReplaceableTextures\TeamColor\TeamColor{i:00}.png")
+                ?? Colors.White;
+        }
+        return colors;
+    }
+
     public string Get(string key, string fallback = "")
     {
         if (string.IsNullOrWhiteSpace(key)) return fallback;

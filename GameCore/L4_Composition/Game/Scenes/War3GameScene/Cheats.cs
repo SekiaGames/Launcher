@@ -289,6 +289,23 @@ public sealed partial class War3GameScene
         };
     }
 
+    public void RunAppearanceProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+
+        Unit ethereal = Spawn("ugho", ViewPlayer, origin.X + 300f, origin.Z - 200f, 0f, 0f, 1f);
+        ethereal?.State.Add(StateMod.Ethereal);
+
+        Unit illusion = Spawn("ugho", ViewPlayer, origin.X + 300f, origin.Z, 0f, 0f, 1f);
+        if (illusion != null) illusion.IsIllusion = true;
+
+        Unit invisible = Spawn("ugho", ViewPlayer, origin.X + 300f, origin.Z + 200f, 0f, 0f, 1f);
+        invisible?.State.Add(StateMod.Invisible);
+
+        GD.Print($"[APPEAR] 虚无={ethereal?.TypeId} 幻象={illusion?.TypeId} 隐身={invisible?.TypeId} @({origin.X:0},{origin.Z:0})");
+    }
+
     /// <summary>--hero-probe：在最近野怪营地放一个圣骑士，验证经验/升级链路。</summary>
     public void RunHeroProbe()
     {
