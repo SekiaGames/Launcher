@@ -83,8 +83,6 @@ public sealed class UnitType
     public float ShadowOffsetX;
     public float ShadowOffsetY;
 
-    // UnitUI.uberSplat → Splats/UberSplatData.slk：建筑底下的地面层替换贴花。
-    // Scale 是半径，Quad 边长 = Scale×2；UBR 表无 Lifespan，只有 Birth/Pause/Decay。
     public string GroundSplatTexture = "";
     public float GroundSplatScale;
     public float GroundSplatBirth;
@@ -533,7 +531,6 @@ public static class UnitFactory
             System.Globalization.CultureInfo.InvariantCulture, out float value) ? value : fallback;
     }
 
-    /// <summary>UnitUI.uberSplat 的四码 → Splats/UberSplatData.slk 一行（客户端 Resolve("UBRx"+id)）。</summary>
     private static void ApplyGroundSplat(UnitType type, string uberSplat)
     {
         string id = (uberSplat ?? "").Trim();

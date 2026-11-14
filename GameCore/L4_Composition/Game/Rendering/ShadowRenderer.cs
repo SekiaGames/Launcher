@@ -4,7 +4,6 @@ using System.Collections.Generic;
 
 namespace OpenWC3.Game;
 
-/// <summary>贴地贴花：沿 128 世界单位地形格切片，逐角采地形高，按 贴图+混合档 分批。</summary>
 public sealed class ShadowRenderer
 {
     internal const float UnitShadowOffset = 3f;
@@ -94,7 +93,6 @@ public sealed class ShadowRenderer
         DrawnQuadCount++;
     }
 
-    /// <summary>与 TerrainRenderer/BuildTerrain 同一条对角线（TL-BR），逐格角取地形高。</summary>
     private void BuildQuadVertices(Batch batch, Quad quad, Vector2 inverseTextureSize,
         Color color, float groundOffset)
     {

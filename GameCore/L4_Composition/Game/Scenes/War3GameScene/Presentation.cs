@@ -404,9 +404,6 @@ public sealed partial class War3GameScene
         return "Human";
     }
 
-    // -----------------------------------------------------------------------
-    // 建筑底座（对标客户端 CUberSplatDB）：常驻记录池 + Birth 淡入 + 拆除 Decay 淡出
-    // -----------------------------------------------------------------------
 
     private sealed class FoundationRecord
     {
@@ -507,7 +504,6 @@ public sealed partial class War3GameScene
     private static Color FoundationMiddle(FoundationRecord record) =>
         record.Middle == new Color(0f, 0f, 0f, 0f) ? new Color(1f, 1f, 1f, 1f) : record.Middle;
 
-    /// <summary>Start→Middle 走 Birth 段，Middle→End 走 ReleaseAge 段；稳态直接取 Middle。</summary>
     private static Color FoundationColor(FoundationRecord record)
     {
         Color middle = FoundationMiddle(record);

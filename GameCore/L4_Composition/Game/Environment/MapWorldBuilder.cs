@@ -28,6 +28,8 @@ public sealed partial class MapWorldBuilder
         bool[,] covered = BuildCliffs(terrain);
         BuildTerrain(terrain, covered);
         BuildWater(terrain, waterBaseColor);
+        MapVoidRenderer.TryCreate(Root, terrain,
+            (x, z) => Mathf.Max(HeightAt(terrain, 0f - x, z), WaterHeightAt(terrain, 0f - x, z)));
         new ShorelineWaveRenderer(Root, terrain, War3WaterConfig.Load(terrain.Tileset));
         if (doodads != null)
         {
