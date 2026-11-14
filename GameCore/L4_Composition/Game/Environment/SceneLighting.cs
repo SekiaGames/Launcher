@@ -301,6 +301,14 @@ public static class SceneLightRig
                 action(material);
             }
         }
+
+        foreach (Node child in root.FindChildren("*", "GPUParticles3D", true, false))
+        {
+            if (child is GpuParticles3D { MaterialOverride: ShaderMaterial particleMaterial })
+            {
+                SceneFog.Write(particleMaterial);
+            }
+        }
     }
 
     public static void Write(ShaderMaterial material, SceneLight light)
