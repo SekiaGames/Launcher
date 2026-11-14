@@ -271,14 +271,6 @@ public static class SceneLightRig
         }
 
         ForEachMaterial(root, material => Write(material, IsModelMaterial(material) ? units : terrain));
-
-        foreach (Node child in root.FindChildren("*", "GPUParticles3D", true, false))
-        {
-            if (child is GpuParticles3D { MaterialOverride: ShaderMaterial particleMaterial })
-            {
-                SceneFog.Write(particleMaterial);
-            }
-        }
     }
 
     public static void ForEachMaterial(Node root, Action<ShaderMaterial> action)
@@ -316,7 +308,6 @@ public static class SceneLightRig
         material.SetShaderParameter("war3_scene_direction", light.Direction);
         material.SetShaderParameter("war3_scene_color", light.DiffuseColor * light.DiffuseIntensity);
         material.SetShaderParameter("war3_scene_ambient", light.AmbientColor * light.AmbientIntensity);
-        SceneFog.Write(material);
     }
 
     static bool IsModelMaterial(ShaderMaterial material) =>

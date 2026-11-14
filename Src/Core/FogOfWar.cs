@@ -66,7 +66,7 @@ public sealed partial class FogOfWar : Node3D
 
     private static void OnNodeAdded(Node node)
     {
-        if (node is MeshInstance3D mesh) SceneLightRig.ForEachMaterial(mesh, SceneFog.RegisterFogReceiver);
+        if (node is MeshInstance3D mesh) SceneLightRig.ForEachMaterial(mesh, FogOfWarUniforms.Register);
     }
 
     public void Build(TerrainData terrain)
@@ -91,7 +91,7 @@ public sealed partial class FogOfWar : Node3D
 
         if (!_enabled) Array.Fill(_visual, VisibleValue);
         Upload();
-        SceneLightRig.ForEachMaterial(GetParent(), SceneFog.RegisterFogReceiver);
+        SceneLightRig.ForEachMaterial(GetParent(), FogOfWarUniforms.Register);
         Name = "FogOfWar";
     }
 
@@ -200,7 +200,7 @@ public sealed partial class FogOfWar : Node3D
         _texture.Update(_image);
         _minimapTexture.Update(_minimapImage);
         _uploaded = true;
-        SceneFog.SetFogOfWar(_texture, SampleUv, _enabled);
+        FogOfWarUniforms.Publish(_texture, SampleUv, _enabled);
     }
 
     private Color MinimapColor(int index)

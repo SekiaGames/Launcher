@@ -63,6 +63,7 @@ public sealed class SkyDomeRenderer
             return null;
         }
         Node3D model = scene.Instantiate<Node3D>();
+        War3FogConfig.Current.ApplyTo(model);
         if (model?.FindChild("AnimationTree", true, false) is AnimationTree tree) tree.Active = false;
         return model;
     }

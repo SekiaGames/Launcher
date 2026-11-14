@@ -31,7 +31,7 @@ public sealed partial class MapWorldBuilder
         return list;
     }
 
-    private bool[,] BuildCliffs(TerrainData terrain)
+    private bool[,] BuildCliffs(TerrainData terrain, War3FogConfig fog)
     {
         int width = terrain.Width;
         int height = terrain.Height;
@@ -50,6 +50,7 @@ public sealed partial class MapWorldBuilder
         {
             Shader = GD.Load<Shader>("res://assets/shaders/cliff_map.gdshader")
         };
+        fog.Apply(shaderMaterial);
         if (cliffTextureSet?.Texture != null)
         {
             shaderMaterial.SetShaderParameter("cliff_texture", cliffTextureSet.Texture);

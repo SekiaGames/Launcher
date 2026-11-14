@@ -49,7 +49,7 @@ public sealed class MdxRibbonRenderer
         _root = root;
     }
 
-    public static MdxRibbonRenderer Create(Node3D root, int teamColorIndex)
+    public static MdxRibbonRenderer Create(Node3D root, int teamColorIndex, War3FogConfig fog)
     {
         if (root == null || !GodotObject.IsInstanceValid(root)) return null;
         var renderer = new MdxRibbonRenderer(root);
@@ -57,12 +57,12 @@ public sealed class MdxRibbonRenderer
         foreach (Node child in root.FindChildren("*", "MeshInstance3D", true, false))
         {
             if (child is not MeshInstance3D mesh || !mesh.HasMeta("war3_ribbon_life_span")) continue;
-            renderer.AddEmitter(mesh, teamTexture);
+            renderer.AddEmitter(mesh, teamTexture, fog);
         }
         return renderer._emitters.Count == 0 ? null : renderer;
     }
 
-    private void AddEmitter(MeshInstance3D mesh, Texture2D teamTexture)
+    private void AddEmitter(MeshInstance3D mesh, Texture2D teamTexture, War3FogConfig fog)
     {
         float life = mesh.GetMeta("war3_ribbon_life_span").AsSingle();
         float rate = mesh.GetMeta("war3_ribbon_emission_rate").AsSingle();
@@ -79,6 +79,7 @@ public sealed class MdxRibbonRenderer
                 material.SetShaderParameter("ribbon_texture", teamTexture);
             }
             mesh.MaterialOverride = material;
+            fog.Apply(material);
         }
 
         var geometry = new ImmediateMesh();

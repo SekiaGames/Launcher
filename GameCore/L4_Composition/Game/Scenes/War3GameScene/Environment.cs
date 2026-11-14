@@ -11,6 +11,7 @@ public sealed partial class War3GameScene
     /// 完整客户端还有「建造/死亡/离开/同盟变化」触发器与 2 秒延迟检查，这里先对齐判定口径。
     /// </summary>
     private SceneLighting _sceneLighting;
+    private War3FogConfig _fogConfig = War3FogConfig.None;
     private float _sceneLightingHour = -1f;
     private float _terrainLightTimer = 0.1f;
 
@@ -106,7 +107,6 @@ public sealed partial class War3GameScene
         _fogTimer = 0f;
 
         _fog.Refresh(_allUnits, ViewPlayer, AreAllied, SightOf, _world?.Reveals);
-        _terrainBuilder?.BindWaterFogOfWar(_fog.VisibilityTexture, _fog.SampleUv, _fog.Enabled);
         RefreshBuildingScouting();
         if (!_fog.Enabled) return;
 

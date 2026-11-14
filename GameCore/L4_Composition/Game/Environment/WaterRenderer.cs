@@ -32,9 +32,8 @@ public sealed partial class MapWorldBuilder
             shaderMaterial.SetShaderParameter("water_texture", war3WaterConfig.Texture);
         }
         shaderMaterial.SetShaderParameter("water_lighting", war3WaterConfig.Lighting);
-        shaderMaterial.SetShaderParameter("fog_color",
-            new Vector4(fog.Tint.R, fog.Tint.G, fog.Tint.B, 1f));
-        shaderMaterial.SetShaderParameter("fog_params", fog.Params);
+        fog.Apply(shaderMaterial);
+        FogOfWarUniforms.Register(shaderMaterial);
         _waterMaterial = shaderMaterial;
         _waterFrameCount = Mathf.Max(1, war3WaterConfig.FrameCount);
         _waterFrameRate = Mathf.Max(1, war3WaterConfig.FrameRate);
@@ -114,15 +113,6 @@ public sealed partial class MapWorldBuilder
                 + $"，alphaMode {war3WaterConfig.AlphaMode}"
                 + $"，距离雾 {fog.Describe()}");
         }
-    }
-
-    public void BindWaterFogOfWar(Texture2D visibility, Vector4 uvp, bool enabled)
-    {
-        if (_waterMaterial == null) return;
-        _waterMaterial.SetShaderParameter("fog_of_war_enable", enabled && visibility != null ? 1f : 0f);
-        if (!enabled || visibility == null) return;
-        _waterMaterial.SetShaderParameter("fog_of_war_texture", visibility);
-        _waterMaterial.SetShaderParameter("fog_of_war_uvp", uvp);
     }
 
     private static void CountLevel(Dictionary<int, int> levels, TerrainData.Corner corner)

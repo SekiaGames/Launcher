@@ -16,7 +16,7 @@ public sealed partial class MapWorldBuilder
 
     public IReadOnlyList<Node3D> DoodadLightNodes => _doodadLightNodes;
 
-    private void BuildDoodads(TerrainData terrain, War3MapDoodads doodads)
+    private void BuildDoodads(TerrainData terrain, War3MapDoodads doodads, War3FogConfig fog)
     {
         Node3D node3D = new Node3D
         {
@@ -52,6 +52,7 @@ public sealed partial class MapWorldBuilder
             ModelLibrary.ApplyMissingMaterials(node3D2, doodadModel.ScenePath);
             DoodadMeshLibrary.ApplyReplaceableTexture(node3D2, doodadModel);
             ApplyUnitTextureFilter(node3D2);
+            fog.ApplyTo(node3D2);
             AnimationPlayer animator = TreeState.ResolveAnimator(node3D2);
             node3D.AddChild(node3D2, forceReadableName: false, Node.InternalMode.Disabled);
             _doodadLightNodes.AddRange(UnitSceneComponent.CollectLightNodes(node3D2));

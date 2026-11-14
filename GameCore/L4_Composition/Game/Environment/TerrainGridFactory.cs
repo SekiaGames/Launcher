@@ -22,7 +22,7 @@ public sealed partial class MapWorldBuilder
 
     public ScoutedBlight Blight { get; private set; }
 
-    private void BuildTerrain(TerrainData terrain, bool[,] covered)
+    private void BuildTerrain(TerrainData terrain, bool[,] covered, War3FogConfig fog)
     {
         TerrainTextureLoader.SetBlightTileset(terrain.Tileset);
         List<string> list = new List<string>();
@@ -71,6 +71,7 @@ public sealed partial class MapWorldBuilder
         {
             Shader = GD.Load<Shader>("res://assets/shaders/terrain_map.gdshader")
         };
+        fog.Apply(shaderMaterial);
         if (terrainTextureSet?.Texture != null)
         {
             shaderMaterial.SetShaderParameter("ground_texture", terrainTextureSet.Texture);

@@ -10,6 +10,8 @@ public sealed class UnitSceneComponent
     public Unit Owner;
     public bool FogSeen;
     public bool FogFrozen { get; private set; }
+
+    private War3FogConfig _fog = War3FogConfig.None;
     public bool FogMemorial { get; set; }
 
     public AnimationPlayer Player { get; private set; }
@@ -40,7 +42,7 @@ public sealed class UnitSceneComponent
         if (!_ribbonsResolved)
         {
             _ribbonsResolved = true;
-            Ribbons = MdxRibbonRenderer.Create(Root, Owner?.TeamColorIndex ?? 0);
+            Ribbons = MdxRibbonRenderer.Create(Root, Owner?.TeamColorIndex ?? 0, _fog);
             if (HasTint) ApplyModelTint(_appliedTint);
         }
         return Ribbons;
@@ -57,9 +59,9 @@ public sealed class UnitSceneComponent
     private float _progressRadius;
     private float _progressDrawn = -1f;
 
-    public static UnitSceneComponent Create(PackedScene scene, int teamColorIndex, float scale, bool isBuilding, float footprintRadius, string scenePath, SceneLight light)
+    public static UnitSceneComponent Create(PackedScene scene, int teamColorIndex, float scale, bool isBuilding, float footprintRadius, string scenePath, SceneLight light, War3FogConfig fog)
     {
-        var view = new UnitSceneComponent();
+        var view = new UnitSceneComponent { _fog = fog };
         var root = scene.Instantiate<Node3D>();
         root.Scale = Vector3.One * scale;
         view.Root = root;
@@ -73,6 +75,7 @@ public sealed class UnitSceneComponent
         view.ApplyTeamColor(teamColorIndex);
         MapWorldBuilder.ApplyUnitTextureFilter(root);
         ModelLightRig.Apply(root, light);
+        fog.ApplyTo(root);
         view.LightNodes = CollectLightNodes(root);
 
         view.Height = MeasureHeight(root, isBuilding);

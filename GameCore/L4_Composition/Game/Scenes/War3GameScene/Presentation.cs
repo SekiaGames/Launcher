@@ -52,6 +52,7 @@ public sealed partial class War3GameScene
         node = scene.Instantiate<Node3D>();
         MapWorldBuilder.ApplyUnitTextureFilter(node);
         LowerMissileAlphaCutoff(node);
+        _fogConfig.ApplyTo(node);
         Vector3 from = LaunchPoint(attacker);
         float impactHeight = ImpactHeight(target);
         Vector3 to = target.Position + new Vector3(0f, impactHeight, 0f);
@@ -70,7 +71,7 @@ public sealed partial class War3GameScene
             Target = target,
             TargetHeight = impactHeight,
             Player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
-            Ribbon = MdxRibbonRenderer.Create(node, attacker.TeamColorIndex),
+            Ribbon = MdxRibbonRenderer.Create(node, attacker.TeamColorIndex, _fogConfig),
         };
         projectile.Animation.Start(projectile.Player);
         _projectiles.Add(projectile);
@@ -124,6 +125,7 @@ public sealed partial class War3GameScene
         node = scene.Instantiate<Node3D>();
         MapWorldBuilder.ApplyUnitTextureFilter(node);
         LowerMissileAlphaCutoff(node);
+        _fogConfig.ApplyTo(node);
 
         Vector3 from = LaunchPoint(caster);
         float impactHeight = ImpactHeight(target);
@@ -143,7 +145,7 @@ public sealed partial class War3GameScene
             Target = target,
             TargetHeight = impactHeight,
             Player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
-            Ribbon = MdxRibbonRenderer.Create(node, caster.TeamColorIndex),
+            Ribbon = MdxRibbonRenderer.Create(node, caster.TeamColorIndex, _fogConfig),
         };
         projectile.Animation.Start(projectile.Player);
         _projectiles.Add(projectile);
@@ -1088,7 +1090,7 @@ public sealed partial class War3GameScene
         if (!node.RibbonsResolved)
         {
             node.RibbonsResolved = true;
-            node.Ribbons = MdxRibbonRenderer.Create(node.Root, node.TeamColor);
+            node.Ribbons = MdxRibbonRenderer.Create(node.Root, node.TeamColor, _fogConfig);
         }
         node.Ribbons?.Tick(delta, node.Root.IsVisibleInTree());
     }
@@ -1148,6 +1150,7 @@ public sealed partial class War3GameScene
 
         ApplyVisualEffectTeamColor(node, request.TeamColor);
         ApplyVisualEffectColor(root, request.Color);
+        _fogConfig.ApplyTo(root);
         if (_visualEffectLoadLogBudget > 0)
         {
             _visualEffectLoadLogBudget--;

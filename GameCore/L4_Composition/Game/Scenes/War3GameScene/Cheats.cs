@@ -543,6 +543,47 @@ public sealed partial class War3GameScene
         ProbeUiEntry(hero);
         ProbeHeroGuardEntry(hero);
         ProbeCommandCardPages(hero);
+        ProbeFogMaterials(hero);
+    }
+
+    private void ProbeFogMaterials(Unit hero)
+    {
+        War3FogConfig config = War3FogConfig.Current;
+        GD.Print($"[FOG] 材质检查 style={config.Style} 期望 params={config.Params}");
+        LogFogMaterial("地形", _terrainBuilder?.TerrainMaterial, config);
+        LogFogMaterial("悬崖", _terrainBuilder?.CliffMaterial, config);
+        LogFogMaterial("单位", FirstShaderMaterial(hero?.View?.Root), config);
+        if (_worldRoot?.FindChild("MapWater_*", true, false) is MeshInstance3D water)
+            LogFogMaterial("水面", water.MaterialOverride as ShaderMaterial, config);
+    }
+
+    private static ShaderMaterial FirstShaderMaterial(Node root)
+    {
+        if (root == null) return null;
+        foreach (Node child in root.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (child is not MeshInstance3D mesh) continue;
+            if (mesh.MaterialOverride is ShaderMaterial overrideMaterial) return overrideMaterial;
+            for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
+            {
+                if (mesh.GetSurfaceOverrideMaterial(surface) is ShaderMaterial material) return material;
+            }
+        }
+        return null;
+    }
+
+    private static void LogFogMaterial(string label, ShaderMaterial material, War3FogConfig config)
+    {
+        if (material?.Shader == null)
+        {
+            GD.Print($"[FOG] {label} 无 ShaderMaterial");
+            return;
+        }
+        Vector4 fogParams = material.GetShaderParameter("fog_params").AsVector4();
+        Vector4 fogColor = material.GetShaderParameter("fog_color").AsVector4();
+        float fogOfWar = material.GetShaderParameter("fog_of_war_enable").AsSingle();
+        GD.Print($"[FOG] {label} params={fogParams} color={fogColor} fog_of_war={fogOfWar}"
+            + $" 期望={config.Params} 匹配={(fogParams == config.Params ? "是" : "否")}");
     }
 
     /// <summary>

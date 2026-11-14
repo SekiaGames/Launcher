@@ -30,15 +30,15 @@ public sealed partial class MapWorldBuilder
         {
             Name = "MapRoot"
         };
-        bool[,] covered = BuildCliffs(terrain);
-        BuildTerrain(terrain, covered);
+        bool[,] covered = BuildCliffs(terrain, fog);
+        BuildTerrain(terrain, covered, fog);
         BuildWater(terrain, waterBaseColor, fog);
         MapVoidRenderer.TryCreate(Root, terrain,
             (x, z) => Mathf.Max(HeightAt(terrain, 0f - x, z), WaterHeightAt(terrain, 0f - x, z)));
         new ShorelineWaveRenderer(Root, terrain, War3WaterConfig.Load(terrain.Tileset));
         if (doodads != null)
         {
-            BuildDoodads(terrain, doodads);
+            BuildDoodads(terrain, doodads, fog);
         }
         return Root;
     }

@@ -6,9 +6,50 @@ public readonly record struct War3FogConfig(int Style, Color Tint, float Start, 
 {
     public static readonly War3FogConfig None = new(0, new Color(0f, 0f, 0f, 1f), 0f, 0f, 0f);
 
+    public static War3FogConfig Current { get; private set; } = None;
+
+    public static void SetCurrent(War3FogConfig config) => Current = config;
+
     public bool Enabled => Style > 0;
 
     public Vector4 Params => new(Style, Start, End, Density);
+
+    public void Apply(ShaderMaterial material)
+    {
+        if (material?.Shader == null) return;
+        material.SetShaderParameter("fog_color", new Vector4(Tint.R, Tint.G, Tint.B, 1f));
+        material.SetShaderParameter("fog_params", Params);
+    }
+
+    public void ApplyTo(Node root)
+    {
+        if (root == null) return;
+        if (root is MeshInstance3D rootMesh) ApplyMesh(rootMesh);
+        foreach (Node child in root.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (child is MeshInstance3D mesh) ApplyMesh(mesh);
+        }
+        foreach (Node child in root.FindChildren("*", "GPUParticles3D", true, false))
+        {
+            if (child is GpuParticles3D { MaterialOverride: ShaderMaterial particleMaterial })
+            {
+                Apply(particleMaterial);
+            }
+        }
+    }
+
+    private void ApplyMesh(MeshInstance3D mesh)
+    {
+        if (mesh.MaterialOverride is ShaderMaterial overrideMaterial)
+        {
+            Apply(overrideMaterial);
+            return;
+        }
+        for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
+        {
+            if (mesh.GetSurfaceOverrideMaterial(surface) is ShaderMaterial material) Apply(material);
+        }
+    }
 
     public static War3FogConfig FromW3i(MapInfo info)
     {

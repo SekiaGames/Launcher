@@ -100,6 +100,7 @@ public sealed class ShorelineWaveRenderer
                 node.Rotation = new Vector3(0f, MathF.PI + rotation, 0f);
                 node.Name = $"{file}{variation}_{column}_{row}";
                 ModelLibrary.ApplyMissingMaterials(node, ModelLibrary.Find(relative));
+                War3FogConfig.Current.ApplyTo(node);
                 _root.AddChild(node, forceReadableName: false, Node.InternalMode.Disabled);
                 InstanceCount++;
                 if (IsRareStand(seed) && TryPlayRareWave(node, relative, seed, rareAnimations))

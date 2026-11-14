@@ -63,6 +63,7 @@ public sealed class RallyPointDisplay
                 if (tree != null) tree.Active = false;
                 UnitSceneComponent.ApplyTeamColorTo(root, color);
                 MapWorldBuilder.ApplyUnitTextureFilter(root);
+                War3FogConfig.Current.ApplyTo(root);
             }
         }
 
