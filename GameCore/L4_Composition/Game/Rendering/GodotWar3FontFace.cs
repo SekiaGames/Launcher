@@ -41,14 +41,23 @@ internal sealed class GodotWar3FontFace
         }
     }
 
+    private static readonly Dictionary<string, GodotWar3FontFace> Loaded = new(StringComparer.Ordinal);
+
     public static GodotWar3FontFace Load(War3UiSkin skin, string skinKey = "MasterFont")
     {
         string configured = skin?.Get(skinKey, skin?.Get("MasterFont", @"Fonts\FRIZQT__.TTF") ?? "")
             ?? "";
+        string cacheKey = skinKey + "|" + configured;
+        if (Loaded.TryGetValue(cacheKey, out GodotWar3FontFace cached))
+        {
+            return cached;
+        }
+
         var candidates = new List<string>();
         if (!string.IsNullOrWhiteSpace(configured)) candidates.Add(configured);
         candidates.AddRange(FallbackPaths);
 
+        GodotWar3FontFace result = null;
         foreach (string path in candidates)
         {
             FontFile file = LoadFromPack(path);
@@ -58,11 +67,17 @@ internal sealed class GodotWar3FontFace
                 continue;
             }
             RuntimeDiagnostics.WriteLine($"[ui-font] {skinKey} -> {path}");
-            return new GodotWar3FontFace(file, LoadCjkFont(), path);
+            result = new GodotWar3FontFace(file, LoadCjkFont(), path);
+            break;
         }
 
-        RuntimeDiagnostics.WriteLine($"[ui-font] {skinKey} 缺失，回退默认字体");
-        return new GodotWar3FontFace(ThemeDB.FallbackFont, LoadCjkFont(), "");
+        if (result == null)
+        {
+            RuntimeDiagnostics.WriteLine($"[ui-font] {skinKey} 缺失，回退默认字体");
+            result = new GodotWar3FontFace(ThemeDB.FallbackFont, LoadCjkFont(), "");
+        }
+        Loaded[cacheKey] = result;
+        return result;
     }
 
     private static FontFile LoadFromPack(string path)

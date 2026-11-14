@@ -47,7 +47,21 @@ public sealed class War3UiSkin
         return value ?? fallback;
     }
 
+    private static readonly Dictionary<string, War3UiSkin> Loaded = new(StringComparer.OrdinalIgnoreCase);
+
     public static War3UiSkin Load(string race = "Human", string mapSkinText = null)
+    {
+        string cacheKey = (race ?? "") + "|" + (mapSkinText ?? "");
+        if (Loaded.TryGetValue(cacheKey, out War3UiSkin cached))
+        {
+            return cached;
+        }
+        War3UiSkin built = Build(race, mapSkinText);
+        Loaded[cacheKey] = built;
+        return built;
+    }
+
+    private static War3UiSkin Build(string race, string mapSkinText)
     {
         var result = new War3UiSkin();
         Dictionary<string, Dictionary<string, string>> sections = ReadGeneratedSections();

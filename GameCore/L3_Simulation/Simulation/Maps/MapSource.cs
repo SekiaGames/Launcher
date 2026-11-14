@@ -17,20 +17,12 @@ public sealed class MapSource
 
     public string Name => Package?.Name ?? "unknown";
 
-    public static MapSource Open(string gmapPath)
+    public static MapSource Mount(string gmapPath)
     {
         GmapPackage package = GmapPackage.Mount(gmapPath);
         if (package == null) return null;
 
         var source = new MapSource { Package = package };
-
-        byte[] w3e = package.ReadMapFile("war3map.w3e");
-        if (w3e == null)
-        {
-            GD.PushError("[MAP] gmap 里没有 war3map.w3e");
-            return null;
-        }
-        source.Terrain = TerrainData.Parse(w3e);
 
         byte[] w3i = package.ReadMapFile("war3map.w3i");
         if (w3i != null)
@@ -38,34 +30,53 @@ public sealed class MapSource
             source.Info = MapInfo.Parse(w3i);
             source.Players.AddRange(source.Info.Players);
         }
+        return source;
+    }
 
-        byte[] units = package.ReadMapFile("war3mapUnits.doo");
+    public bool LoadTerrainAndObjects()
+    {
+        byte[] w3e = Package.ReadMapFile("war3map.w3e");
+        if (w3e == null)
+        {
+            GD.PushError("[MAP] gmap 里没有 war3map.w3e");
+            return false;
+        }
+        Terrain = TerrainData.Parse(w3e);
+
+        byte[] units = Package.ReadMapFile("war3mapUnits.doo");
         if (units != null)
         {
-            int version = source.Info?.GameVersionNumber ?? 0;
-            source.Units = War3MapUnits.Parse(units, IsItem, version);
+            int version = Info?.GameVersionNumber ?? 0;
+            Units = War3MapUnits.Parse(units, IsItem, version);
         }
 
-        byte[] doodads = package.ReadMapFile("war3map.doo");
+        byte[] doodads = Package.ReadMapFile("war3map.doo");
         if (doodads != null)
         {
-            source.Doodads = War3MapDoodads.Parse(doodads);
+            Doodads = War3MapDoodads.Parse(doodads);
         }
 
-        byte[] pathing = package.ReadMapFile("war3map.wpm");
+        byte[] pathing = Package.ReadMapFile("war3map.wpm");
         if (pathing != null)
         {
-            source.Pathing = PathingData.Parse(pathing);
-            if (source.Pathing == null)
+            Pathing = PathingData.Parse(pathing);
+            if (Pathing == null)
             {
                 GD.PushWarning("[MAP] wpm 解析失败");
             }
         }
 
-        GD.Print($"[MAP] {source.Name} 地形 {source.Terrain.Width}x{source.Terrain.Height} 单位 {source.Units?.Entries.Count ?? 0} "
-            + $"装饰物 {source.Doodads?.Entries.Count ?? 0} 玩家 {source.Players.Count} "
-            + $"寻路 {source.Pathing?.Width ?? 0}x{source.Pathing?.Height ?? 0}");
-        return source;
+        GD.Print($"[MAP] {Name} 地形 {Terrain.Width}x{Terrain.Height} 单位 {Units?.Entries.Count ?? 0} "
+            + $"装饰物 {Doodads?.Entries.Count ?? 0} 玩家 {Players.Count} "
+            + $"寻路 {Pathing?.Width ?? 0}x{Pathing?.Height ?? 0}");
+        return true;
+    }
+
+    public static MapSource Open(string gmapPath)
+    {
+        MapSource source = Mount(gmapPath);
+        if (source == null) return null;
+        return source.LoadTerrainAndObjects() ? source : null;
     }
 
     private static bool IsItem(string id)

@@ -101,12 +101,10 @@ public sealed partial class War3GameScene : Node3D
         return race switch { 2 => "Orc", 3 => "Undead", 4 => "NightElf", _ => "Human" };
     }
 
-    public void Setup(MapSource map, Action back)
+    public void Setup(string gmapPath, Action back)
     {
-        _map = map;
         _back = back;
-        _loadingScreen = new War3LoadingScreenRenderer(this, map, SelectedRace, seconds: LoadHoldSeconds);
-        _ = RunSetupAsync(map);
+        _ = RunSetupAsync(gmapPath);
     }
 
     // 加载完成（加载屏淡出前）触发, 之后的镜头预设与调试入口都挂在这里
@@ -114,27 +112,48 @@ public sealed partial class War3GameScene : Node3D
 
     private const float LoadHoldSeconds = 1.2f;
 
-    private async Task RunSetupAsync(MapSource map)
+    private async Task RunSetupAsync(string gmapPath)
     {
+        _map = MapSource.Mount(gmapPath);
+        if (_map == null)
+        {
+            _back?.Invoke();
+            return;
+        }
+
+        _loadingScreen = new War3LoadingScreenRenderer(this, _map, SelectedRace, seconds: LoadHoldSeconds);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        bool loaded = false;
         try
         {
-            await SetupSteps(map);
+            loaded = await SetupSteps(_map);
         }
         catch (Exception error)
         {
             GD.PushError($"[INIT] 场景初始化失败: {error}");
         }
+
+        if (!loaded)
+        {
+            _loadingScreen?.Finish();
+            _back?.Invoke();
+            return;
+        }
+
         _loadingScreen?.Finish();
         _cursor = War3CursorController.TryCreate(this, HudRaceName());
         Loaded?.Invoke();
     }
 
     // 逐帧推进: 每个阶段单独占一帧, 加载屏才有机会把进度画出来
-    private async Task SetupSteps(MapSource map)
+    private async Task<bool> SetupSteps(MapSource map)
     {
-
-
         await Loading(.10f, "解析地形与地图配置");
+        if (!map.LoadTerrainAndObjects())
+        {
+            return false;
+        }
 
         if (SelectedRace > 0)
         {
@@ -306,6 +325,7 @@ public sealed partial class War3GameScene : Node3D
         }
 
         await Loading(1f, "进入游戏");
+        return true;
     }
 
     // 阶段之间让出一帧, 该帧的 _Process/_PhysicsProcess 被 LoadingBlocked 挡住

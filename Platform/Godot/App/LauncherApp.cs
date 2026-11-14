@@ -464,16 +464,7 @@ public sealed partial class LauncherApp : Node
             full = Assets.GmapDir + "/" + full;
         }
 
-        MapSource map = MapSource.Open(full);
-        if (map == null)
-        {
-            GD.PushError($"[GAME] 打不开 {full}");
-            ShowMapList();
-            return;
-        }
-
         Clear();
-
         var game = new War3GameScene { Name = "Game" };
         game.TimeScaleHint = _fast ? Mathf.Min(0.15f, _timeScale) : _timeScale;
         game.StartGold = _startGold;
@@ -494,7 +485,7 @@ public sealed partial class LauncherApp : Node
         AddChild(game);
         _current = game;
         game.Loaded += AfterLoad;
-        game.Setup(map, ShowMapList);
+        game.Setup(full, ShowMapList);
 
         void AfterLoad()
         {
