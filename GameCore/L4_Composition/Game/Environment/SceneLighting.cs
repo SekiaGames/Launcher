@@ -273,6 +273,11 @@ public static class SceneLightRig
         foreach (Node child in root.FindChildren("*", "MeshInstance3D", true, false))
         {
             var mesh = (MeshInstance3D)child;
+            if (mesh.MaterialOverride is ShaderMaterial overrideMaterial)
+            {
+                Write(overrideMaterial, IsModelMaterial(overrideMaterial) ? units : terrain);
+                continue;
+            }
             for (int surface = 0; surface < mesh.GetSurfaceOverrideMaterialCount(); surface++)
             {
                 if (mesh.GetSurfaceOverrideMaterial(surface) is not ShaderMaterial material)
