@@ -45,6 +45,10 @@ public sealed class War3AudioSystem
     private readonly Dictionary<AudioStream, AudioStream> _loopStreams = new();
     private uint _nextPlaybackId;
     private int _logBudget = 24;
+    private float _volume = 1f;
+
+    public void SetVolume(float value)
+        => _volume = Mathf.Clamp(float.IsFinite(value) ? value : 1f, 0f, 1f);
 
     public War3AudioSystem(Node parent)
     {
@@ -62,7 +66,7 @@ public sealed class War3AudioSystem
     public float Play2D(AudioStream stream, string key, float volume, float pitch,
         SoundChannel channel = SoundChannel.Ui, int priority = 10)
     {
-        if (Start(stream, key, Vector3.Zero, looping: false, positional: false,
+if (Start(stream, key, Vector3.Zero, looping: false, positional: false,
                 volume, pitch, 1f, 100f, channel, priority) == 0) return 0f;
         return Duration(stream) / Mathf.Max(0.01f, pitch);
     }
@@ -71,7 +75,7 @@ public sealed class War3AudioSystem
         float minDistance, float maxDistance,
         SoundChannel channel = SoundChannel.Unit, int priority = 50)
     {
-        if (Start(stream, key, position, looping: false, positional: true,
+if (Start(stream, key, position, looping: false, positional: true,
                 volume, pitch, minDistance, maxDistance, channel, priority) == 0) return 0f;
         return Duration(stream) / Mathf.Max(0.01f, pitch);
     }
@@ -104,14 +108,14 @@ public sealed class War3AudioSystem
             voice.Three.GlobalPosition = position;
             voice.Three.UnitSize = Mathf.Max(1f, minDistance);
             voice.Three.MaxDistance = Mathf.Max(minDistance + 1f, maxDistance);
-            voice.Three.VolumeDb = War3Volume.ToDecibels(volume);
+            voice.Three.VolumeDb = War3Volume.ToDecibels(volume * _volume);
             voice.Three.PitchScale = Mathf.Max(0.01f, pitch);
             voice.Three.Play();
         }
         else
         {
             voice.Flat.Stream = playable;
-            voice.Flat.VolumeDb = War3Volume.ToDecibels(volume);
+            voice.Flat.VolumeDb = War3Volume.ToDecibels(volume * _volume);
             voice.Flat.PitchScale = Mathf.Max(0.01f, pitch);
             voice.Flat.Play();
         }

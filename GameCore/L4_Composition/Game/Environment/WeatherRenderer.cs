@@ -22,6 +22,15 @@ public sealed class WeatherRenderer
     MultiMesh _multimesh;
     MultiMeshInstance3D _instanceNode;
     AudioStreamPlayer _ambient;
+    float _userVolume = 1f;
+    float _ambientGain = 1f;
+
+    public void SetVolume(float value)
+    {
+        _userVolume = Mathf.Clamp(float.IsFinite(value) ? value : 1f, 0f, 1f);
+        if (_ambient != null)
+            _ambient.VolumeDb = Mathf.LinearToDb(Mathf.Max(0.0001f, _ambientGain * _userVolume));
+    }
     int _baseCol = int.MinValue;
     int _baseRow = int.MinValue;
     int _activeInstances;
@@ -297,8 +306,9 @@ public sealed class WeatherRenderer
         {
             Name = "WeatherAmbience",
             Stream = stream,
-            VolumeDb = Mathf.LinearToDb(Mathf.Max(0.02f, volume)),
+            VolumeDb = Mathf.LinearToDb(Mathf.Max(0.0001f, volume * _userVolume)),
         };
+        _ambientGain = volume;
         _root.AddChild(_ambient);
         _ambient.Finished += () =>
         {

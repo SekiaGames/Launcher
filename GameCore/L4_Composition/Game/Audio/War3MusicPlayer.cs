@@ -20,7 +20,7 @@ public sealed class War3MusicPlayer
     private readonly Random _random = new(4242);
     private int _index;
     private bool _active;
-    private bool _gapPending;
+private bool _gapPending;
     private float _gapRemaining;
     private float _userVolume = War3Volume.DefaultMusicVolume;
     private float _gain = 1f;

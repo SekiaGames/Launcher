@@ -9,6 +9,7 @@ public sealed class EscMenuFrame
     private readonly Button _pauseButton;
 
     public Action PauseToggled;
+    public Action OptionsRequested;
 
     public EscMenuFrame(Node parent, Action backToMapList)
     {
@@ -27,15 +28,15 @@ public sealed class EscMenuFrame
         var panel = new ColorRect
         {
             Color = new Color(0.08f, 0.09f, 0.11f, 0.96f),
-            Position = new Vector2(600f, 280f),
-            Size = new Vector2(400f, 260f),
+            Position = new Vector2(600f, 270f),
+            Size = new Vector2(400f, 360f),
         };
         _layer.AddChild(panel);
 
         var title = new Label
         {
             Text = "游戏菜单",
-            Position = new Vector2(600f, 300f),
+            Position = new Vector2(600f, 290f),
             Size = new Vector2(400f, 40f),
             HorizontalAlignment = HorizontalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
@@ -44,12 +45,17 @@ public sealed class EscMenuFrame
         title.AddThemeColorOverride("font_color", new Color(0.95f, 0.86f, 0.6f));
         _layer.AddChild(title);
 
-        AddButton(360f, "继续游戏（Esc）", () => Close());
-        _pauseButton = AddButton(430f, "暂停游戏", () =>
+        AddButton(350f, "继续游戏（Esc）", () => Close());
+        AddButton(420f, "选项", () =>
+        {
+            Close();
+            OptionsRequested?.Invoke();
+        });
+        _pauseButton = AddButton(490f, "暂停游戏", () =>
         {
             PauseToggled?.Invoke();
         });
-        AddButton(500f, "返回地图列表", () =>
+        AddButton(560f, "返回地图列表", () =>
         {
             Close();
             backToMapList?.Invoke();

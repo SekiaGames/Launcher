@@ -38,12 +38,39 @@ public sealed partial class War3GameScene
             }
             if (keyEvent.Echo) return;
 
+            if (keyEvent.Keycode == Key.F10)
+            {
+                _scene._escMenu?.Toggle();
+                return;
+            }
+
             if (keyEvent.Keycode == Key.Escape)
             {
                 if (_scene._log != null && _scene._log.InputActive) _scene._log.CancelInput();
-                else if (_scene.CastPending) _scene.CancelCast();
+                else if (_scene._newHud is { AboutDialogVisible: true }) _scene._newHud.HideAboutDialog();
                 else if (_scene._escMenu != null && _scene._escMenu.Visible) _scene._escMenu.Close();
-                else _scene._escMenu?.Open();
+                else if (_scene._placingId != null || _scene.CastPending) _scene.CancelPendingMode();
+                else if (_scene._newHud is { LearnMenuOpen: true }) _scene.CloseLearnMenu();
+                return;
+            }
+
+            if (_scene._log != null && _scene._log.InputActive) return;
+
+            if (keyEvent.Keycode == Key.Backspace)
+            {
+                _scene.CycleTownCenters();
+                return;
+            }
+
+            if (keyEvent.Keycode is Key.Pageup or Key.Pagedown)
+            {
+                _scene._cameraComponent?.Scroll(keyEvent.Keycode == Key.Pageup ? 1f : -1f);
+                return;
+            }
+
+            if (keyEvent.Keycode == Key.C && (keyEvent.CtrlPressed || keyEvent.AltPressed))
+            {
+                _scene.CenterCameraOnSelection();
                 return;
             }
 

@@ -14,6 +14,7 @@ public sealed class TopBarFrame : UiContainer
     static readonly float[] IconOffsets = { 0, 110, 221, 330 };
     static readonly float[] ResourceWidths = { 108f, 108f, 100f, 80f };
     static readonly string[] MenuLabels = { "任务", "菜单", "盟友", "聊天" };
+    static readonly bool[] MenuInScope = { false, true, false, false };
 
     readonly StringFrame[] _menuLabels = new StringFrame[4];
     readonly ButtonFrame[] _menuButtons = new ButtonFrame[4];
@@ -36,8 +37,8 @@ public sealed class TopBarFrame : UiContainer
 
     public void SetChromeVisible(bool visible)
     {
-        foreach(ButtonFrame button in _menuButtons)button.Visible=visible;
-        foreach(StringFrame label in _menuLabels)label.Visible=visible;
+        for (int i = 0; i < _menuButtons.Length; i++) _menuButtons[i].Visible = visible && MenuInScope[i];
+        for (int i = 0; i < _menuLabels.Length; i++) _menuLabels[i].Visible = visible && MenuInScope[i];
         // ResourceBar.fdf already supplies the three icons and resource values.
         // Hide the fallback together when that frame is active.
         foreach(TextureFrame icon in _resourceIcons)icon.Visible=visible&&icon!=_resourceIcons[3];
@@ -63,7 +64,6 @@ public sealed class TopBarFrame : UiContainer
 
         for (int i = 0; i < MenuLabels.Length; i++)
         {
-            // Quest/Menu 可点击；Allies/Chat 尚未接入对应面板。
             var btn = new ButtonFrame($"MenuBtn{i}")
             {
                 Width = ButtonWidth, Height = ButtonHeight,
@@ -71,7 +71,6 @@ public sealed class TopBarFrame : UiContainer
                 PushedTexture = buttonTexture, PushedUV = pushedUV,
                 HighlightTexture = buttonTexture, HighlightUV = highlightUV,
                 DisabledTexture = buttonTexture, DisabledUV = disabledUV,
-                // 任务/菜单/盟友已接入面板；聊天窗口仍未实现。
                 Disabled = i > 2,
                 TooltipTitle = MenuLabels[i],
                 TooltipBody = i switch

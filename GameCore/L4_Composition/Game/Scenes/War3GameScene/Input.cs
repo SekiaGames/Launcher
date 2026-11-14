@@ -81,6 +81,44 @@ public sealed partial class War3GameScene
     /// <summary>Tab: 在当前选择内部轮换主位到下一个子组（原版 "Switch between subgroups"）。</summary>
     public void CycleSubgroup() => _selection?.CycleSubgroup();
 
+    private void CloseLearnMenu()
+    {
+        _newHud?.CloseLearnMenu();
+        UpdateCommandCard();
+    }
+
+    private void CycleTownCenters()
+    {
+        if (_world == null) return;
+        var halls = new List<Unit>();
+        foreach (Unit unit in _allUnits)
+        {
+            if (!unit.Alive || unit.Player != ViewPlayer || !unit.IsBuilding) continue;
+            if (unit.Type.FoodMade <= 0 || unit.Type.Trains.Length == 0) continue;
+            if (!CanControl(unit)) continue;
+            halls.Add(unit);
+        }
+        if (halls.Count == 0) return;
+
+        Unit current = PrimarySelection;
+        int start = 0;
+        for (int index = 0; index < halls.Count; index++)
+        {
+            if (!ReferenceEquals(halls[index], current)) continue;
+            start = (index + 1) % halls.Count;
+            break;
+        }
+        Unit next = halls[start];
+        _selection?.SelectSingle(next);
+        _camera?.Focus(next.Position);
+    }
+
+    private void CenterCameraOnSelection()
+    {
+        Unit primary = PrimarySelection;
+        if (primary != null) _camera?.Focus(primary.Position);
+    }
+
     /// <summary>玩家自己的操作改了选择/目标：作废待定的指令与施法（客户端 CancelPending）。</summary>
     public void CancelPending()
     {

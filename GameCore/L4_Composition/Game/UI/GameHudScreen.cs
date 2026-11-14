@@ -35,6 +35,7 @@ public sealed partial class GameHudScreen : Control
     private QueueIconRowFrame _queue;
     private TooltipFrame _tooltip;
     private TextTagFrame _textTag;
+    private AboutDialogFrame _aboutDialog;
     private IReadOnlyList<TextTagFrame.TagView> _worldText;
     private readonly CommandEntry[] _inventoryEntries = new CommandEntry[6];
     private GodotUiTexture _portraitTexture;
@@ -46,6 +47,15 @@ public sealed partial class GameHudScreen : Control
     public Action<Unit> IdlePeonClicked;
     public Action<Unit> PortraitFollowStarted;
     public Action PortraitFollowStopped;
+    public Action MenuClicked;
+    public Action<float> CameraDistanceChanged;
+    public Action<float> PanSensitivityChanged;
+    public Action<float> MusicVolumeChanged;
+    public Action<float> SoundVolumeChanged;
+    public Action<int> FrameRateLimitChanged;
+    public Action<float> RenderScaleChanged;
+    public Action AboutDialogClosed;
+    public Action AboutDialogExitRequested;
     private int _gold, _lumber, _food, _foodCap;
     private double _timeOfDay;
     private CommandCardView _commands = CommandCardView.Empty;
@@ -60,7 +70,7 @@ public sealed partial class GameHudScreen : Control
     internal MinimapFrame Minimap => _minimap;
     internal HeroBarFrame HeroBar => _heroBar;
 
-    public void Load(string race = "Human", bool sample = true)
+    public void Load(string race = "Human", bool sample = true, GameUserSettings settings = null)
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Pass;
@@ -121,6 +131,23 @@ public sealed partial class GameHudScreen : Control
         _portrait.OnStopFollow = () => PortraitFollowStopped?.Invoke();
         _selectionGroup.OnUnitClick = unit => SelectionClicked?.Invoke(unit);
         _idlePeon.OnIdlePeonClick = unit => IdlePeonClicked?.Invoke(unit);
+        settings ??= GameUserSettings.Load();
+        _aboutDialog = new AboutDialogFrame(resolver, skin,
+            settings.CameraDistanceScale, settings.PanSensitivity,
+            settings.MusicVolume, settings.SoundVolume,
+            settings.FrameRateLimit, settings.RenderScale,
+            value => CameraDistanceChanged?.Invoke(value),
+            value => PanSensitivityChanged?.Invoke(value),
+            value => MusicVolumeChanged?.Invoke(value),
+            value => SoundVolumeChanged?.Invoke(value),
+            value => FrameRateLimitChanged?.Invoke(value),
+            value => RenderScaleChanged?.Invoke(value));
+        _aboutDialog.Closed += () => AboutDialogClosed?.Invoke();
+        _aboutDialog.ExitToMenuRequested += () => AboutDialogExitRequested?.Invoke();
+        _topBar.MenuButton.Clicked += button =>
+        {
+            if (button == 0) MenuClicked?.Invoke();
+        };
         _root.AddChild(_console);
         _root.AddChild(_infoPanel);
         _root.AddChild(_itemDetail);
@@ -134,6 +161,7 @@ public sealed partial class GameHudScreen : Control
         _root.AddChild(_inventory);
         _root.AddChild(_queue);
         _root.AddChild(_tooltip);
+        _root.AddChild(_aboutDialog);
         _router.HoverChanged += frame =>
         {
             if (frame is ButtonFrame button) _tooltip.Show(button);
@@ -215,6 +243,14 @@ public sealed partial class GameHudScreen : Control
     }
 
     public bool LearnMenuOpen => _card.LearnMenuOpen;
+
+    public bool AboutDialogVisible => _aboutDialog?.Visible == true;
+
+    public void ShowAboutDialog() => _aboutDialog?.Show();
+
+    public void HideAboutDialog() => _aboutDialog?.Close();
+
+    public void ToggleAboutDialog() => _aboutDialog?.Toggle();
 
     public bool BuildMenuOpen => _card.BuildMenuOpen;
 
@@ -531,6 +567,7 @@ public sealed partial class GameHudScreen : Control
         _inventory.Layout(DesignWidth, DesignHeight);
         _queue.Layout(DesignWidth, DesignHeight);
         _tooltip.Layout(DesignWidth, DesignHeight);
+        _aboutDialog.Layout(DesignWidth, DesignHeight);
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
         _textTag.Update(_worldText, DesignWidth, DesignHeight);

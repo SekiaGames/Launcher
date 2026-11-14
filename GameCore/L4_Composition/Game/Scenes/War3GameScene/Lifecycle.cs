@@ -56,6 +56,17 @@ public sealed partial class War3GameScene : Node3D
     /// <summary>暂停只停模拟层与玩家镜头输入，脚本/界面照常存在。</summary>
     public bool Paused;
 
+    private GameUserSettings _userSettings;
+
+    private void ApplyFrameRateLimit(int fps) => Engine.MaxFps = GameUserSettings.NormalizeFrameRate(fps);
+
+    private void ApplyRenderScale(float scale)
+    {
+        Viewport viewport = GetViewport();
+        if (viewport == null) return;
+        viewport.Scaling3DScale = GameUserSettings.NormalizeRenderScale(scale);
+    }
+
     private void TogglePause()
     {
         Paused = !Paused;
@@ -395,6 +406,12 @@ public sealed partial class War3GameScene : Node3D
 
     private async Task LoadSelection(MapSource map)
     {
+        _userSettings ??= GameUserSettings.Load();
+        CameraDistanceScale = War3Camera.ClampScale(_userSettings.CameraDistanceScale);
+        CameraPanSensitivity = War3Camera.ClampScale(_userSettings.PanSensitivity);
+        ApplyFrameRateLimit(_userSettings.FrameRateLimit);
+        ApplyRenderScale(_userSettings.RenderScale);
+
         _camera = new War3Camera(this, CameraTargetHeightAt, map);
         _camera.SetPlayerDistanceScale(CameraDistanceScale);
         _cameraComponent = new War3CameraComponent(this);
@@ -408,9 +425,12 @@ public sealed partial class War3GameScene : Node3D
         _ackSounds = new War3AckSoundService(_audio);
         _uiSounds = new War3UiSoundService(_audio);
         _music = new War3MusicPlayer(this);
-        _loopingSounds = new War3LoopingSoundService(_audio,
+_loopingSounds = new War3LoopingSoundService(_audio,
             (x, z) => MapWorldBuilder.HeightAt(_map.Terrain, x, z));
         _unitAudibleForAudio = UnitAudibleForAudio;
+        _audio.SetVolume(_userSettings.SoundVolume);
+        _music.SetUserVolume(_userSettings.MusicVolume);
+        _weather?.SetVolume(_userSettings.SoundVolume);
 
         MiscRules.Log();
         MeleeRules.Log(IsReignOfChaos);
@@ -434,7 +454,7 @@ public sealed partial class War3GameScene : Node3D
         AddChild(hudLayer);
         _newHud = new GameHudScreen { Name = "HudScreen" };
         hudLayer.AddChild(_newHud);
-        _newHud.Load(HudRaceName(), sample: false);
+        _newHud.Load(HudRaceName(), sample: false, _userSettings);
         _hud = new MeleeHudController(_newHud, War3Strings.Resolve(_map.Name))
         {
             CommandSource = BuildCommandEntries,
@@ -447,10 +467,47 @@ public sealed partial class War3GameScene : Node3D
         _newHud.PortraitFollowStarted = BeginPortraitFollow;
         _newHud.PortraitFollowStopped = EndPortraitFollow;
         _newHud.ItemDragReleased = HandleInventoryDragReleased;
+        _newHud.MenuClicked = () => _newHud.ToggleAboutDialog();
+        _newHud.CameraDistanceChanged = value =>
+        {
+            _userSettings.SetCameraDistance(value);
+            SetCameraDistanceScale(value);
+        };
+        _newHud.PanSensitivityChanged = value =>
+        {
+            _userSettings.SetPanSensitivity(value);
+            SetCameraPanSensitivity(value);
+        };
+        _newHud.MusicVolumeChanged = value =>
+        {
+            _userSettings.SetMusicVolume(value);
+            _music?.SetUserVolume(value);
+        };
+        _newHud.SoundVolumeChanged = value =>
+        {
+            _userSettings.SetSoundVolume(value);
+            _audio?.SetVolume(value);
+            _weather?.SetVolume(value);
+        };
+        _newHud.FrameRateLimitChanged = value =>
+        {
+            _userSettings.SetFrameRateLimit(value);
+            ApplyFrameRateLimit(value);
+            _userSettings.Save();
+        };
+        _newHud.RenderScaleChanged = value =>
+        {
+            _userSettings.SetRenderScale(value);
+            ApplyRenderScale(value);
+            _userSettings.Save();
+        };
+        _newHud.AboutDialogClosed = () => _userSettings.Save();
+        _newHud.AboutDialogExitRequested = Back;
         ConfigureNewMinimap(_map);
         GD.Print($"[HUD] 界面已接管，种族 {HudRaceName()}");
         _escMenu = new EscMenuFrame(this, Back);
         _escMenu.PauseToggled = TogglePause;
+        _escMenu.OptionsRequested = () => _newHud.ShowAboutDialog();
         _gameOverPanel = new GameOverPanel(this, Back);
         _log = new ChatFrame(this);
         _log.Add("Enter 输入消息");
@@ -749,6 +806,7 @@ public sealed partial class War3GameScene : Node3D
 
     private void Back()
     {
+        _userSettings?.Save();
         _music?.Stop();
         Input.MouseMode = Input.MouseModeEnum.Visible;
         QueueFree();

@@ -76,4 +76,12 @@ public sealed class WeatherSystem
             renderer.SetEnabled(enabled);
         }
     }
+
+    public void SetVolume(float value)
+    {
+        foreach (WeatherRenderer renderer in _renderers)
+        {
+            renderer.SetVolume(value);
+        }
+    }
 }
