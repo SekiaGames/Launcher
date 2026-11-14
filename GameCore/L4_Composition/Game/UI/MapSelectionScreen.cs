@@ -45,9 +45,7 @@ public sealed partial class MapSelectionScreen : Control
     public string SelectedMap { get; private set; }
     public int? SelectedRacePreference { get; private set; }
     public MeleeAiPreset SelectedAiPreset { get; private set; } = MeleeAiPreset.Normal;
-    public bool PlayRequested { get; private set; }
     public event Action<string, int, MeleeAiPreset> StartRequested;
-    public event Action Cancelled;
 
     public MapSelectionScreen()
     {
@@ -169,7 +167,6 @@ public sealed partial class MapSelectionScreen : Control
         {
             SelectedAiPreset = preset;
             _difficultySelection.Hide();
-            PlayRequested = true;
             StartRequested?.Invoke(SelectedMap, SelectedRacePreference ?? 0, SelectedAiPreset);
         };
         _difficultySelection.Cancelled += () =>
@@ -284,15 +281,15 @@ public sealed partial class MapSelectionScreen : Control
             ApplyMapVersion(info);
             _description.Text = info == null ? "该地图没有提供描述。"
                 : Fallback(W3iInfo.Resolve(info.DescriptionRef, strings), "该地图没有提供描述。");
-            byte[] preview = package.ReadMapFile("war3mapMap.png");
-            if (preview != null)
+            foreach (string candidateName in new[] { "war3mapPreview.png", "war3mapMap.png" })
             {
+                byte[] candidate = package.ReadMapFile(candidateName);
+                if (candidate == null) continue;
                 var image = new Image();
-                if (image.LoadPngFromBuffer(preview) == Error.Ok)
-                {
-                    _previewTexture = new GodotUiTexture(ImageTexture.CreateFromImage(image));
-                    _preview.Texture = _previewTexture;
-                }
+                if (image.LoadPngFromBuffer(candidate) != Error.Ok) continue;
+                _previewTexture = new GodotUiTexture(ImageTexture.CreateFromImage(image));
+                _preview.Texture = _previewTexture;
+                break;
             }
         }
         catch (Exception error)
@@ -416,13 +413,20 @@ public sealed partial class MapSelectionScreen : Control
 
     public override void _GuiInput(InputEvent @event)
     {
-        if (@event is InputEventKey key && key.Pressed
-            && key.Keycode == Key.Escape && !_raceSelection.Visible
-            && !_difficultySelection.Visible)
+        if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.Escape)
         {
-            Cancelled?.Invoke();
-            AcceptEvent();
-            return;
+            if (_raceSelection.Visible)
+            {
+                _raceSelection.Hide();
+                AcceptEvent();
+                return;
+            }
+            if (_difficultySelection.Visible)
+            {
+                _difficultySelection.Hide();
+                AcceptEvent();
+                return;
+            }
         }
         if (@event is InputEventMouseButton button)
         {
