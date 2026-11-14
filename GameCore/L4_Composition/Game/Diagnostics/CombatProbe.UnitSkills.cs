@@ -358,6 +358,13 @@ public static partial class CombatProbe
         Verify("嗜血施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("嗜血攻速=DataA", lustType.DataAt(1, 'A'), grunt.BonusAttackSpeedPct, 0.001f);
         Verify("嗜血移速=DataB", baseSpeed * lustType.DataAt(1, 'B'), World.SpeedOf(grunt) - baseSpeed, 0.01f);
+        Verify("嗜血缩放=1+DataC", 1f + lustType.DataAt(1, 'C'), grunt.VisualScale, 0.001f);
+        RuntimeBloodlustBuff lustBuff = grunt.GetAbility<RuntimeBloodlustBuff>();
+        Verify("嗜血绑定 Buff 物编", 1f, lustBuff?.Rawcode == "Bblo" ? 1f : 0f, 0f);
+        Verify("嗜血 Buff 美术", 1f, lustBuff?.VisualModelPath?.Contains("BloodlustTarget", StringComparison.OrdinalIgnoreCase) == true ? 1f : 0f, 0f);
+        Verify("嗜血预载美术", 1f, lust.RuntimePreloadArts.Count > 0 ? 1f : 0f, 0f);
+        grunt.RemoveAbility(lustBuff);
+        Verify("嗜血移除恢复缩放", 1f, grunt.VisualScale, 0.001f);
     }
 
     private static void CheckRoar()
@@ -374,6 +381,22 @@ public static partial class CombatProbe
         bool cast = world.TryCast(bear, roar, null, bear.Position);
         Verify("咆哮施放成功", 1f, cast ? 1f : 0f, 0f);
         Verify("咆哮加攻=DataA", roarType.DataAt(1, 'A'), ally.BonusDamagePct, 0.001f);
+        Verify("咆哮绑定 Buff 物编", 1f, ally.GetAbility<RuntimeRoarBuff>()?.Rawcode == "Broa" ? 1f : 0f, 0f);
+        Verify("咆哮 Buff 美术", 1f, ally.GetAbility<RuntimeRoarBuff>()?.VisualModelPath?.Contains("RoarTarget", StringComparison.OrdinalIgnoreCase) == true ? 1f : 0f, 0f);
+
+        Unit regen = ProbeUnit(world, "hfoo", 0, new Vector3(100f, 0f, 0f));
+        float armorBefore = regen.BonusArmor;
+        float lifeBefore = regen.AlwaysLifeRegenBonus;
+        float manaBefore = regen.ManaRegen;
+        var roarBuff = new RuntimeRoarBuff(0.2f, 1.5f, 2f, 3f) { Duration = 10f };
+        regen.AddAbility(roarBuff);
+        Verify("咆哮 Buff 护甲", armorBefore + 1.5f, regen.BonusArmor, 0.001f);
+        Verify("咆哮 Buff 回血", lifeBefore + 2f, regen.AlwaysLifeRegenBonus, 0.001f);
+        Verify("咆哮 Buff 回蓝", manaBefore + 3f, regen.ManaRegen, 0.001f);
+        regen.RemoveAbility(roarBuff);
+        Verify("咆哮 Buff 移除回退护甲", armorBefore, regen.BonusArmor, 0.001f);
+        Verify("咆哮 Buff 移除回退回血", lifeBefore, regen.AlwaysLifeRegenBonus, 0.001f);
+        Verify("咆哮 Buff 移除回退回蓝", manaBefore, regen.ManaRegen, 0.001f);
     }
 
     private static void CheckReplenish()

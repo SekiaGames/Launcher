@@ -128,7 +128,7 @@ public static class RuntimeAbilityFactory
         ["Abof"] = () => new RuntimeBurningOilAbility(),       // 火球（投石车，附加范围火焰）
         ["Acmg"] = () => new RuntimeCharmAbility(),             // 控制魔法（破法者，抢召唤物）
         // —— 兽族单位 ——
-        ["Ablo"] = () => new RuntimeBloodlustAbility(),         // 嗜血（萨满，攻速/移速）
+        ["Ablo"] = () => WithObjects<RuntimeBloodlustAbility>(),         // 嗜血（萨满，攻速/移速）
         ["Alsh"] = () => new RuntimeLightningShieldAbility(),   // 闪电护盾（萨满）
         ["Apg2"] = () => WithObjects<RuntimePurgeAbility>(),             // 净化（萨满）
         ["Aprg"] = () => WithObjects<RuntimePurgeAbility>(),             // 净化（萨满祭司 oshm）
@@ -143,8 +143,8 @@ public static class RuntimeAbilityFactory
         ["AIcd"] = WithObjects<RuntimeCommandAuraAbility>,          // 物品版命令光环
         ["Acn2"] = () => new RuntimeCannibalizeAbility(),       // 食尸（憎恶）
         // —— 暗夜单位 ——
-        ["Ara2"] = () => new RuntimeRoarAbility(),              // 咆哮（熊德）
-        ["Aroa"] = () => new RuntimeRoarAbility(),
+        ["Ara2"] = () => WithObjects<RuntimeRoarAbility>(),              // 咆哮（熊德）
+        ["Aroa"] = () => WithObjects<RuntimeRoarAbility>(),
         ["Arej"] = () => new RuntimeRejuvenationAbility(),      // 回春（猛禽德鲁伊）
         ["Acyc"] = () => new RuntimeCycloneAbility(),           // 旋风（猛禽德鲁伊）
         ["Afae"] = () => new RuntimeFaerieFireAbility(),        // 精灵之火（猛禽德鲁伊）
@@ -272,7 +272,7 @@ public static class RuntimeAbilityFactory
         // —— 野怪别名码 ——
         ["ACad"] = () => new RuntimeAnimateDeadAbility(),       // 野怪版操纵死尸
         ["ACam"] = () => new AntiMagicShield(),   // 野怪版反魔法盾
-        ["ACbl"] = () => new RuntimeBloodlustAbility(),         // 野怪版嗜血
+        ["ACbl"] = () => WithObjects<RuntimeBloodlustAbility>(),         // 野怪版嗜血
         ["ACcr"] = () => WithObjects<RuntimeCrippleAbility>(),           // 野怪版残废
         ["ACct"] = () => new CriticalStrike(),    // 野怪版致命一击
         ["ACen"] = () => new Ensnare(),           // 野怪版诱捕
@@ -320,7 +320,7 @@ public static class RuntimeAbilityFactory
         ["ACat"] = () => new RuntimeTrueshotAuraAbility(),      // 强击光环
         ["ACav"] = () => new DevotionAura(),      // 专注光环
         ["ACba"] = WithObjects<RuntimeBrillianceAuraAbility>,    // 辉煌光环
-        ["ACbb"] = () => new RuntimeBloodlustAbility(),         // 嗜血
+        ["ACbb"] = () => WithObjects<RuntimeBloodlustAbility>(),         // 嗜血
         ["ACbc"] = () => new RuntimeBreathOfFireAbility(),      // 火焰吐息
         ["ACbf"] = () => new RuntimeFrostAttackAbility(),       // 霜冻吐息
         ["ACbh"] = () => new RuntimeBashAbility(),              // 重击
@@ -363,7 +363,7 @@ public static class RuntimeAbilityFactory
         ["ACrf"] = () => WithObjects<RuntimeRainOfFireAbility>(),        // 火焰雨
         ["ACrj"] = () => new RuntimeRejuvenationAbility(),      // 回春
         ["ACrn"] = () => new RuntimeReincarnationAbility(),     // 重生
-        ["ACro"] = () => new RuntimeRoarAbility(),              // 咆哮
+        ["ACro"] = () => WithObjects<RuntimeRoarAbility>(),              // 咆哮
         ["ACs7"] = () => new SummonUnit(),        // 野性之魂
         ["ACs9"] = () => new SummonUnit(),        // 野性之魂
         ["ACsa"] = () => new RuntimeFlamingArrowsAbility(),     // 灼热之箭
@@ -447,7 +447,7 @@ public static class RuntimeAbilityFactory
         ["AIsi"] = () => new Silence(),       // 沉默杖（同名别名）
         ["AIps"] = () => new Purge(),         // 萨满图腾（点单位净化）
         ["AIwb"] = () => new Web(),           // 蜘蛛丝饰针（点空中单位）
-        ["AIrr"] = () => new RuntimeRoarAbility(),          // 野兽卷轴（周围友军 +攻击）
+        ["AIrr"] = () => WithObjects<RuntimeRoarAbility>(),          // 野兽卷轴（周围友军 +攻击）
         ["AIin"] = () => new RuntimeInfernoAbility(),       // 恶魔岩石（点地面召地狱火）
         ["AIrc"] = () => new RuntimeReincarnationAbility(),  // 重生十字章（装备后死亡自动复活）
         ["AIcy"] = () => new RuntimeCycloneAbility(),       // 风暴法杖（点敌人上天，Dur 20）

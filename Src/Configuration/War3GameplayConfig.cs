@@ -208,6 +208,8 @@ public sealed class War3GameplayConfig
 
     public bool IllusionsGetDefenseBonus { get; } = MiscRules.Value("Misc.IllusionsGetDefenseBonus", 1f) != 0f;
 
+    public bool IllusionsCanRestoreLife { get; } = MiscRules.Value("Misc.IllusionsCanRestoreLife", 1f) != 0f;
+
     public bool IllusionsCanRestoreMana { get; } = MiscRules.Value("Misc.IllusionsCanRestoreMana", 1f) != 0f;
 
     public bool InvisibleUnitsBestowAuras { get; } = MiscRules.Value("Misc.InvisibleUnitsBestowAuras", 0f) != 0f;
