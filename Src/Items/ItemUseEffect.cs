@@ -225,6 +225,29 @@ public static class ItemUseEffect
         return false;
     }
 
+    /// <summary>
+    /// Powerup（经验书/属性书/符文/金袋）拾取即用：按 abilList 执行已登记的一次性效果。
+    /// 与点击物品不同，这里不看 usable、不需要目标；返回执行过的能力码，物品是否消耗由调用方决定
+    /// （客户端 UseAutomaticPowerupChildren 是收下就消耗，单个效果没生效也不留在地上）。
+    /// </summary>
+    public static IReadOnlyList<string> UsePowerup(World world, Unit unit, Item item)
+    {
+        if (world == null || unit == null || item?.Type == null) return Array.Empty<string>();
+
+        List<string> used = null;
+        foreach (string raw in item.Type.AbilList.Split(',', ';', StringSplitOptions.TrimEntries))
+        {
+            if (raw.Length < 4) continue;
+            string code = raw[..4];
+            if (!Handlers.TryGetValue(code, out Handler handler)) continue;
+            AbilityType type = AbilityCatalog.Get(code);
+            if (type == null) continue;
+            handler(world, unit, type, null, unit.Position);
+            (used ??= new List<string>()).Add(code);
+        }
+        return used ?? (IReadOnlyList<string>)Array.Empty<string>();
+    }
+
     private static bool AddState(Unit unit, StateMod mod, float seconds)
     {
         unit.State.Add(mod, seconds);

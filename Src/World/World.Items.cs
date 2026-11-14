@@ -264,24 +264,29 @@ public sealed partial class World
         return price;
     }
 
-    /// <summary>把物品转交另一个单位（英雄给英雄）；目标没空格就原样退回。</summary>
+    /// <summary>把物品转交另一个单位（英雄给英雄）；目标没空格就原样退回，Powerup 直接使用。</summary>
     public bool GiveItem(Unit from, int slot, Unit to)
     {
         if (from == null || to == null || ReferenceEquals(from, to)) return false;
-        if (!to.CanCarryItems || !to.HasFreeSlot) return false;
+        if (!to.CanCarryItems) return false;
 
         Item item = from.RemoveSlot(slot);
         if (item == null) return false;
 
+        if (!AutomaticallyUsesPowerup(to, item) && !to.HasFreeSlot)
+        {
+            from.AddItem(item);
+            return false;
+        }
+
         RemoveItemBonus(from, item);
-        if (!to.AddItem(item))
+        if (!AcquireItem(to, item))
         {
             from.AddItem(item);
             ApplyItemBonus(from, item);
             return false;
         }
 
-        ApplyItemBonus(to, item);
         return true;
     }
 
@@ -291,7 +296,7 @@ public sealed partial class World
         if (unit?.Type == null || item?.Type == null) return PickupItemResult.None;
         if (!unit.Alive || unit.IsBuilding || !unit.CanCarryItems) return PickupItemResult.None;
         if (item.Owner != null || !_groundItems.Contains(item)) return PickupItemResult.None;
-        if (!unit.HasFreeSlot) return PickupItemResult.InventoryFull;
+        if (!AutomaticallyUsesPowerup(unit, item) && !unit.HasFreeSlot) return PickupItemResult.InventoryFull;
 
         IssueOrder(unit, UnitOrder.Pickup(item), false);
         return PickupItemResult.Issued;
@@ -302,7 +307,7 @@ public sealed partial class World
         Item item = unit.PickupTarget;
         if (item == null || item.Type == null || item.Owner != null || !_groundItems.Contains(item))
         {
-            CancelPickup(unit);
+CancelPickup(unit);
             AdvanceOrder(unit);
             return;
         }
@@ -333,16 +338,43 @@ public sealed partial class World
 
     private bool CompletePickup(Unit unit, Item item)
     {
-        if (!unit.AddItem(item)) return false;
+        if (!AcquireItem(unit, item)) return false;
 
         _groundItems.Remove(item);
-        ApplyItemBonus(unit, item);
-        ItemPickedUp?.Invoke(unit, item);
         if (_logItemBudget > 0)
         {
             _logItemBudget--;
-            GD.Print($"[ITEM] {unit.Type.Name} 拾取 {item.Type.Name}（{unit.ItemCount}/{Unit.InventorySize}）");
+            GD.Print($"[ITEM] {unit.Type.Name} 拾取 {item.Type.Name}"
+                + (item.Type.PowerUp ? "（powerup 即时使用）" : $"（{unit.ItemCount}/{Unit.InventorySize}）"));
         }
+        return true;
+    }
+
+    /// <summary>Powerup 无需空格：客户端 AutomaticallyUsesItem 只看 powerup 与 AInv DataC。</summary>
+    public bool AutomaticallyUsesPowerup(Unit unit, Item item)
+        => unit != null && unit.Alive && unit.CanCarryItems
+            && item?.Type != null && item.Type.PowerUp;
+
+    /// <summary>
+    /// 物品入手的统一入口（客户端 AddItem）：Powerup 拾取即用、不占背包格；
+    /// 其余物品进第一个空格并结算加成。
+    /// </summary>
+    public bool AcquireItem(Unit unit, Item item, bool firePickupEvent = true)
+    {
+        if (unit == null || item?.Type == null || !unit.Alive) return false;
+
+        if (AutomaticallyUsesPowerup(unit, item))
+        {
+            ItemUseEffect.UsePowerup(this, unit, item);
+            if (firePickupEvent) ItemPickedUp?.Invoke(unit, item);
+            ConsumeItem(item);
+            ItemUsed?.Invoke(unit, item);
+            return true;
+        }
+
+        if (!unit.AddItem(item)) return false;
+        ApplyItemBonus(unit, item);
+        if (firePickupEvent) ItemPickedUp?.Invoke(unit, item);
         return true;
     }
 
@@ -391,5 +423,4 @@ public sealed partial class World
             }
         }
     }
-
-    }
+}

@@ -464,14 +464,14 @@ public sealed partial class War3GameScene
         slot.Lumber -= type.LumberCost;
 
         Unit carrier = NearestFriendlyHero(buyerPlayer, shop.Position, range);
-        if (carrier != null && carrier.HasFreeSlot)
+        if (carrier != null && (type.PowerUp || carrier.HasFreeSlot))
         {
             var carried = new Item { Type = type, Position = shop.Position };
-            if (carrier.AddItem(carried))
+            if (_world.AcquireItem(carrier, carried))
             {
-                _world.ApplyItemBonus(carrier, carried);
-                _world.NotifyItemPickedUp(carrier, carried);
-                _hud?.SetHint($"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金，进了 {carrier.Type.Name} 背包）");
+                _hud?.SetHint(type.PowerUp
+                    ? $"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金，已使用）"
+                    : $"{shop.Type.Name}：买入 {type.Name}（-{type.GoldCost} 金，进了 {carrier.Type.Name} 背包）");
                 RefreshHud();
                 return true;
             }

@@ -285,6 +285,15 @@ public static class AbilityCatalog
         return type;
     }
 
+    /// <summary>AbilityFunc 文本表的任意字段（例如 Effectsound），合并顺序与命令卡字段一致。</summary>
+    public static string FuncField(string id, string field)
+    {
+        if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(field)) return "";
+        IRuntimeObjectData data = War3ObjectData.GetAbility(id);
+        data ??= War3ObjectData.GetBuffType(id);
+        return data?.GetString(field, "") ?? "";
+    }
+
     /// <summary>单位技能列表：heroAbilList 是可学技能（等级从 0 开始），abilList 是自带技能。</summary>
     public static string[] SplitList(string raw)
     {

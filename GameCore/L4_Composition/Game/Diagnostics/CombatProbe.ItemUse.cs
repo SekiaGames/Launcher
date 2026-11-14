@@ -24,6 +24,69 @@ public static partial class CombatProbe
         CheckItemCharges();
         CheckReincarnationCharm();
         CheckMineItem();
+        CheckPowerupPickup();
+    }
+
+    /// <summary>Powerup（属性书/经验书/符文）拾取即用、不占背包格（客户端 AutomaticallyUsesItem）。</summary>
+    private static void CheckPowerupPickup()
+    {
+        ItemType strength = ItemCatalog.Get("tstr");
+        ItemType agility = ItemCatalog.Get("tdex");
+        ItemType rune = ItemCatalog.Get("rhe1");
+        ItemType charged = ItemCatalog.Get("gold");
+        UnitType paladinType = UnitFactory.Get("Hpal");
+        if (strength == null || agility == null || rune == null || paladinType == null) return;
+
+        var world = new World(null, null);
+        Unit hero = MakeHero(paladinType, 0, 1, world);
+        world.Units.Add(hero);
+
+        int picked = 0;
+        world.ItemPickedUp += (unit, item) => picked++;
+
+        void Grab(Item item)
+        {
+            world.IssuePickupItem(hero, item);
+            world.Advance();
+        }
+
+        var tome = new Item { Type = strength, Position = new Vector3(40f, 0f, 0f) };
+        world.DropItem(tome, tome.Position);
+        int strengthBefore = hero.Strength;
+        Grab(tome);
+        Verify("属性书不占背包格", 0f, hero.ItemCount, 0f);
+        Verify("属性书力量 +1", strengthBefore + 1, hero.Strength, 0f);
+        Verify("属性书离地消耗", 0f, world.GroundItems.Count, 0f);
+        Verify("powerup 派发拾取事件", 1f, picked, 0f);
+
+        for (int slot = 0; slot < Unit.InventorySize; slot++)
+            hero.AddItem(new Item { Type = ItemCatalog.Get("ckng") });
+        var fullBagTome = new Item { Type = agility, Position = new Vector3(40f, 0f, 0f) };
+        world.DropItem(fullBagTome, fullBagTome.Position);
+        int agilityBefore = hero.Agility;
+        Grab(fullBagTome);
+        Verify("满包仍能拾取 powerup", Unit.InventorySize, hero.ItemCount, 0f);
+        Verify("满包属性书敏捷 +1", agilityBefore + 1, hero.Agility, 0f);
+
+        hero.Hp = 100f;
+        var healing = new Item { Type = rune, Position = new Vector3(40f, 0f, 0f) };
+        world.DropItem(healing, healing.Position);
+        Grab(healing);
+        Verify("符文即时生效", 225f, hero.Hp, 0.5f);
+        Verify("符文离地消耗", 0f, world.GroundItems.Count, 0f);
+
+        if (charged != null)
+        {
+            hero.RemoveSlot(0);
+            int gold = 0;
+            world.GoldDeposited += (player, amount) => gold += amount;
+            int bagBefore = hero.ItemCount;
+            var chest = new Item { Type = charged, Position = new Vector3(40f, 0f, 0f) };
+            world.DropItem(chest, chest.Position);
+            Grab(chest);
+            Verify("金袋即时入账", 250f, gold, 0f);
+            Verify("金袋不占背包格", bagBefore, hero.ItemCount, 0f);
+        }
     }
 
     /// <summary>地精地雷：点落点埋一颗，敌人靠近就引爆（Amnx 结算范围伤害）。</summary>

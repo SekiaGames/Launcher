@@ -298,7 +298,22 @@ public sealed partial class War3GameScene
     private void OnItemPickedUp(Unit unit, Item item)
     {
         if (_loadingStage != LoadingStage.Complete) return;
+        PlayPowerupSound(item);
         PlayUiSound("ItemGet");
+    }
+
+    /// <summary>Powerup 子能力的 Effectsound 标签（原版：符文/守卫等为 PowerupSound，金袋/木堆为 ReceiveGold/ReceiveLumber）。</summary>
+    private void PlayPowerupSound(Item item)
+    {
+        if (item?.Type == null || !item.Type.PowerUp) return;
+        foreach (string raw in item.Type.AbilList.Split(',', ';', StringSplitOptions.TrimEntries))
+        {
+            if (raw.Length < 4) continue;
+            string label = AbilityCatalog.FuncField(raw[..4], "Effectsound");
+            if (string.IsNullOrWhiteSpace(label) || label is "_" or "-") continue;
+            PlayUiSound(label);
+            return;
+        }
     }
 
     private void OnItemDropped(Unit unit, Item item)
