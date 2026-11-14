@@ -13,7 +13,6 @@ public sealed class UnitType
     public string IconPath;
     public string ModelPath;
     public float ModelScale = 1f;
-    /// <summary>选中圈/血条的世界直径 = unitUI.scale × MiscData [SelectionCircle] ScaleFactor。</summary>
     public float SelectionDiameter = 72f;
     public float WalkAnimationSpeed;
     public float RunAnimationSpeed;
@@ -529,7 +528,6 @@ public static class UnitFactory
 
     private static float? _selectionScaleFactor;
 
-    // MiscData [SelectionCircle] ScaleFactor：原版用它乘 unitUI.slk 的 scale 得到选中圈直径。
     private static float SelectionScaleFactor => _selectionScaleFactor ??=
         GeneratedTexts.TryGet("UIMiscData", "SelectionCircle.ScaleFactor", out string factor)
             ? Number(factor, 72f) : 72f;

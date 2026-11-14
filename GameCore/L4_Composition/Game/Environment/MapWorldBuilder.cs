@@ -57,6 +57,28 @@ public sealed partial class MapWorldBuilder
         return InterpolatedHeight(terrain, x, y);
     }
 
+    public static float SurfaceHeightAt(W3eTerrain terrain, float worldX, float worldZ)
+    {
+        if (terrain == null) return 0f;
+        float gridX = (0f - worldX) / CellSize;
+        float gridZ = worldZ / CellSize;
+        int x = Mathf.Clamp(Mathf.FloorToInt(gridX), 0, Mathf.Max(0, terrain.Width - 2));
+        int y = Mathf.Clamp(Mathf.FloorToInt(gridZ), 0, Mathf.Max(0, terrain.Height - 2));
+        float u = Mathf.Clamp(gridX - x, 0f, 1f);
+        float v = Mathf.Clamp(gridZ - y, 0f, 1f);
+
+        float h00 = CornerSurfaceHeight(terrain, x, y);
+        float h10 = CornerSurfaceHeight(terrain, x + 1, y);
+        float h01 = CornerSurfaceHeight(terrain, x, y + 1);
+        float h11 = CornerSurfaceHeight(terrain, x + 1, y + 1);
+        return u + v >= 1f
+            ? h11 * (u + v - 1f) + h10 * (1f - v) + h01 * (1f - u)
+            : h00 * (1f - u - v) + h10 * u + h01 * v;
+    }
+
+    private static float CornerSurfaceHeight(W3eTerrain terrain, int x, int y)
+        => GroundWorld(terrain.Corners[y * terrain.Width + x]) + RampLift(terrain, x, y) * CellSize;
+
     private static readonly Dictionary<char, float> _waterOffsets = new();
 
     public static float WaterHeightAt(W3eTerrain terrain, float worldX, float worldZ)

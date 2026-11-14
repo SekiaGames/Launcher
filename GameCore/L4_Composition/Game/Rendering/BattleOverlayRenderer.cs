@@ -4,10 +4,6 @@ using System.Collections.Generic;
 
 namespace OpenWC3.Game;
 
-/// <summary>
-/// 屏幕空间战斗覆盖层。血条按单位位置投影后的像素矩形绘制，不随相机俯仰变形；
-/// 单位顶部取模型包围盒高度，和地形/建筑高度无关。
-/// </summary>
 public sealed partial class BattleOverlayRenderer : Control
 {
     private const string HealthFillPath = @"UI\Feedback\HPBarConsole\human-healthbar-fill.blp";

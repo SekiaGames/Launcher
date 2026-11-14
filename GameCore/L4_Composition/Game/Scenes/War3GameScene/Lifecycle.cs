@@ -25,6 +25,7 @@ public sealed partial class War3GameScene : Node3D
     private MeleeHudController _hud;
     private GameHudScreen _newHud;
     private BattleOverlayRenderer _battleOverlay;
+    private SelectionCircleRenderer _selectionCircles;
     private NVector4 _mapUiBounds;
     private GodotUiTexture _minimapFogTexture;
     private Texture2D _minimapBaseTexture;
@@ -263,6 +264,8 @@ public sealed partial class War3GameScene : Node3D
         };
         overlayLayer.AddChild(_battleOverlay);
         _battleOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _selectionCircles = new SelectionCircleRenderer { Name = "SelectionCircles" };
+        AddChild(_selectionCircles);
         var hudLayer = new CanvasLayer { Name = "Hud", Layer = 45 };
         AddChild(hudLayer);
         _newHud = new GameHudScreen { Name = "HudScreen" };
@@ -499,6 +502,9 @@ public sealed partial class War3GameScene : Node3D
     private bool StatusBarVisible(Unit unit)
         => _fog == null || !_fog.Enabled || _fog.IsVisible(unit.Position);
 
+    private float StatusBarHeightAt(float worldX, float worldZ)
+        => _map == null ? 0f : MapWorldBuilder.SurfaceHeightAt(_map.Terrain, worldX, worldZ);
+
     private bool StatusBarEnemy(Unit unit)
         => unit.Player != ViewPlayer
             && unit.Player != MeleeRules.PlayerNeutralPassive
@@ -537,6 +543,7 @@ public sealed partial class War3GameScene : Node3D
         RefreshHeroBar();
         RefreshConstruction();
         _battleOverlay?.Frame(_allUnits, StatusBarVisible, StatusBarEnemy);
+        _selectionCircles?.Frame(_allUnits, StatusBarHeightAt, StatusBarEnemy, StatusBarVisible);
         _cursor?.Tick(frame);
 
         _hudTimer += (float)delta;

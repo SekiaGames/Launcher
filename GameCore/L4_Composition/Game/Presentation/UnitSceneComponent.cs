@@ -14,8 +14,6 @@ public sealed class UnitSceneComponent
         Color.FromHtml("7ebff1"), Color.FromHtml("106246"), Color.FromHtml("4e2a04"),
     };
 
-    private static ArrayMesh _ringMesh;
-
     public Node3D Root { get; private set; }
     public Unit Owner;
     public bool FogSeen;
@@ -23,7 +21,7 @@ public sealed class UnitSceneComponent
 
     public AnimationPlayer Player { get; private set; }
     public float Height { get; private set; } = 100f;
-    public MeshInstance3D Ring { get; private set; }
+    public bool Selected { get; private set; }
     public string CurrentAnimation { get; private set; }
 
     public MeshInstance3D ProgressNode { get; private set; }
@@ -50,7 +48,6 @@ public sealed class UnitSceneComponent
 
         view.Height = MeasureHeight(root, isBuilding);
         view._progressRadius = Mathf.Max(40f, footprintRadius);
-        view.BuildRing(isBuilding);
         if (isBuilding) view.BuildProgressRing();
         return view;
     }
@@ -221,52 +218,6 @@ public sealed class UnitSceneComponent
             current = current.GetParent();
         }
         return true;
-    }
-
-    private void BuildRing(bool isBuilding)
-    {
-        _ringMesh ??= BuildRingMesh();
-        Ring = new MeshInstance3D
-        {
-            Mesh = _ringMesh,
-            MaterialOverride = new StandardMaterial3D
-            {
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                AlbedoColor = Color.FromHtml("3ce03c"),
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            },
-            Scale = Vector3.One * (isBuilding ? 3.2f : 0.9f),
-            Visible = false,
-            Name = "SelectionRing",
-        };
-        Ring.Position = new Vector3(0f, 6f, 0f);
-        Root.AddChild(Ring);
-    }
-
-    private static ArrayMesh BuildRingMesh()
-    {
-        const int segments = 32;
-        const float inner = 40f;
-        const float outer = 52f;
-
-        var st = new SurfaceTool();
-        st.Begin(Mesh.PrimitiveType.Triangles);
-        for (int i = 0; i < segments; i++)
-        {
-            float a0 = Mathf.Tau * i / segments;
-            float a1 = Mathf.Tau * (i + 1) / segments;
-            var p0 = new Vector3(Mathf.Cos(a0) * outer, 0f, Mathf.Sin(a0) * outer);
-            var p1 = new Vector3(Mathf.Cos(a1) * outer, 0f, Mathf.Sin(a1) * outer);
-            var q0 = new Vector3(Mathf.Cos(a0) * inner, 0f, Mathf.Sin(a0) * inner);
-            var q1 = new Vector3(Mathf.Cos(a1) * inner, 0f, Mathf.Sin(a1) * inner);
-            st.AddVertex(p0);
-            st.AddVertex(p1);
-            st.AddVertex(q1);
-            st.AddVertex(p0);
-            st.AddVertex(q1);
-            st.AddVertex(q0);
-        }
-        return st.Commit();
     }
 
     private readonly AnimationTagCache _animationTags = new();
@@ -500,8 +451,5 @@ public sealed class UnitSceneComponent
         Player.Pause();
     }
 
-    public void SetSelected(bool selected)
-    {
-        if (Ring != null) Ring.Visible = selected;
-    }
+    public void SetSelected(bool selected) => Selected = selected;
 }
