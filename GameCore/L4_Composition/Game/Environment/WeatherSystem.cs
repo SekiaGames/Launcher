@@ -11,13 +11,13 @@ public sealed class WeatherSystem
     private readonly War3FogConfig _fog;
     private readonly List<WeatherRenderer> _renderers = new();
 
-    public WeatherSystem(Node parent, W3iEnvironment environment,
+    public WeatherSystem(Node parent, MapInfo info,
         Func<float, float, float> terrainHeight, War3FogConfig fog)
     {
         _parent = parent;
         _terrainHeight = terrainHeight;
         _fog = fog;
-        string global = environment?.GlobalWeather?.Trim('\0', ' ');
+        string global = WeatherTypeParser.Rawcode(WeatherTypeParser.FromW3iId(info?.GlobalWeather ?? 0));
         if (!string.IsNullOrEmpty(global))
         {
             AddGlobal(global);

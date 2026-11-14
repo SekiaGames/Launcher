@@ -213,7 +213,7 @@ public sealed partial class War3LoadingScreenRenderer : Control
         int race = raceId;
         if (race <= 0 && map != null)
         {
-            foreach (W3iPlayer player in map.Players)
+            foreach (MapPlayerInfo player in map.Players)
             {
                 if (player.Id != 0) continue;
                 race = player.Race;

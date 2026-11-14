@@ -119,7 +119,7 @@ public sealed partial class War3GameScene
         }
         else
         {
-            foreach (W3iPlayer player in _map.Players)
+            foreach (MapPlayerInfo player in _map.Players)
             {
                 if (player.Id != ViewPlayer) continue;
                 if (player.StartX == 0f && player.StartY == 0f) continue;

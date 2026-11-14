@@ -663,10 +663,10 @@ public sealed partial class LauncherApp : Node
         float offsetY = map.Terrain.OffsetY;
         float startX = 0f;
         float startZ = 0f;
-        foreach (W3iPlayer player in map.Players)
+        foreach (MapPlayerInfo player in map.Players)
         {
             GD.Print($"[DUMP] 玩家 P{player.Id} 种族{player.Race} 控制{player.Controller} 起点({player.StartX:0},{player.StartY:0})"
-                + $" 名字={player.Name} ally={player.AllyLow}/{player.AllyHigh} enemy={player.EnemyLow}/{player.EnemyHigh}");
+                + $" 名字={player.Name} 盟友={player.LowPriorityAllies}/{player.HighPriorityAllies}");
             if (player.Id == 0)
             {
                 startX = -(player.StartX - offsetX);

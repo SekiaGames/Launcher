@@ -10,22 +10,25 @@ public readonly record struct War3FogConfig(int Style, Color Tint, float Start, 
 
     public Vector4 Params => new(Style, Start, End, Density);
 
-    public static War3FogConfig FromEnvironment(W3iEnvironment environment)
+    public static War3FogConfig FromW3i(MapInfo info)
     {
-        if (environment == null || !environment.UseTerrainFog)
+        if (info == null || info.UseTerrainFog == 0)
         {
             return None;
         }
 
-        byte[] bgra = environment.FogColorBgra;
+        byte[] bgra = info.FogColor;
         if (bgra == null || bgra.Length < 4)
         {
             return None;
         }
 
+        float start = info.FogHeight.Length >= 1 ? info.FogHeight[0] : 0f;
+        float end = info.FogHeight.Length >= 2 ? info.FogHeight[1] : 0f;
+
         return new War3FogConfig(1,
             new Color(bgra[2] / 255f, bgra[1] / 255f, bgra[0] / 255f, bgra[3] / 255f),
-            environment.FogHeightStart, environment.FogHeightEnd, environment.FogDensity);
+            start, end, info.FogDensity);
     }
 
     public string Describe() => Enabled

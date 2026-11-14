@@ -7,7 +7,7 @@ using System.Text;
 using OpenWC3.War3Formats.Text;
 namespace OpenWC3.Game;
 
-public sealed record W3iPlayer(
+public sealed record MapPlayerInfo(
     int Id,
     int Controller,
     int Race,
@@ -15,40 +15,26 @@ public sealed record W3iPlayer(
     string Name,
     float StartX,
     float StartY,
-    int AllyLow,
-    int AllyHigh,
-    int EnemyLow,
-    int EnemyHigh)
+    int LowPriorityAllies,
+    int HighPriorityAllies)
 {
     public const int FixedStartPositionFlag = 1;
 
     public bool FixedStartPosition => (Flags & FixedStartPositionFlag) != 0;
 }
 
-public sealed record W3iForce(int Flags, uint PlayerMask, string Name)
+public sealed record MapForceInfo(int Flags, uint PlayerMask, string Name)
 {
     public const int AlliedFlag = 1;
     public const int AlliedVictoryFlag = 2;
     public const int SharedVisionFlag = 8;
     public const int SharedControlFlag = 16;
+    public const int SharedAdvancedControlFlag = 32;
 
     public bool ContainsPlayer(int playerId)
     {
         return playerId is >= 0 and < 32 && (PlayerMask & (1u << playerId)) != 0;
     }
-}
-
-public sealed class W3iEnvironment
-{
-    public bool UseTerrainFog { get; init; }
-    public float FogHeightStart { get; init; }
-    public float FogHeightEnd { get; init; }
-    public float FogDensity { get; init; }
-    public byte[] FogColorBgra { get; init; } = new byte[4];
-    public string GlobalWeather { get; init; } = "";
-    public string SoundEnvironment { get; init; } = "";
-    public char LightEnvTileset { get; init; }
-    public byte[] WaterVertexColorBgra { get; init; } = new byte[4];
 }
 
 public sealed record W3iItemDrop(string ItemId, int Chance);
@@ -102,14 +88,20 @@ public sealed class MapInfo
     public string PrologueTitle { get; private set; } = "";
     public string PrologueSubtitle { get; private set; } = "";
 
-    public W3iEnvironment Environment { get; private set; } = new();
+    public int UseTerrainFog { get; private set; }
+    public float[] FogHeight { get; } = new float[2];
+    public float FogDensity { get; private set; }
+    public byte[] FogColor { get; private set; } = new byte[4];
+    public int GlobalWeather { get; private set; }
+    public char LightEnvTileset { get; private set; }
+    public byte[] WaterVertexColor { get; private set; } = new byte[4];
 
     public string MinimapTgaPath { get; private set; } = "";
     public int MinimapTgaWidth { get; private set; }
     public int MinimapTgaHeight { get; private set; }
 
-    public List<W3iPlayer> Players { get; } = new();
-    public List<W3iForce> Forces { get; } = new();
+    public List<MapPlayerInfo> Players { get; } = new();
+    public List<MapForceInfo> Forces { get; } = new();
     public List<W3iItemTable> ItemTables { get; } = new();
 
     public byte[] RawBytes { get; private set; }
@@ -196,7 +188,7 @@ public sealed class MapInfo
 
         if (info.FormatVersion > 24)
         {
-            info.Environment = ReadEnvironment(reader);
+            ReadTerrainFog(reader, info);
         }
 
         if (info.FormatVersion >= 28)
@@ -325,29 +317,17 @@ public sealed class MapInfo
         }
     }
 
-    private static W3iEnvironment ReadEnvironment(W3xBinaryReader reader)
+    private static void ReadTerrainFog(W3xBinaryReader reader, MapInfo info)
     {
-        bool useFog = reader.I32() != 0;
-        float fogStart = reader.F32();
-        float fogEnd = reader.F32();
-        float fogDensity = reader.F32();
-        byte[] fogColor = reader.Bytes(4);
-        string weather = reader.FourCc();
-        string sound = reader.NullString(Encoding.UTF8);
-        char light = (char)reader.U8();
-        byte[] water = reader.Bytes(4);
-        return new W3iEnvironment
-        {
-            UseTerrainFog = useFog,
-            FogHeightStart = fogStart,
-            FogHeightEnd = fogEnd,
-            FogDensity = fogDensity,
-            FogColorBgra = fogColor,
-            GlobalWeather = weather,
-            SoundEnvironment = sound,
-            LightEnvTileset = light,
-            WaterVertexColorBgra = water,
-        };
+        info.UseTerrainFog = reader.I32();
+        info.FogHeight[0] = reader.F32();
+        info.FogHeight[1] = reader.F32();
+        info.FogDensity = reader.F32();
+        info.FogColor = reader.Bytes(4);
+        info.GlobalWeather = reader.I32();
+        reader.NullString(Encoding.UTF8);
+        info.LightEnvTileset = (char)reader.U8();
+        info.WaterVertexColor = reader.Bytes(4);
     }
 
     private static void ReadMinimap(W3xBinaryReader reader, MapInfo info)
@@ -386,16 +366,14 @@ public sealed class MapInfo
             string name = reader.NullString(Encoding.UTF8);
             float startX = reader.F32();
             float startY = reader.F32();
-            int allyLow = reader.I32();
-            int allyHigh = reader.I32();
-            int enemyLow = 0;
-            int enemyHigh = 0;
+            int lowPriorityAllies = reader.I32();
+            int highPriorityAllies = reader.I32();
             if (info.FormatVersion >= 31)
             {
-                enemyLow = reader.I32();
-                enemyHigh = reader.I32();
+                reader.I32();
+                reader.I32();
             }
-            info.Players.Add(new W3iPlayer(id, controller, race, flags, name, startX, startY, allyLow, allyHigh, enemyLow, enemyHigh));
+            info.Players.Add(new MapPlayerInfo(id, controller, race, flags, name, startX, startY, lowPriorityAllies, highPriorityAllies));
         }
     }
 
@@ -411,7 +389,7 @@ public sealed class MapInfo
             int flags = reader.I32();
             uint mask = reader.U32();
             string name = reader.NullString(Encoding.UTF8);
-            info.Forces.Add(new W3iForce(flags, mask, name));
+            info.Forces.Add(new MapForceInfo(flags, mask, name));
         }
     }
 

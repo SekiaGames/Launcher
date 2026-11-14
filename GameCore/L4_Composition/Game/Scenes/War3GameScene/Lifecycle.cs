@@ -97,7 +97,7 @@ public sealed partial class War3GameScene : Node3D
     private string HudRaceName()
     {
         int race = 1;
-        foreach (W3iPlayer player in _map.Players)
+        foreach (MapPlayerInfo player in _map.Players)
         {
             if (player.Id == ViewPlayer) { race = player.Race; break; }
         }
@@ -271,7 +271,7 @@ public sealed partial class War3GameScene : Node3D
     private async Task LoadTextures(MapSource map)
     {
         _terrainBuilder = new MapWorldBuilder();
-        War3FogConfig fog = War3FogConfig.FromEnvironment(map.Info?.Environment);
+        War3FogConfig fog = War3FogConfig.FromW3i(map.Info);
         SceneFog.Set(fog);
         GD.Print($"[FOG] 地图距离雾 {fog.Describe()}");
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads,
@@ -281,7 +281,7 @@ public sealed partial class War3GameScene : Node3D
         _terrainShadows = new TerrainShadowMap(map.Terrain, _terrainBuilder.TerrainMaterial,
             _terrainBuilder.TreeShadows);
 
-        _weather = new WeatherSystem(this, map.Info?.Environment, CameraTargetHeightAt, fog);
+        _weather = new WeatherSystem(this, map.Info, CameraTargetHeightAt, fog);
 
         await Loading(.22f, StageName(LoadingStage.Textures));
     }
@@ -289,7 +289,7 @@ public sealed partial class War3GameScene : Node3D
     private async Task LoadTerrainPresentation(MapSource map)
     {
         _sceneLighting = SceneLighting.Load(SceneLighting.ResolveTileset(
-            map.Info?.Environment?.LightEnvTileset ?? (char)0, map.Terrain.Tileset), _todHours);
+            map.Info?.LightEnvTileset ?? (char)0, map.Terrain.Tileset), _todHours);
         _sceneLightingHour = _todHours;
         SceneLightRig.Apply(_worldRoot, _sceneLighting.Terrain, _sceneLighting.Terrain);
         GD.Print($"[INIT] 昼夜光照 {SceneLighting.Describe(_sceneLighting.Terrain)}");
@@ -573,10 +573,10 @@ public sealed partial class War3GameScene : Node3D
     {
         if (player == ViewPlayer) return true;
         if (_map?.Info?.Forces == null) return false;
-        foreach (W3iForce force in _map.Info.Forces)
+        foreach (MapForceInfo force in _map.Info.Forces)
         {
             if (force.ContainsPlayer(ViewPlayer)
-                && (force.Flags & W3iForce.SharedControlFlag) != 0
+                && (force.Flags & MapForceInfo.SharedControlFlag) != 0
                 && force.ContainsPlayer(player)) return true;
         }
         return false;

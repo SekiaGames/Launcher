@@ -87,7 +87,7 @@ public sealed partial class War3GameScene
     private int ClearExcessUnits()
     {
         var starts = new List<Vector3>();
-        foreach (W3iPlayer player in _map.Players)
+        foreach (MapPlayerInfo player in _map.Players)
         {
             if (!IsActivePlayer(player.Id)) continue;
             if (player.StartX == 0f && player.StartY == 0f) continue;
@@ -152,8 +152,8 @@ public sealed partial class War3GameScene
         _startFocus.Clear();
         int spawned = 0;
 
-        var ordered = new List<W3iPlayer>();
-        foreach (W3iPlayer player in _map.Players)
+        var ordered = new List<MapPlayerInfo>();
+        foreach (MapPlayerInfo player in _map.Players)
         {
             if (IsActivePlayer(player.Id)) ordered.Add(player);
             else if (player.Id is >= 0 and <= 23 && player.StartX != 0f && player.StartY != 0f)
@@ -162,7 +162,7 @@ public sealed partial class War3GameScene
             }
         }
 
-        foreach (W3iPlayer player in ordered)
+        foreach (MapPlayerInfo player in ordered)
         {
             if (player.StartX == 0f && player.StartY == 0f) continue;
 
@@ -201,7 +201,7 @@ public sealed partial class War3GameScene
         return spawned;
     }
 
-    private void ApplyStartMineEffect(W3iPlayer player, Unit mine, MeleeRules.StartPlan plan)
+    private void ApplyStartMineEffect(MapPlayerInfo player, Unit mine, MeleeRules.StartPlan plan)
     {
         string replacementId = plan.Mine switch
         {

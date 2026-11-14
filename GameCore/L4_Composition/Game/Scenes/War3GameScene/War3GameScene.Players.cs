@@ -69,8 +69,8 @@ public sealed partial class War3GameScene
         _active.Clear();
         _playerNames.Clear();
 
-        var seats = new List<W3iPlayer>();
-        foreach (W3iPlayer player in _map.Players)
+        var seats = new List<MapPlayerInfo>();
+        foreach (MapPlayerInfo player in _map.Players)
         {
             if (!MeleeRules.IsPlayingController(player.Controller)) continue;
             if (player.StartX == 0f && player.StartY == 0f) continue;
@@ -88,7 +88,7 @@ public sealed partial class War3GameScene
 
         if (ActiveSlots.Count > 0)
         {
-            foreach (W3iPlayer player in seats)
+            foreach (MapPlayerInfo player in seats)
             {
                 if (ActiveSlots.Contains(player.Id)) _active.Add(player.Id);
             }
@@ -99,7 +99,7 @@ public sealed partial class War3GameScene
         }
         else
         {
-            foreach (W3iPlayer player in seats) _active.Add(player.Id);
+            foreach (MapPlayerInfo player in seats) _active.Add(player.Id);
         }
 
         if (_active.Count == 0) _active.Add(seats[0].Id);
@@ -140,10 +140,10 @@ public sealed partial class War3GameScene
 
         if (_map.Info != null && _map.Info.Forces.Count > 0)
         {
-            foreach (W3iForce force in _map.Info.Forces)
+            foreach (MapForceInfo force in _map.Info.Forces)
             {
-                if ((force.Flags & W3iForce.AlliedFlag) == 0) continue;
-                foreach (W3iPlayer player in _map.Players)
+                if ((force.Flags & MapForceInfo.AlliedFlag) == 0) continue;
+                foreach (MapPlayerInfo player in _map.Players)
                 {
                     if (!force.ContainsPlayer(player.Id)) continue;
                     _allyMasks.TryGetValue(player.Id, out int mask);
@@ -157,11 +157,11 @@ public sealed partial class War3GameScene
         // 拿来判定同盟会把 FFA 误判成盟友，所以只用 forces 与大厅 --teams。
 
         var groups = new List<string>();
-        foreach (W3iForce force in _map.Info?.Forces ?? new List<W3iForce>())
+        foreach (MapForceInfo force in _map.Info?.Forces ?? new List<MapForceInfo>())
         {
-            if ((force.Flags & W3iForce.AlliedFlag) == 0) continue;
+            if ((force.Flags & MapForceInfo.AlliedFlag) == 0) continue;
             var members = new List<string>();
-            foreach (W3iPlayer player in _map.Players)
+            foreach (MapPlayerInfo player in _map.Players)
             {
                 if (force.ContainsPlayer(player.Id) && IsActivePlayer(player.Id)) members.Add($"P{player.Id}");
             }
@@ -191,9 +191,9 @@ public sealed partial class War3GameScene
     {
         if (owner == controller) return true;
         if (_map?.Info?.Forces == null) return false;
-        foreach (W3iForce force in _map.Info.Forces)
+        foreach (MapForceInfo force in _map.Info.Forces)
         {
-            if ((force.Flags & W3iForce.SharedControlFlag) == 0) continue;
+            if ((force.Flags & MapForceInfo.SharedControlFlag) == 0) continue;
             if (force.ContainsPlayer(owner) && force.ContainsPlayer(controller)) return true;
         }
         return false;

@@ -381,7 +381,7 @@ public sealed partial class War3GameScene
     /// <summary>war3skins.txt 里的段名 / UI 音后缀：Human / Orc / Undead / NightElf。</summary>
     private string RaceMusicName(int player)
     {
-        foreach (W3iPlayer entry in _map.Players)
+        foreach (MapPlayerInfo entry in _map.Players)
         {
             if (entry.Id != player) continue;
             return entry.Race switch
@@ -398,7 +398,7 @@ public sealed partial class War3GameScene
     /// <summary>UI 音里的种族后缀：Human / Orc / Undead / NightElf。</summary>
     private string RaceSoundSuffix(int player)
     {
-        foreach (W3iPlayer entry in _map.Players)
+        foreach (MapPlayerInfo entry in _map.Players)
         {
             if (entry.Id != player) continue;
             return entry.Race switch

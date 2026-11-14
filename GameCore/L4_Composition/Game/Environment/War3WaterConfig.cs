@@ -48,7 +48,7 @@ public sealed class War3WaterConfig
         {
             return new Color(1f, 1f, 1f, 1f);
         }
-        byte[] bgra = info.Environment?.WaterVertexColorBgra;
+        byte[] bgra = info.WaterVertexColor;
         if (bgra == null || bgra.Length < 4)
         {
             return new Color(1f, 1f, 1f, 1f);

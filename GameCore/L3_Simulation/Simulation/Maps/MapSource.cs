@@ -14,7 +14,7 @@ public sealed class MapSource
     public War3MapDoodads Doodads { get; private set; }
     public PathingData Pathing { get; private set; }
     public int SkyboxType { get; private set; }
-    public List<W3iPlayer> Players { get; } = new();
+    public List<MapPlayerInfo> Players { get; } = new();
 
     public string Name => Package?.Name ?? "unknown";
 

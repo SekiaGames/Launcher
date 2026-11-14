@@ -354,7 +354,7 @@ public sealed partial class War3GameScene
     private string PlayerInfoText()
     {
         int race = 0;
-        foreach (W3iPlayer player in _map.Players)
+        foreach (MapPlayerInfo player in _map.Players)
         {
             if (player.Id == ViewPlayer) { race = player.Race; break; }
         }
