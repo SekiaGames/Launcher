@@ -37,7 +37,7 @@ public sealed class War3GameplayConfig
     }
 
     /// <summary>弹道命中后保留死亡表现的秒数（客户端 War3GameplayConfig.BulletDeathTime，MiscData 的 budt）。</summary>
-    public readonly float BulletDeathTime = MiscRules.Value("Misc.BulletDeathTime", 0f);
+    public readonly float BulletDeathTime = MiscDataValue("Misc.BulletDeathTime", 0f);
 
     public readonly int HeroMaxReviveCostGold = (int)MiscRules.Value("Misc.HeroMaxReviveCostGold", 700f);
     public readonly float HeroMaxReviveTime = MiscRules.Value("Misc.HeroMaxReviveTime", 150f);
