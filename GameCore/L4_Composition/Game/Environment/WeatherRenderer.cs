@@ -15,6 +15,8 @@ public sealed class WeatherRenderer
     readonly WeatherDefinition _definition;
     readonly Func<float, float, float> _terrainHeight;
     readonly List<CpuParticles3D> _emitters = new();
+    readonly Dictionary<long, CpuParticles3D> _cellEmitters = new();
+    readonly Stack<CpuParticles3D> _spareEmitters = new();
     readonly bool _hasArea;
     readonly float _areaMinX, _areaMinZ, _areaMaxX, _areaMaxZ;
     readonly int _cellsPerSide;
@@ -66,7 +68,9 @@ public sealed class WeatherRenderer
         if (definition.Velocity < 0f) direction = -direction;
         if (direction.LengthSquared() < 1e-6f) direction = Vector3.Down;
         float speed = Mathf.Abs(definition.Velocity);
-        float spread = Mathf.RadToDeg(Mathf.Atan(Mathf.Max(0f, definition.Variance)));
+        float variance = Mathf.Max(0f, definition.Variance);
+        float speedMin = speed * (1f - Mathf.Min(1f, variance));
+        float speedMax = speed * (1f + variance);
 
         int count = _cellsPerSide * _cellsPerSide;
         for (int i = 0; i < count; i++)
@@ -83,9 +87,9 @@ public sealed class WeatherRenderer
                 FixedFps = 60,
                 Mesh = mesh,
                 Direction = direction,
-                Spread = spread,
-                InitialVelocityMin = speed,
-                InitialVelocityMax = speed,
+                Spread = 0f,
+                InitialVelocityMin = speedMin,
+                InitialVelocityMax = speedMax,
                 Gravity = new Vector3(0f, -definition.Acceleration, 0f),
                 EmissionShape = CpuParticles3D.EmissionShapeEnum.Box,
                 EmissionBoxExtents = new Vector3(WeatherDefinition.CellSize * 0.5f, 1f,
@@ -103,12 +107,14 @@ public sealed class WeatherRenderer
             };
             _root.AddChild(emitter);
             _emitters.Add(emitter);
+            _spareEmitters.Push(emitter);
         }
 
         StartAmbient();
         GD.Print($"[WEATHER] {definition.Id} cells={_cellsPerSide}x{_cellsPerSide} "
             + $"perCell={definition.ActiveParticleCount} pool={definition.PoolCapacity} "
             + $"life={definition.LifeSpan:0.##}s height={definition.Height:0.#} "
+            + $"veloc={speed:0.#}±{variance:P0}（{speedMin:0.#}~{speedMax:0.#}）"
             + $"alphaMode={definition.AlphaMode} fog={definition.UseFog} "
             + $"uv={definition.UvStart:0.#}/{definition.UvMid:0.#}/{definition.UvEnd:0.#} "
             + $"grid={definition.TextureColumns}x{definition.TextureRows} "
@@ -144,45 +150,96 @@ public sealed class WeatherRenderer
         _baseCol = baseCol;
         _baseRow = baseRow;
 
-        int slot = 0;
+        int released = ReleaseOutside(baseCol, baseRow);
+        int acquired = AcquireWindow(baseCol, baseRow);
+        if (released > 0 || acquired > 0)
+        {
+            GD.Print($"[WEATHER] {_definition.Id} 跨格 ({baseCol},{baseRow})："
+                + $"放出 {released}，新起 {acquired}，在位 {_cellEmitters.Count}");
+        }
+    }
+
+    int ReleaseOutside(int baseCol, int baseRow)
+    {
+        if (_cellEmitters.Count == 0) return 0;
+        var leaving = new List<long>();
+        foreach (KeyValuePair<long, CpuParticles3D> pair in _cellEmitters)
+        {
+            int col = (int)(pair.Key >> 32);
+            int row = (int)(pair.Key & 0xFFFFFFFFL);
+            if (col >= baseCol && col < baseCol + _cellsPerSide
+                && row >= baseRow && row < baseRow + _cellsPerSide)
+            {
+                continue;
+            }
+            leaving.Add(pair.Key);
+        }
+
+        foreach (long key in leaving)
+        {
+            CpuParticles3D emitter = _cellEmitters[key];
+            _cellEmitters.Remove(key);
+            emitter.Emitting = false;
+            _spareEmitters.Push(emitter);
+        }
+        return leaving.Count;
+    }
+
+    int AcquireWindow(int baseCol, int baseRow)
+    {
+        int acquired = 0;
         float half = WeatherDefinition.CellSize * 0.5f;
         for (int row = 0; row < _cellsPerSide; row++)
         {
             for (int col = 0; col < _cellsPerSide; col++)
             {
-                if (slot >= _emitters.Count) break;
                 int cellCol = baseCol + col;
                 int cellRow = baseRow + row;
+                long key = CellKey(cellCol, cellRow);
+                if (_cellEmitters.ContainsKey(key)) continue;
                 float x = -(cellCol + 0.5f) * WeatherDefinition.CellSize;
                 float z = (cellRow + 0.5f) * WeatherDefinition.CellSize;
-                CpuParticles3D emitter = _emitters[slot];
                 if (_hasArea && (x + half < _areaMinX || x - half > _areaMaxX
                     || z + half < _areaMinZ || z - half > _areaMaxZ))
                 {
-                    emitter.Emitting = false;
                     continue;
                 }
+                if (_spareEmitters.Count == 0) return acquired;
+
+                CpuParticles3D emitter = _spareEmitters.Pop();
                 float ground = _terrainHeight(x, z);
                 if (!float.IsFinite(ground)) ground = 0f;
                 emitter.Position = new Vector3(x,
                     ground + Mathf.Max(1f, _definition.Height), z);
                 emitter.Emitting = _enabled;
-                emitter.Restart();
-                slot++;
+                if (_enabled) emitter.Restart();
+                _cellEmitters[key] = emitter;
+                acquired++;
             }
         }
-        for (; slot < _emitters.Count; slot++) _emitters[slot].Emitting = false;
+        return acquired;
     }
+
+    static long CellKey(int col, int row) => ((long)col << 32) | (uint)row;
 
     public void SetEnabled(bool enabled)
     {
         _enabled = enabled;
         if (!GodotObject.IsInstanceValid(_root)) return;
-        foreach (CpuParticles3D emitter in _emitters)
+        foreach (CpuParticles3D emitter in _cellEmitters.Values)
             if (GodotObject.IsInstanceValid(emitter)) emitter.Emitting = enabled;
         if (!GodotObject.IsInstanceValid(_ambient)) return;
         if (enabled) _ambient.Play();
         else _ambient.Stop();
+    }
+
+    public void Remove()
+    {
+        if (!GodotObject.IsInstanceValid(_root)) return;
+        _cellEmitters.Clear();
+        _spareEmitters.Clear();
+        _emitters.Clear();
+        _root.QueueFree();
     }
 
     static StandardMaterial3D BuildMaterial(WeatherDefinition definition, Texture2D texture)

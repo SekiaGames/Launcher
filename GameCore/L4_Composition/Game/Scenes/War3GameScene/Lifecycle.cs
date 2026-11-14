@@ -176,9 +176,7 @@ public sealed partial class War3GameScene : Node3D
         _terrainShadows = new TerrainShadowMap(map.Terrain, _terrainBuilder.TerrainMaterial,
             _terrainBuilder.TreeShadows);
 
-        _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather,
-            CameraTargetHeightAt);
-        if (_weather != null) GD.Print($"[WEATHER] {map.Info?.Environment?.GlobalWeather} 已加载");
+        _weather = new WeatherSystem(this, map.Info?.Environment, CameraTargetHeightAt);
 
         _skybox = SkyboxRenderer.TryCreate(this, map.Info);
         _skyDome = SkyDomeRenderer.TryCreate(this, map.Info);
@@ -321,7 +319,7 @@ public sealed partial class War3GameScene : Node3D
     private bool LoadingBlocked => _loadingScreen != null && !_loadingScreen.Finished;
 
     private bool _musicPending;
-    private WeatherRenderer _weather;
+    private WeatherSystem _weather;
         private readonly List<Unit> _heroScratch = new();
     private ChatFrame _log;
     private EscMenuFrame _escMenu;
