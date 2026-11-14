@@ -35,6 +35,7 @@ public sealed partial class War3GameScene
         if (!turningOff && caster.Mana < ability.ManaCost)
         {
             _hud?.SetHint($"{ability.Name}：法力不足（需要 {ability.ManaCost:0}）");
+            PlayUiSound("NoManaSound", caster.Position, ViewPlayer);
             return;
         }
 
@@ -223,7 +224,7 @@ public sealed partial class War3GameScene
             return false;
         }
 
-        PlayVoice(caster, "What", null);
+        _ackSounds?.PlaySpellCast(caster, ability.Id, caster.Position + new Vector3(0f, 80f, 0f), ability.ObjectData);
         RefreshHud();
         UpdateCommandCard();
         return true;
@@ -605,7 +606,7 @@ public sealed partial class War3GameScene
     private void OnAbilityCast(Unit caster, Ability ability, Unit target)
     {
         if (caster == null || ability == null) return;
-        PlayVoice(caster, "What", null);
+        _ackSounds?.PlaySpellCast(caster, ability.Id, caster.Position + new Vector3(0f, 80f, 0f), ability.ObjectData);
         PlayLightningEffects(caster, ability, target);
 
         if (_castLogBudget <= 0) return;

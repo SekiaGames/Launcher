@@ -18,6 +18,7 @@ public sealed partial class World
     public IReadOnlyList<Item> GroundItems => _groundItems;
 
     public event Action<Unit, Item> ItemPickedUp;
+    public event Action<Unit, Item> ItemDropped;
     /// <summary>新物品落地（野怪掉落 / 脚本生成），场景层据此建模型。</summary>
     public event Action<Item> ItemSpawned;
     /// <summary>物品被使用掉（药水/卷轴）。</summary>
@@ -166,6 +167,7 @@ public sealed partial class World
 
         DropItem(item, position);
         if (item.Node == null) ItemSpawned?.Invoke(item);
+        ItemDropped?.Invoke(unit, item);
         return true;
     }
 
@@ -202,6 +204,7 @@ public sealed partial class World
         RemoveItemBonus(unit, item);
         DropItem(item, position);
         if (item.Node == null) ItemSpawned?.Invoke(item);
+        ItemDropped?.Invoke(unit, item);
         return true;
     }
 
@@ -334,6 +337,7 @@ public sealed partial class World
                 var item = new Item { Type = type, Position = position };
                 DropItem(item, position);
                 ItemSpawned?.Invoke(item);
+                ItemDropped?.Invoke(victim, item);
                 if (_logItemBudget > 0)
                 {
                     _logItemBudget--;

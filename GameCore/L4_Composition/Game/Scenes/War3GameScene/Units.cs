@@ -295,6 +295,18 @@ public sealed partial class War3GameScene
 
     private void OnItemSpawned(Item item) => CreateItemNode(item);
 
+    private void OnItemPickedUp(Unit unit, Item item)
+    {
+        if (_loadingStage != LoadingStage.Complete) return;
+        PlayUiSound("ItemGet");
+    }
+
+    private void OnItemDropped(Unit unit, Item item)
+    {
+        if (_loadingStage != LoadingStage.Complete) return;
+        PlayUiSound("ItemDrop");
+    }
+
     private int _itemSerial;
 
     private Unit Spawn(string id, int player, float worldX, float worldZ, float yaw, float hp, float entryScale, int gold = 0)

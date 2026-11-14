@@ -34,7 +34,11 @@ public sealed partial class War3GameScene
 
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
-            if (report) { PlayErrorSound(); _hud?.SetHint("资源不足"); }
+            if (report)
+            {
+                PlayNoResourceSound(slot, type);
+                _hud?.SetHint("资源不足");
+            }
             _placingId = null;
             ClearPlacementPreview();
             return null;
@@ -57,7 +61,7 @@ public sealed partial class War3GameScene
             consumedMine = FindConsumableMine(ground, 1200f);
             if (consumedMine == null)
             {
-                if (report) _hud?.SetHint($"{type.Name} 必须建在金矿上");
+                if (report) { PlayUiSound("CantPlaceSound", _camera.Target, ViewPlayer); _hud?.SetHint($"{type.Name} 必须建在金矿上"); }
                 return null;
             }
             ground = consumedMine.Position;
@@ -65,7 +69,7 @@ public sealed partial class War3GameScene
 
         if (_pathGrid != null && !_pathGrid.IsAreaFree(ground, footprint))
         {
-            if (report) { PlayErrorSound(); _hud?.SetHint("这里放不下"); }
+            if (report) { PlayUiSound("CantPlaceSound", _camera.Target, ViewPlayer); _hud?.SetHint("这里放不下"); }
             return null;
         }
 
@@ -473,6 +477,12 @@ public sealed partial class War3GameScene
             }
         }
 
+        if (carrier != null)
+        {
+            _hud?.SetHint($"{carrier.Type.Name} 的物品栏已满");
+            PlayUiSound("InventoryFullSound", _camera.Target, ViewPlayer);
+        }
+
         float angle = (float)(GD.Randi() % 628) / 100f;
         var spot = new Vector3(
             shop.Position.X + Mathf.Cos(angle) * (shop.Radius + 40f),
@@ -529,13 +539,15 @@ public sealed partial class War3GameScene
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
             return RejectUnitPurchase(shop, buyerPlayer, unitId,
-                $"资源不足（需要 {type.GoldCost}金/{type.LumberCost}木，当前 {slot.Gold}/{slot.Lumber}）");
+                $"资源不足（需要 {type.GoldCost}金/{type.LumberCost}木，当前 {slot.Gold}/{slot.Lumber}）",
+                NoResourceKey(slot, type));
         }
 
         if (FoodUsed(slot.Id) + type.FoodUsed > FoodCap(slot.Id))
         {
             return RejectUnitPurchase(shop, buyerPlayer, unitId,
-                $"人口不足（需要 {type.FoodUsed}，当前 {FoodUsed(slot.Id)}/{FoodCap(slot.Id)}）");
+                $"人口不足（需要 {type.FoodUsed}，当前 {FoodUsed(slot.Id)}/{FoodCap(slot.Id)}）",
+                "NoFoodSound");
         }
 
         string[] requires = TechTree.Row(unitId)?.RequiresPrimary ?? Array.Empty<string>();
@@ -570,9 +582,20 @@ public sealed partial class War3GameScene
     }
 
     /// <summary>买兵失败的唯一出口：提示 + 日志带上具体原因，便于对着跑测输出定位。</summary>
-    private bool RejectUnitPurchase(Unit shop, int player, string unitId, string reason)
+    private static string NoResourceKey(PlayerSlot slot, UnitType type)
     {
-        PlayErrorSound();
+        if (slot.Gold < type.GoldCost) return "NoGoldSound";
+        if (slot.Lumber < type.LumberCost) return "NoLumberSound";
+        return "NoFoodSound";
+    }
+
+    private void PlayNoResourceSound(PlayerSlot slot, UnitType type)
+        => PlayUiSound(NoResourceKey(slot, type), _camera.Target, ViewPlayer);
+
+    private bool RejectUnitPurchase(Unit shop, int player, string unitId, string reason,
+        string sound = "InterfaceError")
+    {
+        if (sound != null) PlayUiSound(sound, _camera.Target, ViewPlayer);
         _hud?.SetHint($"{shop?.Type?.Name} 买不了 {unitId}：{reason}");
         GD.Print($"[SHOP] P{player} 在 {shop?.Type?.Name} 买 {unitId} 失败：{reason}");
         return false;

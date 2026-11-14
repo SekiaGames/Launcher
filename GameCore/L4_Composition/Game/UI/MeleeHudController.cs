@@ -169,8 +169,12 @@ public sealed class MeleeHudController : IUiCommandListener
         return string.Join(" | ", names);
     }
 
+    public War3UiSoundService UiSounds { get; set; }
+
     public void OnUiCommand(UiCommand command)
     {
+        UiSounds?.Play(command.Kind == UiCommandKind.SelectUnit
+            ? "SubGroupSelectionChange" : "InterfaceClick");
         if (command.Context is not CommandEntry entry) return;
         if (command.NativeEventKind >= 2)
         {

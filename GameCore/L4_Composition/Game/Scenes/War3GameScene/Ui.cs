@@ -755,13 +755,17 @@ public sealed partial class War3GameScene
         Vector2 screen = _newHud != null ? _newHud.UiToScreen(uiPosition) : Vector2.Zero;
         Unit allyHero = PickUnit(screen, unit => unit.Alive && unit.IsHero
             && AreAllied(unit.Player, source.Player));
-        if (allyHero != null && !ReferenceEquals(allyHero, source)
-            && _world.GiveItem(source, fromSlot, allyHero))
+        if (allyHero != null && !ReferenceEquals(allyHero, source))
         {
-            _hud?.SetHint($"{source.Type.Name} 把 {item.Type.Name} 交给了 {allyHero.Type.Name}");
-            RefreshHud();
-            UpdateCommandCard();
-            return;
+            if (_world.GiveItem(source, fromSlot, allyHero))
+            {
+                _hud?.SetHint($"{source.Type.Name} 把 {item.Type.Name} 交给了 {allyHero.Type.Name}");
+                RefreshHud();
+                UpdateCommandCard();
+                return;
+            }
+            _hud?.SetHint($"{allyHero.Type.Name} 的物品栏已满");
+            PlayUiSound("InventoryFullSound", source.Position, source.Player);
         }
 
         // 商店不要求同盟：命令卡上的"卖"本来也是按 IsShop 选店（中立商店同样收）。
@@ -840,7 +844,7 @@ public sealed partial class War3GameScene
         if (type == null) return;
         if (slot.Gold < type.GoldCost || slot.Lumber < type.LumberCost)
         {
-            PlayErrorSound();
+            PlayNoResourceSound(slot, type);
             _hud?.SetHint($"资源不足：需要 {type.GoldCost} 金 / {type.LumberCost} 木");
             return;
         }
@@ -1002,6 +1006,7 @@ public sealed partial class War3GameScene
         if (!TryGroundPoint(screenPosition, out Vector3 ground))
         {
             _hud?.SetHint("地面位置无效");
+            PlayUiSound("CantPlaceSound", _camera.Target, ViewPlayer);
             return;
         }
         string buildingId = _placingId;

@@ -160,7 +160,7 @@ public sealed partial class War3GameScene
         }
         RefreshSelection();
         UpdateCommandCard();
-        PlaySelectionVoice();
+        PlaySelectionVoice(_selected.Count > 0 ? _selected[^1] : null, true);
         StartTraining(hall, hall.Type.Trains[0]);
         StartTraining(hall, hall.Type.Trains[0]);
     }
@@ -1865,6 +1865,12 @@ public sealed partial class War3GameScene
         RefreshSelection();
         UpdateCommandCard();
         GD.Print($"[SKILL] 命令卡：{DescribeCommandCard(hero)}");
+
+        GD.Print("[SKILL] 应答节流：连点 5 次同一英雄，期望只响 1 次（语音时长+250ms）");
+        for (int i = 0; i < 5; i++) _ackSounds?.PlaySelection(hero, true);
+        GD.Print($"[SKILL] 应答计数 {_ackSounds?.SelectionCount}（满 3 次才转 Pissed）");
+        PlaySelectionVoice(creep, false);
+        GD.Print($"[SKILL] 选中敌方 {creep.Type.Name}（不可控）→ 期望 InterfaceClick");
 
         // 留 3 秒让截图能看到「左技能 / 右物品」的原版布局，再演示使用与丢弃
         SceneTreeTimer itemTimer = GetTree().CreateTimer(3.0);

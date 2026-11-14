@@ -314,17 +314,15 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>客户端语音：选中 What、下令 Yes、死亡 Death（音效集取自 UnitUI.unitSound）。</summary>
     private void PlayVoice(Unit unit, string kind, string fallback = "Yes")
     {
         if (unit?.Type == null || _audio == null) return;
         if (string.IsNullOrEmpty(unit.Type.SoundSet)) return;
 
         string name = unit.Type.SoundSet + kind;
-        if (!War3SoundTables.Has(name) && !string.IsNullOrEmpty(fallback)) name = unit.Type.SoundSet + fallback;
-        if (!War3SoundTables.Has(name)) return;
-
-        _audio.Play(name, unit.Position + new Vector3(0f, 80f, 0f));
+        if (!War3SoundTables.TryGet(name, out War3SoundTables.Entry entry) && !string.IsNullOrEmpty(fallback))
+            War3SoundTables.TryGet(unit.Type.SoundSet + fallback, out entry);
+        War3UnitSound.Create(entry).Play3D(_audio, unit.Position + new Vector3(0f, 80f, 0f));
     }
 
     /// <summary>只看得见的地方才听得到（迷雾外的战斗音不播）。</summary>
@@ -336,27 +334,21 @@ public sealed partial class War3GameScene
     private void OnTreeChopped(Unit worker)
     {
         if (worker == null || !IsAudible(worker.Position)) return;
-        if (!War3SoundTables.Has("MetalLightChopWood")) return;
-        _audio?.Play("MetalLightChopWood", worker.Position + new Vector3(0f, 40f, 0f), 0.8f);
+        if (!War3SoundTables.TryGet("AxeMediumChopWood", out War3SoundTables.Entry entry)) return;
+        War3UnitSound.Create(entry).Play3D(_audio, worker.Position + new Vector3(0f, 40f, 0f), 0.8f);
     }
 
     private void PlayPlacementSound(Vector3 ground)
     {
-        if (!War3SoundTables.Has("PlaceBuildingDefault")) return;
-        _audio?.Play("PlaceBuildingDefault", ground + new Vector3(0f, 40f, 0f));
+        if (!War3SoundTables.TryGet("PlaceBuildingDefault", out War3SoundTables.Entry entry)) return;
+        War3UnitSound.Create(entry).Play3D(_audio, ground + new Vector3(0f, 40f, 0f));
     }
 
-    /// <summary>命中音：UnitWeapons.weapType1 + 目标材质（单位 Flesh / 建筑 Wood）。</summary>
     private void OnAttackLanded(Unit attacker, Unit target)
     {
         if (attacker?.Type == null || target == null) return;
-        string weapon = attacker.Type.WeaponSound;
-        if (string.IsNullOrEmpty(weapon)) return;
         if (!IsAudible(target.Position)) return;
-
-        string name = weapon + (target.IsBuilding ? "Wood" : "Flesh");
-        if (!War3SoundTables.Has(name)) return;
-        _audio?.Play(name, target.Position + new Vector3(0f, 40f, 0f));
+        _ackSounds?.PlayCombatHit(attacker, target, target.Position + new Vector3(0f, 40f, 0f));
     }
 
     /// <summary>
@@ -366,7 +358,8 @@ public sealed partial class War3GameScene
     private void OnConstructionFinished(Unit site)
     {
         if (site?.Type == null) return;
-        PlayVoice(site, "Ready", null);
+        _ackSounds?.PlayReady(site);
+        PlayUiSound("JobDoneSound", site.Position, ViewPlayer);
         if (site.Player == ViewPlayer) _log?.Add($"{site.Type.Name} 建造完成");
     }
 
@@ -374,7 +367,7 @@ public sealed partial class War3GameScene
     private void OnHeroRevived(Unit hero)
     {
         if (hero?.Type == null) return;
-        PlayVoice(hero, "Ready", null);
+        _ackSounds?.PlayReady(hero);
         RefreshHud();
     }
 
@@ -613,8 +606,12 @@ public sealed partial class War3GameScene
     private void PlayUiSound(string soundName, Vector3 position, int player)
     {
         if (player != ViewPlayer) return;
-        if (!War3SoundTables.Has(soundName)) return;
-        _audio?.Play(soundName, position);
+        PlayUiSound(soundName);
+    }
+
+    private void PlayUiSound(string soundName)
+    {
+        _uiSounds?.Play(soundName);
         if (_uiSoundLogBudget > 0)
         {
             _uiSoundLogBudget--;
@@ -627,38 +624,20 @@ public sealed partial class War3GameScene
         PlayUiSound("InterfaceError", _camera.Target, ViewPlayer);
     }
 
-    private readonly Dictionary<Unit, (int Count, float Last)> _clickMarks = new();
-
-    /// <summary>客户端口径：同一个单位在短时间内被点 4 次会切到 Pissed 语音。</summary>
-    private void PlaySelectionVoice()
+    private void PlaySelectionVoice(Unit unit, bool wasSelected)
     {
-        Unit unit = null;
-        foreach (Unit candidate in _selected)
-        {
-            if (!candidate.Alive) continue;
-            unit = candidate;
-            break;
-        }
         if (unit == null) return;
-
-        float now = Time.GetTicksMsec() / 1000f;
-        if (!_clickMarks.TryGetValue(unit, out (int Count, float Last) mark) || now - mark.Last > 12f)
+        if (!CanControlUnit(unit))
         {
-            mark = (0, now);
-        }
-        mark.Count++;
-        mark.Last = now;
-        _clickMarks[unit] = mark;
-
-        if (mark.Count >= 4)
-        {
-            _clickMarks[unit] = (0, now);
-            PlayVoice(unit, "Pissed", "What");
+            _ackSounds?.ResetSelection();
+            _uiSounds?.Play("InterfaceClick");
             return;
         }
-
-        PlayVoice(unit, "What");
+        _ackSounds?.PlaySelection(unit, wasSelected);
     }
+
+    private bool CanControlUnit(Unit unit)
+        => unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
 
     private readonly struct VisualEffectKey : IEquatable<VisualEffectKey>
     {

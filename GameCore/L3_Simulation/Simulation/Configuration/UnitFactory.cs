@@ -83,6 +83,7 @@ public sealed class UnitType
     /// <summary>物编 type 列（mechanical/undead/ancient/townhall...）解析出来的分类位。</summary>
     public Classification Classifications;
     public string SoundSet = "";
+    public string ArmorSound = "";
 
     public string ShadowArt = "";
     public string BuildingShadowArt = "";
@@ -138,6 +139,7 @@ public sealed class UnitType
     public AttackType AttackType => Weapon.AttackType;
     public TargetKind Targets => Weapon.Targets;
     public string WeaponSound => Weapon.Sound;
+    public WeaponSound WeaponSoundCode => CombatCodes.ParseWeaponSound(Weapon.Sound);
     public float DamagePoint => Weapon.DamagePoint;
     public float Backswing => Weapon.Backswing;
     public float SplashFull => Weapon.SplashFull;
@@ -317,6 +319,7 @@ public static class UnitFactory
             RunAnimationSpeed = Number(ui.Get(uiRow, "run"), 0f),
             Name = file.Replace('\\', '/').Split('/')[^1],
             SoundSet = ui.Get(uiRow, "unitSound") ?? "",
+            ArmorSound = ui.Get(uiRow, "armor") ?? "",
             ShadowArt = (ui.Get(uiRow, "unitShadow") ?? "").Trim(),
             BuildingShadowArt = (ui.Get(uiRow, "buildingShadow") ?? "").Trim(),
             ShadowWidth = Number(ui.Get(uiRow, "shadowW"), 0f),

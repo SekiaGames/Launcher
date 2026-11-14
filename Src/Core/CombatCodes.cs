@@ -4,6 +4,13 @@ namespace OpenWC3;
 
 public static class CombatCodes
 {
+    public static WeaponSound ParseWeaponSound(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || raw == "_" || raw == "-") return WeaponSound.Whoknows;
+        return Enum.TryParse(raw.Trim(), true, out WeaponSound parsed)
+            ? parsed : WeaponSound.Whoknows;
+    }
+
     public static AttackType ParseAttack(string raw, AttackType fallback = AttackType.Normal)
     {
         return raw?.Trim().ToLowerInvariant() switch

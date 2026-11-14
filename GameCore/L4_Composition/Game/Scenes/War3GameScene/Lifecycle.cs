@@ -32,6 +32,8 @@ public sealed partial class War3GameScene : Node3D
     private Texture2D _minimapBaseTexture;
         public int SelectedRace;
     private War3AudioSystem _audio;
+    private War3AckSoundService _ackSounds;
+    private War3UiSoundService _uiSounds;
     private War3MusicPlayer _music;
     private FogOfWar _fog;
     private float _fogTimer;
@@ -317,11 +319,11 @@ public sealed partial class War3GameScene : Node3D
             || _fog.IsVisible(new Vector3(x, 0f, z));
         _selection = new PlayerSelectionController(_world, () => ViewPlayer,
             OnSelectionChanged, _selected);
-        _selection.SelectedAck = (_, _) => PlaySelectionVoice();
+        _selection.SelectedAck = (unit, wasSelected) => PlaySelectionVoice(unit, wasSelected);
         _commandProcessor = new PlayerCommandProcessor(_world, _selection, () => true, _ => { });
         _commandProcessor.OrderAck = attack =>
         {
-            if (PrimarySelection != null) PlayVoice(PrimarySelection, attack ? "YesAttack" : "Yes");
+            if (PrimarySelection != null) _ackSounds?.PlayOrderAck(PrimarySelection, attack);
         };
         _world.Died += OnUnitDied;
         _world.GoldDeposited += OnGoldDeposited;
@@ -337,6 +339,8 @@ public sealed partial class War3GameScene : Node3D
         _world.ConstructionFinished += OnConstructionFinished;
         _world.BountyAwarded += OnBountyAwarded;
         _world.ItemSpawned += OnItemSpawned;
+        _world.ItemPickedUp += OnItemPickedUp;
+        _world.ItemDropped += OnItemDropped;
         _world.AbilityCast += OnAbilityCast;
         _world.SummonHandler = SummonUnitFor;
         _world.AbilityMissileFired += OnAbilityMissileFired;
@@ -398,6 +402,8 @@ public sealed partial class War3GameScene : Node3D
         FocusStartPosition();
 
         _audio = new War3AudioSystem(this);
+        _ackSounds = new War3AckSoundService(_audio);
+        _uiSounds = new War3UiSoundService(_audio);
         _music = new War3MusicPlayer(this);
 
         MiscRules.Log();
@@ -426,7 +432,9 @@ public sealed partial class War3GameScene : Node3D
         _hud = new MeleeHudController(_newHud, War3Strings.Resolve(_map.Name))
         {
             CommandSource = BuildCommandEntries,
+            UiSounds = _uiSounds,
         };
+        _uiSounds?.SetPlayerRace(HudRaceName());
         _newHud.HeroBar.HeroClicked = SelectHeroFromBar;
         _newHud.SelectionClicked = OnSelectionGroupClicked;
         _newHud.IdlePeonClicked = SelectIdleWorkerUnit;
@@ -554,6 +562,7 @@ public sealed partial class War3GameScene : Node3D
 
     private void OnSelectionChanged()
     {
+        _uiSounds?.PlaySelectionChanged();
         foreach (Unit unit in _allUnits)
             unit.View?.SetSelected(_selected.Contains(unit));
         RefreshSelection();
