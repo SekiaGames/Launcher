@@ -598,9 +598,11 @@ public sealed partial class LauncherApp : Node
         foreach (string code in AbilityArt.Ids)
         {
             ids++;
+            IRuntimeObjectData data = War3ObjectData.GetAbility(code);
+            data ??= War3ObjectData.GetBuffType(code);
             foreach ((string field, string raw) in fields)
             {
-                foreach (string art in AbilityArt.Arts(null, code, 1, field, raw))
+                foreach (string art in AbilityArt.Arts(data, 1, field, raw))
                 {
                     arts++;
                     string path = PathResolve.ModelScene(art);
@@ -615,7 +617,7 @@ public sealed partial class LauncherApp : Node
                 }
             }
         }
-        GD.Print($"[FX] 物编 {ids} 条，美术引用 {arts}，可加载 {resolved}，缺 {missing}");
+        GD.Print($"[FX] 文本表 {ids} 条，美术引用 {arts}，可加载 {resolved}，缺 {missing}");
     }
 
     private static void DumpUnits(string gmapPath)

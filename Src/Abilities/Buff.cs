@@ -45,7 +45,7 @@ public class Buff : Ability
     public void BindBuffObjectData(string rawcode, IRuntimeObjectData data, int level,
         Unit caster = null, Ability sourceAbility = null)
     {
-        BindObjectData(rawcode, data, level);
+        BindObjectData(rawcode, War3ObjectData.GetBuffType(rawcode) ?? data, level);
         Caster = caster;
         SourceAbility = sourceAbility;
     }
@@ -122,8 +122,8 @@ public class Buff : Ability
         if (_visualModel != null && _visualLevel == Level) return;
         _visualLevel = Level;
         IRuntimeObjectData data = ((Ability)this).ObjectData;
-        _visualModel = AbilityArt.FirstArt(data, Id, Level, "TargetArt", "atat");
-        _visualAttachment = AbilityArt.FirstAttachment(data, Id, Level, "Targetattach", "ata0");
+        _visualModel = AbilityArt.FirstArt(data, Level, "TargetArt", "atat");
+        _visualAttachment = AbilityArt.FirstAttachment(data, Level, "Targetattach", "ata0");
     }
 
     public override string VisualModelPath

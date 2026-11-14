@@ -435,15 +435,15 @@ public abstract class Ability
             if (_arts.Level == Level && ReferenceEquals(_arts.Data, ObjectData)) return _arts;
             _arts.Level = Level;
             _arts.Data = ObjectData;
-            _arts.Caster = AbilityArt.Arts(ObjectData, Id, Level, "CasterArt", "acat");
-            _arts.Target = AbilityArt.Arts(ObjectData, Id, Level, "TargetArt", "atat");
-            _arts.Special = AbilityArt.Arts(ObjectData, Id, Level, "SpecialArt", "asat");
-            _arts.Effect = AbilityArt.Arts(ObjectData, Id, Level, "EffectArt", "aeat");
-            _arts.AreaEffect = AbilityArt.Arts(ObjectData, Id, Level, "AreaEffectArt", "aaea");
-            _arts.CasterAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Casterattach", "acap");
-            _arts.TargetAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Targetattach", "ata0");
-            _arts.SpecialAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Specialattach", "aspt");
-            _arts.EffectAttachments = AbilityArt.Attachments(ObjectData, Id, Level, "Effectattach", "aeap");
+            _arts.Caster = AbilityArt.Arts(ObjectData, Level, "CasterArt", "acat");
+            _arts.Target = AbilityArt.Arts(ObjectData, Level, "TargetArt", "atat");
+            _arts.Special = AbilityArt.Arts(ObjectData, Level, "SpecialArt", "asat");
+            _arts.Effect = AbilityArt.Arts(ObjectData, Level, "EffectArt", "aeat");
+            _arts.AreaEffect = AbilityArt.Arts(ObjectData, Level, "AreaEffectArt", "aaea");
+            _arts.CasterAttachments = AbilityArt.Attachments(ObjectData, Level, "Casterattach", "acap");
+            _arts.TargetAttachments = AbilityArt.Attachments(ObjectData, Level, "Targetattach", "ata0");
+            _arts.SpecialAttachments = AbilityArt.Attachments(ObjectData, Level, "Specialattach", "aspt");
+            _arts.EffectAttachments = AbilityArt.Attachments(ObjectData, Level, "Effectattach", "aeap");
             return _arts;
         }
     }

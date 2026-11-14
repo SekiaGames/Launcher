@@ -1,19 +1,20 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using OpenWC3.War3Formats;
 
 namespace OpenWC3.Game;
 
 /// <summary>
-/// 技能类型（静态数据）。数据来自 Units\AbilityData.slk（`UnitsAbilityData`），
-/// 名字/提示来自 Units\*AbilityStrings。对标客户端 Simulation/Configuration 的
-/// ObjectDataAbility + RuntimeObjectNumbers：全部数值按等级从表里读，不写死。
+/// 技能类型（静态数据）。字段全部来自技能物编合并（War3ObjectData）：
+/// Units\AbilityData.slk 的结构列与等级列，加上 Units\*AbilityFunc/Strings 的
+/// 名字、提示、热键、美术与命令卡位置。对标客户端 ObjectDataAbility。
 /// </summary>
 public sealed class AbilityType
 {
     public const int MaxLevels = 4;
+
+    /// <summary>技能物编：AbilityData.slk 的结构列 + 16 张技能文本表的全部字段。</summary>
+    public AbilityTypeData ObjectData;
 
     public string Id;
     /// <summary>技能基类码（alias 的 code 列）。自定义技能用它找实现。</summary>
@@ -114,33 +115,6 @@ public sealed class AbilityType
 
 public static class AbilityCatalog
 {
-    private const string Table = "UnitsAbilityData";
-
-    private static readonly string[] StringFiles =
-    {
-        "UnitsHumanAbilityStrings.json",
-        "UnitsOrcAbilityStrings.json",
-        "UnitsUndeadAbilityStrings.json",
-        "UnitsNightElfAbilityStrings.json",
-        "UnitsNeutralAbilityStrings.json",
-        "UnitsCampaignAbilityStrings.json",
-        "UnitsCommonAbilityStrings.json",
-        "UnitsItemAbilityStrings.json",
-    };
-
-    /// <summary>命令卡位置/图标的来源：客户端的 AbilityFunc.txt 这一组（按种族分文件，这里合并）。</summary>
-    private static readonly string[] FuncFiles =
-    {
-        "UnitsHumanAbilityFunc.json",
-        "UnitsOrcAbilityFunc.json",
-        "UnitsUndeadAbilityFunc.json",
-        "UnitsNightElfAbilityFunc.json",
-        "UnitsNeutralAbilityFunc.json",
-        "UnitsCampaignAbilityFunc.json",
-        "UnitsCommonAbilityFunc.json",
-        "UnitsItemAbilityFunc.json",
-    };
-
     private static readonly (string Field, string SplitX, string SplitY)[] CommandPositionFields =
     {
         ("Buttonpos", "abpx", "abpy"),
@@ -208,17 +182,15 @@ public static class AbilityCatalog
     };
 
     private static readonly Dictionary<string, AbilityType> Cache = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, int> Rows = new(StringComparer.OrdinalIgnoreCase);
-    private static Dictionary<string, string> _strings;
-    private static Dictionary<string, string> _funcs;
     private static bool _indexed;
+    private static int _count;
 
     public static int Count
     {
         get
         {
             EnsureIndex();
-            return Rows.Count;
+            return _count;
         }
     }
 
@@ -226,88 +198,71 @@ public static class AbilityCatalog
     {
         if (_indexed) return;
         _indexed = true;
-
-        SlkTable table = War3SlkReader.Get(Table);
-        if (table == null)
+        _count = 0;
+        foreach (string id in War3ObjectData.TextAbilityIds)
         {
-            GD.Print("[ABILITY] 缺少 UnitsAbilityData，技能系统不可用");
-            return;
+            if (War3ObjectData.GetAbility(id) != null) _count++;
         }
-
-        foreach (int row in table.DataRows)
-        {
-            string id = table.Get(row, "alias");
-            if (string.IsNullOrWhiteSpace(id)) continue;
-            Rows[id.Trim()] = row;
-        }
-        GD.Print($"[ABILITY] 技能索引 {Rows.Count} 条");
+        GD.Print($"[ABILITY] 技能索引 {_count} 条");
     }
 
-    public static bool Exists(string id)
-    {
-        if (string.IsNullOrEmpty(id)) return false;
-        EnsureIndex();
-        return Rows.ContainsKey(id);
-    }
+    public static bool Exists(string id) => Get(id) != null;
 
     public static AbilityType Get(string id)
     {
         if (string.IsNullOrEmpty(id)) return null;
         if (Cache.TryGetValue(id, out AbilityType cached)) return cached;
-        EnsureIndex();
-        if (!Rows.TryGetValue(id, out int row)) return null;
+        AbilityTypeData data = War3ObjectData.GetAbility(id);
+        if (data == null) return null;
 
-        SlkTable table = War3SlkReader.Get(Table);
         var type = new AbilityType
         {
             Id = id,
-            Code = (table.Get(row, "code") ?? "").Trim(),
-            MaxLevel = Mathf.Max(1, table.GetInt(row, "levels", 1)),
-            RequiredLevel = Mathf.Max(1, table.GetInt(row, "reqLevel", 1)),
-            LevelSkip = Mathf.Max(1, table.GetInt(row, "levelSkip", 1)),
-            HeroAbility = table.Get(row, "hero") == "1",
-            ItemAbility = table.Get(row, "item") == "1",
-            TargetRules = table.Get(row, "targs1"),
-            Targets = SpellTargetCode.Parse(table.Get(row, "targs1")),
+            ObjectData = data,
+            Code = Text(data, "code"),
+            MaxLevel = Mathf.Max(1, data.GetInt("levels", 1, 0, 1)),
+            RequiredLevel = Mathf.Max(1, data.GetInt("reqLevel", 1, 0, 1)),
+            LevelSkip = Mathf.Max(1, data.GetInt("levelSkip", 1, 0, 1)),
+            HeroAbility = Text(data, "hero") == "1",
+            ItemAbility = Text(data, "item") == "1",
+            TargetRules = data.GetString("targs", 1, 0, ""),
+            Targets = SpellTargetCode.Parse(data.GetString("targs", 1, 0, "")),
         };
 
         for (int level = 1; level <= AbilityType.MaxLevels; level++)
         {
             int index = level - 1;
-            type.Cooldown[index] = Number(table.Get(row, "Cool" + level), 0f);
-            type.ManaCost[index] = Number(table.Get(row, "Cost" + level), 0f);
-            type.CastRange[index] = Number(table.Get(row, "Rng" + level), 0f);
-            type.Area[index] = Number(table.Get(row, "Area" + level), 0f);
-            type.Duration[index] = Number(table.Get(row, "Dur" + level), 0f);
-            type.HeroDuration[index] = Number(table.Get(row, "HeroDur" + level), 0f);
-            type.Cast[index] = Number(table.Get(row, "Cast" + level), 0f);
-            type.SummonId[index] = (table.Get(row, "UnitID" + level) ?? "").Trim();
-            type.BuffId[index] = (table.Get(row, "BuffID" + level) ?? "").Trim();
+            type.Cooldown[index] = data.GetFloat("Cool", level, 0, 0f);
+            type.ManaCost[index] = data.GetFloat("Cost", level, 0, 0f);
+            type.CastRange[index] = data.GetFloat("Rng", level, 0, 0f);
+            type.Area[index] = data.GetFloat("Area", level, 0, 0f);
+            type.Duration[index] = data.GetFloat("Dur", level, 0, 0f);
+            type.HeroDuration[index] = data.GetFloat("HeroDur", level, 0, 0f);
+            type.Cast[index] = data.GetFloat("Cast", level, 0, 0f);
+            type.SummonId[index] = Text(data, "UnitID", level);
+            type.BuffId[index] = Text(data, "BuffID", level);
 
             for (int slot = 0; slot < 9; slot++)
             {
-                char letter = (char)('A' + slot);
-                string raw = table.Get(row, "Data" + letter + level) ?? "";
-                type.Data[index, slot] = Number(raw, 0f);
+                string raw = Text(data, "Data", level, slot + 1);
+                type.Data[index, slot] = RuntimeObjectNumbers.ReadFloat(raw, 0f);
                 type.DataText[index, slot] = raw.Trim();
             }
         }
 
-        Dictionary<string, string> strings = Strings();
-        Dictionary<string, string> funcs = Funcs();
-        type.Name = Pick(strings, id + ".Name");
-        type.Tip = Pick(strings, id + ".Tip");
-        type.Ubertip = Pick(strings, id + ".Ubertip");
-        if (string.IsNullOrEmpty(type.Ubertip)) type.Ubertip = Pick(strings, id + ".UberTip");
-        type.Hotkey = Pick(strings, id + ".Hotkey");
-        type.ResearchArt = Pick(funcs, id + ".Researchart");
-        type.ResearchHotkey = Pick(strings, id + ".Researchhotkey");
-        type.ResearchTip = Pick(strings, id + ".Researchtip");
-        type.ResearchUbertip = Pick(strings, id + ".Researchubertip");
+        type.Name = Text(data, "Name");
+        type.Tip = Text(data, "Tip");
+        type.Ubertip = Text(data, "Ubertip");
+        if (string.IsNullOrEmpty(type.Ubertip)) type.Ubertip = Text(data, "UberTip");
+        type.Hotkey = Text(data, "Hotkey");
+        type.ResearchArt = Text(data, "Researchart");
+        type.ResearchHotkey = Text(data, "Researchhotkey");
+        type.ResearchTip = Text(data, "Researchtip");
+        type.ResearchUbertip = Text(data, "Researchubertip");
 
         foreach ((string field, string splitX, string splitY) in CommandPositionFields)
         {
-            string raw = Pick(funcs, id + "." + field);
+            string raw = Text(data, field);
             if (string.IsNullOrWhiteSpace(raw)) continue;
             type.CommandFields[field] = raw;
             string[] parts = raw.Split(',');
@@ -316,7 +271,7 @@ public static class AbilityCatalog
         }
 
         if (string.IsNullOrEmpty(type.Name)) type.Name = id;
-        type.IconArt = Pick(funcs, id + ".Art");
+        type.IconArt = Text(data, "Art");
         if (string.IsNullOrWhiteSpace(type.IconArt) || type.IconArt is "_" or "-")
         {
             if (IconFallback.TryGetValue(id, out string icon)) type.IconArt = icon;
@@ -345,62 +300,13 @@ public static class AbilityCatalog
         return list.ToArray();
     }
 
-    private static Dictionary<string, string> Strings()
+    static string Text(IRuntimeObjectData data, string field, int level = 0, int dataPointer = 0)
     {
-        if (_strings != null) return _strings;
-
-        _strings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string file in StringFiles)
-        {
-            Variant json = GeneratedTexts.Get(file);
-            if (json.VariantType != Variant.Type.Dictionary) continue;
-
-            Godot.Collections.Dictionary root = json.AsGodotDictionary();
-            if (!root.ContainsKey("keys")) continue;
-
-            Godot.Collections.Dictionary keys = root["keys"].AsGodotDictionary();
-            foreach (KeyValuePair<Variant, Variant> pair in keys)
-            {
-                string key = pair.Key.AsString();
-                if (!_strings.ContainsKey(key)) _strings[key] = pair.Value.AsString();
-            }
-        }
-        return _strings;
-    }
-
-    private static Dictionary<string, string> Funcs()
-    {
-        if (_funcs != null) return _funcs;
-
-        _funcs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string file in FuncFiles)
-        {
-            Variant json = GeneratedTexts.Get(file);
-            if (json.VariantType != Variant.Type.Dictionary) continue;
-
-            Godot.Collections.Dictionary root = json.AsGodotDictionary();
-            if (!root.ContainsKey("keys")) continue;
-
-            Godot.Collections.Dictionary keys = root["keys"].AsGodotDictionary();
-            foreach (KeyValuePair<Variant, Variant> pair in keys)
-            {
-                string key = pair.Key.AsString();
-                if (!_funcs.ContainsKey(key)) _funcs[key] = pair.Value.AsString();
-            }
-        }
-        return _funcs;
-    }
-
-    private static string Pick(Dictionary<string, string> map, string key)
-    {
-        return map.TryGetValue(key, out string value) ? value : "";
-    }
-
-    private static float Number(string text, float fallback)
-    {
-        if (string.IsNullOrWhiteSpace(text) || text == "_") return fallback;
-        return float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float value)
-            ? value
-            : fallback;
+        string value = level > 0
+            ? data.GetString(field, level, dataPointer, "")
+            : data.GetString(field, "");
+        if (value == null) return "";
+        value = value.Trim();
+        return value == "_" || value == "-" ? "" : value;
     }
 }

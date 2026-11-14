@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Godot;
 using OpenWC3.War3Formats;
 
 namespace OpenWC3.Game;
@@ -68,34 +69,122 @@ public sealed class W3xObjectDefinition
 
 public sealed class War3ObjectData
 {
-    static Dictionary<string, BuffTypeData> _buffs;
+    const string AbilityTable = "UnitsAbilityData";
+    const string BuffTable = "UnitsAbilityBuffData";
 
-    /// <summary>Buff 物编只有 9 个结构列（AbilityBuffData.slk），玩法字段由 Buff 子类 override。</summary>
-    static Dictionary<string, BuffTypeData> Buffs
+    // *AbilityFunc/String.txt 同时承载 [Axxx] 技能段和 [Bxxx] Buff 段，客户端
+    // War3ObjectData.MergeAbilityText 按 AbilityBuffData.slk 已声明的 ID 分流。
+    static readonly string[] AbilityTextTables =
     {
-        get
+        "UnitsHumanAbilityFunc", "UnitsHumanAbilityStrings",
+        "UnitsOrcAbilityFunc", "UnitsOrcAbilityStrings",
+        "UnitsUndeadAbilityFunc", "UnitsUndeadAbilityStrings",
+        "UnitsNightElfAbilityFunc", "UnitsNightElfAbilityStrings",
+        "UnitsNeutralAbilityFunc", "UnitsNeutralAbilityStrings",
+        "UnitsCampaignAbilityFunc", "UnitsCampaignAbilityStrings",
+        "UnitsCommonAbilityFunc", "UnitsCommonAbilityStrings",
+        "UnitsItemAbilityFunc", "UnitsItemAbilityStrings",
+    };
+
+    static Dictionary<string, AbilityTypeData> _abilities;
+    static Dictionary<string, BuffTypeData> _buffs;
+    static HashSet<string> _textIds;
+    static bool _merged;
+
+    /// <summary>技能/Buff 物编：AbilityData/BuffData 的结构列 + 16 张技能文本表的全部字段。</summary>
+    static void EnsureMerged()
+    {
+        if (_merged) return;
+        _merged = true;
+
+        _buffs = new Dictionary<string, BuffTypeData>(StringComparer.OrdinalIgnoreCase);
+        MergeSlk(_buffs, BuffTable);
+
+        var text = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (string table in AbilityTextTables)
+            CollectText(table, text);
+
+        _abilities = new Dictionary<string, AbilityTypeData>(StringComparer.OrdinalIgnoreCase);
+        MergeSlk(_abilities, AbilityTable);
+
+        _textIds = text.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, Dictionary<string, string>> section in text)
         {
-            if (_buffs != null) return _buffs;
-            _buffs = new Dictionary<string, BuffTypeData>(StringComparer.OrdinalIgnoreCase);
-            SlkTable table = War3SlkReader.Get("UnitsAbilityBuffData");
-            if (table == null) return _buffs;
-            foreach (int row in table.DataRows)
-            {
-                string id = (table.Get(row, "alias") ?? "").Trim();
-                if (id.Length == 0) continue;
-                var data = new BuffTypeData { Id = id, BaseId = id };
-                data.Fields["code"] = (table.Get(row, "code") ?? "").Trim();
-                data.Fields["comments"] = (table.Get(row, "comments") ?? "").Trim();
-                data.Fields["isEffect"] = (table.Get(row, "isEffect") ?? "").Trim();
-                data.Fields["race"] = (table.Get(row, "race") ?? "").Trim();
-                _buffs[id] = data;
-            }
-            return _buffs;
+            War3TypeData target = _buffs.TryGetValue(section.Key, out BuffTypeData buff)
+                ? buff
+                : AbilityEntry(section.Key);
+            foreach (KeyValuePair<string, string> field in section.Value)
+                target.SetField(field.Key, field.Value);
+        }
+        GD.Print($"[OBJ] 技能物编 {_abilities.Count} 条，Buff 物编 {_buffs.Count} 条，文本表 {_textIds.Count} 条");
+    }
+
+    static AbilityTypeData AbilityEntry(string id)
+    {
+        if (_abilities.TryGetValue(id, out AbilityTypeData found)) return found;
+        _abilities[id] = found = new AbilityTypeData { Id = id, BaseId = id };
+        return found;
+    }
+
+    static void MergeSlk<T>(Dictionary<string, T> target, string tableName)
+        where T : War3TypeData, new()
+    {
+        SlkTable table = War3SlkReader.Get(tableName);
+        if (table == null) return;
+        foreach (int row in table.DataRows)
+        {
+            string id = (table.Get(row, "alias") ?? "").Trim();
+            if (id.Length == 0) continue;
+            if (!target.TryGetValue(id, out T data))
+                target[id] = data = new T { Id = id, BaseId = id };
+            foreach (string column in table.Columns.Keys)
+                data.SetField(column, table.Get(row, column));
         }
     }
 
-    public BuffTypeData GetBuff(string typeId)
-        => string.IsNullOrEmpty(typeId) ? null : (Buffs.TryGetValue(typeId, out BuffTypeData found) ? found : null);
+    static void CollectText(string tableName, Dictionary<string, Dictionary<string, string>> into)
+    {
+        Variant json = GeneratedTexts.Get(tableName);
+        if (json.VariantType != Variant.Type.Dictionary) return;
+        Godot.Collections.Dictionary root = json.AsGodotDictionary();
+        if (!root.ContainsKey("keys")) return;
+        Godot.Collections.Dictionary keys = root["keys"].AsGodotDictionary();
+        foreach (Variant keyVariant in keys.Keys)
+        {
+            string key = keyVariant.AsString();
+            int dot = key.IndexOf('.');
+            if (dot <= 0 || dot == key.Length - 1) continue;
+            string id = key[..dot];
+            string field = key[(dot + 1)..];
+            if (!into.TryGetValue(id, out Dictionary<string, string> fields))
+                into[id] = fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            fields.TryAdd(field, keys[keyVariant].AsString());
+        }
+    }
+
+    public static AbilityTypeData GetAbility(string typeId)
+    {
+        EnsureMerged();
+        return string.IsNullOrEmpty(typeId) ? null : _abilities.GetValueOrDefault(typeId);
+    }
+
+    public static BuffTypeData GetBuffType(string typeId)
+    {
+        EnsureMerged();
+        return string.IsNullOrEmpty(typeId) ? null : _buffs.GetValueOrDefault(typeId);
+    }
+
+    /// <summary>技能文本表里出现过的所有 ID（技能段 + Buff 段），技能美术探针按它遍历。</summary>
+    public static IReadOnlyCollection<string> TextAbilityIds
+    {
+        get
+        {
+            EnsureMerged();
+            return _textIds;
+        }
+    }
+
+    public BuffTypeData GetBuff(string typeId) => GetBuffType(typeId);
 
     public ObjectDataBuff CreateBuff(string typeId, int level, Unit caster = null,
         Ability sourceAbility = null, float? duration = null)
