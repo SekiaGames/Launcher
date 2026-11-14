@@ -70,34 +70,62 @@ public sealed partial class MapWorldBuilder
                 W3eTerrain.Corner corner2 = terrain.Corners[l * width + k + 1];
                 W3eTerrain.Corner corner3 = terrain.Corners[(l + 1) * width + k];
                 W3eTerrain.Corner corner4 = terrain.Corners[(l + 1) * width + k + 1];
-                bool flag = corner3.LayerHeight >= corner.LayerHeight && corner4.LayerHeight >= corner2.LayerHeight;
-                bool flag2 = corner2.LayerHeight >= corner.LayerHeight && corner4.LayerHeight >= corner3.LayerHeight;
-                if ((flag && l == 0) || (!flag && l >= height - 2) || (flag2 && k == 0) || (!flag2 && k >= width - 2))
+                bool facingDown = corner3.LayerHeight >= corner.LayerHeight && corner4.LayerHeight >= corner2.LayerHeight;
+                bool facingLeft = corner2.LayerHeight >= corner.LayerHeight && corner4.LayerHeight >= corner3.LayerHeight;
+                if ((facingDown && l == 0) || (!facingDown && l >= height - 2) || (facingLeft && k == 0) || (!facingLeft && k >= width - 2))
                 {
                     continue;
                 }
                 int num3 = Math.Min(Math.Min(corner.LayerHeight, corner2.LayerHeight), Math.Min(corner3.LayerHeight, corner4.LayerHeight));
-                int x = k + ((!flag2) ? 1 : (-1));
-                int y = l + ((!flag) ? 1 : (-1));
-                bool flag3 = corner.Ramp != corner2.Ramp && corner3.Ramp != corner4.Ramp && !CornerFlag(array, k + (corner2.Ramp ? 1 : 0), y);
-                bool flag4 = corner.Ramp != corner3.Ramp && corner2.Ramp != corner4.Ramp && !CornerFlag(array, x, l + (corner3.Ramp ? 1 : 0));
-                if (flag3 || flag4)
+                bool verticalRamp = corner.Ramp != corner2.Ramp && corner3.Ramp != corner4.Ramp;
+                bool horizontalRamp = corner.Ramp != corner3.Ramp && corner2.Ramp != corner4.Ramp;
+                if (verticalRamp || horizontalRamp)
                 {
-                    string text = string.Concat(RampChar(corner, num3), RampChar(corner3, num3), RampChar(corner4, num3), RampChar(corner2, num3));
-                    string rampDirectory = CliffTextureSet.RampModelDirectoryFor(CliffIdOf(terrain, k, l));
-                    string text2 = CliffRenderer.FindModel(rampDirectory, rampDirectory + text + "0");
-                    if (text2 != null)
+                    bool rampBlockedByCliff = verticalRamp && CornerFlag(array, k, l + (facingDown ? -1 : 1))
+                        || horizontalRamp && CornerFlag(array, k + (facingLeft ? -1 : 1), l);
+                    bool invalidRamp = false;
+                    if (rampBlockedByCliff)
                     {
-                        int num4 = k + ((flag4 && !flag2) ? 1 : 0);
-                        int num5 = l - ((flag3 && flag) ? 1 : 0);
-                        MarkCovered(surfaceTool, terrain, text2, num4, num5, num3, cliffTextureSet, corner, array2, cullGround: false);
-                        _cliffTransitions[k, l] = true;
-                        _cliffTransitions[num4, num5] = true;
-                        num++;
-                        num2++;
-                        continue;
+                        invalidRamp = true;
                     }
-                    dictionary["CliffTrans" + text] = dictionary.GetValueOrDefault("CliffTrans" + text) + 1;
+                    else if (corner3.LayerHeight - num3 > 1)
+                    {
+                        invalidRamp = true;
+                        ClearRampCorner(terrain, k, l + 1);
+                    }
+                    else if (corner4.LayerHeight - num3 > 1)
+                    {
+                        invalidRamp = true;
+                        ClearRampCorner(terrain, k + 1, l + 1);
+                    }
+                    else if (corner2.LayerHeight - num3 > 1)
+                    {
+                        invalidRamp = true;
+                        ClearRampCorner(terrain, k + 1, l);
+                    }
+                    else if (corner.LayerHeight - num3 > 1)
+                    {
+                        invalidRamp = true;
+                        ClearRampCorner(terrain, k, l);
+                    }
+                    if (!invalidRamp)
+                    {
+                        string text = string.Concat(RampChar(corner, num3), RampChar(corner3, num3), RampChar(corner4, num3), RampChar(corner2, num3));
+                        string rampDirectory = CliffTextureSet.RampModelDirectoryFor(CliffIdOf(terrain, k, l));
+                        string text2 = CliffRenderer.FindModel(rampDirectory, rampDirectory + text + "0");
+                        if (text2 != null)
+                        {
+                            int placementColumn = k + ((horizontalRamp && facingLeft) ? -1 : 0);
+                            int placementRow = l - ((verticalRamp && facingDown) ? 1 : 0);
+                            MarkCovered(surfaceTool, terrain, text2, placementColumn, placementRow, num3, cliffTextureSet, corner, array2, cullGround: false);
+                            _cliffTransitions[k, l] = true;
+                            _cliffTransitions[k + (facingLeft ? -1 : 1) * (horizontalRamp ? 1 : 0), l + (facingDown ? -1 : 1) * (verticalRamp ? 1 : 0)] = true;
+                            num++;
+                            num2++;
+                            continue;
+                        }
+                        dictionary["CliffTrans" + text] = dictionary.GetValueOrDefault("CliffTrans" + text) + 1;
+                    }
                 }
                 if (IsRampEntrance(terrain, k, l))
                 {
@@ -187,6 +215,12 @@ public sealed partial class MapWorldBuilder
         W3eTerrain.Corner corner3 = terrain.Corners[(y + 1) * width + x];
         W3eTerrain.Corner corner4 = terrain.Corners[(y + 1) * width + x + 1];
         return corner.Ramp && corner3.Ramp && corner2.Ramp && corner4.Ramp && (corner.LayerHeight != corner4.LayerHeight || corner3.LayerHeight != corner2.LayerHeight);
+    }
+
+    private static void ClearRampCorner(W3eTerrain terrain, int x, int y)
+    {
+        W3eTerrain.Corner corner = terrain.Corners[y * terrain.Width + x];
+        terrain.SetCorner(x, y, corner with { TextureFlags = (byte)(corner.TextureFlags & 0xEF) });
     }
 
     private static float CliffLayer(CliffTextureSet set, W3eTerrain terrain, int cliffTexture)

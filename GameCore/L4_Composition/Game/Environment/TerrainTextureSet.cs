@@ -12,6 +12,8 @@ public sealed class TerrainTextureSet
 
     public Dictionary<string, int> BaseLayer { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    public Dictionary<string, bool> Extended { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     public static TerrainTextureSet Build(TerrainTextureLoader tiles, IReadOnlyList<string> tileIds, List<string> used)
     {
         var array = new TerrainTextureSet();
@@ -71,6 +73,7 @@ public sealed class TerrainTextureSet
             }
 
             array.BaseLayer[id] = baseLayer;
+            array.Extended[id] = columns >= 8;
             used.Add(id);
         }
 
@@ -89,13 +92,14 @@ public sealed class TerrainTextureSet
         return array;
     }
 
-    public static int VariationLayer(int variation)
+    public static int VariationLayer(int variation, bool extended)
     {
-        if (variation <= 15)
+        int wrapped = variation % 18;
+        if (extended)
         {
-            return 16 + variation;
+            return wrapped <= 15 ? 16 + wrapped : wrapped == 16 ? 15 : 0;
         }
-        return variation == 16 ? 15 : 0;
+        return (wrapped & 1) == 0 ? 0 : 15;
     }
 
     public int LayerOf(string tileId, int variation)
@@ -104,7 +108,8 @@ public sealed class TerrainTextureSet
         {
             return 0;
         }
-        return baseLayer + VariationLayer(variation);
+        bool extended = Extended.TryGetValue(tileId, out bool flag) && flag;
+        return baseLayer + VariationLayer(variation, extended);
     }
 
     public const int BlankLayer = 0;

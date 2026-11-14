@@ -84,7 +84,7 @@ public sealed partial class MapWorldBuilder
         {
             for (int k = 0; k < width - 1; k++)
             {
-                if ((_cliffTransitions == null || !_cliffTransitions[k, j]) && !IsRampEntrance(terrain, k, j) && (IsCliffTile(terrain, k, j) || covered[k, j]))
+                if (!IsRampEntrance(terrain, k, j) && (IsCliffTile(terrain, k, j) || _cliffTransitions[k, j] || covered[k, j]))
                 {
                     num++;
                     continue;
