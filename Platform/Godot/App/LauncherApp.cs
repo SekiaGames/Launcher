@@ -65,6 +65,7 @@ public sealed partial class LauncherApp : Node
     private bool _itemProbe;
     private bool _floatProbe;
     private bool _fogMemoryProbe;
+    private bool _eventSoundProbe;
     private readonly List<string> _spawnItems = new();
     private bool _aggro;
     private bool _noAi;
@@ -327,6 +328,10 @@ public sealed partial class LauncherApp : Node
             {
                 _fogMemoryProbe = true;
             }
+            else if (argument == "--event-sound-probe")
+            {
+                _eventSoundProbe = true;
+            }
             else if (argument.StartsWith("--spawn-item="))
             {
                 foreach (string item in argument["--spawn-item=".Length..].Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -580,6 +585,11 @@ public sealed partial class LauncherApp : Node
             if (_fogMemoryProbe)
             {
                 GetTree().Quit(game.RunFogMemoryProbe());
+                return;
+            }
+            if (_eventSoundProbe)
+            {
+                GetTree().Quit(game.RunEventSoundProbe());
                 return;
             }
             if (_spawnItems.Count > 0) game.SpawnDebugItems(_spawnItems);

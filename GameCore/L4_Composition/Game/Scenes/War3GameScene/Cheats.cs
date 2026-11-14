@@ -2592,4 +2592,117 @@ public sealed partial class War3GameScene
         foreach (Ability ability in unit.Abilities) ids.Add(ability.Id);
         return ids.Count == 0 ? "空" : string.Join(",", ids);
     }
+
+    public int RunEventSoundProbe()
+    {
+        int failures = 0;
+        void Verify(string label, bool ok)
+        {
+            if (!ok) failures++;
+            GD.Print($"[EVENT-SOUND] {(ok ? "通过" : "不符")} {label}");
+        }
+
+        UnitType heroType = UnitFactory.Get("Hpal");
+        if (heroType == null || _world == null)
+        {
+            GD.Print("[EVENT-SOUND] 缺少英雄类型或世界未就绪");
+            return 1;
+        }
+
+        var ownHero = new Unit { Type = heroType, Player = ViewPlayer, IsHero = true };
+        Verify("自己的英雄阵亡播 HeroDiesSound",
+            HeroPresentation.DeathSound(ownHero, ViewPlayer, AreAllied) == "HeroDiesSound");
+
+        ownHero.IsIllusion = true;
+        Verify("幻象阵亡不出声",
+            HeroPresentation.DeathSound(ownHero, ViewPlayer, AreAllied) == null);
+
+        var silentHero = new Unit
+        {
+            Type = new UnitType { Id = "probe", HideHeroDeathMsg = true },
+            Player = ViewPlayer,
+            IsHero = true,
+        };
+        Verify("hideHeroDeathMsg 不出声",
+            HeroPresentation.DeathSound(silentHero, ViewPlayer, AreAllied) == null);
+
+        int other = -1;
+        foreach (int id in _active)
+        {
+            if (id == ViewPlayer) continue;
+            other = id;
+            break;
+        }
+        if (other < 0)
+        {
+            GD.Print("[EVENT-SOUND] 只有一家参战，跳过同盟与攻击事件");
+            GD.Print(failures == 0 ? "[EVENT-SOUND] 全部通过" : $"[EVENT-SOUND] {failures} 项不符");
+            return failures == 0 ? 0 : 1;
+        }
+
+        var otherHero = new Unit { Type = heroType, Player = other, IsHero = true };
+        Verify("敌方英雄阵亡不出声",
+            HeroPresentation.DeathSound(otherHero, ViewPlayer, AreAllied) == null);
+
+        _allyMasks.TryGetValue(ViewPlayer, out int savedView);
+        _allyMasks.TryGetValue(other, out int savedOther);
+        _allyMasks[ViewPlayer] = savedView | (1 << other);
+        _allyMasks[other] = savedOther | (1 << ViewPlayer);
+        Verify("盟友英雄阵亡播 AllyHeroDiesSound",
+            HeroPresentation.DeathSound(otherHero, ViewPlayer, AreAllied) == "AllyHeroDiesSound");
+        _allyMasks[ViewPlayer] = savedView;
+        _allyMasks[other] = savedOther;
+
+        Vector3 spot = FogProbeSpot();
+        Unit attacker = ProbeUnit("hfoo", other, spot);
+        Unit building = ProbeUnit("hhou", ViewPlayer, spot + new Vector3(128f, 0f, 0f));
+        Unit soldier = ProbeUnit("hfoo", ViewPlayer, spot + new Vector3(128f, 0f, 128f));
+        if (attacker == null || building == null || soldier == null)
+        {
+            GD.Print("[EVENT-SOUND] 缺单位类型，无法验证被攻击事件");
+            return 1;
+        }
+        _world.Units.Add(attacker);
+        _world.Units.Add(building);
+        _world.Units.Add(soldier);
+
+        int events = 0;
+        Unit lastVictim = null;
+        void Handler(Unit source, Unit victim) { events++; lastVictim = victim; }
+        _world.UnitAttacked += Handler;
+
+        _world.BeginAttack(attacker, building);
+        Verify("起手时派发 UnitAttacked", events == 1 && ReferenceEquals(lastVictim, building));
+        Verify("建筑被攻击选 TownAttackSound", AttackSoundOf(building) == "TownAttackSound");
+
+        attacker.EndWindup();
+        attacker.AttackCooldown = 0f;
+        attacker.Backswing = 0f;
+        events = 0;
+        lastVictim = null;
+        _world.BeginAttack(attacker, soldier);
+        Verify("单位被攻击选 UnderAttackSound",
+            events == 1 && ReferenceEquals(lastVictim, soldier)
+            && AttackSoundOf(soldier) == "UnderAttackSound");
+
+        _world.UnitAttacked -= Handler;
+
+        GD.Print(failures == 0 ? "[EVENT-SOUND] 全部通过" : $"[EVENT-SOUND] {failures} 项不符");
+        return failures == 0 ? 0 : 1;
+    }
+
+    private static Unit ProbeUnit(string id, int player, Vector3 position)
+    {
+        UnitType type = UnitFactory.Get(id);
+        if (type == null) return null;
+        return new Unit
+        {
+            Type = type,
+            Player = player,
+            Position = position,
+            Hp = type.Hp,
+            MaxHp = type.Hp,
+            IsBuilding = type.IsBuilding,
+        };
+    }
 }

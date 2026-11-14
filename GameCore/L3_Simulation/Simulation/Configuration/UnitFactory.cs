@@ -107,6 +107,7 @@ public sealed class UnitType
     // —— 英雄字段（UnitBalance 的 STR/AGI/INT + 成长 + Primary） ——
     public bool IsHero;
     public bool HideInHeroBar;
+    public bool HideHeroDeathMsg;
     public int Strength;
     public int Agility;
     public int Intelligence;
@@ -327,6 +328,7 @@ public static class UnitFactory
             ShadowOffsetX = Number(ui.Get(uiRow, "shadowX"), 0f),
             ShadowOffsetY = Number(ui.Get(uiRow, "shadowY"), 0f),
             HideInHeroBar = Number(ui.Get(uiRow, "hideHeroBar"), 0f) > 0.5f,
+            HideHeroDeathMsg = Number(ui.Get(uiRow, "hideHeroDeathMsg"), 0f) > 0.5f,
         };
         ApplyGroundSplat(type, ui.Get(uiRow, "uberSplat"));
 

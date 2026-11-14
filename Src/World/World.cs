@@ -106,6 +106,7 @@ public sealed partial class World
     public event Action<int, int> LumberDeposited;
     public event Action<Unit, Unit> MissileFired;
     public event Action<Unit, Unit> AttackLanded;
+    public event Action<Unit, Unit> UnitAttacked;
     public event Action<Unit> ConstructionFinished;
     /// <summary>单位被从世界上直接拿掉（骑乘合成 / 分离），场景层据此释放模型。</summary>
     public event Action<Unit> UnitRemoved;

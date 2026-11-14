@@ -68,6 +68,7 @@ public sealed partial class World
         unit.ActiveWeapon = weapon;
         unit.AttackCooldown = AttackCooldownOf(unit, weapon);
         unit.BeginAttack(target, weapon.DamagePoint);
+        UnitAttacked?.Invoke(unit, target);
     }
 
     /// <summary>伤害点：算伤害、决定是立刻结算还是抛出投射物。</summary>

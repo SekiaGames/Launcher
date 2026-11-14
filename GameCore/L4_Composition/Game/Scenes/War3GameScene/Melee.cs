@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using OpenWC3.Game.UI;
 
 namespace OpenWC3.Game;
 
@@ -17,9 +18,21 @@ public sealed partial class War3GameScene
         DropFromSelection(unit);
         RefreshHud();
 
+        string deathSound = HeroPresentation.DeathSound(unit, ViewPlayer, AreAllied);
+        if (deathSound != null) PlayUiSound(deathSound);
+
         if (unit is { IsBuilding: true, IsIllusion: false, View: { FogFrozen: true, FogSeen: true } })
             RememberFallenBuilding(unit);
     }
+
+    private void OnUnitAttacked(Unit attacker, Unit victim)
+    {
+        if (victim == null || victim.Player != ViewPlayer) return;
+        PlayUiSound(AttackSoundOf(victim));
+    }
+
+    private static string AttackSoundOf(Unit victim)
+        => victim.IsBuilding ? "TownAttackSound" : "UnderAttackSound";
 
     private void RememberFallenBuilding(Unit unit)
     {

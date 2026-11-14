@@ -332,6 +332,7 @@ public sealed partial class War3GameScene : Node3D
         _world.Allied = AreAllied;
         _world.PlayerControlQuery = ShareUnitControl;
         _world.AttackLanded += OnAttackLanded;
+        _world.UnitAttacked += OnUnitAttacked;
         _world.DamageApplied += OnDamageApplied;
         _world.ManaBurned += ShowManaBurnFloat;
         _world.AttackMissed += ShowMissFloat;
