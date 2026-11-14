@@ -595,6 +595,7 @@ public sealed partial class LauncherApp : Node
         int arts = 0;
         int resolved = 0;
         int missing = 0;
+        int upstreamAbsent = 0;
         foreach (string code in AbilityArt.Ids)
         {
             ids++;
@@ -612,14 +613,27 @@ public sealed partial class LauncherApp : Node
                         GD.Print($"[FX] {code,-6} {field,-13} → {path.Replace("res://extract/", "")}");
                         continue;
                     }
+                    if (UpstreamAbsentArt.Contains(art))
+                    {
+                        upstreamAbsent++;
+                        GD.Print($"[FX] {code,-6} {field,-13} 原版资源不存在 {art}");
+                        continue;
+                    }
                     missing++;
                     GD.Print($"[FX] {code,-6} {field,-13} 缺 {art}");
                 }
             }
         }
-        GD.Print($"[FX] 文本表 {ids} 条，美术引用 {arts}，可加载 {resolved}，缺 {missing}");
+        GD.Print($"[FX] 文本表 {ids} 条，美术引用 {arts}，可加载 {resolved}，缺 {missing}，"
+            + $"原版资源不存在 {upstreamAbsent}");
         ProbeEffectRawcodes();
     }
+
+    private static readonly HashSet<string> UpstreamAbsentArt = new(StringComparer.OrdinalIgnoreCase)
+    {
+        @"Abilities\Spells\Other\Stampede\MissileDeath.mdl",
+        @"Abilities\Spells\NightElf\NatureTouch\NatureTouchTarget.mdl",
+    };
 
     private static void ProbeEffectRawcodes()
     {
