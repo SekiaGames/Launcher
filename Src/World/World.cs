@@ -176,6 +176,8 @@ public sealed partial class World
     {
         ApplyFacing(unit);
 
+        if (unit.IsBuilding) UpdateTurretLookAt(unit);
+
         if (unit.State.Stunned)
         {
             unit.View?.Play(unit.State.Has(StateMod.Sleep) ? "Sleep" : "Stand");
@@ -302,4 +304,24 @@ public sealed partial class World
 
         unit.View?.Play("Stand");
     }
+
+    private const string TurretBone = "Bone_Turret";
+
+    private static void UpdateTurretLookAt(Unit unit)
+    {
+        Unit target = unit.Target;
+        bool aiming = target != null && target.Alive && unit.Type != null && unit.Type.CanAttack;
+        if (aiming)
+        {
+            unit.LookAtBone = TurretBone;
+            unit.LookAtTarget = target;
+            return;
+        }
+        if (unit.LookAtBone == TurretBone)
+        {
+            unit.LookAtBone = "";
+            unit.LookAtTarget = null;
+        }
+    }
+
 }

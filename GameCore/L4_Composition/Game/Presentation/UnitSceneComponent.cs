@@ -183,6 +183,60 @@ public sealed class UnitSceneComponent
         }
     }
 
+    private Skeleton3D _skeleton;
+    private int _turretBone = -1;
+    private bool _turretAiming;
+
+    public void SyncLookAt(Unit unit)
+    {
+        if (_turretBone == -2) return;
+        if (unit.LookAtTarget == null && !_turretAiming) return;
+
+        if (_skeleton == null)
+        {
+            _skeleton = Root.FindChild("Skeleton3D", true, false) as Skeleton3D;
+            if (_skeleton == null)
+            {
+                _turretBone = -2;
+                return;
+            }
+        }
+
+        if (_turretBone < 0)
+        {
+            if (string.IsNullOrEmpty(unit.LookAtBone)) return;
+            _turretBone = _skeleton.FindBone(unit.LookAtBone);
+            if (_turretBone < 0)
+            {
+                _turretBone = -2;
+                return;
+            }
+        }
+
+        Unit target = unit.LookAtTarget;
+        if (target == null || !target.Alive)
+        {
+            _skeleton.SetBoneGlobalPoseOverride(_turretBone,
+                _skeleton.GetBoneGlobalPose(_turretBone), 0f, true);
+            _turretAiming = false;
+            return;
+        }
+
+        Transform3D pose = _skeleton.GetBoneGlobalPose(_turretBone);
+        Vector3 goal = _skeleton.GlobalTransform.AffineInverse() * target.Position;
+        Vector3 dir = goal - pose.Origin;
+        if (dir.LengthSquared() < 1f) return;
+        dir = dir.Normalized();
+
+        Vector3 reference = Mathf.Abs(dir.Y) > 0.99f ? Vector3.Back : Vector3.Up;
+        Vector3 z = (reference - dir * dir.Dot(reference)).Normalized();
+        Vector3 y = z.Cross(dir);
+        var basis = new Basis(dir, y, z);
+        _skeleton.SetBoneGlobalPoseOverride(_turretBone,
+            new Transform3D(basis, pose.Origin), 1f, true);
+        _turretAiming = true;
+    }
+
     private float _renderFacing;
     private bool _facingReady;
 

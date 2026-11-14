@@ -38,6 +38,7 @@ public sealed partial class LauncherApp : Node
     private bool _heroProbe;
     private bool _appearanceProbe;
     private bool _flyProbe;
+    private bool _turretProbe;
     private bool _combatProbe;
     private bool _stateProbe;
     private string _fdfProbe;
@@ -213,6 +214,10 @@ public sealed partial class LauncherApp : Node
             else if (argument == "--fly-probe")
             {
                 _flyProbe = true;
+            }
+            else if (argument == "--turret-probe")
+            {
+                _turretProbe = true;
             }
             else if (argument == "--creep-probe")
             {
@@ -514,6 +519,7 @@ public sealed partial class LauncherApp : Node
             if (_heroProbe) game.RunHeroProbe();
             if (_appearanceProbe) game.RunAppearanceProbe();
             if (_flyProbe) game.RunFlyProbe();
+            if (_turretProbe) game.RunTurretProbe();
             if (_reviveProbe) game.RunReviveProbe();
             if (_skillProbe) game.RunSkillProbe();
             if (_morphProbe) game.RunMorphProbe();

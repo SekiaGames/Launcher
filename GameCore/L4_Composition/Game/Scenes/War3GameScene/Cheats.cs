@@ -289,6 +289,27 @@ public sealed partial class War3GameScene
         };
     }
 
+    public void RunTurretProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        float x = hall != null ? hall.Position.X + 420f : 0f;
+        float z = hall != null ? hall.Position.Z : 0f;
+
+        Unit tower = Spawn("hgtw", ViewPlayer, x, z, 0f, 0f, 1f);
+        Unit enemy = Spawn("hfoo", 1, x, z - 520f, 0f, 0f, 1f);
+        if (tower != null) _world?.Units.Add(tower);
+        if (enemy != null) _world?.Units.Add(enemy);
+        if (tower != null && enemy != null)
+        {
+            tower.Target = enemy;
+            GD.Print($"[TURRET] 塔={tower.TypeId} 目标={enemy.TypeId} @({x:0},{z:0})");
+        }
+        else
+        {
+            GD.Print($"[TURRET] 生成失败 tower={tower != null} enemy={enemy != null}");
+        }
+    }
+
     public void RunFlyProbe()
     {
         Unit hall = FindHall(ViewPlayer);

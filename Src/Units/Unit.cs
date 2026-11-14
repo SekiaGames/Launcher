@@ -16,6 +16,8 @@ public sealed partial class Unit
     public bool Alive = true;
     public bool IsBuilding;
     public Unit Target;
+    public Unit LookAtTarget;
+    public string LookAtBone = "";
     public Vector3? MoveTarget;
     public bool HoldingPosition;
     public bool Patrolling;
