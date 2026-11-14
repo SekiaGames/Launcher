@@ -29,11 +29,13 @@ public sealed partial class GameHudScreen : Control
     private SelectionGroupFrame _selectionGroup;
     private IdlePeonFrame _idlePeon;
     private PortraitViewport _portraitViewport;
+    private TimeOfDayViewport _timeOfDayViewport;
     private InventoryFrame _inventory;
     private QueueIconRowFrame _queue;
     private TooltipFrame _tooltip;
     private readonly CommandEntry[] _inventoryEntries = new CommandEntry[6];
     private GodotUiTexture _portraitTexture;
+    private GodotUiTexture _timeOfDayTexture;
     private Unit _selectedUnit;
     public Action<Unit> SelectionClicked;
     public Action<Unit> IdlePeonClicked;
@@ -74,6 +76,7 @@ public sealed partial class GameHudScreen : Control
             DispatchCommand(command, 3);
         _console = new ConsoleSkinFrame(resolver, skin);
         _topBar = new TopBarFrame(resolver, skin);
+        _topBar.SetChromeVisible(true);
         _card = new CommandCardBuilder(resolver);
         _infoPanel = new UnitInfoPanelFrame(resolver, skin);
         _minimap = new MinimapFrame(resolver, skin, new War3MiscData());
@@ -87,6 +90,9 @@ public sealed partial class GameHudScreen : Control
         _inventory.SlotClicked = index => InvokeEntry(_inventoryEntries[index]);
         _portraitViewport = new PortraitViewport(this);
         _portraitTexture = new GodotUiTexture(_portraitViewport.Texture);
+        _timeOfDayViewport = new TimeOfDayViewport(this, skin.Get("TimeOfDayIndicator",
+            @"UI\Console\Human\HumanUI-TimeIndicator.mdl"));
+        _timeOfDayTexture = new GodotUiTexture(_timeOfDayViewport.Texture);
         _portrait.OnStartFollow = () => PortraitFollowStarted?.Invoke(_selectedUnit);
         _portrait.OnStopFollow = () => PortraitFollowStopped?.Invoke();
         _selectionGroup.OnUnitClick = unit => SelectionClicked?.Invoke(unit);
@@ -138,6 +144,7 @@ public sealed partial class GameHudScreen : Control
     {
         _timeOfDay = hours;
         _topBar.UpdateTime(hours);
+        _timeOfDayViewport?.SetClock(hours);
         QueueRedraw();
     }
 
@@ -419,6 +426,9 @@ public sealed partial class GameHudScreen : Control
         if (_selectionBox is { } box)
             _device.DrawTexturedQuad(box, _device.WhiteTexture,
                 new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 0.16f));
+        if (_timeOfDayViewport is { Loaded: true })
+            _device.DrawTexturedQuad(_timeOfDayViewport.ModelArea,
+                _timeOfDayTexture, System.Numerics.Vector4.One);
         _root.Render(_device);
         if (_selectedUnit != null && _portrait.Visible)
             _device.DrawTexturedQuad(PortraitFrame.ModelArea(DesignHeight),

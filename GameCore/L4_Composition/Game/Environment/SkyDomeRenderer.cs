@@ -3,34 +3,37 @@ using System;
 
 namespace OpenWC3.Game;
 
-/// <summary>
-/// 三维天空穹顶（客户端用 Sky 模型而不是全景贴图）：按 w3i tileset 选
-/// `Environment/Sky/*` 的模型，跟着镜头走，保留全景天空做环境底。
-/// </summary>
 public sealed class SkyDomeRenderer
 {
-    private readonly Node3D _dome;
+    static readonly string[] SkyModels =
+    {
+        "LordaeronSummerSky", "LordaeronSummerSky", "LordaeronWinterSky", "LordaeronWinterSky",
+        "LordaeronWinterSkyRed", "LordaeronWinterSkyBrightGreen", "LordaeronWinterSky",
+        "LordaeronWinterSkyPink", "LordaeronWinterSkyPurple", "LordaeronWinterSkyYellow",
+        "FoggedSky", "BlizzardSky", "DalaranSky", "FelwoodSky", "LordaeronFallSky",
+    };
 
-    private SkyDomeRenderer(Node3D dome)
+    const string CelestialModel = @"Environment\Sky\Sky\skyLight";
+    const float ShellSizeLimit = 3000f;
+
+    readonly Node3D _dome;
+    readonly Node3D _celestial;
+
+    private SkyDomeRenderer(Node3D dome, Node3D celestial)
     {
         _dome = dome;
+        _celestial = celestial;
     }
 
-    public static SkyDomeRenderer TryCreate(Node parent, MapInfo info)
+    public static SkyDomeRenderer TryCreate(Node parent, int skyboxType)
     {
-        string skyName = SkyboxRenderer.SkyNameFor(info != null ? info.Tileset : 'F');
-        string path = PathResolve.ModelScene($@"Environment\Sky\{skyName}\{skyName}");
-        if (path == null)
+        string skyName = SkyNameFor(skyboxType);
+        Node3D model = Load($@"Environment\Sky\{skyName}\{skyName}");
+        if (model == null)
         {
-            skyName = "Sky";
-            path = PathResolve.ModelScene($@"Environment\Sky\{skyName}\{skyName}");
-            if (path == null) return null;
+            skyName = SkyModels[0];
+            model = Load($@"Environment\Sky\{skyName}\{skyName}");
         }
-
-        PackedScene scene = Assets.LoadScene(path);
-        if (scene == null) return null;
-
-        Node3D model = scene.Instantiate<Node3D>();
         if (model == null) return null;
 
         var dome = new Node3D { Name = "SkyDome" };
@@ -38,13 +41,49 @@ public sealed class SkyDomeRenderer
         dome.AddChild(model);
         parent.AddChild(dome);
 
-        GD.Print($"[SKY] 穹顶 {skyName}");
-        return new SkyDomeRenderer(dome);
+        Node3D celestial = Load(CelestialModel);
+        if (celestial != null)
+        {
+            celestial.Name = "Celestial";
+            RemoveSkyShell(celestial);
+            dome.AddChild(celestial);
+        }
+
+        GD.Print($"[SKY] 穹顶 {skyName} 日月 {(celestial != null ? "已载入" : "缺模型")}");
+        return new SkyDomeRenderer(dome, celestial);
     }
 
-    public void FrameSeconds(Vector3 focus)
+    static Node3D Load(string war3Path)
+    {
+        PackedScene scene = Assets.LoadScene(PathResolve.ModelScene(war3Path));
+        if (scene == null)
+        {
+            GD.Print($"[SKY] 缺模型 {war3Path}");
+            return null;
+        }
+        Node3D model = scene.Instantiate<Node3D>();
+        if (model?.FindChild("AnimationTree", true, false) is AnimationTree tree) tree.Active = false;
+        return model;
+    }
+
+    static void RemoveSkyShell(Node3D model)
+    {
+        foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (node is not MeshInstance3D mesh || mesh.Mesh == null) continue;
+            Vector3 size = mesh.Mesh.GetAabb().Size;
+            if (Mathf.Max(size.X, Mathf.Max(size.Y, size.Z)) > ShellSizeLimit) mesh.Visible = false;
+        }
+    }
+
+    public static string SkyNameFor(int skyboxType)
+        => skyboxType is >= 0 and < 15 ? SkyModels[skyboxType] : SkyModels[0];
+
+    public void FrameSeconds(Vector3 focus, float hours)
     {
         if (_dome == null || !GodotObject.IsInstanceValid(_dome)) return;
         _dome.Position = focus;
+        if (_celestial == null || !GodotObject.IsInstanceValid(_celestial)) return;
+        _celestial.Rotation = new Vector3(0f, Mathf.Tau * (hours / 24f), 0f);
     }
 }

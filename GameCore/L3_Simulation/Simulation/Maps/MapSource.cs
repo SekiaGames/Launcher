@@ -13,6 +13,7 @@ public sealed class MapSource
     public War3MapUnits Units { get; private set; }
     public War3MapDoodads Doodads { get; private set; }
     public PathingData Pathing { get; private set; }
+    public int SkyboxType { get; private set; }
     public List<W3iPlayer> Players { get; } = new();
 
     public string Name => Package?.Name ?? "unknown";
@@ -30,6 +31,9 @@ public sealed class MapSource
             source.Info = MapInfo.Parse(w3i);
             source.Players.AddRange(source.Info.Players);
         }
+
+        byte[] misc = package.ReadMapFile("war3mapMisc.txt");
+        if (misc != null) source.SkyboxType = MiscInt(misc, "SkyboxType");
         return source;
     }
 
@@ -77,6 +81,19 @@ public sealed class MapSource
         MapSource source = Mount(gmapPath);
         if (source == null) return null;
         return source.LoadTerrainAndObjects() ? source : null;
+    }
+
+    private static int MiscInt(byte[] text, string key)
+    {
+        string body = System.Text.Encoding.UTF8.GetString(text);
+        foreach (string line in body.Split('\n'))
+        {
+            int equals = line.IndexOf('=');
+            if (equals <= 0) continue;
+            if (!line[..equals].Trim().Equals(key, StringComparison.OrdinalIgnoreCase)) continue;
+            return int.TryParse(line[(equals + 1)..].Trim(), out int value) ? value : 0;
+        }
+        return 0;
     }
 
     private static bool IsItem(string id)

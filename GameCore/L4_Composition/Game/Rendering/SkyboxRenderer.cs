@@ -14,13 +14,13 @@ public sealed class SkyboxRenderer
         _environment = environment;
     }
 
-    public static SkyboxRenderer TryCreate(Node parent, MapInfo info)
+    public static SkyboxRenderer TryCreate(Node parent, int skyboxType)
     {
-        string skyName = SkyNameFor(info != null ? info.Tileset : 'F');
+        string skyName = SkyDomeRenderer.SkyNameFor(skyboxType);
         string relative = $"Environment/Sky/{skyName}/{skyName}.png";
         if (!Assets.Exists(relative))
         {
-            skyName = "Sky";
+            skyName = "LordaeronSummerSky";
             relative = $"Environment/Sky/{skyName}/{skyName}.png";
             if (!Assets.Exists(relative)) return null;
         }
@@ -39,7 +39,7 @@ public sealed class SkyboxRenderer
 
         var world = new WorldEnvironment { Name = "Skybox", Environment = environment };
         parent.AddChild(world);
-        GD.Print($"[SKY] {skyName}");
+        GD.Print($"[SKY] 全景底 {skyName}");
         return new SkyboxRenderer(world, environment);
     }
 
@@ -49,25 +49,4 @@ public sealed class SkyboxRenderer
         _world.Environment = enabled ? _environment : null;
     }
 
-    public static string SkyNameFor(char tileset)
-    {
-        return char.ToUpperInvariant(tileset) switch
-        {
-            'A' => "Sky",
-            'B' => "Sky",
-            'C' => "FelwoodSky",
-            'D' => "DalaranSky",
-            'F' => "LordaeronSummerSky",
-            'G' => "LordaeronWinterSky",
-            'H' => "LordaeronFallSky",
-            'I' => "DalaranSky",
-            'J' => "BlizzardSky",
-            'K' => "Outland_Sky",
-            'L' => "LordaeronSummerSky",
-            'N' => "FoggedSky",
-            'O' => "Sky",
-            'X' => "DalaranSky",
-            _ => "Sky",
-        };
-    }
 }
