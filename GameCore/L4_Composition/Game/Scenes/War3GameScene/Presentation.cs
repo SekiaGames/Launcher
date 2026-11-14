@@ -329,7 +329,7 @@ public sealed partial class War3GameScene
         string name = unit.Type.SoundSet + kind;
         if (!War3SoundTables.TryGet(name, out War3SoundTables.Entry entry) && !string.IsNullOrEmpty(fallback))
             War3SoundTables.TryGet(unit.Type.SoundSet + fallback, out entry);
-        War3UnitSound.Create(entry).Play3D(_audio, unit.Position + new Vector3(0f, 80f, 0f));
+        War3UnitSound.Create(entry).Play3D(_audio, unit.Position + new Vector3(0f, 80f, 0f), 1f, -1, SoundChannel.Combat, 60);
     }
 
     /// <summary>只看得见的地方才听得到（迷雾外的战斗音不播）。</summary>
@@ -342,13 +342,13 @@ public sealed partial class War3GameScene
     {
         if (worker == null || !IsAudible(worker.Position)) return;
         if (!War3SoundTables.TryGet("AxeMediumChopWood", out War3SoundTables.Entry entry)) return;
-        War3UnitSound.Create(entry).Play3D(_audio, worker.Position + new Vector3(0f, 40f, 0f), 0.8f);
+        War3UnitSound.Create(entry).Play3D(_audio, worker.Position + new Vector3(0f, 40f, 0f), 0.8f, -1, SoundChannel.Effect, 55);
     }
 
     private void PlayPlacementSound(Vector3 ground)
     {
         if (!War3SoundTables.TryGet("PlaceBuildingDefault", out War3SoundTables.Entry entry)) return;
-        War3UnitSound.Create(entry).Play3D(_audio, ground + new Vector3(0f, 40f, 0f));
+        War3UnitSound.Create(entry).Play3D(_audio, ground + new Vector3(0f, 40f, 0f), 1f, -1, SoundChannel.Effect, 55);
     }
 
     private void OnAttackLanded(Unit attacker, Unit target)

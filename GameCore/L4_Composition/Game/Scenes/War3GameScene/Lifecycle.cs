@@ -35,6 +35,8 @@ public sealed partial class War3GameScene : Node3D
     private War3AckSoundService _ackSounds;
     private War3UiSoundService _uiSounds;
     private War3MusicPlayer _music;
+    private War3LoopingSoundService _loopingSounds;
+    private Func<Unit, bool> _unitAudibleForAudio;
     private FogOfWar _fog;
     private float _fogTimer;
     private Action _back;
@@ -406,6 +408,9 @@ public sealed partial class War3GameScene : Node3D
         _ackSounds = new War3AckSoundService(_audio);
         _uiSounds = new War3UiSoundService(_audio);
         _music = new War3MusicPlayer(this);
+        _loopingSounds = new War3LoopingSoundService(_audio,
+            (x, z) => MapWorldBuilder.HeightAt(_map.Terrain, x, z));
+        _unitAudibleForAudio = UnitAudibleForAudio;
 
         MiscRules.Log();
         MeleeRules.Log(IsReignOfChaos);
@@ -683,6 +688,8 @@ public sealed partial class War3GameScene : Node3D
         }
 
         TickFog((float)delta);
+        _audio?.Update((float)delta);
+        _music?.Update((float)delta);
         TickGroundDecals((float)delta);
         TickDepartingItems((float)delta);
         UpdateMinimap((float)delta);
@@ -730,6 +737,8 @@ public sealed partial class War3GameScene : Node3D
         if (Paused) return;
         _world?.Advance();
         TickClock();
+        // 位置只在物理步更新，循环音也必须按同一节拍判断移动，否则渲染帧会误判为已停下。
+        _loopingSounds?.Update(_world?.Units, (float)delta, _unitAudibleForAudio);
         TickOrders((float)delta);
         if (Aggression) TickAiWaves((float)delta);
         if (AiEnabled)

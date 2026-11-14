@@ -59,7 +59,8 @@ public sealed class War3UnitSound
             - _entry.PitchVariance;
     }
 
-    public float Play2D(War3AudioSystem audio, float gain = 1f, int index = -1)
+    public float Play2D(War3AudioSystem audio, float gain = 1f, int index = -1,
+        SoundChannel channel = SoundChannel.Ui, int priority = 10)
     {
         if (audio == null || IsSilent) return 0f;
         int file = SelectFileIndex(index);
@@ -68,10 +69,11 @@ public sealed class War3UnitSound
         if (stream == null) return 0f;
         float pitch = Mathf.Max(0.01f, PickPitch());
         return audio.Play2D(stream, _entry.Name,
-            _entry.Volume * Mathf.Clamp(gain, 0f, 1f), pitch);
+            _entry.Volume * Mathf.Clamp(gain, 0f, 1f), pitch, channel, priority);
     }
 
-    public float Play3D(War3AudioSystem audio, Vector3 position, float gain = 1f, int index = -1)
+    public float Play3D(War3AudioSystem audio, Vector3 position, float gain = 1f, int index = -1,
+        SoundChannel channel = SoundChannel.Unit, int priority = 50)
     {
         if (audio == null || IsSilent) return 0f;
         int file = SelectFileIndex(index);
@@ -82,6 +84,36 @@ public sealed class War3UnitSound
         return audio.Play3D(stream, _entry.Name, position,
             _entry.Volume * Mathf.Clamp(gain, 0f, 1f), pitch,
             Mathf.Max(1f, _entry.MinDistance),
-            Mathf.Max(_entry.MinDistance + 1f, _entry.MaxDistance));
+            Mathf.Max(_entry.MinDistance + 1f, _entry.MaxDistance), channel, priority);
+    }
+
+    public uint PlayLooping(War3AudioSystem audio, Vector3 position,
+        SoundChannel channel = SoundChannel.Ambient, int priority = 30, int index = -1, float gain = 1f)
+    {
+        if (audio == null || IsSilent) return 0;
+        int file = SelectFileIndex(index);
+        if (file < 0) return 0;
+        AudioStream stream = War3SoundTables.PickStream(_entry, file);
+        if (stream == null) return 0;
+        float pitch = Mathf.Max(0.01f, PickPitch());
+        return audio.Start(stream, _entry.Name, position, looping: true, positional: true,
+            _entry.Volume * Mathf.Clamp(gain, 0f, 1f), pitch,
+            Mathf.Max(1f, _entry.MinDistance),
+            Mathf.Max(_entry.MinDistance + 1f, _entry.MaxDistance), channel, priority);
+    }
+
+    public void PlayOneShot(War3AudioSystem audio, Vector3 position,
+        SoundChannel channel = SoundChannel.Ambient, int priority = 30, float gain = 1f)
+    {
+        if (audio == null || IsSilent) return;
+        int file = SelectFileIndex(-1);
+        if (file < 0) return;
+        AudioStream stream = War3SoundTables.PickStream(_entry, file);
+        if (stream == null) return;
+        float pitch = Mathf.Max(0.01f, PickPitch());
+        audio.Start(stream, _entry.Name, position, looping: false, positional: true,
+            _entry.Volume * Mathf.Clamp(gain, 0f, 1f), pitch,
+            Mathf.Max(1f, _entry.MinDistance),
+            Mathf.Max(_entry.MinDistance + 1f, _entry.MaxDistance), channel, priority);
     }
 }

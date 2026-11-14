@@ -89,6 +89,14 @@ public sealed partial class War3GameScene
         return $"{hours:00}:{minutes:00}" + (IsNight ? " 夜" : "");
     }
 
+    /// <summary>迷雾外看不见的敌人也不出声（脚步/建造循环音同口径）。</summary>
+    private bool UnitAudibleForAudio(Unit unit)
+    {
+        if (unit == null) return false;
+        bool own = unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer);
+        return own || _fog == null || !_fog.Enabled || _fog.IsVisible(unit.Position);
+    }
+
     private void TickFog(float delta)
     {
         if (_fog == null) return;

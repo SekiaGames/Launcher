@@ -41,7 +41,7 @@ public sealed class War3AckSoundService
     }
 
     public float PlayReady(Unit unit)
-        => SoundsetFor(unit)?.Ready.Play2D(_audio) ?? 0f;
+        => SoundsetFor(unit)?.Ready.Play2D(_audio, 1f, -1, SoundChannel.Unit, 50) ?? 0f;
 
     public static string CombatSoundLabel(WeaponSound weaponSound, string armor)
     {
@@ -65,7 +65,7 @@ public sealed class War3AckSoundService
             sound = War3UnitSound.Create(entry);
             _cache[key] = sound;
         }
-        sound.Play3D(_audio, position);
+        sound.Play3D(_audio, position, 1f, -1, SoundChannel.Combat, 60);
     }
 
     public void PlaySpellCast(Unit caster, string abilityRawcode, Vector3 position,
@@ -92,7 +92,7 @@ public sealed class War3AckSoundService
         }
         if (!sound.IsSilent)
         {
-            sound.Play3D(_audio, position, .8f);
+            sound.Play3D(_audio, position, .8f, -1, SoundChannel.Effect, 55);
             return;
         }
         if (!SpellSoundFallback.TryGetValue(abilityRawcode, out string path)) return;
@@ -102,7 +102,7 @@ public sealed class War3AckSoundService
             return;
         }
         AudioStream stream = War3SoundTables.LoadClip(path);
-        _audio.Play3D(stream, abilityRawcode, position, .8f, 1f, 128f, 900f);
+        _audio.Play3D(stream, abilityRawcode, position, .8f, 1f, 128f, 900f, SoundChannel.Effect, 55);
     }
 
 private static readonly Dictionary<string, string> SpellSoundFallback = new(StringComparer.OrdinalIgnoreCase)
@@ -361,7 +361,7 @@ private static readonly Dictionary<string, string> SpellSoundFallback = new(Stri
         War3UnitSound ack = selection ? (index >= 0 ? set.Pissed : set.What)
             : attack ? set.YesAttack : set.Yes;
         if (!_ackState.CanPlayUsername(ack.ResponseUsername, now)) return 0f;
-        float duration = ack.Play2D(_audio, 1f, index);
+        float duration = ack.Play2D(_audio, 1f, index, SoundChannel.Unit, 50);
         if (duration <= 0f) return 0f;
         _ackState.Played(simId, now, duration, selection, ack.ResponseUsername);
         return duration;

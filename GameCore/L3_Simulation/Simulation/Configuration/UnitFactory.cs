@@ -84,6 +84,10 @@ public sealed class UnitType
     public Classification Classifications;
     public string SoundSet = "";
     public string ArmorSound = "";
+    /// <summary>UnitFunc.MovementSoundLabel：移动循环音（脚步/引擎）。</summary>
+    public string MovementSoundLabel;
+    /// <summary>UnitFunc.BuildingSoundLabel：建造开始音。</summary>
+    public string BuildingSoundLabel;
 
     public string ShadowArt = "";
     public string BuildingShadowArt = "";
@@ -430,6 +434,8 @@ public static class UnitFactory
             type.Requires = row.Requires;
             type.SellItems = MergeShopItems(row.SellItems, row.MakeItems);
             type.SellUnits = row.SellUnits;
+            type.MovementSoundLabel = row.MovementSoundLabel;
+            type.BuildingSoundLabel = row.BuildingSoundLabel;
             string missileScene = PathResolve.ModelScene(row.MissileArt);
             type.Weapon.MissileScene = missileScene;
             type.Weapon.MissileArc = row.MissileArc;

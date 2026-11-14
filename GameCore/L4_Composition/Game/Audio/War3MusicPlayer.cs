@@ -7,23 +7,33 @@ namespace OpenWC3.Game;
 
 /// <summary>
 /// 对战背景音乐。曲目来自 UI\war3skins.txt 的 `[种族] Music_V{版本}`（分号分隔），
-/// 文件在 Sound\Music\mp3Music\ 下；播完一首接下一首，循环整张表。
+/// 文件在 Sound\Music\mp3Music\ 下；随机起播后按表顺序推进，曲间留 20 秒，
+/// 音量按客户端的软件混音曲线换算，停止/整组音量走淡变。
 /// </summary>
 public sealed class War3MusicPlayer
 {
-    private const float MusicVolumeDb = -10f;
+    private const float InterTrackGap = 20f;
+    private const float FadeOutSeconds = 1f;
 
     private readonly AudioStreamPlayer _player;
     private readonly List<string> _tracks = new();
     private readonly Random _random = new(4242);
     private int _index;
     private bool _active;
+    private bool _gapPending;
+    private float _gapRemaining;
+    private float _userVolume = War3Volume.DefaultMusicVolume;
+    private float _gain = 1f;
+    private float _fadeTarget = 1f;
+    private float _fadeRate;
+    private bool _stopAfterFade;
 
     public War3MusicPlayer(Node parent)
     {
-        _player = new AudioStreamPlayer { Name = "Music", VolumeDb = MusicVolumeDb };
+        _player = new AudioStreamPlayer { Name = "Music" };
         parent.AddChild(_player);
-        _player.Finished += Next;
+        _player.Finished += OnTrackFinished;
+        ApplyVolume();
     }
 
     public string CurrentTrack { get; private set; } = "";
@@ -41,11 +51,12 @@ public sealed class War3MusicPlayer
             return;
         }
 
-        // 原版按表顺序播；这里从随机一首开始，避免每局开头都一样
+        // 原版随机起播后按表顺序推进
         _index = _random.Next(_tracks.Count);
         _active = true;
+        _gapPending = false;
         GD.Print($"[MUSIC] {race} 曲目 {_tracks.Count} 首：{string.Join(", ", _tracks)}");
-        Play(_tracks[_index]);
+        Play(_tracks[_index], _tracks.Count == 1);
     }
 
     /// <summary>胜负音乐：VictoryMusic_V{n} / DefeatMusic_V{n}。</summary>
@@ -57,23 +68,77 @@ public sealed class War3MusicPlayer
         if (tracks.Count == 0) return;
 
         _active = false;
+        _gapPending = false;
         Play(tracks[0]);
     }
 
-    public void Stop()
+    public void Stop(bool fade = false)
     {
         _active = false;
-        _player.Stop();
+        _gapPending = false;
+        if (!_player.Playing)
+        {
+            ResetGain();
+            return;
+        }
+        if (fade) FadeTo(0f, FadeOutSeconds, stopAfterFade: true);
+        else
+        {
+            _player.Stop();
+            ResetGain();
+        }
     }
 
-    private void Next()
+    public void SetUserVolume(float volume)
+    {
+        _userVolume = Mathf.Clamp(volume, 0f, 1f);
+        ApplyVolume();
+    }
+
+    public void Update(float delta)
+    {
+        if (_gapPending)
+        {
+            _gapRemaining -= delta;
+            if (_gapRemaining <= 0f)
+            {
+                _gapPending = false;
+                if (_tracks.Count > 0) Play(_tracks[_index]);
+            }
+        }
+
+        if (_fadeRate != 0f)
+        {
+            _gain += _fadeRate * delta;
+            if (_fadeRate > 0f ? _gain >= _fadeTarget : _gain <= _fadeTarget)
+            {
+                _gain = _fadeTarget;
+                _fadeRate = 0f;
+                if (_stopAfterFade)
+                {
+                    _stopAfterFade = false;
+                    _player.Stop();
+                    ResetGain();
+                }
+            }
+            ApplyVolume();
+        }
+    }
+
+    private void OnTrackFinished()
     {
         if (!_active || _tracks.Count == 0) return;
+        if (_tracks.Count == 1)
+        {
+            Play(_tracks[_index], loop: true);
+            return;
+        }
         _index = (_index + 1) % _tracks.Count;
-        Play(_tracks[_index]);
+        _gapPending = true;
+        _gapRemaining = InterTrackGap;
     }
 
-    private void Play(string resPath)
+    private void Play(string resPath, bool loop = false)
     {
         AudioStream stream = ResourceLoader.Exists(resPath) ? ResourceLoader.Load<AudioStream>(resPath) : null;
         if (stream == null)
@@ -82,9 +147,48 @@ public sealed class War3MusicPlayer
             return;
         }
 
+        if (loop && stream is AudioStreamMP3 mp3)
+        {
+            var copy = (AudioStreamMP3)mp3.Duplicate();
+            copy.Loop = true;
+            stream = copy;
+        }
+
         CurrentTrack = resPath;
         _player.Stream = stream;
+        ResetGain();
         _player.Play();
+        ApplyVolume();
+    }
+
+    private void ResetGain()
+    {
+        _gain = 1f;
+        _fadeTarget = 1f;
+        _fadeRate = 0f;
+    }
+
+    private void FadeTo(float target, float seconds, bool stopAfterFade)
+    {
+        _fadeTarget = target;
+        _stopAfterFade = stopAfterFade;
+        _fadeRate = seconds > 0f ? (target - _gain) / seconds : 0f;
+        if (seconds <= 0f)
+        {
+            _gain = target;
+            if (_stopAfterFade)
+            {
+                _stopAfterFade = false;
+                _player.Stop();
+                ResetGain();
+            }
+        }
+        ApplyVolume();
+    }
+
+    private void ApplyVolume()
+    {
+        _player.VolumeDb = War3Volume.ToDecibels(_userVolume * Mathf.Clamp(_gain, 0f, 1f));
     }
 
     private static List<string> Resolve(string race, string key)

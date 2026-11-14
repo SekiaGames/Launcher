@@ -23,6 +23,10 @@ public sealed class UnitFuncRow
     public string MissileArt;
     public float MissileSpeed;
     public float MissileArc;
+    /// <summary>UnitFunc 的 MovementSoundLabel：移动时循环播放的脚步声/引擎声。</summary>
+    public string MovementSoundLabel;
+    /// <summary>UnitFunc 的 BuildingSoundLabel：建造开始时播放一次。</summary>
+    public string BuildingSoundLabel;
 }
 
 public sealed class UpgradeType
@@ -354,6 +358,8 @@ public static class TechTree
             MissileArt = Get(fields, "Missileart"),
             MissileSpeed = Number(Get(fields, "Missilespeed"), 0f),
             MissileArc = Number(Get(fields, "Missilearc"), 0f),
+            MovementSoundLabel = Label(fields, "MovementSoundLabel"),
+            BuildingSoundLabel = Label(fields, "BuildingSoundLabel"),
         };
         Rows[id] = row;
         return row;
@@ -441,6 +447,12 @@ public static class TechTree
     private static string Get(Dictionary<string, string> row, string field)
     {
         return row != null && row.TryGetValue(field, out string value) ? value : "";
+    }
+
+    private static string Label(Dictionary<string, string> row, string field)
+    {
+        string value = Get(row, field).Trim();
+        return string.IsNullOrEmpty(value) || value == "_" ? null : value;
     }
 
     private static string[] SplitList(string csv)
