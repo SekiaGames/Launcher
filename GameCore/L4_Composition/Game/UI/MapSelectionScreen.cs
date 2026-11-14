@@ -22,11 +22,14 @@ public sealed partial class MapSelectionScreen : Control
     readonly List<string> _maps;
     readonly List<MapRowButton> _rows = new();
     readonly UiRoot _root = new("MapSelectionRoot");
+    readonly War3UiViewport _uiViewport = new();
     readonly ListViewport _listViewport;
     readonly StringFrame _pageStatus;
     readonly ButtonFrame _previousPage, _nextPage;
     readonly TextureFrame _preview;
     readonly StringFrame _name, _suggestedPlayers, _mapSize, _tileset, _description, _players;
+    readonly StringFrame _mapVersion, _compatibilityWarning;
+    readonly UiFrame _panel;
     readonly ButtonFrame _play;
     readonly RaceSelectionDialogFrame _raceSelection;
     readonly AiDifficultyDialogFrame _difficultySelection;
@@ -48,7 +51,7 @@ public sealed partial class MapSelectionScreen : Control
 
     public MapSelectionScreen()
     {
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        SetAnchorsPreset(LayoutPreset.TopLeft);
         MouseFilter = MouseFilterEnum.Stop;
         _skin = War3UiSkin.Load("Human");
         GodotWar3FontFace font = GodotWar3FontFace.Load(_skin);
@@ -57,36 +60,37 @@ public sealed partial class MapSelectionScreen : Control
         {
             LineSizeResolver = font.PixelSizeForLine,
         };
+        _panel = BuildFdfPanel();
         _maps = new List<string>(ListGmapsFullPaths());
-        _maps.Sort(StringComparer.OrdinalIgnoreCase);
+        _maps.Sort(CompareBySize);
 
         ITexture background = _textures.Resolve(_skin.Get("GlueSpriteLayerBackground",
             @"UI\Glues\MainMenu\MainMenuBackground.blp"));
         if (background != null)
         {
             var fill = new TextureFrame("MapSelectionBackground") { Texture = background };
-            _root.AddChild(fill);
+            _panel.AddChild(fill);
             fill.RenderBounds = new UiRect(0f, 0f, DesignWidth, DesignHeight);
         }
         else
         {
             var fill = new SolidFrame("MapSelectionBackground", new NVector4(.02f, .025f, .03f, 1f));
-            _root.AddChild(fill);
+            _panel.AddChild(fill);
             fill.RenderBounds = new UiRect(0f, 0f, DesignWidth, DesignHeight);
         }
 
         var title = Text("MapSelectionTitle", 28, new NVector4(1f, .86f, .42f, 1f));
         title.Text = "选择地图";
-        _root.AddChild(title);
-        Place(title, 400, 42, _root, 84, 62);
+        _panel.AddChild(title);
+        Place(title, 400, 42, _panel, 84, 62);
         var subtitle = Text("MapSelectionSubtitle", 12, new NVector4(.72f, .76f, .78f, 1f));
-        subtitle.Text = "从 gmap 中选择一个场景开始游戏";
-        _root.AddChild(subtitle);
-        Place(subtitle, 500, 24, _root, 86, 101);
+        subtitle.Text = "从地图文件中选择一个场景开始游戏";
+        _panel.AddChild(subtitle);
+        Place(subtitle, 500, 24, _panel, 86, 101);
 
         var listPanel = new SolidFrame("MapFilePanel", new NVector4(.025f, .035f, .045f, .88f));
-        _root.AddChild(listPanel);
-        Place(listPanel, 396, 520, _root, 84, 132);
+        _panel.AddChild(listPanel);
+        Place(listPanel, 396, 520, _panel, 84, 132);
         StringFrame listTitle = AddLabel(listPanel, "MapFileTitle", "地图文件", 17,
             new NVector4(1f, .86f, .42f, 1f), 20, 14, 210, 30);
         _pageStatus = AddLabel(listPanel, "MapPageStatus", "", 11,
@@ -105,8 +109,8 @@ public sealed partial class MapSelectionScreen : Control
         Place(_nextPage, 108, 40, listPanel, 248, 462);
 
         var info = new SolidFrame("MapInfoPanel", new NVector4(.025f, .035f, .045f, .88f));
-        _root.AddChild(info);
-        Place(info, 460, 440, _root, 500, 132);
+        _panel.AddChild(info);
+        Place(info, 460, 440, _panel, 500, 132);
         AddLabel(info, "MapInfoTitle", "地图信息", 17,
             new NVector4(1f, .86f, .42f, 1f), 20, 14, 420, 30);
         _preview = new TextureFrame("MapPreview");
@@ -127,22 +131,29 @@ public sealed partial class MapSelectionScreen : Control
         AddLabel(info, "TilesetLabel", "地形", 11,
             new NVector4(.58f, .65f, .69f, 1f), 230, 214, 90, 20);
         _tileset = AddLabel(info, "MapTilesetValue", "-", 12, NVector4.One, 330, 214, 110, 20);
+        AddLabel(info, "MapVersionLabel", "保存版本", 11,
+            new NVector4(.58f, .65f, .69f, 1f), 230, 246, 90, 20);
+        _mapVersion = AddLabel(info, "MapVersionValue", "-", 11, NVector4.One, 330, 246, 110, 20);
         AddLabel(info, "DescriptionLabel", "地图描述", 11,
             new NVector4(.58f, .65f, .69f, 1f), 20, 272, 420, 20);
         _description = AddLabel(info, "MapDescValue", "", 12,
             new NVector4(.88f, .89f, .86f, 1f), 20, 300, 420, 112);
         _description.VerticalAlignment = TextVerticalAlignment.Top;
         _description.TruncateWidth = 420f;
+        _compatibilityWarning = AddLabel(info, "MapCompatibilityWarning", "", 12,
+            new NVector4(1f, .78f, .34f, 1f), 20, 370, 420, 50);
+        _compatibilityWarning.VerticalAlignment = TextVerticalAlignment.Top;
+        _compatibilityWarning.Visible = false;
 
         var playBorder = new SolidFrame("PlayGameButtonBorder", new NVector4(.66f, .48f, .12f, .98f));
-        _root.AddChild(playBorder);
-        Place(playBorder, 460, 58, _root, 500, 594);
+        _panel.AddChild(playBorder);
+        Place(playBorder, 460, 58, _panel, 500, 594);
         var playBackground = new SolidFrame("PlayGameButtonBackground", new NVector4(.12f, .09f, .035f, .98f));
-        _root.AddChild(playBackground);
-        Place(playBackground, 454, 52, _root, 503, 597);
+        _panel.AddChild(playBackground);
+        Place(playBackground, 454, 52, _panel, 503, 597);
         _play = Button("PlayGameButton", "确定", OnPlayRequest);
-        _root.AddChild(_play);
-        Place(_play, 454, 52, _root, 503, 597);
+        _panel.AddChild(_play);
+        Place(_play, 454, 52, _panel, 503, 597);
 
         _raceSelection = new RaceSelectionDialogFrame(_textures, _skin);
         _raceSelection.RaceSelected += racePreference =>
@@ -186,6 +197,40 @@ public sealed partial class MapSelectionScreen : Control
         return result;
     }
 
+    UiFrame BuildFdfPanel()
+    {
+        var factory = new FdfUiFactory(_textures, FdfSource.Read);
+        factory.LoadTemplate(@"UI\FrameDef\Glue\Skirmish.fdf");
+        UiFrame panel = factory.Create("Skirmish", _root);
+        panel.MouseTransparent = true;
+        foreach (UiFrame child in panel.Children) child.Visible = false;
+        return panel;
+    }
+
+    static int CompareBySize(string left, string right)
+    {
+        int bySize = FileLengthOrZero(left).CompareTo(FileLengthOrZero(right));
+        if (bySize != 0) return bySize;
+        return string.Compare(Path.GetFileName(left), Path.GetFileName(right),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    static long FileLengthOrZero(string path)
+    {
+        try { return new FileInfo(path).Length; }
+        catch (IOException) { return 0; }
+        catch (UnauthorizedAccessException) { return 0; }
+    }
+
+    void ApplyMapVersion(W3iInfo info)
+    {
+        _mapVersion.Text = MapCompatibilityNotice.VersionText(info);
+        string warning = MapCompatibilityNotice.Warning(info);
+        _compatibilityWarning.Text = warning;
+        _compatibilityWarning.Visible = warning.Length > 0;
+        _description.Height = _compatibilityWarning.Visible ? 60f : 112f;
+    }
+
     void BuildRows()
     {
         for (int i = 0; i < _maps.Count; i++)
@@ -211,6 +256,10 @@ public sealed partial class MapSelectionScreen : Control
         _preview.Texture = null;
         _name.Text = Path.GetFileNameWithoutExtension(path);
         _players.Text = _suggestedPlayers.Text = _mapSize.Text = _tileset.Text = "-";
+        _mapVersion.Text = "-";
+        _compatibilityWarning.Text = "";
+        _compatibilityWarning.Visible = false;
+        _description.Height = 112f;
         _description.Text = "";
         try
         {
@@ -232,6 +281,7 @@ public sealed partial class MapSelectionScreen : Control
                 : Fallback(W3iInfo.Resolve(info.PlayersRef, strings), "未知");
             _mapSize.Text = info == null ? "-" : $"{info.PlayableWidth} × {info.PlayableHeight}";
             _tileset.Text = info == null ? "-" : info.Tileset.ToString();
+            ApplyMapVersion(info);
             _description.Text = info == null ? "该地图没有提供描述。"
                 : Fallback(W3iInfo.Resolve(info.DescriptionRef, strings), "该地图没有提供描述。");
             byte[] preview = package.ReadMapFile("war3mapMap.png");
@@ -348,7 +398,21 @@ public sealed partial class MapSelectionScreen : Control
         _root.InvalidateLayout();
     }
 
-    public override void _Process(double delta) => QueueRedraw();
+    public override void _Process(double delta)
+    {
+        UpdateLayoutRect();
+        QueueRedraw();
+    }
+
+    void UpdateLayoutRect()
+    {
+        Vector2 framebuffer = GetViewportRect().Size;
+        _uiViewport.Update((int)framebuffer.X, (int)framebuffer.Y);
+        var offset = new Vector2(_uiViewport.PixelOffsetX, 0f);
+        var size = new Vector2(_uiViewport.ActivePixelWidth, _uiViewport.FramebufferHeight);
+        if (Position != offset) Position = offset;
+        if (Size != size) Size = size;
+    }
 
     public override void _GuiInput(InputEvent @event)
     {
@@ -388,16 +452,16 @@ public sealed partial class MapSelectionScreen : Control
 
     NVector2 ScreenToUi(Vector2 point)
     {
-        Vector2 size = GetViewportRect().Size;
+        Vector2 size = Size;
         return new NVector2(point.X * DesignWidth / Mathf.Max(1f, size.X),
             point.Y * DesignHeight / Mathf.Max(1f, size.Y));
     }
 
     public override void _Draw()
     {
-        Vector2 viewport = GetViewportRect().Size;
-        float scaleX = viewport.X / DesignWidth;
-        float scaleY = viewport.Y / DesignHeight;
+        UpdateLayoutRect();
+        float scaleX = Size.X / DesignWidth;
+        float scaleY = Size.Y / DesignHeight;
         _root.UpdateViewport(DesignWidth, DesignHeight);
         _root.Position();
         _raceSelection.Layout(DesignWidth, DesignHeight);
