@@ -12,6 +12,7 @@ public sealed partial class War3GameScene : Node3D
 {
     private MapSource _map;
     private MapWorldBuilder _terrainBuilder;
+    private TerrainShadowMap _terrainShadows;
     private World _world;
     private War3Camera _camera;
     private War3CameraComponent _cameraComponent;
@@ -166,6 +167,8 @@ public sealed partial class War3GameScene : Node3D
         _sceneLightingHour = _todHours;
         SceneLightRig.Apply(worldRoot, _sceneLighting.Terrain, _sceneLighting.Terrain);
         GD.Print($"[INIT] 昼夜光照 {SceneLighting.Describe(_sceneLighting.Terrain)}");
+        _terrainShadows = new TerrainShadowMap(map.Terrain, _terrainBuilder.TerrainMaterial,
+            _terrainBuilder.TreeShadows);
 
         _weather = WeatherRenderer.TryCreate(this, map.Info?.Environment?.GlobalWeather,
             CameraTargetHeightAt);
@@ -472,6 +475,15 @@ public sealed partial class War3GameScene : Node3D
         _selection?.SelectSingle(hero);
     }
 
+    private static float SunShadowStrength(double timeOfDay)
+    {
+        double hour = ((timeOfDay % 24) + 24) % 24;
+        if (hour < 6 || hour >= 19) return 0f;
+        if (hour < 9) return (float)((hour - 6) / 3);
+        if (hour > 16) return (float)((19 - hour) / 3);
+        return 1f;
+    }
+
     public override void _Process(double delta)
     {
         float frame = (float)delta;
@@ -482,6 +494,7 @@ public sealed partial class War3GameScene : Node3D
         _cameraComponent?.Update(frame);
         UpdatePlacementPreview();
         _terrainBuilder?.TickWater(delta);
+        _terrainShadows?.Update(SunShadowStrength(_todHours));
         TickProjectiles((float)delta);
         TickSceneEffects((float)delta);
         TickFloatingLabels((float)delta);

@@ -5,7 +5,6 @@ namespace OpenWC3;
 public sealed class TreeState
 {
     public Node3D Node;
-    public Node3D Shadow;
     public Vector3 Position;
     public string Id;
     public float Hp = 50f;
@@ -19,7 +18,6 @@ public sealed class TreeState
         {
             Alive = false;
             if (Node != null) Node.Visible = false;
-            if (Shadow != null) Shadow.Visible = false;
         }
     }
 }
