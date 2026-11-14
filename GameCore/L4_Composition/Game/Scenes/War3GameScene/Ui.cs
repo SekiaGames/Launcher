@@ -1235,34 +1235,6 @@ public sealed partial class War3GameScene
                 Intellect: hero ? unit.Intelligence : null));
         }
 
-        var buffs = new List<BuffEntry>();
-        foreach (Buff buff in unit.Buffs)
-        {
-            if (buff == null || buff.Remaining <= 0f) continue;
-            string art = buff.SourceAbility?.Type?.IconArt;
-            buffs.Add(new BuffEntry
-            {
-                Icon = string.IsNullOrEmpty(art) ? null : TechTree.Icon(art),
-                Name = buff.Name,
-                Remaining = buff.Remaining,
-            });
-            if (buffs.Count >= 8) break;
-        }
-        if (buffs.Count < 8)
-        {
-            foreach (Ability ability in unit.Abilities)
-            {
-                if (ability == null || !ability.Learned || !ability.IsAura) continue;
-                buffs.Add(new BuffEntry
-                {
-                    Icon = TechTree.Icon(ability.IconArt),
-                    Name = ability.Name,
-                    Remaining = 0f,
-                    Aura = true,
-                });
-                if (buffs.Count >= 8) break;
-            }
-        }
-        _hud.SetBuffs(buffs);
+        _hud.SetBuffs(BuffEntry.Collect(unit));
     }
 }

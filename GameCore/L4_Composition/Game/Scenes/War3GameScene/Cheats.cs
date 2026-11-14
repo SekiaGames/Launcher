@@ -822,7 +822,15 @@ public sealed partial class War3GameScene
             });
             _hud?.SetBuffs(new List<BuffEntry>
             {
-                new() { Name = "测试增益", Remaining = 5f },
+                new()
+                {
+                    Identity = "test",
+                    IconArt = @"ReplaceableTextures\CommandButtons\BTNDevotion.blp",
+                    Name = "测试增益",
+                    Title = "测试增益",
+                    Description = "面板 Buff 图标测试。",
+                    Remaining = 5f,
+                },
             });
             GD.Print($"[UI] 面板 {_hud?.DescribeExtras()}");
 

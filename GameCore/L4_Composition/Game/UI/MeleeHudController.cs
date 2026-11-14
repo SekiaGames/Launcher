@@ -39,10 +39,52 @@ public sealed class QueueEntry
 
 public sealed class BuffEntry
 {
-    public Texture2D Icon;
+    public string Identity;
+    public string IconArt;
     public string Name;
+    public string Title;
+    public string Description;
     public float Remaining;
     public bool Aura;
+
+    public static List<BuffEntry> Collect(Unit unit)
+    {
+        var buffs = new List<BuffEntry>();
+        foreach (Ability ability in unit.Abilities)
+        {
+            if (ability is not Buff buff) continue;
+
+            string identity = buff.Rawcode;
+            IRuntimeObjectData data = War3ObjectData.GetBuffType(identity) ?? ((Ability)buff).ObjectData;
+            if (string.IsNullOrEmpty(identity))
+            {
+                Ability source = buff.SourceAbility;
+                if (source != null && source.BuffRawcodes.Count > 0)
+                {
+                    identity = source.BuffRawcodes[0];
+                    data = War3ObjectData.GetBuffType(identity) ?? data;
+                }
+            }
+
+            int level = buff is AuraBuff aura && aura.AuraLevel > 0 ? aura.AuraLevel : Math.Max(1, buff.Level);
+            string title = War3Text.Describe(data?.GetString("Bufftip", level, 0, "") ?? "");
+            string body = War3Text.Describe(data?.GetString("BuffUbertip", level, 0, "") ?? "");
+            if (string.IsNullOrWhiteSpace(title)) title = buff.Name;
+            if (string.IsNullOrWhiteSpace(body)) body = title;
+
+            buffs.Add(new BuffEntry
+            {
+                Identity = identity,
+                IconArt = data?.GetString("Buffart", level),
+                Name = buff.Name,
+                Title = title,
+                Description = body,
+                Remaining = buff.Remaining,
+                Aura = buff.Aura,
+            });
+        }
+        return buffs;
+    }
 }
 
 public sealed class MeleeHudController : IUiCommandListener
@@ -51,7 +93,6 @@ public sealed class MeleeHudController : IUiCommandListener
     readonly List<CommandEntry> _commands = new();
     readonly List<CommandEntry> _inventory = new();
     readonly List<QueueEntry> _queue = new();
-    readonly List<BuffEntry> _buffs = new();
     string _hint;
     string _playerInfo;
     string _unitSummary;
@@ -148,11 +189,7 @@ public sealed class MeleeHudController : IUiCommandListener
 
     public void SetQueue(string text) { }
 
-    public void SetBuffs(IReadOnlyList<BuffEntry> buffs)
-    {
-        _buffs.Clear();
-        if (buffs != null) _buffs.AddRange(buffs);
-    }
+    public void SetBuffs(IReadOnlyList<BuffEntry> buffs) => _host.SetBuffs(buffs);
 
     public void SetUnitSummary(Texture2D portrait, string attack, string armor) =>
         _unitSummary = $"{portrait?.GetSize().ToString() ?? "-"} {attack} {armor}";

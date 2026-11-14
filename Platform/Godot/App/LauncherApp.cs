@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using OpenWC3.Game;
 using OpenWC3.Game.UI;
+using OpenWC3.UI;
 
 namespace OpenWC3;
 
@@ -665,6 +666,66 @@ public sealed partial class LauncherApp : Node
         Check("力量提示", hud.TooltipTitle == "力量", hud.TooltipTitle);
         hud.HoverForProbe("UnitXpBar");
         Check("经验提示", hud.TooltipTitle == "经验", hud.TooltipTitle);
+
+        var buffEntries = new List<BuffEntry>
+        {
+            new() { Identity = "empty", IconArt = "" },
+            new()
+            {
+                Identity = "dupe",
+                IconArt = @"ReplaceableTextures\CommandButtons\BTNDevotion.blp",
+                Title = "专注光环",
+                Description = "该单位处于专注光环的作用之下，因此提高了护甲。",
+                Remaining = 5f,
+                Aura = true,
+            },
+            new()
+            {
+                Identity = "dupe",
+                IconArt = @"ReplaceableTextures\CommandButtons\BTNDevotion.blp",
+                Title = "重复",
+                Description = "duplicate",
+            },
+        };
+        for (int i = 0; i < 8; i++)
+        {
+            buffEntries.Add(new BuffEntry
+            {
+                Identity = $"probe{i}",
+                IconArt = @"ReplaceableTextures\CommandButtons\BTNDevotion.blp",
+                Title = $"状态{i}",
+                Description = $"描述{i}",
+                Remaining = 5f,
+            });
+        }
+        hud.SetBuffs(buffEntries);
+        hud.LayoutInfoPanelForProbe();
+        Check("Buff 空图/去重后首格", hud.TryGetBuffTooltip(0, out string buffTitle, out _)
+            && buffTitle == "专注光环", buffTitle);
+        Check("Buff 第二格", hud.TryGetBuffTooltip(1, out buffTitle, out _)
+            && buffTitle == "状态0", buffTitle);
+        Check("Buff 槽位 8 格", hud.BuffIconVisible(7) && !hud.HoverForProbe("BuffIcon8"), "");
+        hud.HoverForProbe("BuffIcon0");
+        Check("Buff 悬停说明", hud.TooltipVisible && hud.TooltipTitle == "专注光环"
+            && hud.TooltipBody.Contains("护甲"), hud.TooltipTitle + " / " + hud.TooltipBody);
+        UiRect buffBounds = hud.BuffIconBounds(0);
+        UiRect panelBounds = UnitInfoPanelFrame.PanelBounds(
+            OpenWC3.Game.UI.GameHudScreen.DesignWidth, OpenWC3.Game.UI.GameHudScreen.DesignHeight);
+        Check("Buff 图标不越界", buffBounds.X >= panelBounds.X
+            && buffBounds.X + buffBounds.Width <= panelBounds.X + panelBounds.Width
+            && buffBounds.Y + buffBounds.Height <= panelBounds.Y + panelBounds.Height,
+            buffBounds.ToString());
+
+        var buffUnit = new Unit();
+        var realBuff = new Buff();
+        realBuff.BindBuffObjectData("BHad", War3ObjectData.GetBuffType("BHad"), 1);
+        buffUnit.AddAbility(realBuff);
+        hud.SetBuffs(BuffEntry.Collect(buffUnit));
+        hud.LayoutInfoPanelForProbe();
+        Check("Buff 物编取图", hud.TryGetBuffTooltip(0, out string dataTitle, out string dataBody)
+            && dataTitle == "专注光环" && dataBody.Contains("护甲"), dataTitle + " / " + dataBody);
+        hud.SetBuffs(null);
+        Check("Buff 清空", !hud.BuffIconVisible(0), "");
 
         GD.Print(failures == 0 ? "[UI] 全部通过" : $"[UI] {failures} 项不符");
         return failures;

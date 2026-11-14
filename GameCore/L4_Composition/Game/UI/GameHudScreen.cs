@@ -223,6 +223,13 @@ _chat = new ChatFrame(this);
         QueueRedraw();
     }
 
+    public void SetBuffs(IReadOnlyList<BuffEntry> buffs)
+    {
+        _infoPanel.SetBuffs(buffs);
+        if (_router?.Hovered?.Name?.StartsWith("BuffIcon", StringComparison.Ordinal) == true)
+            OnHoverChanged(_router.Hovered);
+    }
+
     /// <summary>命令/建造提示（客户端 CommandErrorFrame）：黄字、console 上方、3s+每字符 0.1s 后淡出。</summary>
     public void ShowCommandError(string text) => _commandError?.Show(text);
 
@@ -285,6 +292,19 @@ _chat = new ChatFrame(this);
                 }
                 else _tooltip.Hide();
                 return;
+        }
+
+        if (frame.Name?.StartsWith("BuffIcon", StringComparison.Ordinal) == true && frame.Visible)
+        {
+            if (int.TryParse(frame.Name["BuffIcon".Length..], out int buffSlot)
+                && _infoPanel.TryGetBuffTooltip(buffSlot, out string buffTitle, out string buffBody))
+            {
+                ShowTip(frame, string.IsNullOrWhiteSpace(buffTitle) ? "状态效果" : buffTitle,
+                    string.IsNullOrWhiteSpace(buffBody) ? "该单位身上的魔法效果。" : buffBody);
+                return;
+            }
+            _tooltip.Hide();
+            return;
         }
 
         if (frame is ButtonFrame { Visible: true } button
@@ -765,6 +785,11 @@ _chat = new ChatFrame(this);
     internal bool TooltipVisible => _tooltip.Visible;
     internal string TooltipTitle => _tooltip.TitleText;
     internal string TooltipBody => _tooltip.BodyText;
+    internal bool BuffIconVisible(int slot) => _infoPanel.BuffIconVisible(slot);
+    internal UiRect BuffIconBounds(int slot) => _infoPanel.BuffIconBounds(slot);
+    internal bool TryGetBuffTooltip(int slot, out string title, out string body)
+        => _infoPanel.TryGetBuffTooltip(slot, out title, out body);
+    internal void LayoutInfoPanelForProbe() => _infoPanel.Layout(DesignWidth, DesignHeight);
     internal bool CommandErrorVisible => _commandError?.Visible ?? false;
     internal string CommandErrorMessage => _commandError?.Message ?? "";
 

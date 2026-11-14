@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using OpenWC3.Game.UI.Views;
@@ -20,6 +21,9 @@ public sealed class UnitInfoPanelFrame : UiContainer
     private const float NameHeight = 20f, NameFont = 16.64f;
     private const float XpBarTop = 22f, XpBarHeight = 20f;
     private const float ClassTop = 27f, ClassFont = 10.88f;
+    internal const int BuffSlotCount = 8;
+    internal const float BuffIconSize = 19.2f;
+    private const float StatusIconTop = PanelHeight - ContentTopInset - 6f - BuffIconSize;
 
     private readonly StringFrame _name;
     private readonly StatusBarFrame _xpBar;
@@ -37,11 +41,16 @@ public sealed class UnitInfoPanelFrame : UiContainer
     private readonly StringFrame _strLabel, _agiLabel, _intLabel;
     private readonly StringFrame _strValue, _agiValue, _intValue;
     private readonly StringFrame _statusLabel;
+    private readonly TextureFrame[] _buffIcons = new TextureFrame[BuffSlotCount];
+    private readonly string[] _buffTitles = new string[BuffSlotCount];
+    private readonly string[] _buffBodies = new string[BuffSlotCount];
+    private readonly Func<string, ITexture> _iconResolver;
 
     private UiFrame[] _targets;
 
     public UnitInfoPanelFrame(IUiTextureResolver textures, War3UiSkin skin) : base("UnitInfoPanel")
     {
+        _iconResolver = textures.Resolve;
         var shadow = new Vector4(0, 0, 0, 0.9f);
         var label = new Vector4(0.25f, 0.82f, 0.25f, 1f);
 
@@ -106,6 +115,11 @@ public sealed class UnitInfoPanelFrame : UiContainer
         AddChild(_intLabel);
         AddChild(_intValue);
         AddChild(_statusLabel);
+        for (int i = 0; i < BuffSlotCount; i++)
+        {
+            _buffIcons[i] = new TextureFrame($"BuffIcon{i}") { Visible = false, MouseTransparent = false };
+            AddChild(_buffIcons[i]);
+        }
 
         Visible = false;
     }
@@ -154,7 +168,12 @@ public sealed class UnitInfoPanelFrame : UiContainer
         }
 
         _statusLabel.RenderBounds = new UiRect(x + 6 + IconValueGap,
-            top + PanelHeight - ContentTopInset - 6f - 19.2f + (19.2f - 12f) / 2f, 24, 12);
+            top + StatusIconTop + (BuffIconSize - 12f) / 2f, 24, 12);
+        for (int i = 0; i < BuffSlotCount; i++)
+        {
+            _buffIcons[i].RenderBounds = new UiRect(x + 6 + IconValueGap + 24 + i * BuffIconSize,
+                top + StatusIconTop, BuffIconSize, BuffIconSize);
+        }
     }
 
     public void Update(UnitInfoView? view)
@@ -196,6 +215,57 @@ public sealed class UnitInfoPanelFrame : UiContainer
         _agiLabel.Visible = _agiValue.Visible = info.IsHero;
         _intLabel.Visible = _intValue.Visible = info.IsHero;
 
-        _statusLabel.Visible = info.IsHero;
+        _statusLabel.Visible = true;
     }
+
+    public void SetBuffs(IReadOnlyList<BuffEntry> buffs)
+    {
+        for (int slot = 0; slot < BuffSlotCount; slot++)
+        {
+            _buffIcons[slot].Visible = false;
+            _buffIcons[slot].Texture = null;
+            _buffTitles[slot] = null;
+            _buffBodies[slot] = null;
+        }
+        if (buffs == null) return;
+
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        int filled = 0;
+        foreach (BuffEntry entry in buffs)
+        {
+            if (entry == null) continue;
+            string art = entry.IconArt?.Trim().Trim('"');
+            if (string.IsNullOrWhiteSpace(art) || art == "_") continue;
+            if (!art.Contains('\\') && !art.Contains('/') && !art.Contains(','))
+                art = @"ReplaceableTextures\CommandButtons\" + art;
+
+            ITexture texture = _iconResolver?.Invoke(art);
+            if (texture == null) continue;
+            if (!string.IsNullOrEmpty(entry.Identity) && !identities.Add(entry.Identity)) continue;
+
+            _buffIcons[filled].Texture = texture;
+            _buffIcons[filled].Visible = true;
+            _buffTitles[filled] = entry.Title ?? entry.Name ?? "";
+            _buffBodies[filled] = entry.Description ?? "";
+            filled++;
+            if (filled == BuffSlotCount) break;
+        }
+    }
+
+    public bool TryGetBuffTooltip(int slot, out string title, out string body)
+    {
+        title = body = "";
+        if (slot < 0 || slot >= BuffSlotCount || !_buffIcons[slot].Visible) return false;
+        title = _buffTitles[slot];
+        body = _buffBodies[slot];
+        if (string.IsNullOrWhiteSpace(title)) return false;
+        if (string.IsNullOrWhiteSpace(body)) body = title;
+        return true;
+    }
+
+    internal bool BuffIconVisible(int slot) =>
+        slot >= 0 && slot < BuffSlotCount && _buffIcons[slot].Visible;
+
+    internal UiRect BuffIconBounds(int slot) =>
+        slot >= 0 && slot < BuffSlotCount ? _buffIcons[slot].RenderBounds : default;
 }
