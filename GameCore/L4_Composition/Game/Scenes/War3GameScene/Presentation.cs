@@ -19,6 +19,7 @@ public sealed partial class War3GameScene
         public Unit Target;
         public float TargetHeight = 60f;
         public readonly War3MissileAnimation Animation = new();
+        public MdxRibbonRenderer Ribbon;
         public AnimationPlayer Player;
         public float Age;
         public bool Impacted;
@@ -50,6 +51,7 @@ public sealed partial class War3GameScene
         }
         node = scene.Instantiate<Node3D>();
         MapWorldBuilder.ApplyUnitTextureFilter(node);
+        LowerMissileAlphaCutoff(node);
         Vector3 from = LaunchPoint(attacker);
         float impactHeight = ImpactHeight(target);
         Vector3 to = target.Position + new Vector3(0f, impactHeight, 0f);
@@ -68,6 +70,7 @@ public sealed partial class War3GameScene
             Target = target,
             TargetHeight = impactHeight,
             Player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
+            Ribbon = MdxRibbonRenderer.Create(node, attacker.TeamColorIndex),
         };
         projectile.Animation.Start(projectile.Player);
         _projectiles.Add(projectile);
@@ -79,6 +82,27 @@ public sealed partial class War3GameScene
     }
 
     private static int _missileLogBudget = 6;
+
+    private static void LowerMissileAlphaCutoff(Node3D node)
+    {
+        foreach (Node child in node.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            var mesh = (MeshInstance3D)child;
+            LowerModelAlphaCutoff(mesh.MaterialOverride as ShaderMaterial);
+            if (mesh.Mesh == null) continue;
+            for (int surface = 0; surface < mesh.Mesh.GetSurfaceCount(); surface++)
+            {
+                LowerModelAlphaCutoff(mesh.GetSurfaceOverrideMaterial(surface) as ShaderMaterial);
+                LowerModelAlphaCutoff(mesh.Mesh.SurfaceGetMaterial(surface) as ShaderMaterial);
+            }
+        }
+    }
+
+    private static void LowerModelAlphaCutoff(ShaderMaterial material)
+    {
+        if (material?.Shader?.ResourcePath?.Contains("war3_model_") != true) return;
+        material.SetShaderParameter("alpha_cutoff", 0.01f);
+    }
 
     /// <summary>技能投射物：与武器共用 Projectile 飞行列表，只是模型与速度来自技能。</summary>
     private void OnAbilityMissileFired(Unit caster, Ability ability, Unit target)
@@ -99,6 +123,7 @@ public sealed partial class War3GameScene
         }
         node = scene.Instantiate<Node3D>();
         MapWorldBuilder.ApplyUnitTextureFilter(node);
+        LowerMissileAlphaCutoff(node);
 
         Vector3 from = LaunchPoint(caster);
         float impactHeight = ImpactHeight(target);
@@ -118,6 +143,7 @@ public sealed partial class War3GameScene
             Target = target,
             TargetHeight = impactHeight,
             Player = node.FindChild("AnimationPlayer", true, false) as AnimationPlayer,
+            Ribbon = MdxRibbonRenderer.Create(node, caster.TeamColorIndex),
         };
         projectile.Animation.Start(projectile.Player);
         _projectiles.Add(projectile);
@@ -293,6 +319,7 @@ public sealed partial class War3GameScene
                 projectile.Node.Rotation = new Vector3(-FlightPitch(projectile, progress), yaw, 0f);
                 // 客户端 RenderVisibility.IsPositionVisible：黑雾里的弹道不画。
                 projectile.Node.Visible = IsAudible(position);
+                projectile.Ribbon?.Tick(delta, projectile.Node.Visible);
                 projectile.Animation.Advance(projectile.Player, projectile.Age, null);
                 continue;
             }
@@ -301,6 +328,7 @@ public sealed partial class War3GameScene
             projectile.Node.Position = projectile.ImpactPosition;
             projectile.Node.Rotation = new Vector3(-projectile.ImpactPitch, projectile.ImpactYaw, 0f);
             projectile.Node.Visible = IsAudible(projectile.ImpactPosition);
+            projectile.Ribbon?.Tick(delta, false);
             bool deathDone = projectile.Animation.Advance(projectile.Player, projectile.Age, projectile.ImpactAge);
             if (deathDone || deathLimit <= 0f || projectile.ImpactAge >= deathLimit)
             {
