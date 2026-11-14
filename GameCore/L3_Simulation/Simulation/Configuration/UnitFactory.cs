@@ -14,6 +14,9 @@ public sealed class UnitType
     public string ModelPath;
     public float ModelScale = 1f;
     public float SelectionDiameter = 72f;
+    public float TerrainTiltRadius;
+    public float MaxPitchDegrees;
+    public float MaxRollDegrees;
     public float WalkAnimationSpeed;
     public float RunAnimationSpeed;
     public float Hp = 100f;
@@ -305,6 +308,9 @@ public static class UnitFactory
             ModelPath = PathResolve.ModelScene(file),
             ModelScale = Number(ui.Get(uiRow, "modelScale"), 1f),
             SelectionDiameter = Number(ui.Get(uiRow, "scale"), 1f) * SelectionScaleFactor,
+            TerrainTiltRadius = Number(ui.Get(uiRow, "elevRad"), 0f),
+            MaxPitchDegrees = Number(ui.Get(uiRow, "maxPitch"), 0f),
+            MaxRollDegrees = Number(ui.Get(uiRow, "maxRoll"), 0f),
             WalkAnimationSpeed = Number(ui.Get(uiRow, "walk"), 0f),
             RunAnimationSpeed = Number(ui.Get(uiRow, "run"), 0f),
             Name = file.Replace('\\', '/').Split('/')[^1],

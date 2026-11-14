@@ -187,7 +187,7 @@ public sealed class UnitSceneComponent
     public float RenderFlyHeight { get; private set; }
     public float FlyHeightSpeed { get; private set; }
 
-    public void SyncPlacement(Unit unit, float delta)
+    public void SyncPlacement(Unit unit, float delta, Func<float, float, float> heightAt)
     {
         float target = unit.FlyHeight;
         if (!Mathf.IsEqualApprox(target, _flyTarget))
@@ -207,6 +207,17 @@ public sealed class UnitSceneComponent
         if (unit.IsBuilding) y += 12f;
         if (unit.Type != null && unit.Type.Flying) y = Mathf.Max(y, ground + unit.Type.MoveFloor);
         Root.Position = new Vector3(unit.Position.X, y, unit.Position.Z);
+
+        float yaw = Root.Rotation.Y;
+        float pitch = 0f;
+        float roll = 0f;
+        UnitType type = unit.Type;
+        if (type != null && (type.MaxPitchDegrees != 0f || type.MaxRollDegrees != 0f))
+        {
+            (pitch, roll) = UnitTerrainTilt.Compute(unit.Position.X, unit.Position.Z, yaw,
+                type.TerrainTiltRadius, type.MaxPitchDegrees, type.MaxRollDegrees, heightAt);
+        }
+        Root.Rotation = new Vector3(pitch, yaw, -roll);
     }
 
     private void ApplyTeamColor(int teamColorIndex)

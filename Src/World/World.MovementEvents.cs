@@ -155,7 +155,7 @@ public sealed partial class World
         float maxStep = Mathf.Max(1.5f, unit.Type.TurnSpeed) * FrameSeconds;
         if (Mathf.Abs(diff) <= maxStep) unit.Facing = unit.TargetFacing;
         else unit.Facing += Mathf.Sign(diff) * maxStep;
-        unit.View.Root.Rotation = new Vector3(0f, unit.Facing, 0f);
+        unit.View.Root.Rotation = new Vector3(unit.View.Root.Rotation.X, unit.Facing, unit.View.Root.Rotation.Z);
     }
 
     private static void FaceTarget(Unit unit, Unit target)

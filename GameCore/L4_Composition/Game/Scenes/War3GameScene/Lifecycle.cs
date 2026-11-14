@@ -697,7 +697,7 @@ public sealed partial class War3GameScene : Node3D
         {
             Unit shaped = _allUnits[index];
             if (shaped?.View == null) continue;
-            shaped.View.SyncPlacement(shaped, (float)delta);
+            shaped.View.SyncPlacement(shaped, (float)delta, StatusBarHeightAt);
             shaped.View.SyncAppearance(shaped, ViewPlayer, AreAllied);
         }
         _cursor?.Tick(frame);
