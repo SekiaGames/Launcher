@@ -69,8 +69,7 @@ public sealed class WeatherRenderer
         if (direction.LengthSquared() < 1e-6f) direction = Vector3.Down;
         float speed = Mathf.Abs(definition.Velocity);
         float variance = Mathf.Max(0f, definition.Variance);
-        float speedMin = speed * (1f - Mathf.Min(1f, variance));
-        float speedMax = speed * (1f + variance);
+        float spread = Mathf.RadToDeg(Mathf.Atan(variance * Mathf.Sqrt(2f)));
 
         int count = _cellsPerSide * _cellsPerSide;
         for (int i = 0; i < count; i++)
@@ -87,9 +86,9 @@ public sealed class WeatherRenderer
                 FixedFps = 60,
                 Mesh = mesh,
                 Direction = direction,
-                Spread = 0f,
-                InitialVelocityMin = speedMin,
-                InitialVelocityMax = speedMax,
+                Spread = spread,
+                InitialVelocityMin = speed,
+                InitialVelocityMax = speed,
                 Gravity = new Vector3(0f, -definition.Acceleration, 0f),
                 EmissionShape = CpuParticles3D.EmissionShapeEnum.Box,
                 EmissionBoxExtents = new Vector3(WeatherDefinition.CellSize * 0.5f, 1f,
@@ -114,7 +113,7 @@ public sealed class WeatherRenderer
         GD.Print($"[WEATHER] {definition.Id} cells={_cellsPerSide}x{_cellsPerSide} "
             + $"perCell={definition.ActiveParticleCount} pool={definition.PoolCapacity} "
             + $"life={definition.LifeSpan:0.##}s height={definition.Height:0.#} "
-            + $"veloc={speed:0.#}±{variance:P0}（{speedMin:0.#}~{speedMax:0.#}）"
+            + $"veloc={speed:0.#} 抖动 var={variance:P0}（锥角 {spread:0.0}°）"
             + $"alphaMode={definition.AlphaMode} fog={definition.UseFog} "
             + $"uv={definition.UvStart:0.#}/{definition.UvMid:0.#}/{definition.UvEnd:0.#} "
             + $"grid={definition.TextureColumns}x{definition.TextureRows} "
