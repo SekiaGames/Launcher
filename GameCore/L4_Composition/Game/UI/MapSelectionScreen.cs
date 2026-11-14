@@ -271,19 +271,35 @@ public sealed partial class MapSelectionScreen : Control
                 : Fallback(MapInfo.Resolve(info.DescriptionRef, strings), "该地图没有提供描述。");
             foreach (string candidateName in new[] { "war3mapPreview.png", "war3mapMap.png" })
             {
-                byte[] candidate = package.ReadMapFile(candidateName);
-                if (candidate == null) continue;
-                var image = new Image();
-                if (image.LoadPngFromBuffer(candidate) != Error.Ok) continue;
-                _previewTexture = new GodotUiTexture(ImageTexture.CreateFromImage(image));
-                _preview.Texture = _previewTexture;
-                break;
+                if (ApplyPreview(package, candidateName)) break;
             }
+            if (_preview.Texture == null) ApplyPreview(package, LoadingScreenImageName(info));
         }
         catch (Exception error)
         {
             _description.Text = error.Message;
         }
+    }
+
+    static string LoadingScreenImageName(MapInfo info)
+    {
+        string model = info?.LoadingScreenModel;
+        if (string.IsNullOrWhiteSpace(model)) return null;
+        string extension = Path.GetExtension(model).ToLowerInvariant();
+        if (extension is not (".blp" or ".tga" or ".png")) return null;
+        return Path.ChangeExtension(Path.GetFileName(model.Replace('\\', '/')), ".png");
+    }
+
+    bool ApplyPreview(GmapPackage package, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+        byte[] bytes = package.ReadMapFile(name);
+        if (bytes == null) return false;
+        var image = new Image();
+        if (image.LoadPngFromBuffer(bytes) != Error.Ok) return false;
+        _previewTexture = new GodotUiTexture(ImageTexture.CreateFromImage(image));
+        _preview.Texture = _previewTexture;
+        return true;
     }
 
     static string Fallback(string value, string fallback) =>
