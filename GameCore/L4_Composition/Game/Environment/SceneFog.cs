@@ -11,16 +11,32 @@ public static class SceneFog
 {
     public static War3FogConfig Config { get; private set; } = War3FogConfig.None;
 
+    private static Texture2D _fogOfWar;
+    private static Vector4 _fogOfWarUv;
+    private static bool _fogOfWarEnabled;
+
     public static void Set(War3FogConfig config)
     {
         Config = config;
     }
 
+    public static void SetFogOfWar(Texture2D texture, Vector4 uv, bool enabled)
+    {
+        _fogOfWar = texture;
+        _fogOfWarUv = uv;
+        _fogOfWarEnabled = enabled && texture != null;
+    }
+
     public static void Write(ShaderMaterial material)
     {
         if (material?.Shader == null) return;
+        War3FogConfig config = Config;
         material.SetShaderParameter("fog_color",
-            new Vector4(Config.Tint.R, Config.Tint.G, Config.Tint.B, 1f));
-        material.SetShaderParameter("fog_params", Config.Params);
+            new Vector4(config.Tint.R, config.Tint.G, config.Tint.B, 1f));
+        material.SetShaderParameter("fog_params", config.Params);
+        if (_fogOfWar == null) return;
+        material.SetShaderParameter("fog_of_war_texture", _fogOfWar);
+        material.SetShaderParameter("fog_of_war_uvp", _fogOfWarUv);
+        material.SetShaderParameter("fog_of_war_enable", _fogOfWarEnabled ? 1f : 0f);
     }
 }

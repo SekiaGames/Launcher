@@ -119,7 +119,7 @@ public sealed partial class MapWorldBuilder
     public void BindWaterFogOfWar(Texture2D visibility, Vector4 uvp, bool enabled)
     {
         if (_waterMaterial == null) return;
-        _waterMaterial.SetShaderParameter("fog_of_war_enable", enabled && visibility != null);
+        _waterMaterial.SetShaderParameter("fog_of_war_enable", enabled && visibility != null ? 1f : 0f);
         if (!enabled || visibility == null) return;
         _waterMaterial.SetShaderParameter("fog_of_war_texture", visibility);
         _waterMaterial.SetShaderParameter("fog_of_war_uvp", uvp);

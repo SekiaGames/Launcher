@@ -88,18 +88,67 @@ public sealed class UnitSceneComponent
     public void SetTeamColor(Color color) => ApplyTeamColor(color);
 
     private bool _ghost;
+    private readonly List<Node> _frozenEmitters = new();
 
-    /// <summary>隐身时只留一个淡影（自己的单位能看见自己在哪里）。</summary>
+    /// <summary>
+    /// 进雾冻结：定格最后看到的样子。暂停序列、关掉自带粒子和丝带（原版会把它们摘掉），
+    /// 模型本身继续画，所以仍然吃战争迷雾的压暗（客户端 FogMemory 同款效果）。
+    /// </summary>
     public void SetFogFrozen(bool frozen)
     {
         FogFrozen = frozen;
-        if (Player != null)
+        if (frozen)
         {
-            if (frozen) Player.Pause();
-            else if (!string.IsNullOrEmpty(CurrentAnimation))
-                Player.Play(CurrentAnimation);
+            if (Player != null) Player.Pause();
+            StopParticles();
+            Root.Visible = true;
+            return;
         }
+
+        ResumeParticles();
+        if (Player != null && !string.IsNullOrEmpty(CurrentAnimation))
+            Player.Play(CurrentAnimation);
         Root.Visible = true;
+    }
+
+    private void StopParticles()
+    {
+        _frozenEmitters.Clear();
+        foreach (Node node in Root.FindChildren("*", "", true, false))
+        {
+            if (node is CpuParticles3D cpu)
+            {
+                cpu.Emitting = false;
+                cpu.Visible = false;
+                _frozenEmitters.Add(cpu);
+            }
+            else if (node is GpuParticles3D gpu)
+            {
+                gpu.Emitting = false;
+                gpu.Visible = false;
+                _frozenEmitters.Add(gpu);
+            }
+        }
+    }
+
+    private void ResumeParticles()
+    {
+        foreach (Node node in _frozenEmitters)
+        {
+            if (!GodotObject.IsInstanceValid(node)) continue;
+            switch (node)
+            {
+                case CpuParticles3D cpu:
+                    cpu.Visible = true;
+                    cpu.Emitting = true;
+                    break;
+                case GpuParticles3D gpu:
+                    gpu.Visible = true;
+                    gpu.Emitting = true;
+                    break;
+            }
+        }
+        _frozenEmitters.Clear();
     }
 
     public void SetGhost(bool ghost)

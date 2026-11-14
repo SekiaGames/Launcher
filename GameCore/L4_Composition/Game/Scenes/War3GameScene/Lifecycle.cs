@@ -667,6 +667,7 @@ public sealed partial class War3GameScene : Node3D
         _cameraComponent?.Update(frame);
         UpdatePlacementPreview();
         _terrainBuilder?.TickWater(delta);
+        _fog?.TickFade((float)delta);
         _terrainShadows?.Update(SunShadowStrength(_todHours));
         TickProjectiles((float)delta);
         RenderVisualEffects((float)delta);
