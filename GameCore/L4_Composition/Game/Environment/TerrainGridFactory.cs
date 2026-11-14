@@ -46,10 +46,14 @@ public sealed partial class MapWorldBuilder
         }
         foreach (string cliffTexture in terrain.CliffTextures)
         {
-            string text = CliffTextureSet.GroundTileFor(cliffTexture);
-            if (!string.IsNullOrEmpty(text) && !list.Contains(text))
+            AddGroundTile(CliffTextureSet.GroundTileFor(cliffTexture));
+            AddGroundTile(CliffTextureSet.UpperTileFor(cliffTexture));
+        }
+        void AddGroundTile(string id)
+        {
+            if (!string.IsNullOrEmpty(id) && !list.Contains(id))
             {
-                list.Add(text);
+                list.Add(id);
             }
         }
         TerrainTextureLoader tiles = new TerrainTextureLoader();
@@ -151,7 +155,7 @@ public sealed partial class MapWorldBuilder
         material.SetShaderParameter("shadow_scale", new Vector2(1f / (width * CellSize), 1f / (height * CellSize)));
         material.SetShaderParameter("shadow_strength", 0.5f);
         material.SetShaderParameter("shadow_enabled", true);
-        GD.Print($"[MAP] 阴影图 {width}x{height}，最深 {darkest}，均值 {(double)total / shadow.Length:0.0}");
+        GD.Print($"[MAP] 阴影图 {width}x{height}，读入 {data.Length} 字节，最深 {darkest}，均值 {(double)total / shadow.Length:0.0}");
     }
 
     private Vector4 TileLayers(string t00, string t10, string t01, string t11, W3eTerrain.Corner c00)
@@ -260,7 +264,13 @@ public sealed partial class MapWorldBuilder
                 }
                 if (num3 >= 0 && num3 < terrain.CliffTextures.Count)
                 {
-                    string text = CliffTextureSet.GroundTileFor(terrain.CliffTextures[num3]);
+                    string cliffId = terrain.CliffTextures[num3];
+                    int minimum = Math.Min(Math.Min(corner.LayerHeight, corner2.LayerHeight),
+                        Math.Min(corner3.LayerHeight, corner4.LayerHeight));
+                    bool atBottom = terrain.Corners[y * width + x].LayerHeight == minimum;
+                    string text = atBottom
+                        ? CliffTextureSet.GroundTileFor(cliffId)
+                        : CliffTextureSet.UpperTileFor(cliffId);
                     if (!string.IsNullOrEmpty(text))
                     {
                         return text;

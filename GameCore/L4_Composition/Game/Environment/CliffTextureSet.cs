@@ -98,6 +98,39 @@ public sealed class CliffTextureSet
         return row < 0 ? null : Table.Get(row, "groundTile");
     }
 
+    public static string UpperTileFor(string cliffId)
+    {
+        int row = Table.FindRow("cliffID", cliffId);
+        if (row < 0)
+        {
+            return null;
+        }
+        string ground = Table.Get(row, "groundTile");
+        string upper = Table.Get(row, "upperTile");
+        if (string.IsNullOrWhiteSpace(upper) || upper.StartsWith('_'))
+        {
+            return ground;
+        }
+        return upper;
+    }
+
+    public static string CliffModelDirectoryFor(string cliffId) =>
+        DirectoryFor(cliffId, "cliffModelDir");
+
+    public static string RampModelDirectoryFor(string cliffId) =>
+        DirectoryFor(cliffId, "rampModelDir");
+
+    static string DirectoryFor(string cliffId, string column)
+    {
+        int row = Table.FindRow("cliffID", cliffId);
+        if (row < 0)
+        {
+            return null;
+        }
+        string value = Table.Get(row, column);
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
     public int LayerOf(string cliffId)
     {
         return cliffId != null && _layer.TryGetValue(cliffId, out int layer) ? layer : 0;

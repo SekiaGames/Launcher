@@ -13,28 +13,20 @@ public sealed class CliffGeometry
 
 public static class CliffRenderer
 {
-    private const string CliffDirectory = "Doodads/Terrain/Cliffs/";
-    private const string TransDirectory = "Doodads/Terrain/CliffTrans/";
+    private const string TerrainRoot = "Doodads/Terrain/";
 
     private static readonly Dictionary<string, CliffGeometry> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, string> Resolved = new(StringComparer.OrdinalIgnoreCase);
 
-    public static string Find(string fileName)
+    public static string FindModel(string directory, string fileName)
     {
-        foreach (string directory in new[] { CliffDirectory, TransDirectory })
-        {
-            string relative = $"{directory}{fileName}";
-            if (ModelLibrary.Exists(relative))
-            {
-                return relative;
-            }
-        }
-        return null;
+        string relative = $"{TerrainRoot}{directory}/{fileName}";
+        return ModelLibrary.Exists(relative) ? relative : null;
     }
 
-    public static string ResolveCliff(string variant, int variation)
+    public static string ResolveCliff(string directory, string code, int variation)
     {
-        string key = "Cliffs" + variant + "|" + variation;
+        string key = directory + "|" + code + "|" + variation;
         if (Resolved.TryGetValue(key, out string cached))
         {
             return cached;
@@ -43,7 +35,7 @@ public static class CliffRenderer
         string result = null;
         for (int v = Math.Clamp(variation, 0, 7); v >= 0; v--)
         {
-            result = Find("Cliffs" + variant + v);
+            result = FindModel(directory, directory + code + v);
             if (result != null)
             {
                 break;

@@ -84,7 +84,8 @@ public sealed partial class MapWorldBuilder
                 if (flag3 || flag4)
                 {
                     string text = string.Concat(RampChar(corner, num3), RampChar(corner3, num3), RampChar(corner4, num3), RampChar(corner2, num3));
-                    string text2 = CliffRenderer.Find("CliffTrans" + text + "0");
+                    string rampDirectory = CliffTextureSet.RampModelDirectoryFor(CliffIdOf(terrain, k, l));
+                    string text2 = CliffRenderer.FindModel(rampDirectory, rampDirectory + text + "0");
                     if (text2 != null)
                     {
                         int num4 = k + ((flag4 && !flag2) ? 1 : 0);
@@ -105,7 +106,8 @@ public sealed partial class MapWorldBuilder
                 string text3 = string.Concat((char)(65 + corner.LayerHeight - num3), (char)(65 + corner3.LayerHeight - num3), (char)(65 + corner4.LayerHeight - num3), (char)(65 + corner2.LayerHeight - num3));
                 if (!(text3 == "AAAA"))
                 {
-                    string text4 = CliffRenderer.ResolveCliff(text3, corner.CliffVariation);
+                    string cliffDirectory = CliffTextureSet.CliffModelDirectoryFor(CliffIdOf(terrain, k, l));
+                    string text4 = CliffRenderer.ResolveCliff(cliffDirectory, text3, corner.CliffVariation);
                     if (text4 == null)
                     {
                         dictionary[text3] = dictionary.GetValueOrDefault(text3) + 1;
@@ -194,6 +196,37 @@ public sealed partial class MapWorldBuilder
             return 0f;
         }
         return set.LayerOf(terrain.CliffTextures[cliffTexture]);
+    }
+
+    private static string CliffIdOf(W3eTerrain terrain, int x, int y)
+    {
+        int width = terrain.Width;
+        for (int i = 0; i < 4; i++)
+        {
+            int cx = x + (i & 1);
+            int cy = y + (i >> 1);
+            if (cx >= width || cy >= terrain.Height)
+            {
+                continue;
+            }
+            int index = terrain.Corners[cy * width + cx].CliffTexture;
+            if (index != 15 && index >= 0 && index < terrain.CliffTextures.Count)
+            {
+                return terrain.CliffTextures[index];
+            }
+        }
+        for (int cx = Math.Max(0, x - 2); cx <= Math.Min(width - 1, x + 2); cx++)
+        {
+            for (int cy = Math.Max(0, y - 2); cy <= Math.Min(terrain.Height - 1, y + 2); cy++)
+            {
+                int index = terrain.Corners[cy * width + cx].CliffTexture;
+                if (index != 15 && index >= 0 && index < terrain.CliffTextures.Count)
+                {
+                    return terrain.CliffTextures[index];
+                }
+            }
+        }
+        return null;
     }
 
     private static bool CornerFlag(bool[,] grid, int x, int y)
