@@ -130,7 +130,18 @@ public sealed partial class Unit
 
     public int TeleportVersion;
 
-    public float FlyHeight => Type != null && Type.Flying ? 100f : 0f;
+    private float _flyHeight;
+    private bool _flyHeightAssigned;
+
+    public float FlyHeight
+    {
+        get => _flyHeightAssigned ? _flyHeight : Type?.FlyHeight ?? 0f;
+        set
+        {
+            _flyHeight = value;
+            _flyHeightAssigned = true;
+        }
+    }
 
     public float ProjectileLaunchZ => Type?.ShadowHeight ?? 0f;
 

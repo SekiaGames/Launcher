@@ -289,6 +289,18 @@ public sealed partial class War3GameScene
         };
     }
 
+    public void RunFlyProbe()
+    {
+        Unit hall = FindHall(ViewPlayer);
+        Vector3 origin = hall != null ? hall.Position : Vector3.Zero;
+
+        Spawn("hfoo", ViewPlayer, origin.X + 260f, origin.Z, 0f, 0f, 1f);
+        Spawn("hgry", ViewPlayer, origin.X + 360f, origin.Z, 0f, 0f, 1f);
+        Spawn("hgyr", ViewPlayer, origin.X + 460f, origin.Z, 0f, 0f, 1f);
+
+        GD.Print($"[FLY] 步兵/狮鹫/飞行机器 @({origin.X:0},{origin.Z:0})");
+    }
+
     public void RunAppearanceProbe()
     {
         Unit hall = FindHall(ViewPlayer);

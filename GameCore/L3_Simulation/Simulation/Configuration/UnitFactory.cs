@@ -41,6 +41,8 @@ public sealed class UnitType
     public float CollisionRadius = 16f;
     /// <summary>UnitData.movetp=fly/hover，空中单位不吃地面路径阻挡。</summary>
     public bool Flying;
+    public float FlyHeight;
+    public float MoveFloor;
     public bool CanSleep;
     public string MoveType = "foot";
 
@@ -391,6 +393,8 @@ public static class UnitFactory
             string moveType = (data.Get(dataRow, "movetp") ?? "").Trim().ToLowerInvariant();
             type.MoveType = moveType.Length == 0 || moveType == "_" ? "foot" : moveType;
             type.Flying = type.MoveType is "fly" or "hover";
+            type.FlyHeight = Number(data.Get(dataRow, "moveHeight"), 0f);
+            type.MoveFloor = MathF.Max(0f, Number(data.Get(dataRow, "moveFloor"), 0f));
             type.CanSleep = data.GetInt(dataRow, "canSleep", 0) != 0;
         }
 

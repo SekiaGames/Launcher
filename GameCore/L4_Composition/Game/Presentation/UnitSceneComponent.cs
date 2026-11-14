@@ -183,6 +183,32 @@ public sealed class UnitSceneComponent
         }
     }
 
+    private float _flyTarget;
+    public float RenderFlyHeight { get; private set; }
+    public float FlyHeightSpeed { get; private set; }
+
+    public void SyncPlacement(Unit unit, float delta)
+    {
+        float target = unit.FlyHeight;
+        if (!Mathf.IsEqualApprox(target, _flyTarget))
+        {
+            FlyHeightSpeed = Mathf.Abs(target - _flyTarget) / World.TickSeconds;
+            _flyTarget = target;
+        }
+
+        float step = Mathf.Max(0f, FlyHeightSpeed) * delta;
+        float remaining = target - RenderFlyHeight;
+        RenderFlyHeight = delta >= 1f || step <= 0f || Mathf.Abs(remaining) <= step
+            ? target
+            : RenderFlyHeight + Mathf.Sign(remaining) * step;
+
+        float ground = unit.Position.Y;
+        float y = ground + RenderFlyHeight;
+        if (unit.IsBuilding) y += 12f;
+        if (unit.Type != null && unit.Type.Flying) y = Mathf.Max(y, ground + unit.Type.MoveFloor);
+        Root.Position = new Vector3(unit.Position.X, y, unit.Position.Z);
+    }
+
     private void ApplyTeamColor(int teamColorIndex)
     {
         ApplyTeamColorTo(Root, ColorOf(teamColorIndex), teamColorIndex);
