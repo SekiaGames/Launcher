@@ -291,8 +291,8 @@ public sealed partial class War3GameScene : Node3D
         SceneLightRig.Apply(_worldRoot, _sceneLighting.Terrain, _sceneLighting.Terrain);
         GD.Print($"[INIT] 昼夜光照 {SceneLighting.Describe(_sceneLighting.Terrain)}");
 
-        _skyDome = SkyDomeRenderer.TryCreate(this, map.SkyboxType);
-        if (_skyDome == null) SkyboxRenderer.TryCreate(this, map.SkyboxType);
+        _skyBackground = SkyBackground.TryCreate(this, map.SkyboxType);
+        if (_skyBackground == null) SkyboxRenderer.TryCreate(this, map.SkyboxType);
 
         await Loading(.34f, StageName(LoadingStage.TerrainPresentation));
     }
@@ -469,7 +469,7 @@ public sealed partial class War3GameScene : Node3D
     private EscMenuFrame _escMenu;
     private War3LoadingScreenRenderer _loadingScreen;
     private GameOverPanel _gameOverPanel;
-    private SkyDomeRenderer _skyDome;
+    private SkyBackground _skyBackground;
     private Node3D _worldRoot;
     private readonly RallyPointDisplay _rallyFlags = new();
     private float _rallyTimer;
@@ -673,7 +673,7 @@ public sealed partial class War3GameScene : Node3D
         TickFloatingLabels((float)delta);
         TickLightningBeams((float)delta);
         _weather?.FrameSeconds(_camera.Target);
-        _skyDome?.FrameSeconds(_camera.Target, _todHours);
+        _skyBackground?.FrameSeconds(_camera?.Camera, _todHours);
 
         _rallyTimer -= (float)delta;
         if (_rallyTimer <= 0f && _worldRoot != null)

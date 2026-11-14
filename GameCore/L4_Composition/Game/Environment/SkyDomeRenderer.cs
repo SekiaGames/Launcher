@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 namespace OpenWC3.Game;
 
@@ -14,7 +15,6 @@ public sealed class SkyDomeRenderer
     };
 
     const string CelestialModel = @"Environment\Sky\Sky\skyLight";
-    const float ShellSizeLimit = 3000f;
 
     readonly Node3D _dome;
     readonly Node3D _celestial;
@@ -45,8 +45,9 @@ public sealed class SkyDomeRenderer
         if (celestial != null)
         {
             celestial.Name = "Celestial";
-            RemoveSkyShell(celestial);
+            KeepSkyLayers(celestial);
             dome.AddChild(celestial);
+            GD.Print($"[SKY] 日月层 {string.Join(",", Layers(celestial))}");
         }
 
         GD.Print($"[SKY] 穹顶 {skyName} 日月 {(celestial != null ? "已载入" : "缺模型")}");
@@ -66,13 +67,35 @@ public sealed class SkyDomeRenderer
         return model;
     }
 
-    static void RemoveSkyShell(Node3D model)
+    static void KeepSkyLayers(Node3D model)
     {
         foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
         {
             if (node is not MeshInstance3D mesh || mesh.Mesh == null) continue;
-            Vector3 size = mesh.Mesh.GetAabb().Size;
-            if (Mathf.Max(size.X, Mathf.Max(size.Y, size.Z)) > ShellSizeLimit) mesh.Visible = false;
+            if (IsSphereShell(mesh))
+            {
+                mesh.Visible = false;
+                continue;
+            }
+            PlaceByBindPose(mesh);
+        }
+    }
+
+    static bool IsSphereShell(MeshInstance3D mesh)
+    {
+        Vector3 size = mesh.Mesh.GetAabb().Size;
+        if (size.Y <= 0f) return true;
+        return Mathf.Abs(size.X - size.Y) < size.Y * .05f
+            && Mathf.Abs(size.Z - size.Y) < size.Y * .05f;
+    }
+
+    static void PlaceByBindPose(MeshInstance3D mesh) => mesh.Skeleton = new NodePath();
+
+    static IEnumerable<string> Layers(Node3D model)
+    {
+        foreach (Node node in model.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (node is MeshInstance3D mesh && mesh.Visible) yield return mesh.Name.ToString();
         }
     }
 
