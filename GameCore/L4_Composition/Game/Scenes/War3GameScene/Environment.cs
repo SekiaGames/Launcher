@@ -63,6 +63,7 @@ public sealed partial class War3GameScene
         _fogTimer = 0f;
 
         _fog.Refresh(_allUnits, ViewPlayer, AreAllied, SightOf, _world?.Reveals);
+        _terrainBuilder?.BindWaterFogOfWar(_fog.VisibilityTexture, _fog.SampleUv, _fog.Enabled);
         if (!_fog.Enabled) return;
 
         foreach (Unit unit in _allUnits)

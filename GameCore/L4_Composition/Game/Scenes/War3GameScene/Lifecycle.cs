@@ -161,8 +161,10 @@ public sealed partial class War3GameScene : Node3D
 
         await Loading(.22f, "载入地形纹理");
         _terrainBuilder = new MapWorldBuilder();
+        War3FogConfig fog = War3FogConfig.FromEnvironment(map.Info?.Environment);
+        GD.Print($"[FOG] 地图距离雾 {fog.Describe()}");
         Node3D worldRoot = _terrainBuilder.Build(map.Terrain, map.Doodads,
-            War3WaterConfig.MapBaseColor(map.Info));
+            War3WaterConfig.MapBaseColor(map.Info), fog);
         AddChild(worldRoot);
         _worldRoot = worldRoot;
         _sceneLighting = SceneLighting.Load(SceneLighting.ResolveTileset(

@@ -18,7 +18,7 @@ public sealed partial class MapWorldBuilder
 
     public List<TreeState> Trees { get; } = new List<TreeState>();
 
-    public Node3D Build(W3eTerrain terrain, War3MapDoodads doodads, Color waterBaseColor)
+    public Node3D Build(W3eTerrain terrain, War3MapDoodads doodads, Color waterBaseColor, War3FogConfig fog)
     {
         Terrain = terrain;
         Root = new Node3D
@@ -27,7 +27,7 @@ public sealed partial class MapWorldBuilder
         };
         bool[,] covered = BuildCliffs(terrain);
         BuildTerrain(terrain, covered);
-        BuildWater(terrain, waterBaseColor);
+        BuildWater(terrain, waterBaseColor, fog);
         MapVoidRenderer.TryCreate(Root, terrain,
             (x, z) => Mathf.Max(HeightAt(terrain, 0f - x, z), WaterHeightAt(terrain, 0f - x, z)));
         new ShorelineWaveRenderer(Root, terrain, War3WaterConfig.Load(terrain.Tileset));

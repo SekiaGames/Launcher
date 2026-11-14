@@ -16,7 +16,7 @@ public sealed partial class MapWorldBuilder
 
     private double _waterElapsed;
 
-    private void BuildWater(W3eTerrain terrain, Color baseColor)
+    private void BuildWater(W3eTerrain terrain, Color baseColor, War3FogConfig fog)
     {
         War3WaterConfig war3WaterConfig = War3WaterConfig.Load(terrain.Tileset, baseColor);
         if (war3WaterConfig == null)
@@ -32,6 +32,9 @@ public sealed partial class MapWorldBuilder
             shaderMaterial.SetShaderParameter("water_texture", war3WaterConfig.Texture);
         }
         shaderMaterial.SetShaderParameter("water_lighting", war3WaterConfig.Lighting);
+        shaderMaterial.SetShaderParameter("fog_color",
+            new Vector4(fog.Tint.R, fog.Tint.G, fog.Tint.B, 1f));
+        shaderMaterial.SetShaderParameter("fog_params", fog.Params);
         _waterMaterial = shaderMaterial;
         _waterFrameCount = Mathf.Max(1, war3WaterConfig.FrameCount);
         _waterFrameRate = Mathf.Max(1, war3WaterConfig.FrameRate);
@@ -107,8 +110,19 @@ public sealed partial class MapWorldBuilder
                 + $"，cells={cells}，光照 {(war3WaterConfig.Lighting ? "开" : "关")}"
                 + $"，水色 ({war3WaterConfig.BaseColor.R:0.00},{war3WaterConfig.BaseColor.G:0.00},"
                 + $"{war3WaterConfig.BaseColor.B:0.00},{war3WaterConfig.BaseColor.A:0.00})"
-                + $"，深度 {war3WaterConfig.MinimumDepth:0.000}/{war3WaterConfig.DeepLevel:0.000}/{war3WaterConfig.MaximumDepth:0.000}");
+                + $"，深度 {war3WaterConfig.MinimumDepth:0.000}/{war3WaterConfig.DeepLevel:0.000}/{war3WaterConfig.MaximumDepth:0.000}"
+                + $"，alphaMode {war3WaterConfig.AlphaMode}"
+                + $"，距离雾 {fog.Describe()}");
         }
+    }
+
+    public void BindWaterFogOfWar(Texture2D visibility, Vector4 uvp, bool enabled)
+    {
+        if (_waterMaterial == null) return;
+        _waterMaterial.SetShaderParameter("fog_of_war_enable", enabled && visibility != null);
+        if (!enabled || visibility == null) return;
+        _waterMaterial.SetShaderParameter("fog_of_war_texture", visibility);
+        _waterMaterial.SetShaderParameter("fog_of_war_uvp", uvp);
     }
 
     private static void CountLevel(Dictionary<int, int> levels, W3eTerrain.Corner corner)

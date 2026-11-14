@@ -24,6 +24,7 @@ public sealed class War3WaterConfig
     public int FrameOffset { get; private set; }
     public int TextureCells { get; private set; } = 1;
     public bool Lighting { get; private set; } = true;
+    public int AlphaMode { get; private set; }
     public float MinimumDepth { get; private set; } = 10f / 128f;
     public float DeepLevel { get; private set; } = 64f / 128f;
     public float MaximumDepth { get; private set; } = 72f / 128f;
@@ -87,6 +88,7 @@ public sealed class War3WaterConfig
             FrameOffset = table.GetInt(row, "texOffset"),
             TextureCells = Mathf.Max(1, table.GetInt(row, "cells", 1)),
             Lighting = table.GetInt(row, "lighting", 0) != 0,
+            AlphaMode = table.GetInt(row, "alphaMode"),
             MinimumDepth = ReadMiscFloat("Water.MinDepth", 10f) / 128f,
             DeepLevel = ReadMiscFloat("Water.DeepLevel", 64f) / 128f,
             MaximumDepth = ReadMiscFloat("Water.MaxDepth", 72f) / 128f,

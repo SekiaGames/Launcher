@@ -24,6 +24,8 @@ public sealed partial class FogOfWar : Node3D
     private bool[] _explored;
     private Image _image;
     private ImageTexture _texture;
+    private Image _visibilityImage;
+    private ImageTexture _visibilityTexture;
     private Image _minimapImage;
     private ImageTexture _minimapTexture;
     private MeshInstance3D _mesh;
@@ -68,6 +70,9 @@ public sealed partial class FogOfWar : Node3D
 
         _texture = ImageTexture.CreateFromImage(_image);
         _minimapTexture = ImageTexture.CreateFromImage(_minimapImage);
+        _visibilityImage = Image.CreateEmpty(_width, _height, false, Image.Format.L8);
+        _visibilityImage.Fill(new Color(0f, 0f, 0f));
+        _visibilityTexture = ImageTexture.CreateFromImage(_visibilityImage);
         BuildMesh();
         _mesh.Visible = _enabled;
         Name = "FogOfWar";
@@ -236,11 +241,14 @@ public sealed partial class FogOfWar : Node3D
                 Color color = _visible[index] ? new Color(0f, 0f, 0f, 0f) : _explored[index] ? fogged : black;
                 _image.SetPixel(i, j, color);
                 _minimapImage.SetPixel(i, _height - 1 - j, color);
+                float level = _visible[index] ? 1f : (_explored[index] ? 128f / 255f : 0f);
+                _visibilityImage.SetPixel(i, j, new Color(level, level, level));
             }
         }
 
         _texture.Update(_image);
         _minimapTexture.Update(_minimapImage);
+        _visibilityTexture?.Update(_visibilityImage);
         _dirty = false;
     }
 
@@ -275,4 +283,8 @@ public sealed partial class FogOfWar : Node3D
     public Texture2D Texture => _texture;
 
     public Texture2D MinimapTexture => _minimapTexture;
+
+    public Texture2D VisibilityTexture => _visibilityTexture;
+
+    public Vector4 SampleUv => new(-1f / (_width * _step), 1f / (_height * _step), 0f, 0f);
 }
