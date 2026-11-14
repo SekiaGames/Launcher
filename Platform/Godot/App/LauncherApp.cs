@@ -725,7 +725,7 @@ public sealed partial class LauncherApp : Node
             && hud.TooltipBody.Contains("护甲"), hud.TooltipTitle + " / " + hud.TooltipBody);
         UiRect buffBounds = hud.BuffIconBounds(0);
         UiRect panelBounds = UnitInfoPanelFrame.PanelBounds(
-            OpenWC3.Game.UI.GameHudScreen.DesignWidth, OpenWC3.Game.UI.GameHudScreen.DesignHeight);
+            War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
         Check("Buff 图标不越界", buffBounds.X >= panelBounds.X
             && buffBounds.X + buffBounds.Width <= panelBounds.X + panelBounds.Width
             && buffBounds.Y + buffBounds.Height <= panelBounds.Y + panelBounds.Height,

@@ -825,7 +825,7 @@ _chat = new ChatFrame(this);
     internal UiRect BuffIconBounds(int slot) => _infoPanel.BuffIconBounds(slot);
     internal bool TryGetBuffTooltip(int slot, out string title, out string body)
         => _infoPanel.TryGetBuffTooltip(slot, out title, out body);
-    internal void LayoutInfoPanelForProbe() => _infoPanel.Layout(DesignWidth, DesignHeight);
+    internal void LayoutInfoPanelForProbe() => _infoPanel.Layout(War3UiViewport.BaseWidth, War3UiViewport.BaseHeight);
     internal bool CommandErrorVisible => _commandError?.Visible ?? false;
     internal string CommandErrorMessage => _commandError?.Message ?? "";
 
