@@ -20,7 +20,6 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>技能行：只列已学与可学，带等级。</summary>
     private static string AbilityText(Unit hero)
     {
         if (hero.Abilities.Count == 0) return "-";
@@ -183,8 +182,7 @@ public sealed partial class War3GameScene
             var image = new Image();
             if (image.LoadPngFromBuffer(bytes) != Error.Ok) continue;
             if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
-            _minimapBaseImage = image;
-            _minimapBlightVersion = -1;
+            _minimapBlight = new MinimapBlightTexture(image);
             GD.Print($"[MINIMAP] 底图={png}");
             return ImageTexture.CreateFromImage(image);
         }
@@ -195,9 +193,7 @@ public sealed partial class War3GameScene
 
     private readonly List<MinimapUnitView> _minimapUnits = new();
     private readonly MinimapVisibilityTracker _minimapVisibility = new();
-    private Image _minimapBaseImage;
-    private GodotUiTexture _minimapBlightTexture;
-    private int _minimapBlightVersion = -1;
+    private MinimapBlightTexture _minimapBlight;
     private readonly List<MinimapPingView> _minimapPings = new();
     private readonly List<MinimapSpecialIconView> _minimapIcons = new();
     private int _nextMinimapPingId = 1;
@@ -239,37 +235,10 @@ public sealed partial class War3GameScene
 
     private void RefreshMinimapBlight()
     {
-        ScoutedBlight blight = _terrainBuilder?.Blight;
-        if (blight == null || _minimapBaseImage == null) return;
-        if (blight.Version == _minimapBlightVersion) return;
-        _minimapBlightVersion = blight.Version;
-
-        int width = _minimapBaseImage.GetWidth();
-        int height = _minimapBaseImage.GetHeight();
-        byte[] pixels = _minimapBaseImage.GetData();
-        float minX = _mapUiBounds.X, maxX = _mapUiBounds.Z;
-        float minY = _mapUiBounds.Y, maxY = _mapUiBounds.W;
-        System.Numerics.Vector4 mask = _newHud.Minimap.MiscData.BlightMask;
-        byte red = (byte)Mathf.Clamp(Mathf.Round(mask.X * 255f), 0, 255);
-        byte green = (byte)Mathf.Clamp(Mathf.Round(mask.Y * 255f), 0, 255);
-        byte blue = (byte)Mathf.Clamp(Mathf.Round(mask.Z * 255f), 0, 255);
-        for (int y = 0; y < height; y++)
-        {
-            float mapY = maxY - (y + 0.5f) / height * (maxY - minY);
-            for (int x = 0; x < width; x++)
-            {
-                float mapX = minX + (x + 0.5f) / width * (maxX - minX);
-                if (!blight.IsMinimapBlighted(mapX, mapY)) continue;
-                int index = (y * width + x) * 4;
-                pixels[index] &= red;
-                pixels[index + 1] &= green;
-                pixels[index + 2] |= blue;
-            }
-        }
-
-        Image image = Image.CreateFromData(width, height, false, Image.Format.Rgba8, pixels);
-        _minimapBlightTexture = new GodotUiTexture(ImageTexture.CreateFromImage(image));
-        _newHud.Minimap.SetMapTexture(_minimapBlightTexture);
+        if (_minimapBlight == null || _newHud == null) return;
+        if (!_minimapBlight.Update(_terrainBuilder?.Blight, _mapUiBounds,
+            _newHud.Minimap.MiscData.BlightMask)) return;
+        _newHud.Minimap.SetMapTexture(_minimapBlight.Texture);
     }
 
     internal sealed class MinimapVisibilityTracker
@@ -399,7 +368,6 @@ public sealed partial class War3GameScene
         return $"{PlayerName(ViewPlayer)}（{RaceName(race)}）  {allyText}";
     }
 
-    /// <summary>击杀赏金：UnitBalance 的 bountyplus + dice(dice, sides)，直接进击杀者金库。</summary>
     private void OnBountyAwarded(int player, int gold, Unit victim)
     {
         PlayerSlot slot = Slot(player);
@@ -428,7 +396,6 @@ public sealed partial class War3GameScene
     private void OnGoldDeposited(int player, int amount)
     {
         if (Slot(player) == null) return;
-        // 维修费用：人口过高时只按比例入账（木头不扣）。
         int credited = War3GameplayConfig.Default.GoldAfterUpkeep(amount, FoodUsed(player));
         Slot(player).Gold += credited;
         RefreshHud();
@@ -460,7 +427,6 @@ public sealed partial class War3GameScene
                     AddUpgradeCommands(commands, slot, single);
                 }
                 if (single.Type.IsShop) AddShopCommands(commands, slot, single);
-                // 古树的扎根/拔根、神像这类建筑主动技能也挂在命令卡上（中立商店没有）
                 if (own) AddUnitAbilityCommands(commands, single);
             }
             else if (single != null && single.IsHero)
@@ -548,11 +514,6 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>
-    /// 中立建筑卖兵：酒馆（`ntav` 卖中立英雄）、雇佣兵营地（`nmer`）、地精实验室（`ngad`）、
-    /// 船坞（`nshp`）、龙巢（`ndro`）。清单来自 `*UnitFunc.Sellunits`，库存来自 UnitBalance 的
-    /// stockMax/stockRegen/stockStart；买的条件与客户端一致：己方单位在购买半径内。
-    /// </summary>
     private void AddSellUnitCommands(List<CommandEntry> commands, PlayerSlot slot, Unit building)
     {
         if (!building.Type.SellsUnits) return;
@@ -691,10 +652,6 @@ public sealed partial class War3GameScene
         }
     }
 
-    /// <summary>
-    /// 商店卡：上半是买（带库存），下半是卖（把附近友方英雄的物品按半价卖回店里）。
-    /// 商品列表来自 `*UnitFunc.Sellitems`，库存来自 `ItemData.stockMax/stockRegen`。
-    /// </summary>
     private void AddShopCommands(List<CommandEntry> commands, PlayerSlot slot, Unit shop)
     {
         const int commandSlots = 12;
@@ -775,7 +732,6 @@ public sealed partial class War3GameScene
         UpdateCommandCard();
     }
 
-    /// <summary>某个玩家在给定位置附近的友方英雄（商店卖东西、物品转交都用它）。</summary>
     private Unit NearestFriendlyHero(int player, Vector3 from, float range)
     {
         Unit best = null;
