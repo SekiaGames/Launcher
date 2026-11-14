@@ -34,6 +34,8 @@ public sealed partial class GameHudScreen : Control
     private InventoryFrame _inventory;
     private QueueIconRowFrame _queue;
     private TooltipFrame _tooltip;
+    private CommandErrorFrame _commandError;
+    private FdfUiFactory _strings;
     private TextTagFrame _textTag;
     private AboutDialogFrame _aboutDialog;
     private IReadOnlyList<TextTagFrame.TagView> _worldText;
@@ -120,7 +122,15 @@ public sealed partial class GameHudScreen : Control
         _idlePeon = new IdlePeonFrame(resolver, skin);
         _inventory = new InventoryFrame(resolver);
         _queue = new QueueIconRowFrame(resolver, skin);
-        _tooltip = new TooltipFrame();
+        _tooltip = new TooltipFrame(resolver, skin)
+        {
+            TextMeasure = (text, size) => _device.MeasureTextLineWidth(text, size),
+            TextHeightMeasure = (text, size) => _device.MeasureTextHeight(text, size),
+        };
+        _commandError = new CommandErrorFrame();
+        _strings = new FdfUiFactory(resolver, FdfSource.Read);
+        _strings.LoadStrings(@"UI\FrameDef\GlobalStrings.fdf");
+        _strings.LoadStrings(@"UI\FrameDef\InfoPanelStrings.fdf");
         _textTag = new TextTagFrame();
         _portraitViewport = new PortraitViewport(this);
         _portraitTexture = new GodotUiTexture(_portraitViewport.Texture);
@@ -161,12 +171,9 @@ public sealed partial class GameHudScreen : Control
         _root.AddChild(_inventory);
         _root.AddChild(_queue);
         _root.AddChild(_tooltip);
-        _root.AddChild(_aboutDialog);
-        _router.HoverChanged += frame =>
-        {
-            if (frame is ButtonFrame button) _tooltip.Show(button);
-            else _tooltip.Hide();
-        };
+_root.AddChild(_aboutDialog);
+        _root.AddChild(_commandError);
+        _router.HoverChanged += OnHoverChanged;
 
         SetResources(500, 220, 12, 24);
         SetClock(6.0);
@@ -205,6 +212,185 @@ public sealed partial class GameHudScreen : Control
     {
         _infoPanel.Update(view);
         QueueRedraw();
+    }
+
+    /// <summary>命令/建造提示（客户端 CommandErrorFrame）：黄字、console 上方、3s+每字符 0.1s 后淡出。</summary>
+    public void ShowCommandError(string text) => _commandError?.Show(text);
+
+    private string UiString(string key, string fallback = "")
+        => _strings?.Localized(key, fallback) ?? fallback;
+
+    private void OnHoverChanged(UiFrame frame)
+    {
+        if (frame == null)
+        {
+            _tooltip.Hide();
+            return;
+        }
+
+        switch (frame.Name)
+        {
+            case "ResIcon0":
+            case "ResVal0":
+                ShowTip(frame, "金币", UiString("RESOURCE_UBERTIP_GOLD", "黄金是从金矿中采集到的。"));
+                return;
+            case "ResIcon1":
+            case "ResVal1":
+                ShowTip(frame, "木材", UiString("RESOURCE_UBERTIP_LUMBER", "木材是砍伐树木得到的。"));
+                return;
+            case "ResIcon2":
+            case "ResVal2":
+                ShowTip(frame, "人口", UiString("RESOURCE_UBERTIP_SUPPLY", "你目前使用的食物数量超过你所能携带的数值。"));
+                return;
+            case "ResVal3":
+                ShowTip(frame, "维修费用", UpkeepTip());
+                return;
+            case "UnitAttackIcon":
+            case "UnitAttackLabel":
+                ShowTip(frame, "攻击力", DamageTip());
+                return;
+            case "UnitArmorIcon":
+            case "UnitArmorLabel":
+                ShowTip(frame, "护甲", ArmorTip());
+                return;
+            case "UnitStrLabel":
+                ShowTip(frame, "力量", AttributeTip(StrengthAttributeTip(), "STR"));
+                return;
+            case "UnitAgiLabel":
+                ShowTip(frame, "敏捷", AttributeTip(AgilityAttributeTip(), "AGI"));
+                return;
+            case "UnitIntLabel":
+                ShowTip(frame, "智力", AttributeTip(IntellectAttributeTip(), "INT"));
+                return;
+            case "UnitStatusLabel":
+                ShowTip(frame, "状态", "当前单位身上的魔法效果状态。");
+                return;
+            case "UnitXpBar":
+                if (_selectedUnit is { IsHero: true } hero)
+                {
+                    int need = HeroRules.XpToNext(hero.Level);
+                    string body = hero.Level >= HeroRules.MaxLevel
+                        ? $"已满级  经验: {hero.Xp:0}"
+                        : $"经验: {hero.Xp:0} / {need:0}";
+                    ShowTip(frame, "经验", body);
+                }
+                else _tooltip.Hide();
+                return;
+        }
+
+        if (frame is ButtonFrame { Visible: true } button
+            && (!string.IsNullOrWhiteSpace(button.TooltipTitle)
+                || !string.IsNullOrWhiteSpace(button.TooltipBody)))
+        {
+            _tooltip.ShowEx(frame, button.TooltipTitle, button.TooltipBody, button.TooltipExt,
+                button.TooltipCosts, DesignWidth, DesignHeight);
+            return;
+        }
+        _tooltip.Hide();
+    }
+
+    private void ShowTip(UiFrame anchor, string title, string body)
+        => _tooltip.Show(anchor, title, body, DesignWidth, DesignHeight);
+
+    private string UpkeepTip()
+    {
+        string text = UiString("RESOURCE_UBERTIP_UPKEEP", "");
+        if (!string.IsNullOrWhiteSpace(text)) return text;
+        int tier = War3GameplayConfig.Default.UpkeepTier(_food);
+        float tax = tier switch { 0 => 0f, 1 => 0.3f, _ => 0.6f };
+        string detail = tier switch
+        {
+            0 => "无维修费用: 金币 100% 入账",
+            1 => $"低维修费用: 金币 {MathF.Round((1 - tax) * 100)}% 入账 (税 {MathF.Round(tax * 100)}%)",
+            _ => $"高维修费用: 金币 {MathF.Round((1 - tax) * 100)}% 入账 (税 {MathF.Round(tax * 100)}%)",
+        };
+        return $"只影响金币获取, 不影响木材。{detail}";
+    }
+
+    private string DamageTip()
+    {
+        string kind = _selectedUnit?.Type?.AttackType switch
+        {
+            AttackType.Pierce => "PIERCE",
+            AttackType.Siege => "SIEGE",
+            AttackType.Magic or AttackType.Spells => "MAGIC",
+            AttackType.Chaos => "CHAOS",
+            AttackType.Hero => "HERO",
+            _ => "NORMAL",
+        };
+        string line = UiString($"DAMAGE_{kind}", "");
+        string tip = UiString($"DAMAGETIP_{kind}", "");
+        if (string.IsNullOrWhiteSpace(line) && string.IsNullOrWhiteSpace(tip))
+            return "普通攻击对中型护甲造成额外伤害，对加强型护甲造成较少伤害。";
+        return string.IsNullOrWhiteSpace(line) ? tip : $"{line}|n{tip}";
+    }
+
+    private string ArmorTip()
+    {
+        string kind = _selectedUnit?.Type?.DefenseType switch
+        {
+            DefenseType.Small => "SMALL",
+            DefenseType.Medium => "MEDIUM",
+            DefenseType.Large => "LARGE",
+            DefenseType.Fort => "FORT",
+            DefenseType.Hero => "HERO",
+            DefenseType.Divine => "DIVINE",
+            DefenseType.None => "NONE",
+            _ => "NORMAL",
+        };
+        string line = UiString($"ARMOR_{kind}", "");
+        string tip = UiString($"ARMORTIP_{kind}", "");
+        if (string.IsNullOrWhiteSpace(line) && string.IsNullOrWhiteSpace(tip))
+            return "中型护甲会受到普通攻击的额外伤害，而受穿刺，魔法和攻城攻击的伤害较少。";
+        return string.IsNullOrWhiteSpace(line) ? tip : $"{line}|n{tip}";
+    }
+
+    private string AttributeTip(string text, string primary)
+        => _selectedUnit?.Type?.Primary == primary && !string.IsNullOrWhiteSpace(text)
+            ? text + "|n作为主属性，每点增加1点攻击力。"
+            : text;
+
+    private string StrengthAttributeTip()
+    {
+        string highlight = UiString("STRENGTH_HILIGHT", "");
+        string hp = FillPercent(UiString("BONUS_HITPOINTS", ""), HeroRules.StrHpBonus);
+        string regen = UiString("BONUS_HPREGEN", "");
+        return JoinTip(highlight, JoinTip(hp, regen),
+            $"每点力量增加英雄{HeroRules.StrHpBonus:0.###}点生命、每秒{HeroRules.StrRegenBonus:0.###}点生命恢复。");
+    }
+
+    private string AgilityAttributeTip()
+    {
+        string highlight = UiString("AGILITY_HILIGHT", "");
+        string armor = FillPercent(UiString("BONUS_DEFENSE_FIXED", ""),
+            HeroRules.AgiDefenseBonus > 0f ? 1f / HeroRules.AgiDefenseBonus : 0f);
+        string speed = UiString("BONUS_ATTACK_SPEED", "");
+        return JoinTip(highlight, JoinTip(armor, speed),
+            $"每点敏捷增加英雄{HeroRules.AgiDefenseBonus:0.###}点护甲、{HeroRules.AgiAttackSpeedBonus * 100:0.###}%攻击速度。");
+    }
+
+    private string IntellectAttributeTip()
+    {
+        string highlight = UiString("INTELLECT_HILIGHT", "");
+        string mana = FillPercent(UiString("BONUS_MANA", ""), HeroRules.IntManaBonus);
+        string regen = UiString("BONUS_MANAREGEN", "");
+        return JoinTip(highlight, JoinTip(mana, regen),
+            $"每点智力增加英雄{HeroRules.IntManaBonus:0.###}点魔法值、每秒{HeroRules.IntRegenBonus:0.###}点魔法恢复。");
+    }
+
+    private static string FillPercent(string template, float value)
+        => string.IsNullOrWhiteSpace(template) ? "" : template.Replace("%d", value.ToString("0.###"));
+
+    private static string JoinTip(string first, string second)
+    {
+        if (string.IsNullOrWhiteSpace(first)) return string.IsNullOrWhiteSpace(second) ? "" : second;
+        return string.IsNullOrWhiteSpace(second) ? first : $"{first}|n{second}";
+    }
+
+    private static string JoinTip(string first, string second, string fallback)
+    {
+        string joined = JoinTip(first, second);
+        return string.IsNullOrWhiteSpace(joined) ? fallback : joined;
     }
 
     /// <summary>
@@ -544,7 +730,38 @@ public sealed partial class GameHudScreen : Control
             point.Y * DesignHeight / Mathf.Max(1f, size.Y));
     }
 
-    public override void _Process(double delta) => QueueRedraw();
+    public override void _Process(double delta)
+    {
+        _commandError?.Update();
+        QueueRedraw();
+    }
+
+    internal bool HoverForProbe(string frameName)
+    {
+        UiFrame frame = FindFrame(_root, frameName);
+        if (frame == null) return false;
+        OnHoverChanged(frame);
+        return true;
+    }
+
+    internal void SelectForProbe(Unit unit) => _selectedUnit = unit;
+    internal bool TooltipVisible => _tooltip.Visible;
+    internal string TooltipTitle => _tooltip.TitleText;
+    internal string TooltipBody => _tooltip.BodyText;
+    internal bool CommandErrorVisible => _commandError?.Visible ?? false;
+    internal string CommandErrorMessage => _commandError?.Message ?? "";
+
+    private static UiFrame FindFrame(UiFrame frame, string name)
+    {
+        if (frame == null) return null;
+        if (frame.Name == name) return frame;
+        foreach (UiFrame child in frame.Children)
+        {
+            UiFrame found = FindFrame(child, name);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
     private static CommandCardView SampleCommands()
     {
@@ -583,7 +800,8 @@ public sealed partial class GameHudScreen : Control
         _inventory.Layout(DesignWidth, DesignHeight);
         _queue.Layout(DesignWidth, DesignHeight);
         _tooltip.Layout(DesignWidth, DesignHeight);
-        _aboutDialog.Layout(DesignWidth, DesignHeight);
+_aboutDialog.Layout(DesignWidth, DesignHeight);
+        _commandError.Layout();
 
         _device.Begin(DesignWidth, DesignHeight, scaleX, scaleY);
         _textTag.Update(_worldText, DesignWidth, DesignHeight);

@@ -188,19 +188,101 @@ public sealed class GodotUiRenderDevice : IUiRenderDevice
         {
             string line = lines[index];
             if (line.Length == 0) continue;
-            float textWidth = _font.GetStringSize(line, HorizontalAlignment.Left, -1, pixelSize).X;
+            var runs = SplitColorRuns(line);
+            float textWidth = 0f;
+            foreach ((string runText, uint argb) in runs)
+                if (runText.Length > 0) textWidth += _font.GetStringSize(runText, HorizontalAlignment.Left, -1, pixelSize).X;
+
             float x = area.Position.X;
             if (align == TextAlignment.Center) x += (area.Size.X - textWidth) * 0.5f;
             else if (align == TextAlignment.Right) x += area.Size.X - textWidth;
 
-            var position = new Vector2(x, startY + index * lineAdvance * _scaleY);
-            if (shadowColor.HasValue)
+            float y = startY + index * lineAdvance * _scaleY;
+            foreach ((string runText, uint argb) in runs)
             {
-                _target.DrawString(_font, position + new Vector2(shadowOffset.X, shadowOffset.Y) * _scaleY,
-                    line, HorizontalAlignment.Left, -1, pixelSize, ToColor(shadowColor.Value));
+                if (runText.Length == 0) continue;
+                NVector4 runColor = argb == 0 ? color : ColorFromArgb(argb, color.W);
+                if (shadowColor.HasValue)
+                {
+                    _target.DrawString(_font, new Vector2(x + shadowOffset.X * _scaleY, y + shadowOffset.Y * _scaleY),
+                        runText, HorizontalAlignment.Left, -1, pixelSize, ToColor(shadowColor.Value));
+                }
+                _target.DrawString(_font, new Vector2(x, y), runText,
+                    HorizontalAlignment.Left, -1, pixelSize, ToColor(runColor));
+                x += _font.GetStringSize(runText, HorizontalAlignment.Left, -1, pixelSize).X;
             }
-            _target.DrawString(_font, position, line, HorizontalAlignment.Left, -1, pixelSize, ToColor(color));
         }
+    }
+
+    static readonly List<(string Text, uint Argb)> ColorRunBuffer = new(8);
+
+    static List<(string Text, uint Argb)> SplitColorRuns(string line)
+    {
+        var runs = ColorRunBuffer;
+        runs.Clear();
+        var text = new System.Text.StringBuilder(line.Length);
+        uint color = 0;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char current = line[i];
+            if (current != '|' || i + 1 >= line.Length)
+            {
+                text.Append(current);
+                continue;
+            }
+            char next = line[i + 1];
+            if ((next is 'c' or 'C') && i + 9 < line.Length && IsHexRun(line, i + 2))
+            {
+                if (text.Length > 0)
+                {
+                    runs.Add((text.ToString(), color));
+                    text.Clear();
+                }
+                color = Convert.ToUInt32(line.Substring(i + 2, 8), 16);
+                i += 9;
+                continue;
+            }
+            if (next is 'r' or 'R')
+            {
+                if (text.Length > 0)
+                {
+                    runs.Add((text.ToString(), color));
+                    text.Clear();
+                }
+                color = 0;
+                i += 1;
+                continue;
+            }
+            if (next == '|')
+            {
+                text.Append('|');
+                i += 1;
+                continue;
+            }
+            text.Append(current);
+        }
+        if (text.Length > 0) runs.Add((text.ToString(), color));
+        return runs;
+    }
+
+    static bool IsHexRun(string line, int start)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            char c = line[start + i];
+            bool hex = c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F';
+            if (!hex) return false;
+        }
+        return true;
+    }
+
+    static NVector4 ColorFromArgb(uint argb, float alphaScale)
+    {
+        float a = ((argb >> 24) & 0xFF) / 255f;
+        float r = ((argb >> 16) & 0xFF) / 255f;
+        float g = ((argb >> 8) & 0xFF) / 255f;
+        float b = (argb & 0xFF) / 255f;
+        return new NVector4(r, g, b, a * alphaScale);
     }
 
     public float MeasureTextWidth(string text, float fontSize)

@@ -69,11 +69,11 @@ public sealed class UnitInfoPanelFrame : UiContainer
             VerticalAlignment = TextVerticalAlignment.Middle,
             Color = new Vector4(0.7f, 0.7f, 0.7f, 1f), FontShadowColor = shadow,
         };
-        _attackIcon = new TextureFrame("UnitAttackIcon");
+        _attackIcon = new TextureFrame("UnitAttackIcon") { MouseTransparent = false };
         _attackLabel = new StringFrame("UnitAttackLabel") { Text = "攻击力：", Color = label, FontSize = 10.35f, FontShadowColor = shadow };
         _attackLevel = new StringFrame("UnitAttackLevel") { FontSize = LevelSize, Alignment = TextAlignment.Right, Color = new Vector4(1f, 0.85f, 0.3f, 1f), FontShadowColor = shadow };
         _attackValue = new StringFrame("UnitAttackValue") { FontSize = 12.65f, FontShadowColor = shadow };
-        _armorIcon = new TextureFrame("UnitArmorIcon");
+        _armorIcon = new TextureFrame("UnitArmorIcon") { MouseTransparent = false };
         _armorLabel = new StringFrame("UnitArmorLabel") { Text = "护甲：", Color = label, FontSize = 10.35f, FontShadowColor = shadow };
         _armorLevel = new StringFrame("UnitArmorLevel") { FontSize = LevelSize, Alignment = TextAlignment.Right, Color = new Vector4(1f, 0.85f, 0.3f, 1f), FontShadowColor = shadow };
         _armorValue = new StringFrame("UnitArmorValue") { FontSize = 12.65f, FontShadowColor = shadow };

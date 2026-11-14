@@ -149,7 +149,11 @@ public sealed class MeleeHudController : IUiCommandListener
     public void SetUnitSummary(Texture2D portrait, string attack, string armor) =>
         _unitSummary = $"{portrait?.GetSize().ToString() ?? "-"} {attack} {armor}";
 
-    public void SetHint(string text) => _hint = text;
+    public void SetHint(string text)
+    {
+        _hint = text;
+        _host.ShowCommandError(text);
+    }
 
     public bool ActivateItemSlot(int index)
     {

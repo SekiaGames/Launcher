@@ -48,6 +48,7 @@ public sealed partial class LauncherApp : Node
     private string _fdfProbe;
     private string _fdfBindGen;
     private bool _uiHud;
+    private bool _uiHudProbe;
         private int _selectedRace;
     private bool _preGameProbe;
     private string _uiScreen;
@@ -268,6 +269,10 @@ public sealed partial class LauncherApp : Node
             {
                 _uiHud = true;
             }
+            else if (argument == "--ui-hud-probe")
+            {
+                _uiHudProbe = true;
+            }
             else if (argument == "--fdf-bindgen")
             {
                 _fdfBindGen = "";
@@ -426,6 +431,17 @@ public sealed partial class LauncherApp : Node
         {
             int code = CombatProbe.Run();
             GetTree().Quit(code);
+            return;
+        }
+
+        if (_uiHudProbe)
+        {
+            Clear();
+            var probeHud = new OpenWC3.Game.UI.GameHudScreen { Name = "HudProbe" };
+            AddChild(probeHud);
+            probeHud.Load();
+            int failures = RunHudProbe(probeHud);
+            GetTree().Quit(failures == 0 ? 0 : 1);
             return;
         }
 
@@ -602,6 +618,56 @@ public sealed partial class LauncherApp : Node
             _elapsed = 0f;
             _shotTaken = false;
         }
+    }
+
+    private static int RunHudProbe(OpenWC3.Game.UI.GameHudScreen hud)
+    {
+        int failures = 0;
+        void Check(string label, bool ok, string detail = "")
+        {
+            if (!ok) failures++;
+            GD.Print($"[UI] {(ok ? "OK  " : "FAIL")} {label}{(string.IsNullOrEmpty(detail) ? "" : "  " + detail.Replace("\n", " / "))}");
+        }
+
+        hud.ShowCommandError("资源不足：需要 100 金");
+        Check("命令提示显示", hud.CommandErrorVisible && hud.CommandErrorMessage.Contains("资源不足"),
+            hud.CommandErrorMessage);
+
+        var controller = new OpenWC3.Game.UI.MeleeHudController(hud, "probe");
+        controller.SetHint("子组切换");
+        Check("SetHint 进命令提示", hud.CommandErrorVisible && hud.CommandErrorMessage == "子组切换",
+            hud.CommandErrorMessage);
+
+        Check("资源栏帧存在", hud.HoverForProbe("ResIcon0"));
+        Check("金币提示", hud.TooltipVisible && hud.TooltipTitle == "金币", hud.TooltipTitle);
+        hud.HoverForProbe("ResVal1");
+        Check("木材提示", hud.TooltipTitle == "木材", hud.TooltipTitle);
+        hud.HoverForProbe("ResVal3");
+        Check("维修费提示", hud.TooltipTitle == "维修费用", hud.TooltipTitle);
+
+        UnitType heroType = UnitFactory.Get("Hpal");
+        var hero = new Unit
+        {
+            Type = heroType,
+            Player = 0,
+            IsHero = true,
+            Level = 3,
+            Strength = heroType.Strength,
+            Agility = heroType.Agility,
+            Intelligence = heroType.Intelligence,
+        };
+        hud.SelectForProbe(hero);
+        hud.HoverForProbe("UnitAttackLabel");
+        Check("攻击力提示", hud.TooltipTitle == "攻击力" && hud.TooltipBody.Contains("种类"), hud.TooltipBody);
+        hud.HoverForProbe("UnitArmorLabel");
+        Check("护甲提示", hud.TooltipTitle == "护甲" && hud.TooltipBody.Contains("种类"), hud.TooltipBody);
+        hud.HoverForProbe("UnitStrLabel");
+        Check("力量提示", hud.TooltipTitle == "力量", hud.TooltipTitle);
+        hud.HoverForProbe("UnitXpBar");
+        Check("经验提示", hud.TooltipTitle == "经验", hud.TooltipTitle);
+
+        GD.Print(failures == 0 ? "[UI] 全部通过" : $"[UI] {failures} 项不符");
+        return failures;
     }
 
     private static void RunEffectProbe()
