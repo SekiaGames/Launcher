@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 namespace OpenWC3.Game;
@@ -6,20 +7,28 @@ namespace OpenWC3.Game;
 public sealed partial class War3GameScene
 {
     /// <summary>
-    /// 引擎闪电束：两点之间一条带噪点的带状网格，每 50ms 重抖一次，到期淡出。
+    /// 引擎闪电束：两点之间一条带噪点的带状网格。抖动与 UV 滚动都是
+    /// `id/index/time` 的确定性函数（客户端 BattleOverlayRenderer.BuildLightningVertices），
+    /// 所以每帧按同一公式重算即可，不需要随机数也不会有帧间跳变。
     /// 宽度/分段/颜色/贴图/噪点全部来自 `Units\LightningData.slk`。
     /// </summary>
     private sealed class LightningBeam
     {
         public MeshInstance3D Node;
+        public ImmediateMesh Mesh;
         public StandardMaterial3D Material;
         public Unit From;
         public Unit To;
-        public Vector3 FromPoint;
-        public Vector3 ToPoint;
+        public Vector3 FromGround;
+        public Vector3 ToGround;
+        public float StartHeight;
+        public float EndHeight;
         public LightningInfo Info;
         public float Remaining;
-        public float Rebuild;
+        public float Duration = 0.3f;
+        public float Age;
+        public long Seed;
+        public Color InstanceTint = Colors.White;
     }
 
     private readonly List<LightningBeam> _lightningBeams = new();
@@ -58,6 +67,10 @@ public sealed partial class War3GameScene
         LightningInfo info = LightningTable.Get(boltId);
         if (info == null || from == null || to == null) return null;
         if ((from.Position - to.Position).LengthSquared() < 1f) return null;
+
+        // 一端看得见就画（客户端 DrawJassLightnings 对 ChainLightningBeamEffect 的迷雾判据）。
+        if (!FogVisible(from.Position) && !FogVisible(to.Position)) return null;
+
         return CreateLightningBeam(info, from, to, from.Position, to.Position, seconds);
     }
 
@@ -77,8 +90,10 @@ public sealed partial class War3GameScene
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
             DisableReceiveShadows = true,
         };
+        var mesh = new ImmediateMesh();
         var node = new MeshInstance3D
         {
+            Mesh = mesh,
             MaterialOverride = material,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             TopLevel = true,
@@ -88,13 +103,19 @@ public sealed partial class War3GameScene
         var beam = new LightningBeam
         {
             Node = node,
+            Mesh = mesh,
             Material = material,
             From = from,
             To = to,
-            FromPoint = fromPoint,
-            ToPoint = toPoint,
+            FromGround = fromPoint,
+            ToGround = toPoint,
+            StartHeight = (from?.FlyHeight ?? 0f) + 80f,
+            EndHeight = (to?.FlyHeight ?? 0f) + 60f,
             Info = info,
             Remaining = Mathf.Max(0.08f, seconds),
+            Duration = Mathf.Max(0.08f, seconds),
+            // 客户端用 JASS 闪电句柄当抖动种子；这里的句柄就是列表槽位，用自增序号即可。
+            Seed = ++_lightningSeed,
         };
         _lightningBeams.Add(beam);
         BuildLightningMesh(beam);
@@ -107,6 +128,7 @@ public sealed partial class War3GameScene
         return beam;
     }
 
+    private static long _lightningSeed;
     private int _lightningLogBudget = 6;
 
     private void TickLightningBeams(float delta)
@@ -122,6 +144,7 @@ public sealed partial class War3GameScene
                 continue;
             }
 
+            beam.Age += delta;
             beam.Remaining -= delta;
             if (beam.Remaining <= 0f)
             {
@@ -130,41 +153,46 @@ public sealed partial class War3GameScene
                 continue;
             }
 
-            beam.Rebuild -= delta;
-            if (beam.Rebuild <= 0f)
-            {
-                beam.Rebuild = 0.05f;
-                BuildLightningMesh(beam);
-            }
+            // 客户端每帧按同一个时间戳重算顶点：抖动量化到 24/Duration Hz，UV 连续滚动。
+            BuildLightningMesh(beam);
 
             float fade = beam.Remaining < 0.12f ? beam.Remaining / 0.12f : 1f;
-            Color tint = beam.Info.Tint;
+            Color tint = beam.Info.Tint * beam.InstanceTint;
             beam.Material.AlbedoColor = new Color(tint.R, tint.G, tint.B, tint.A * fade);
         }
     }
 
     private void BuildLightningMesh(LightningBeam beam)
     {
-        Vector3 start = AnchorPoint(beam.From, beam.FromPoint);
-        Vector3 end = AnchorPoint(beam.To, beam.ToPoint);
+        ImmediateMesh mesh = beam.Mesh;
+        if (mesh == null || !GodotObject.IsInstanceValid(mesh)) return;
+        mesh.ClearSurfaces();
+
+        Vector3 start = AnchorPoint(beam.From, beam.FromGround, beam.StartHeight);
+        Vector3 end = AnchorPoint(beam.To, beam.ToGround, beam.EndHeight);
         Vector3 axis = end - start;
         float length = axis.Length();
         if (length < 1f) return;
 
-        int segments = Mathf.Clamp(Mathf.CeilToInt(length / Mathf.Max(16f, beam.Info.SegmentLength)), 2, 48);
+        LightningInfo info = beam.Info;
+        int segments = Mathf.Clamp(Mathf.CeilToInt(length / Mathf.Max(1f, info.SegmentLength)), 1, 64);
         Vector3 forward = axis / length;
-        Vector3 camera = _camera != null ? _camera.Camera.GlobalPosition : start + Vector3.Up * 400f;
-        Vector3 side = forward.Cross((camera - (start + end) * 0.5f).Normalized());
+
+        Vector3 viewDirection = _camera?.Camera != null
+            ? -_camera.Camera.GlobalTransform.Basis.Z
+            : Vector3.Back;
+        Vector3 side = forward.Cross(viewDirection);
         if (side.LengthSquared() < 0.0001f) side = forward.Cross(Vector3.Up);
+        if (side.LengthSquared() < 0.0001f) side = Vector3.Right;
         side = side.Normalized();
+        Vector3 vertical = side.Cross(forward).Normalized();
 
-        float halfWidth = Mathf.Max(2f, beam.Info.Width * 0.5f);
-        float jitter = beam.Info.NoiseScale * length;
-        float uTotal = Mathf.Max(0.5f, length / 200f * Mathf.Max(0.1f, beam.Info.TextureScale) * 2f);
+        float halfWidth = Mathf.Max(1f, info.Width * 0.5f);
+        float phase = beam.Age / Mathf.Max(0.01f, info.Linger);
+        float amplitude = Mathf.Min(96f, length * Mathf.Max(0f, info.NoiseScale));
+        float stride = length / Mathf.Max(1f, info.SegmentLength) * info.TextureScale;
 
-        var surface = new SurfaceTool();
-        surface.Begin(Mesh.PrimitiveType.Triangles);
-
+        mesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
         Vector3 previousCenter = start;
         for (int step = 1; step <= segments; step++)
         {
@@ -172,43 +200,51 @@ public sealed partial class War3GameScene
             Vector3 center = start.Lerp(end, t);
             if (step < segments)
             {
-                center += side * ((float)GD.Randf() * 2f - 1f) * jitter;
-                center += Vector3.Up * ((float)GD.Randf() * 2f - 1f) * jitter * 0.5f;
+                // 三处输入都参与哈希：闪电代号、段号、量化时间 → 同一时刻必得同一形状。
+                double seed = beam.Seed * 12.9898
+                    + step * 78.233
+                    + Math.Floor(phase * 24.0) * 37.719;
+                float raw = Mathf.Sin((float)seed) * 43758.5453f;
+                float raw2 = Mathf.Sin((float)seed + 19.19f) * 24634.6345f;
+                float noise = (raw - Mathf.Floor(raw)) * 2f - 1f;
+                float noise2 = (raw2 - Mathf.Floor(raw2)) * 2f - 1f;
+                center += side * noise * amplitude + vertical * noise2 * amplitude * 0.55f;
             }
 
-            float u0 = uTotal * (step - 1) / segments;
-            float u1 = uTotal * step / segments;
-
-            Vector3 a = previousCenter - side * halfWidth;
-            Vector3 b = previousCenter + side * halfWidth;
-            Vector3 c = center - side * halfWidth;
-            Vector3 d = center + side * halfWidth;
-
-            AddLightningVertex(surface, a, new Vector2(u0, 0f));
-            AddLightningVertex(surface, c, new Vector2(u1, 0f));
-            AddLightningVertex(surface, d, new Vector2(u1, 1f));
-            AddLightningVertex(surface, a, new Vector2(u0, 0f));
-            AddLightningVertex(surface, d, new Vector2(u1, 1f));
-            AddLightningVertex(surface, b, new Vector2(u0, 1f));
-
+            float u0 = ((step - 1) / (float)segments) * stride + phase;
+            float u1 = (t * stride) + phase;
+            AddLightningQuad(mesh, previousCenter - side * halfWidth, previousCenter + side * halfWidth,
+                center - side * halfWidth, center + side * halfWidth, u0, u1);
             previousCenter = center;
         }
-
-        ArrayMesh mesh = surface.Commit();
-        if (mesh == null) return;
-        beam.Node.Mesh = mesh;
+        mesh.SurfaceEnd();
     }
 
-    private static void AddLightningVertex(SurfaceTool surface, Vector3 point, Vector2 uv)
+    /// <summary>客户端 AddLightningQuad 的同款绕序，v 沿带宽方向 0→1。</summary>
+    private static void AddLightningQuad(ImmediateMesh mesh,
+        Vector3 a0, Vector3 a1, Vector3 b0, Vector3 b1, float u0, float u1)
     {
-        surface.SetUV(uv);
-        surface.AddVertex(point);
+        AddLightningVertex(mesh, a0, u0, 0f);
+        AddLightningVertex(mesh, a1, u0, 1f);
+        AddLightningVertex(mesh, b1, u1, 1f);
+        AddLightningVertex(mesh, a0, u0, 0f);
+        AddLightningVertex(mesh, b1, u1, 1f);
+        AddLightningVertex(mesh, b0, u1, 0f);
     }
 
-    private static Vector3 AnchorPoint(Unit unit, Vector3 fallback)
+    private static void AddLightningVertex(ImmediateMesh mesh, Vector3 point, float u, float v)
     {
-        if (unit == null || !unit.Alive) return fallback;
-        float height = unit.View != null ? unit.View.Height : 80f;
-        return unit.Position + Vector3.Up * Mathf.Max(24f, height * 0.55f);
+        mesh.SurfaceSetUV(new Vector2(u, v));
+        mesh.SurfaceAddVertex(point);
     }
+
+    /// <summary>端点：地面坐标 + 起始/命中高度（客户端 ChainLightningBeamEffect 的 StartHeight/EndHeight）。</summary>
+    private static Vector3 AnchorPoint(Unit unit, Vector3 ground, float height)
+    {
+        if (unit == null || !unit.Alive) return ground + Vector3.Up * height;
+        return unit.Position + Vector3.Up * height;
+    }
+
+    private bool FogVisible(Vector3 point)
+        => _fog == null || !_fog.Enabled || _fog.IsVisible(point);
 }

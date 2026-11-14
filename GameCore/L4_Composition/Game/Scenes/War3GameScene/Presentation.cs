@@ -25,6 +25,7 @@ public sealed partial class War3GameScene
         public float ImpactAge;
         public Vector3 ImpactPosition;
         public float ImpactYaw;
+        public float ImpactPitch;
     }
 
     private readonly List<Projectile> _projectiles = new();
@@ -37,24 +38,18 @@ public sealed partial class War3GameScene
         string missileScene = attacker.NextMissileScene ?? attacker.Type.MissileScene;
         attacker.NextMissileScene = null;
         PackedScene scene = Assets.LoadScene(missileScene);
-        if (scene != null)
+        if (scene == null)
         {
-            node = scene.Instantiate<Node3D>();
-            MapWorldBuilder.ApplyUnitTextureFilter(node);
-        }
-        else
-        {
-            node = new MeshInstance3D
+            // 客户端（Presentation.RenderProjectiles）找不到弹道模型只记日志，不画任何占位物。
+            if (_missileLogBudget > 0)
             {
-                Mesh = new SphereMesh { Radius = 12f, Height = 24f },
-                MaterialOverride = new StandardMaterial3D
-                {
-                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                    AlbedoColor = new Color(1f, 0.85f, 0.4f),
-                },
-            };
+                _missileLogBudget--;
+                GD.Print($"[MISSILE] {attacker.Type.Id} 缺弹道模型 {missileScene}，按客户端不绘制");
+            }
+            return;
         }
-
+        node = scene.Instantiate<Node3D>();
+        MapWorldBuilder.ApplyUnitTextureFilter(node);
         Vector3 from = LaunchPoint(attacker);
         float impactHeight = ImpactHeight(target);
         Vector3 to = target.Position + new Vector3(0f, impactHeight, 0f);
@@ -92,23 +87,18 @@ public sealed partial class War3GameScene
 
         Node3D node = null;
         PackedScene scene = Assets.LoadScene(PathResolve.ModelScene(ability.MissileArt));
-        if (scene != null)
+        if (scene == null)
         {
-            node = scene.Instantiate<Node3D>();
-            MapWorldBuilder.ApplyUnitTextureFilter(node);
-        }
-        else
-        {
-            node = new MeshInstance3D
+            // 技能没有弹道模型（或资源缺）时客户端整条弹道都不渲染，只留技能自己的命中艺术。
+            if (_missileLogBudget > 0)
             {
-                Mesh = new SphereMesh { Radius = 14f, Height = 28f },
-                MaterialOverride = new StandardMaterial3D
-                {
-                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                    AlbedoColor = new Color(1f, 0.95f, 0.55f),
-                },
-            };
+                _missileLogBudget--;
+                GD.Print($"[MISSILE] 技能 {ability.Name} 缺弹道模型 {ability.MissileArt}，按客户端不绘制");
+            }
+            return;
         }
+        node = scene.Instantiate<Node3D>();
+        MapWorldBuilder.ApplyUnitTextureFilter(node);
 
         Vector3 from = LaunchPoint(caster);
         float impactHeight = ImpactHeight(target);
@@ -122,7 +112,7 @@ public sealed partial class War3GameScene
             Node = node,
             From = from,
             To = to,
-            Arc = 0f,
+            Arc = Mathf.Max(0f, ability.MissileArc),
             Speed = Mathf.Max(200f, ability.MissileSpeed),
             Length = Mathf.Max(1f, from.DistanceTo(to)),
             Target = target,
@@ -136,7 +126,7 @@ public sealed partial class War3GameScene
         {
             _missileLogBudget--;
             GD.Print($"[MISSILE] 技能 {ability.Name} → {target.Type?.Id} 距离 {from.DistanceTo(to):0}"
-                + $" 速度 {ability.MissileSpeed:0} 模型 {(scene != null ? ability.MissileArt : "占位球")}");
+                + $" 速度 {ability.MissileSpeed:0} 模型 {ability.MissileArt}");
         }
     }
 
@@ -161,12 +151,17 @@ public sealed partial class War3GameScene
         return (target.View?.Height ?? 100f) * 0.5f;
     }
 
-    /// <summary>引导中的范围盘：一个半透明圆盘放在落点上，半径取技能 Area。</summary>
+    /// <summary>
+    /// 引导中的落点表现。客户端没有通用范围盘：每个引导技能把**自己的**艺术持续播在落点上
+    /// （ANmo 用 buff 的 Effectart 播满 Duration，ANrf 用 RainEffect 逐波发射）。
+    /// 这里按 AreaEffectArt → SpecialArt 取艺术，寿命取引导总时长。
+    /// </summary>
     private sealed class ChannelEffect
     {
-        public MeshInstance3D Node;
         public Ability Ability;
         public Vector3 Point;
+        public readonly List<SpecialEffect> Arts = new();
+        public bool HasPersistentArt => Arts.Count > 0;
     }
 
     private readonly Dictionary<Unit, ChannelEffect> _channelEffects = new();
@@ -174,51 +169,39 @@ public sealed partial class War3GameScene
 
     private void OnChannelStarted(Unit caster, Ability ability, Vector3 point)
     {
-        if (caster == null || ability == null) return;
+        if (caster == null || ability == null || _world == null) return;
 
-        float radius = Mathf.Max(40f, ability.Area);
-        float groundY = MapWorldBuilder.HeightAt(_map.Terrain, point.X, point.Z) + 4f;
-        var node = new MeshInstance3D
+        var effect = new ChannelEffect { Ability = ability, Point = point };
+        float lifeSpan = Mathf.Max(1f, ability.ChannelTotal);
+        foreach (string art in ChannelWaveArts(ability))
         {
-            Name = $"Channel_{ability.Id}",
-            Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 1.5f, RadialSegments = 40 },
-            MaterialOverride = new StandardMaterial3D
-            {
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                AlbedoColor = new Color(0.55f, 0.75f, 1f, 0.28f),
-            },
-            Position = new Vector3(point.X, groundY, point.Z),
-        };
-        AddChild(node);
-        _channelEffects[caster] = new ChannelEffect { Node = node, Ability = ability, Point = point };
+            SpecialEffect spawned = _world.AddSpecialEffect(art, new Vec2(point.X, point.Z),
+                lifeSpan: lifeSpan);
+            if (spawned == null) continue;
+            spawned.PlayStandAfterBirth = true;
+            effect.Arts.Add(spawned);
+        }
+        _channelEffects[caster] = effect;
 
         if (_channelLogBudget <= 0) return;
         _channelLogBudget--;
         GD.Print($"[CHANNEL] {caster.Type?.Name} 开始引导 {ability.Name} Lv{ability.Level}"
-            + $" 落点({point.X:0},{point.Z:0}) 半径{radius:0} 时长{ability.ChannelTotal:0}s"
-            + $" 每{ability.ChannelWaveInterval:0.0}s一波");
+            + $" 落点({point.X:0},{point.Z:0}) 半径{Mathf.Max(40f, ability.Area):0} 时长{ability.ChannelTotal:0}s"
+            + $" 每{ability.ChannelWaveInterval:0.0}s一波"
+            + $" 持续艺术 {(effect.Arts.Count > 0 ? string.Join("+", ChannelWaveArts(ability)) : "无")}");
     }
 
     private void OnChannelWave(Unit caster, Ability ability)
     {
         if (caster == null || ability == null) return;
         if (!_channelEffects.TryGetValue(caster, out ChannelEffect effect)) return;
+        if (_world == null) return;
 
-        // 波次表现：圆盘闪一下，并在范围内随机落一颗技能特效（原版每波下落一套冰锥/腐化地面）
-        if (effect.Node?.MaterialOverride is StandardMaterial3D material)
-        {
-            material.AlbedoColor = new Color(0.85f, 0.95f, 1f, 0.45f);
-            SceneTreeTimer flash = GetTree().CreateTimer(0.15);
-            flash.Timeout += () =>
-            {
-                if (IsInstanceValid(material)) material.AlbedoColor = new Color(0.55f, 0.75f, 1f, 0.28f);
-            };
-        }
+        // 持续性艺术已经铺满整个落点，客户端每波只结算命中目标，不再额外撒艺术。
+        if (effect.HasPersistentArt) return;
 
         IReadOnlyList<string> arts = ChannelWaveArts(ability);
         if (arts.Count == 0) return;
-        if (_world == null) return;
 
         float radius = Mathf.Max(60f, ability.Area);
         for (int index = 0; index < arts.Count; index++)
@@ -241,7 +224,9 @@ public sealed partial class War3GameScene
     {
         if (caster == null || !_channelEffects.TryGetValue(caster, out ChannelEffect effect)) return;
 
-        if (effect.Node != null && IsInstanceValid(effect.Node)) effect.Node.QueueFree();
+        // 客户端 ClearRain/OnCastFinished：引导结束或被打断时立刻收掉持续艺术。
+        foreach (SpecialEffect art in effect.Arts) art.Destroy();
+        effect.Arts.Clear();
         _channelEffects.Remove(caster);
 
         if (interrupted && _channelLogBudget >= 0)
@@ -251,7 +236,9 @@ public sealed partial class War3GameScene
     }
 
     private void TickProjectiles(float delta)
-    {        for (int index = _projectiles.Count - 1; index >= 0; index--)
+    {
+        float deathLimit = Mathf.Max(0f, War3GameplayConfig.Default.BulletDeathTime);
+        for (int index = _projectiles.Count - 1; index >= 0; index--)
         {
             Projectile projectile = _projectiles[index];
             if (projectile.Node == null || !IsInstanceValid(projectile.Node))
@@ -279,9 +266,13 @@ public sealed partial class War3GameScene
                     projectile.ImpactYaw = impactDirection.LengthSquared() > 1f
                         ? Mathf.Atan2(impactDirection.X, impactDirection.Z)
                         : projectile.Node.Rotation.Y;
+                    projectile.ImpactPitch = FlightPitch(projectile, 1f);
                     projectile.Node.Position = projectile.ImpactPosition;
-                    projectile.Node.Rotation = new Vector3(0f, projectile.ImpactYaw, 0f);
-                    if (projectile.Animation.Advance(projectile.Player, projectile.Age, 0f))
+                    projectile.Node.Rotation = new Vector3(-projectile.ImpactPitch,
+                        projectile.ImpactYaw, 0f);
+                    bool impactDone = projectile.Animation.Advance(projectile.Player, projectile.Age, 0f);
+                    // 客户端 BulletDeathTime=0 的弹道命中即消失，不留死亡尾巴。
+                    if (impactDone || deathLimit <= 0f)
                     {
                         projectile.Node.QueueFree();
                         _projectiles.RemoveAt(index);
@@ -289,24 +280,29 @@ public sealed partial class War3GameScene
                     continue;
                 }
 
-                Vector3 position = projectile.From.Lerp(projectile.To, projectile.Travel);
-                position.Y += projectile.Arc * projectile.Length * 4f
-                    * projectile.Travel * (1f - projectile.Travel);
+                float progress = Mathf.Clamp(projectile.Travel, 0f, 1f);
+                // 客户端 RenderArcOffset：4·arc·全长·t·(1-t)，叠在线性插值上。
+                Vector3 position = projectile.From.Lerp(projectile.To, progress);
+                position.Y += projectile.Arc * projectile.Length * 4f * progress * (1f - progress);
                 Vector3 direction = projectile.To - projectile.From;
-                if (direction.LengthSquared() > 1f)
-                {
-                    projectile.Node.Rotation = new Vector3(0f,
-                        Mathf.Atan2(direction.X, direction.Z), 0f);
-                }
+                float yaw = direction.LengthSquared() > 1f
+                    ? Mathf.Atan2(direction.X, direction.Z)
+                    : projectile.Node.Rotation.Y;
                 projectile.Node.Position = position;
+                // 客户端 VisualPitch：线性坡度 + 弧线切线，弹道沿飞行方向抬头/低头。
+                projectile.Node.Rotation = new Vector3(-FlightPitch(projectile, progress), yaw, 0f);
+                // 客户端 RenderVisibility.IsPositionVisible：黑雾里的弹道不画。
+                projectile.Node.Visible = IsAudible(position);
                 projectile.Animation.Advance(projectile.Player, projectile.Age, null);
                 continue;
             }
 
             projectile.ImpactAge += delta;
             projectile.Node.Position = projectile.ImpactPosition;
-            projectile.Node.Rotation = new Vector3(0f, projectile.ImpactYaw, 0f);
-            if (projectile.Animation.Advance(projectile.Player, projectile.Age, projectile.ImpactAge))
+            projectile.Node.Rotation = new Vector3(-projectile.ImpactPitch, projectile.ImpactYaw, 0f);
+            projectile.Node.Visible = IsAudible(projectile.ImpactPosition);
+            bool deathDone = projectile.Animation.Advance(projectile.Player, projectile.Age, projectile.ImpactAge);
+            if (deathDone || deathLimit <= 0f || projectile.ImpactAge >= deathLimit)
             {
                 projectile.Node.QueueFree();
                 _projectiles.RemoveAt(index);
@@ -314,6 +310,17 @@ public sealed partial class War3GameScene
         }
     }
 
+    /// <summary>客户端 Effect.VisualPitch：atan(线性坡度 + 4·arc·(1-2t))。</summary>
+    private static float FlightPitch(Projectile projectile, float progress)
+    {
+        Vector3 delta = projectile.To - projectile.From;
+        float horizontal = new Vector2(delta.X, delta.Z).Length();
+        float linearSlope = delta.Y / Mathf.Max(1f, horizontal);
+        float arcSlope = 4f * projectile.Arc * (1f - 2f * progress);
+        return Mathf.Atan(linearSlope + arcSlope);
+    }
+
+    /// <summary>客户端语音：选中 What、下令 Yes、死亡 Death（音效集取自 UnitUI.unitSound）。</summary>
     private void PlayVoice(Unit unit, string kind, string fallback = "Yes")
     {
         if (unit?.Type == null || _audio == null) return;

@@ -36,6 +36,9 @@ public sealed class War3GameplayConfig
             System.Globalization.CultureInfo.InvariantCulture, out float value) ? value : fallback;
     }
 
+    /// <summary>弹道命中后保留死亡表现的秒数（客户端 War3GameplayConfig.BulletDeathTime，MiscData 的 budt）。</summary>
+    public readonly float BulletDeathTime = MiscRules.Value("Misc.BulletDeathTime", 0f);
+
     public readonly int HeroMaxReviveCostGold = (int)MiscRules.Value("Misc.HeroMaxReviveCostGold", 700f);
     public readonly float HeroMaxReviveTime = MiscRules.Value("Misc.HeroMaxReviveTime", 150f);
     public readonly float HeroReviveLifeFactor = MiscRules.Value("Misc.HeroReviveLifeFactor", 1f);
