@@ -411,23 +411,24 @@ public sealed partial class MapSelectionScreen : Control
         if (Size != size) Size = size;
     }
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey key || !key.Pressed || key.Keycode != Key.Escape) return;
+        if (_raceSelection.Visible)
+        {
+            _raceSelection.Hide();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_difficultySelection.Visible)
+        {
+            _difficultySelection.Hide();
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
     public override void _GuiInput(InputEvent @event)
     {
-        if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.Escape)
-        {
-            if (_raceSelection.Visible)
-            {
-                _raceSelection.Hide();
-                AcceptEvent();
-                return;
-            }
-            if (_difficultySelection.Visible)
-            {
-                _difficultySelection.Hide();
-                AcceptEvent();
-                return;
-            }
-        }
         if (@event is InputEventMouseButton button)
         {
             if (button.ButtonIndex is not (MouseButton.Left or MouseButton.Right)) return;
