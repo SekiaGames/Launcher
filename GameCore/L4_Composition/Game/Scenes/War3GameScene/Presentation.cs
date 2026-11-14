@@ -404,6 +404,192 @@ public sealed partial class War3GameScene
         return "Human";
     }
 
+    // -----------------------------------------------------------------------
+    // 建筑底座（对标客户端 CUberSplatDB）：常驻记录池 + Birth 淡入 + 拆除 Decay 淡出
+    // -----------------------------------------------------------------------
+
+    private sealed class FoundationRecord
+    {
+        public Unit Owner;
+        public string Texture;
+        public int BlendMode;
+        public float Birth;
+        public float Pause;
+        public float Decay;
+        public Color Start;
+        public Color Middle;
+        public Color End;
+        public float Size;
+        public float X;
+        public float Y;
+        public bool Positioned;
+        public float Age;
+        public float ReleaseAge = -1f;
+        public bool Seen;
+        public bool Drawable;
+    }
+
+    private readonly Dictionary<Unit, FoundationRecord> _buildingFoundations = new();
+    private readonly List<Unit> _foundationExpired = new();
+    private readonly Dictionary<string, List<ShadowRenderer.Quad>> _foundationStatic = new();
+    private readonly Dictionary<string, List<ShadowRenderer.ColoredQuad>> _foundationFading = new();
+    private readonly Dictionary<string, int> _foundationBlend = new();
+    private ShadowRenderer _groundDecals;
+
+    private void TickBuildingFoundations(float delta)
+    {
+        if (_worldRoot == null || _map?.Terrain == null) return;
+        _groundDecals ??= new ShadowRenderer(_worldRoot, _map.Terrain);
+        AdvanceFoundations(delta);
+        foreach (Unit unit in _allUnits) ObserveFoundation(unit);
+        DrawBuildingFoundations();
+        _groundDecals.Flush();
+        int drawn = _groundDecals.DrawnQuadCount;
+        if (drawn != _foundationLogCount)
+        {
+            _foundationLogCount = drawn;
+            GD.Print($"[DECAL] 建筑底座 {drawn} 块（记录 {_buildingFoundations.Count} 条）");
+        }
+    }
+
+    private int _foundationLogCount = -1;
+
+    private void AdvanceFoundations(float delta)
+    {
+        float step = Mathf.Max(0f, delta);
+        _foundationExpired.Clear();
+        foreach (FoundationRecord record in _buildingFoundations.Values)
+        {
+            if (record.Seen)
+            {
+                record.Age += step;
+                record.Seen = false;
+                continue;
+            }
+            if (record.ReleaseAge < 0f) record.ReleaseAge = 0f;
+            record.ReleaseAge += step;
+            if (record.Decay <= 0f || record.ReleaseAge >= record.Decay) _foundationExpired.Add(record.Owner);
+        }
+        for (int i = 0; i < _foundationExpired.Count; i++) _buildingFoundations.Remove(_foundationExpired[i]);
+    }
+
+    private void ObserveFoundation(Unit unit)
+    {
+        if (unit == null || !unit.IsBuilding || !unit.Alive || unit.View == null) return;
+        UnitType type = unit.Type;
+        if (type == null || !type.HasGroundSplat) return;
+        if (!_buildingFoundations.TryGetValue(unit, out FoundationRecord record))
+        {
+            record = new FoundationRecord { Owner = unit, X = unit.Position.X, Y = unit.Position.Z };
+            _buildingFoundations[unit] = record;
+        }
+        record.Texture = type.GroundSplatTexture;
+        record.BlendMode = type.GroundSplatBlendMode;
+        record.Birth = Mathf.Max(0f, type.GroundSplatBirth);
+        record.Pause = Mathf.Max(0f, type.GroundSplatPause);
+        record.Decay = Mathf.Max(0f, type.GroundSplatDecay);
+        record.Start = type.GroundSplatStartColor;
+        record.Middle = type.GroundSplatMiddleColor;
+        record.End = type.GroundSplatEndColor;
+        record.Size = type.GroundSplatScale * 2f;
+        record.Seen = true;
+        record.ReleaseAge = -1f;
+        record.Drawable = IsFoundationVisible(unit);
+    }
+
+    private bool IsFoundationVisible(Unit unit)
+    {
+        if (_fog == null || !_fog.Enabled) return true;
+        if (unit.Player == ViewPlayer || AreAllied(unit.Player, ViewPlayer)) return true;
+        return _fog.IsVisible(unit.Position) || _fog.IsExplored(unit.Position);
+    }
+
+    private static Color FoundationMiddle(FoundationRecord record) =>
+        record.Middle == new Color(0f, 0f, 0f, 0f) ? new Color(1f, 1f, 1f, 1f) : record.Middle;
+
+    /// <summary>Start→Middle 走 Birth 段，Middle→End 走 ReleaseAge 段；稳态直接取 Middle。</summary>
+    private static Color FoundationColor(FoundationRecord record)
+    {
+        Color middle = FoundationMiddle(record);
+        if (record.Birth <= 0f && record.Decay <= 0f) return middle;
+        Color start = record.Start == new Color(0f, 0f, 0f, 0f)
+            ? new Color(middle.R, middle.G, middle.B, 0f) : record.Start;
+        Color end = record.End == new Color(0f, 0f, 0f, 0f)
+            ? new Color(middle.R, middle.G, middle.B, 0f) : record.End;
+        if (record.Seen)
+        {
+            if (record.Birth <= 0f || record.Age >= record.Birth) return middle;
+            return start.Lerp(middle, Mathf.Clamp(record.Age / record.Birth, 0f, 1f));
+        }
+        float releaseAge = Mathf.Max(0f, record.ReleaseAge);
+        if (releaseAge <= 0f) return middle;
+        if (record.Decay <= 0f || releaseAge >= record.Decay) return end;
+        return middle.Lerp(end, Mathf.Clamp(releaseAge / record.Decay, 0f, 1f));
+    }
+
+    private void DrawBuildingFoundations()
+    {
+        _groundDecals.Begin();
+        foreach (List<ShadowRenderer.Quad> list in _foundationStatic.Values) list.Clear();
+        foreach (List<ShadowRenderer.ColoredQuad> list in _foundationFading.Values) list.Clear();
+        _foundationBlend.Clear();
+
+        foreach (FoundationRecord record in _buildingFoundations.Values)
+        {
+            Color color = FoundationColor(record);
+            if (color.A <= 0.004f) continue;
+            if (record.Seen)
+            {
+                Node3D root = record.Owner?.View?.Root;
+                if (root == null) continue;
+                record.X = root.Position.X;
+                record.Y = root.Position.Z;
+                record.Positioned = true;
+                if (!record.Drawable) continue;
+            }
+            else if (!record.Positioned || !record.Drawable)
+            {
+                continue;
+            }
+
+            float half = record.Size * 0.5f;
+            float mapX = 0f - record.X, mapY = record.Y;
+            var quad = new ShadowRenderer.Quad(mapX - half, mapY - half, mapX + half, mapY + half);
+            _foundationBlend[record.Texture] = record.BlendMode;
+            if (color == FoundationMiddle(record))
+            {
+                if (!_foundationStatic.TryGetValue(record.Texture, out List<ShadowRenderer.Quad> list))
+                {
+                    list = new List<ShadowRenderer.Quad>();
+                    _foundationStatic[record.Texture] = list;
+                }
+                list.Add(quad);
+            }
+            else
+            {
+                if (!_foundationFading.TryGetValue(record.Texture, out List<ShadowRenderer.ColoredQuad> list))
+                {
+                    list = new List<ShadowRenderer.ColoredQuad>();
+                    _foundationFading[record.Texture] = list;
+                }
+                list.Add(new ShadowRenderer.ColoredQuad(quad, color));
+            }
+        }
+
+        foreach (KeyValuePair<string, List<ShadowRenderer.Quad>> pair in _foundationStatic)
+        {
+            if (pair.Value.Count == 0) continue;
+            int blend = _foundationBlend.GetValueOrDefault(pair.Key);
+            _groundDecals.Draw(pair.Value, pair.Key, 1f, null, ShadowRenderer.GroundSplatOffset, blend);
+        }
+        foreach (KeyValuePair<string, List<ShadowRenderer.ColoredQuad>> pair in _foundationFading)
+        {
+            if (pair.Value.Count == 0) continue;
+            int blend = _foundationBlend.GetValueOrDefault(pair.Key);
+            _groundDecals.DrawColored(pair.Value, pair.Key, ShadowRenderer.GroundSplatOffset, blend);
+        }
+    }
+
     private static int _uiSoundLogBudget = 6;
 
     private void PlayUiSound(string soundName, Vector3 position, int player)

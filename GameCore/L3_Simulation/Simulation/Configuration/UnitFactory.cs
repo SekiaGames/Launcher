@@ -83,6 +83,20 @@ public sealed class UnitType
     public float ShadowOffsetX;
     public float ShadowOffsetY;
 
+    // UnitUI.uberSplat → Splats/UberSplatData.slk：建筑底下的地面层替换贴花。
+    // Scale 是半径，Quad 边长 = Scale×2；UBR 表无 Lifespan，只有 Birth/Pause/Decay。
+    public string GroundSplatTexture = "";
+    public float GroundSplatScale;
+    public float GroundSplatBirth;
+    public float GroundSplatPause;
+    public float GroundSplatDecay;
+    public Color GroundSplatStartColor = new(1f, 1f, 1f, 1f);
+    public Color GroundSplatMiddleColor = new(1f, 1f, 1f, 1f);
+    public Color GroundSplatEndColor = new(1f, 1f, 1f, 1f);
+    public int GroundSplatBlendMode;
+
+    public bool HasGroundSplat => GroundSplatScale > 0f && !string.IsNullOrEmpty(GroundSplatTexture);
+
     // —— 英雄字段（UnitBalance 的 STR/AGI/INT + 成长 + Primary） ——
     public bool IsHero;
     public bool HideInHeroBar;
@@ -301,6 +315,7 @@ public static class UnitFactory
             ShadowOffsetY = Number(ui.Get(uiRow, "shadowY"), 0f),
             HideInHeroBar = Number(ui.Get(uiRow, "hideHeroBar"), 0f) > 0.5f,
         };
+        ApplyGroundSplat(type, ui.Get(uiRow, "uberSplat"));
 
         if (BalanceRows.TryGetValue(id, out int balanceRow))
         {
@@ -517,4 +532,35 @@ public static class UnitFactory
         return float.TryParse(text.Trim(), System.Globalization.NumberStyles.Float,
             System.Globalization.CultureInfo.InvariantCulture, out float value) ? value : fallback;
     }
+
+    /// <summary>UnitUI.uberSplat 的四码 → Splats/UberSplatData.slk 一行（客户端 Resolve("UBRx"+id)）。</summary>
+    private static void ApplyGroundSplat(UnitType type, string uberSplat)
+    {
+        string id = (uberSplat ?? "").Trim();
+        if (id.Length == 0 || id == "_" || id == "-") return;
+        SlkTable table = War3SlkReader.UberSplatData();
+        int row = table.FindRow("Name", id);
+        if (row < 0) return;
+
+        string directory = (table.Get(row, "Dir") ?? "").Replace('\\', '/').Trim().TrimEnd('/');
+        string file = (table.Get(row, "file") ?? "").Trim();
+        if (file.Length == 0) return;
+
+        type.GroundSplatTexture = directory.Length == 0 ? file + ".png" : directory + "/" + file + ".png";
+        type.GroundSplatScale = Number(table.Get(row, "Scale"), 0f);
+        type.GroundSplatBirth = MathF.Max(0f, Number(table.Get(row, "BirthTime"), 0f));
+        type.GroundSplatPause = MathF.Max(0f, Number(table.Get(row, "PauseTime"), 0f));
+        type.GroundSplatDecay = MathF.Max(0f, Number(table.Get(row, "Decay"), 0f));
+        type.GroundSplatStartColor = SplatColor(table, row, "Start");
+        type.GroundSplatMiddleColor = SplatColor(table, row, "Middle");
+        type.GroundSplatEndColor = SplatColor(table, row, "End");
+        type.GroundSplatBlendMode = (int)Number(table.Get(row, "BlendMode"), 0f);
+    }
+
+    private static Color SplatColor(SlkTable table, int row, string phase) => new(
+        Mathf.Clamp(Number(table.Get(row, phase + "R"), 255f) / 255f, 0f, 1f),
+        Mathf.Clamp(Number(table.Get(row, phase + "G"), 255f) / 255f, 0f, 1f),
+        Mathf.Clamp(Number(table.Get(row, phase + "B"), 255f) / 255f, 0f, 1f),
+        Mathf.Clamp(Number(table.Get(row, phase + "A"), 255f) / 255f, 0f, 1f));
+
 }

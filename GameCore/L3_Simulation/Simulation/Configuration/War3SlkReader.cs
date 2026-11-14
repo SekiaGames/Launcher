@@ -55,6 +55,8 @@ public static class War3SlkReader
     public static SlkTable DestructableData() => Get("UnitsDestructableData");
     public static SlkTable ItemData() => Get("UnitsItemData");
     public static SlkTable Terrain() => Get("TerrainArtTerrain");
+    public static SlkTable UberSplatData() => Get("SplatsUberSplatData");
+    public static SlkTable SplatData() => Get("SplatsSplatData");
     public static SlkTable CliffTypes() => Get("TerrainArtCliffTypes");
     public static SlkTable Water() => Get("TerrainArtWater");
     public static SlkTable Doodads() => Get("DoodadsDoodads");
