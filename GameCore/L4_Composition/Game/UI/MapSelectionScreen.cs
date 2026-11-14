@@ -30,6 +30,7 @@ public sealed partial class MapSelectionScreen : Control
     readonly StringFrame _name, _suggestedPlayers, _mapSize, _tileset, _description, _players;
     readonly StringFrame _mapVersion, _compatibilityWarning;
     readonly UiFrame _panel;
+    readonly GlueModelLayer _glue;
     readonly ButtonFrame _play;
     readonly RaceSelectionDialogFrame _raceSelection;
     readonly AiDifficultyDialogFrame _difficultySelection;
@@ -62,20 +63,7 @@ public sealed partial class MapSelectionScreen : Control
         _maps = new List<string>(ListGmapsFullPaths());
         _maps.Sort(CompareBySize);
 
-        ITexture background = _textures.Resolve(_skin.Get("GlueSpriteLayerBackground",
-            @"UI\Glues\MainMenu\MainMenuBackground.blp"));
-        if (background != null)
-        {
-            var fill = new TextureFrame("MapSelectionBackground") { Texture = background };
-            _panel.AddChild(fill);
-            fill.RenderBounds = new UiRect(0f, 0f, DesignWidth, DesignHeight);
-        }
-        else
-        {
-            var fill = new SolidFrame("MapSelectionBackground", new NVector4(.02f, .025f, .03f, 1f));
-            _panel.AddChild(fill);
-            fill.RenderBounds = new UiRect(0f, 0f, DesignWidth, DesignHeight);
-        }
+        _glue = new GlueModelLayer(this, GlueModelLayer.SkirmishBackground);
 
         var title = Text("MapSelectionTitle", 28, new NVector4(1f, .86f, .42f, 1f));
         title.Text = "选择地图";
@@ -397,6 +385,7 @@ public sealed partial class MapSelectionScreen : Control
 
     public override void _Process(double delta)
     {
+        _glue.FollowCameraTarget();
         UpdateLayoutRect();
         QueueRedraw();
     }
@@ -465,6 +454,7 @@ public sealed partial class MapSelectionScreen : Control
     public override void _Draw()
     {
         UpdateLayoutRect();
+        DrawTextureRect(_glue.Texture, new Rect2(Vector2.Zero, Size), false);
         float scaleX = Size.X / DesignWidth;
         float scaleY = Size.Y / DesignHeight;
         _root.UpdateViewport(DesignWidth, DesignHeight);
